@@ -4,7 +4,7 @@ const middleOfUSA = [-100, 40];
 
 async function getLocation() {
   try {
-    const response = await fetch("https://ip-api.com/json/");
+    const response = await fetch("http://ip-api.com/json/");
     const json = await response.json();
     if (typeof json.lat === "number" && typeof json.lon === "number") {
       return [json.lon, json.lat];
@@ -15,7 +15,8 @@ async function getLocation() {
 
 async function init() {
   const map = new maplibregl.Map({
-    style: "/styles/dark.json"
+    //style: "/styles/dark.json",
+    style: "https://tiles.openfreemap.org/styles/liberty",
     center: middleOfUSA,
     zoom: 2,
     container: "map",
