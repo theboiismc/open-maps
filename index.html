@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Modern Map</title>
+  <title>Modern Map with Info Panel</title>
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
     html, body {
@@ -18,44 +18,59 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      width: 100%;
+      left: 300px;
+      right: 0;
+    }
+
+    .sidebar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 300px;
+      background: #fff;
+      box-shadow: 2px 0 6px rgba(0,0,0,0.1);
+      padding: 16px;
+      overflow-y: auto;
+      z-index: 999;
+    }
+
+    .sidebar h2 {
+      margin-top: 0;
+      font-size: 18px;
     }
 
     .search-container {
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
       width: 100%;
-      max-width: 400px;
-      z-index: 999;
+      position: relative;
     }
 
     #search {
       width: 100%;
-      padding: 12px 14px;
-      font-size: 15px;
+      padding: 10px 12px;
+      font-size: 14px;
       border: none;
-      border-radius: 10px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
       outline: none;
     }
 
     #suggestions {
       position: absolute;
-      top: 50px;
-      width: 100%;
+      top: 42px;
+      left: 0;
+      right: 0;
       background: white;
-      border-radius: 10px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
       display: none;
       max-height: 200px;
       overflow-y: auto;
+      z-index: 1000;
     }
 
     .suggestion {
-      padding: 10px 14px;
+      padding: 10px;
       cursor: pointer;
     }
 
@@ -64,17 +79,32 @@
     }
 
     @media (max-width: 600px) {
-      .search-container {
-        max-width: 90%;
+      .sidebar {
+        width: 100%;
+        height: auto;
+        bottom: auto;
+        left: 0;
+        top: 0;
+      }
+      #map {
+        top: 200px;
+        left: 0;
       }
     }
   </style>
 </head>
 <body>
-  <div class="search-container">
-    <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off"/>
-    <div id="suggestions"></div>
+  <div class="sidebar">
+    <div class="search-container">
+      <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" />
+      <div id="suggestions"></div>
+    </div>
+    <div id="info" style="margin-top: 20px;">
+      <h2>Location Info</h2>
+      <p>Search for a location to see details here.</p>
+    </div>
   </div>
+
   <div id="map"></div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
