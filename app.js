@@ -1,65 +1,44 @@
-import "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js";
+// Initialize MapLibre map (no API key)
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://demotiles.maplibre.org/style.json',
+  center: [0, 20],
+  zoom: 2
+});
 
-const middleOfUSA = [-100, 40];
+// Add zoom & rotation controls
+map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-async function getLocation() {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(middleOfUSA);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve([pos.coords.longitude, pos.coords.latitude]),
-      () => resolve(middleOfUSA)
-    );
-  });
-}
+// Add location tracking button
+map.addControl(new maplibregl.GeolocateControl({
+  positionOptions: { enableHighAccuracy: true },
+  trackUserLocation: true,
+  showUserHeading: true
+}), 'top-right');
 
-async function init() {
-  const map = new maplibregl.Map({
-    container: "map",
-    style: "https://demotiles.maplibre.org/style.json",
-    center: middleOfUSA,
-    zoom: 2,
-  });
+// Handle search
+const input = document.getElementById('search');
+input.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') {
+    const query = encodeURIComponent(input.value.trim());
+    if (!query) return;
 
-  const location = await getLocation();
-  if (location !== middleOfUSA) {
-    map.flyTo({ center: location, zoom: 10 });
-    new maplibregl.Popup({ closeOnClick: false })
-      .setLngLat(location)
-      .setHTML("<h3>You are approximately here!</h3>")
-      .addTo(map);
+    fetch(`https://photon.komoot.io/api/?q=${query}&limit=1`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.features.length > 0) {
+          const [lon, lat] = data.features[0].geometry.coordinates;
+          map.flyTo({ center: [lon, lat], zoom: 10 });
+
+          // Add marker
+          new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
+        } else {
+          alert("No location found.");
+        }
+      })
+      .catch(err => {
+        console.error('Search error:', err);
+        alert("Failed to search. Try again.");
+      });
   }
-
-  // Search handler
-  const searchInput = document.getElementById("search");
-  searchInput.addEventListener("keydown", async (e) => {
-    if (e.key === "Enter") {
-      const query = encodeURIComponent(searchInput.value.trim());
-      if (!query) return;
-
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`);
-      const data = await res.json();
-      if (data.length > 0) {
-        const { lon, lat, display_name } = data[0];
-        const coords = [parseFloat(lon), parseFloat(lat)];
-        map.flyTo({ center: coords, zoom: 12 });
-        new maplibregl.Popup()
-          .setLngLat(coords)
-          .setHTML(`<strong>${display_name}</strong>`)
-          .addTo(map);
-      }
-    }
-  });
-
-  // Locate button
-  const locateBtn = document.getElementById("locate-btn");
-  locateBtn.addEventListener("click", async () => {
-    const loc = await getLocation();
-    map.flyTo({ center: loc, zoom: 12 });
-    new maplibregl.Popup()
-      .setLngLat(loc)
-      .setHTML("<h3>You are approximately here!</h3>")
-      .addTo(map);
-  });
-}
-
-init();
+});
