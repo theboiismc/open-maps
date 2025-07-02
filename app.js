@@ -15,8 +15,7 @@ async function getLocation() {
 
 async function init() {
   const map = new maplibregl.Map({
-    //style: "/styles/dark.json",
-    style: "https://tiles.openfreemap.org/styles/liberty",
+    style: "/styles/dark.json"
     center: middleOfUSA,
     zoom: 2,
     container: "map",
