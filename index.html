@@ -1,36 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Maps</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clean Map</title>
+  <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet"/>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f0f0;
+    }
 
-    <!-- Favicon (🗺️ emoji) -->
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>"
-    />
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
 
-    <!-- MapLibre GL CSS -->
-    <link
-      href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
-      rel="stylesheet"
-    />
+    #search-container {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      width: 280px;
+      z-index: 999;
+    }
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <!-- Controls: search + locate -->
-    <div id="controls">
-      <input type="text" id="search" placeholder="Search for a place..." />
-      <button id="locate-btn">📍</button>
-    </div>
+    #search {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      font-size: 14px;
+      outline: none;
+    }
 
-    <!-- Map Container -->
-    <div id="map"></div>
+    @media (max-width: 600px) {
+      #search-container {
+        width: 90%;
+        left: 5%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="search-container">
+    <input id="search" type="text" placeholder="Search city, state, country..." />
+  </div>
+  <div id="map"></div>
 
-    <!-- Main App Script -->
-    <script type="module" src="app.js"></script>
-  </body>
+  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>
