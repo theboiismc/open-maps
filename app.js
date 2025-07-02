@@ -1,7 +1,6 @@
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.stadiamaps.com/styles/osm-bright.json',
-
   center: [0, 20],
   zoom: 2
 });
