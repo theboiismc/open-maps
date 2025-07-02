@@ -5,7 +5,7 @@ const map = new maplibregl.Map({
   zoom: 2
 });
 
-// Controls
+// Add controls
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
@@ -13,11 +13,11 @@ map.addControl(new maplibregl.GeolocateControl({
   showUserHeading: true
 }), 'top-right');
 
-// Search logic
+// DOM elements
 const input = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
-
-let marker; // Reuse single marker
+const infoBox = document.getElementById('info');
+let marker;
 
 input.addEventListener('input', async () => {
   const query = input.value.trim();
@@ -32,23 +32,34 @@ input.addEventListener('input', async () => {
   suggestionsBox.innerHTML = '';
   if (data.features.length > 0) {
     data.features.forEach(feature => {
-      const name = feature.properties.name;
-      const state = feature.properties.state || '';
-      const country = feature.properties.country || '';
-      const label = `${name}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
+      const props = feature.properties;
+      const name = props.name;
+      const city = props.city || '';
+      const state = props.state || '';
+      const country = props.country || '';
+      const label = `${name}${city ? ', ' + city : ''}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
 
       const div = document.createElement('div');
       div.className = 'suggestion';
       div.textContent = label;
       div.onclick = () => {
         const [lon, lat] = feature.geometry.coordinates;
-        map.flyTo({ center: [lon, lat], zoom: 10 });
+        map.flyTo({ center: [lon, lat], zoom: 12 });
 
         if (marker) marker.remove();
         marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
 
         input.value = label;
         suggestionsBox.style.display = 'none';
+
+        // Update sidebar info
+        infoBox.innerHTML = `
+          <h2>${name}</h2>
+          <p><strong>City:</strong> ${props.city || '—'}</p>
+          <p><strong>State:</strong> ${props.state || '—'}</p>
+          <p><strong>Country:</strong> ${props.country || '—'}</p>
+          <p><strong>OSM Type:</strong> ${props.osm_value || '—'}</p>
+        `;
       };
 
       suggestionsBox.appendChild(div);
@@ -60,6 +71,7 @@ input.addEventListener('input', async () => {
   }
 });
 
+// Hide dropdown when clicking outside
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.search-container')) {
     suggestionsBox.style.display = 'none';
