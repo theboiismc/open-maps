@@ -1,6 +1,6 @@
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/liberty', // OpenFreeMap style
+  style: 'https://tiles.openfreemap.org/styles/liberty',  // OpenFreeMap style
   center: [0, 20],
   zoom: 3,
   pitch: 0,  // Set pitch to 0 for a flat view (no tilt)
@@ -99,6 +99,62 @@ function selectPlace(feature, label) {
   `;
   infoBox.style.display = 'block';
 }
+
+// Add layers
+map.on('load', function () {
+  // Satellite Layer (Using ESRI Satellite imagery tiles)
+  map.addSource('satellite', {
+    'type': 'raster',
+    'tiles': [
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',  // ESRI's satellite imagery tiles
+    ],
+    'tileSize': 256
+  });
+
+  map.addLayer({
+    'id': 'satellite-layer',
+    'type': 'raster',
+    'source': 'satellite',
+    'paint': {
+      'raster-opacity': 0.8
+    }
+  });
+
+  // Terrain Layer (Using Stamen Terrain tiles)
+  map.addSource('terrain', {
+    'type': 'raster',
+    'tiles': [
+      'https://{s}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg',  // Stamen Terrain tiles for topographic view
+    ],
+    'tileSize': 256
+  });
+
+  map.addLayer({
+    'id': 'terrain-layer',
+    'type': 'raster',
+    'source': 'terrain',
+    'paint': {
+      'raster-opacity': 0.7
+    }
+  });
+
+  // Traffic Layer (Placeholder with GeoJSON, replace with real traffic data if available)
+  map.addSource('traffic', {
+    'type': 'geojson',
+    'data': 'https://raw.githubusercontent.com/YourTrafficDataSource/traffic.geojson', // Example traffic data source (replace it with real data)
+  });
+
+  map.addLayer({
+    'id': 'traffic-layer',
+    'type': 'line',
+    'source': 'traffic',
+    'paint': {
+      'line-color': '#ff0000',
+      'line-width': 4,
+      'line-opacity': 0.6
+    }
+  });
+});
 
 // Layer toggle functionality
 document.getElementById('satellite-toggle').onclick = () => {
