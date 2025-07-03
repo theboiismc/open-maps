@@ -5,8 +5,7 @@ const map = new maplibregl.Map({
   zoom: 2
 });
 
-
-// Add controls
+// Add map controls
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
@@ -14,12 +13,13 @@ map.addControl(new maplibregl.GeolocateControl({
   showUserHeading: true
 }), 'top-right');
 
-// DOM elements
+// Elements
 const input = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
 const infoBox = document.getElementById('info');
 let marker;
 
+// Handle input
 input.addEventListener('input', async () => {
   const query = input.value.trim();
   if (!query) {
@@ -27,54 +27,69 @@ input.addEventListener('input', async () => {
     return;
   }
 
-  const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
-  const data = await res.json();
+  suggestionsBox.innerHTML = '<div class="suggestion">Searching...</div>';
+  suggestionsBox.style.display = 'block';
 
-  suggestionsBox.innerHTML = '';
-  if (data.features.length > 0) {
-    data.features.forEach(feature => {
-      const props = feature.properties;
-      const name = props.name;
-      const city = props.city || '';
-      const state = props.state || '';
-      const country = props.country || '';
-      const label = `${name}${city ? ', ' + city : ''}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
+  try {
+    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
+    const data = await res.json();
 
-      const div = document.createElement('div');
-      div.className = 'suggestion';
-      div.textContent = label;
-      div.onclick = () => {
-        const [lon, lat] = feature.geometry.coordinates;
-        map.flyTo({ center: [lon, lat], zoom: 12 });
+    suggestionsBox.innerHTML = '';
+    if (data.features.length > 0) {
+      data.features.forEach(feature => {
+        const props = feature.properties;
+        const name = props.name;
+        const city = props.city || '';
+        const state = props.state || '';
+        const country = props.country || '';
+        const label = `${name}${city ? ', ' + city : ''}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
 
-        if (marker) marker.remove();
-        marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
+        const div = document.createElement('div');
+        div.className = 'suggestion';
+        div.textContent = label;
+        div.onclick = () => selectPlace(feature, label);
+        suggestionsBox.appendChild(div);
+      });
+    } else {
+      suggestionsBox.innerHTML = '<div class="suggestion">No results found</div>';
+    }
+  } catch (err) {
+    suggestionsBox.innerHTML = '<div class="suggestion">Error fetching suggestions</div>';
+  }
+});
 
-        input.value = label;
-        suggestionsBox.style.display = 'none';
+// On select
+function selectPlace(feature, label) {
+  const [lon, lat] = feature.geometry.coordinates;
+  map.flyTo({ center: [lon, lat], zoom: 12 });
 
-        // Update sidebar info
-        infoBox.innerHTML = `
-          <h2>${name}</h2>
-          <p><strong>City:</strong> ${props.city || '—'}</p>
-          <p><strong>State:</strong> ${props.state || '—'}</p>
-          <p><strong>Country:</strong> ${props.country || '—'}</p>
-          <p><strong>OSM Type:</strong> ${props.osm_value || '—'}</p>
-        `;
-      };
+  if (marker) marker.remove();
+  marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
 
-      suggestionsBox.appendChild(div);
-    });
+  input.value = label;
+  suggestionsBox.style.display = 'none';
 
-    suggestionsBox.style.display = 'block';
-  } else {
+  const props = feature.properties;
+  infoBox.innerHTML = `
+    <h2>${props.name}</h2>
+    <p><strong>City:</strong> ${props.city || '—'}</p>
+    <p><strong>State:</strong> ${props.state || '—'}</p>
+    <p><strong>Country:</strong> ${props.country || '—'}</p>
+    <p><strong>OSM Type:</strong> ${props.osm_value || '—'}</p>
+  `;
+  infoBox.style.display = 'block';
+}
+
+// Hide suggestions on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-bar')) {
     suggestionsBox.style.display = 'none';
   }
 });
 
-// Hide dropdown when clicking outside
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.search-container')) {
-    suggestionsBox.style.display = 'none';
+// Enter key selects first suggestion
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && suggestionsBox.firstChild) {
+    suggestionsBox.firstChild.click();
   }
 });
