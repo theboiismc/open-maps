@@ -2,16 +2,19 @@ const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',  // OpenFreeMap style
   center: [0, 20],
-  zoom: 2,
-  pitch: 45,  // Set initial pitch angle for 3D effect
-  bearing: 0, // Set initial bearing (rotation)
-  dragRotate: true,  // Allow rotation with mouse or touch
-  touchZoomRotate: true,  // Allow pinch zoom and rotate
-  scrollZoom: true,  // Allow scroll zoom
-  maxZoom: 18,  // Set max zoom to mimic Google Maps (feel free to adjust)
-  minZoom: 2,  // Set a reasonable minimum zoom level
-  maxPitch: 60,  // Max tilt of the map, can go up to 60 degrees
-  minPitch: 10,  // Min tilt of the map to allow looking at it from a lower angle
+  zoom: 3,
+  pitch: 0,  // Set pitch to 0 for a flat view (no tilt)
+  bearing: 0, // Default rotation (no rotation)
+  dragRotate: true,  // Allow map rotation with mouse or touch
+  touchZoomRotate: true,  // Allow pinch zoom and rotate on mobile
+  scrollZoom: true,  // Enable scroll zoom
+  maxZoom: 18,  // Max zoom for Google Maps-like feel
+  minZoom: 2,  // Min zoom for Google Maps-like feel
+  maxPitch: 45,  // Limit pitch to a reasonable 45 degrees (Google Maps-like)
+  minPitch: 0,  // Keep map from excessive tilting (flat view)
+  zoomAnimation: true,  // Enable smooth zooming
+  rotationAnimation: true,  // Enable smooth map rotation
+  fadeDuration: 0, // Instant fades, for a cleaner experience
 });
 
 let marker;
@@ -71,10 +74,8 @@ function selectPlace(feature, label) {
   map.flyTo({
     center: [lon, lat],
     zoom: 12,
-    pitch: 45,  // Set the desired tilt when flying to a place
-    bearing: 0, // Default rotation
-    speed: 1,  // Adjust the speed of the flyTo animation
-    curve: 1,  // Make the animation curve smoother
+    speed: 1,  // Adjust speed for smooth animation
+    curve: 1,  // Smooth curve of the animation
     easing(t) {
       return t; // Linear easing for smooth transition
     }
@@ -111,7 +112,7 @@ input.addEventListener('keydown', (e) => {
   }
 });
 
-// Add 3D building layer if available in OpenFreeMap style
+// Add layers after map loads
 map.on('load', function () {
   // Check if OpenFreeMap style has 3D buildings and add them
   if (map.getSource('composite') && map.getSource('composite').getLayer('building')) {
@@ -129,4 +130,54 @@ map.on('load', function () {
       }
     });
   }
+
+  // Add Satellite Layer (Mapbox Satellite)
+  map.addSource('satellite', {
+    'type': 'raster',
+    'url': 'mapbox://mapbox.satellite',
+    'tileSize': 256
+  });
+
+  map.addLayer({
+    'id': 'satellite-layer',
+    'type': 'raster',
+    'source': 'satellite',
+    'paint': {
+      'raster-opacity': 0.8
+    }
+  });
+
+  // Add Terrain Layer (Mapbox Terrain)
+  map.addSource('terrain', {
+    'type': 'raster',
+    'url': 'mapbox://mapbox.terrain-rgb',
+    'tileSize': 256
+  });
+
+  map.addLayer({
+    'id': 'terrain-layer',
+    'type': 'raster',
+    'source': 'terrain',
+    'paint': {
+      'raster-opacity': 0.7
+    }
+  });
+
+  // Add Traffic Layer (Traffic Flow from Mapbox)
+  map.addSource('traffic', {
+    'type': 'vector',
+    'url': 'mapbox://mapbox.mapbox-traffic-v1'
+  });
+
+  map.addLayer({
+    'id': 'traffic-layer',
+    'type': 'line',
+    'source': 'traffic',
+    'source-layer': 'traffic',
+    'paint': {
+      'line-color': '#ff0000',
+      'line-width': 4,
+      'line-opacity': 0.6
+    }
+  });
 });
