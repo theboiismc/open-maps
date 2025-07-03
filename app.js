@@ -3,10 +3,10 @@ const map = new maplibregl.Map({
   style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 20],
   zoom: 3,
-  pitch: 0,
+  pitch: 0,      // Ensure flat view
   bearing: 0,
-  dragRotate: true,
-  touchZoomRotate: true,
+  dragRotate: false,         // Disable drag rotation for flat map
+  touchZoomRotate: false,    // Disable touch rotation as well
   scrollZoom: true,
   maxZoom: 18,
   minZoom: 2
@@ -17,7 +17,7 @@ const input = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
 const infoBox = document.getElementById('info');
 
-// Add controls in bottom-right
+// Add controls in bottom-right (these are not tilt-enabled)
 map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
@@ -34,14 +34,10 @@ input.addEventListener('input', async () => {
   }
   suggestionsBox.innerHTML = '<div class="suggestion">Searching...</div>';
   suggestionsBox.style.display = 'block';
-
   try {
-    const res = await fetch(
-      `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`
-    );
+    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
     const data = await res.json();
     suggestionsBox.innerHTML = '';
-
     if (data.features.length) {
       data.features.forEach(feature => {
         const p = feature.properties;
@@ -68,7 +64,6 @@ function selectPlace(feature, label) {
   marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
   input.value = label;
   suggestionsBox.style.display = 'none';
-
   const p = feature.properties;
   infoBox.innerHTML = `
     <h2>${p.name}</h2>
@@ -80,14 +75,14 @@ function selectPlace(feature, label) {
   infoBox.style.display = 'block';
 }
 
-// Hide suggestions on outside click
+// Hide suggestions when clicking outside
 document.addEventListener('click', e => {
   if (!e.target.closest('.search-bar')) {
     suggestionsBox.style.display = 'none';
   }
 });
 
-// Enter selects first suggestion
+// Pressing Enter selects the first suggestion
 input.addEventListener('keydown', e => {
   if (e.key === 'Enter' && suggestionsBox.firstChild) {
     suggestionsBox.firstChild.click();
