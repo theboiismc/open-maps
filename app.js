@@ -3,11 +3,15 @@ const map = new maplibregl.Map({
   style: 'https://tiles.openfreemap.org/styles/liberty',  // OpenFreeMap style
   center: [0, 20],
   zoom: 2,
-  pitch: 45,  // Start the map with a 45° pitch for 3D look
-  bearing: 0, // Default rotation
-  dragRotate: true,  // Allow map rotation
-  touchZoomRotate: true,  // Enable pinch zoom and rotate on mobile
-  scrollZoom: true,  // Enable scroll zoom
+  pitch: 45,  // Set initial pitch angle for 3D effect
+  bearing: 0, // Set initial bearing (rotation)
+  dragRotate: true,  // Allow rotation with mouse or touch
+  touchZoomRotate: true,  // Allow pinch zoom and rotate
+  scrollZoom: true,  // Allow scroll zoom
+  maxZoom: 18,  // Set max zoom to mimic Google Maps (feel free to adjust)
+  minZoom: 2,  // Set a reasonable minimum zoom level
+  maxPitch: 60,  // Max tilt of the map, can go up to 60 degrees
+  minPitch: 10,  // Min tilt of the map to allow looking at it from a lower angle
 });
 
 let marker;
@@ -64,7 +68,17 @@ input.addEventListener('input', async () => {
 // Select a place from suggestions
 function selectPlace(feature, label) {
   const [lon, lat] = feature.geometry.coordinates;
-  map.flyTo({ center: [lon, lat], zoom: 12 });
+  map.flyTo({
+    center: [lon, lat],
+    zoom: 12,
+    pitch: 45,  // Set the desired tilt when flying to a place
+    bearing: 0, // Default rotation
+    speed: 1,  // Adjust the speed of the flyTo animation
+    curve: 1,  // Make the animation curve smoother
+    easing(t) {
+      return t; // Linear easing for smooth transition
+    }
+  });
 
   if (marker) marker.remove();
   marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
