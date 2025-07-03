@@ -1,6 +1,6 @@
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/liberty',  // OpenFreeMap style
+  style: 'https://tiles.openfreemap.org/styles/liberty', // OpenFreeMap style
   center: [0, 20],
   zoom: 3,
   pitch: 0,  // Set pitch to 0 for a flat view (no tilt)
@@ -100,68 +100,31 @@ function selectPlace(feature, label) {
   infoBox.style.display = 'block';
 }
 
-// Add layers
-map.on('load', function () {
-  map.addSource('satellite', {
-    'type': 'raster',
-    'url': 'mapbox://mapbox.satellite',
-    'tileSize': 256
-  });
-
-  map.addLayer({
-    'id': 'satellite-layer',
-    'type': 'raster',
-    'source': 'satellite',
-    'paint': {
-      'raster-opacity': 0.8
-    }
-  });
-
-  map.addSource('terrain', {
-    'type': 'raster',
-    'url': 'mapbox://mapbox.terrain-rgb',
-    'tileSize': 256
-  });
-
-  map.addLayer({
-    'id': 'terrain-layer',
-    'type': 'raster',
-    'source': 'terrain',
-    'paint': {
-      'raster-opacity': 0.7
-    }
-  });
-
-  map.addSource('traffic', {
-    'type': 'vector',
-    'url': 'mapbox://mapbox.mapbox-traffic-v1'
-  });
-
-  map.addLayer({
-    'id': 'traffic-layer',
-    'type': 'line',
-    'source': 'traffic',
-    'source-layer': 'traffic',
-    'paint': {
-      'line-color': '#ff0000',
-      'line-width': 4,
-      'line-opacity': 0.6
-    }
-  });
-});
-
-// Layer toggling functionality
+// Layer toggle functionality
 document.getElementById('satellite-toggle').onclick = () => {
   satelliteVisible = !satelliteVisible;
   map.setLayoutProperty('satellite-layer', 'visibility', satelliteVisible ? 'visible' : 'none');
+  toggleButtonStyle('satellite-toggle', satelliteVisible);
 };
 
 document.getElementById('terrain-toggle').onclick = () => {
   terrainVisible = !terrainVisible;
   map.setLayoutProperty('terrain-layer', 'visibility', terrainVisible ? 'visible' : 'none');
+  toggleButtonStyle('terrain-toggle', terrainVisible);
 };
 
 document.getElementById('traffic-toggle').onclick = () => {
   trafficVisible = !trafficVisible;
   map.setLayoutProperty('traffic-layer', 'visibility', trafficVisible ? 'visible' : 'none');
+  toggleButtonStyle('traffic-toggle', trafficVisible);
 };
+
+// Toggle active state of the buttons
+function toggleButtonStyle(buttonId, isActive) {
+  const button = document.getElementById(buttonId);
+  if (isActive) {
+    button.classList.add('active');
+  } else {
+    button.classList.remove('active');
+  }
+}
