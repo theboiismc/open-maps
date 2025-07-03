@@ -1,9 +1,10 @@
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://tiles.openfreemaps.org/styles/osm-bright/style.json',
+  style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 20],
   zoom: 2
 });
+
 
 // Add controls
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
