@@ -6,7 +6,6 @@
   <title>Open Map Search</title>
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
-    /* Basic reset for body */
     html, body {
       margin: 0;
       padding: 0;
@@ -15,16 +14,12 @@
       font-family: 'Segoe UI', sans-serif;
       background-color: #f4f4f4;
     }
-
     #map {
       position: absolute;
       top: 0;
       bottom: 0;
       width: 100%;
-      z-index: 0;
     }
-
-    /* Search bar */
     .search-bar {
       position: absolute;
       top: 16px;
@@ -34,130 +29,68 @@
       max-width: 600px;
       z-index: 1001;
       display: flex;
-      justify-content: center;
-      align-items: center;
+      background: rgba(255,255,255,0.85);
       border-radius: 30px;
-      background: rgba(255, 255, 255, 0.85);
       padding: 12px 20px;
-      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
-      border: none;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.2);
     }
-
     #search {
       width: 100%;
-      padding: 12px;
-      font-size: 16px;
       border: none;
       background: transparent;
       outline: none;
-      font-weight: 500;
+      font-size: 16px;
       color: #333;
-      border-radius: 20px;
     }
-
     #search::placeholder {
       color: #888;
     }
-
-    /* Suggestions */
     #suggestions {
-      margin-top: 4px;
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 600px;
       background: #fff;
       border-radius: 12px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
       display: none;
       max-height: 200px;
       overflow-y: auto;
       z-index: 1002;
-      position: absolute;
-      top: 50px;
-      width: 100%;
     }
-
     .suggestion {
       padding: 10px 16px;
       cursor: pointer;
       font-size: 14px;
-      transition: background-color 0.3s;
     }
-
     .suggestion:hover {
       background: #e0e0e0;
     }
-
-    /* Info Box */
     .info-box {
       position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255,255,255,0.9);
       padding: 16px;
       border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
       min-width: 250px;
       max-width: 90%;
-      z-index: 1000;
       display: none;
+      z-index: 1000;
     }
-
     .info-box h2 {
       margin: 0 0 8px;
       font-size: 18px;
       font-weight: 600;
     }
-
     .info-box p {
       margin: 4px 0;
       font-size: 14px;
       color: #555;
-    }
-
-    /* Layer toggle menu in bottom-left */
-    .layer-controls {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      z-index: 1002;
-      background: rgba(255, 255, 255, 0.85);
-      padding: 10px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .layer-controls button {
-      padding: 12px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      font-size: 18px;
-      width: 40px;
-      height: 40px;
-    }
-
-    .layer-controls button:hover {
-      background-color: #0056b3;
-    }
-
-    /* Control active layer buttons */
-    .active {
-      background-color: #0056b3;
-    }
-
-    /* Hide default MapLibre controls */
-    .maplibregl-ctrl {
-      display: none;
-    }
-
-    .maplibregl-ctrl-group {
-      display: none;
     }
   </style>
 </head>
@@ -165,18 +98,11 @@
   <div id="map"></div>
   <div class="search-bar">
     <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" />
-    <div id="suggestions"></div>
   </div>
+  <div id="suggestions"></div>
   <div id="info" class="info-box">
     <h2>Location Info</h2>
     <p>Search for a location to see details.</p>
-  </div>
-
-  <!-- Layer Control UI in Bottom Left -->
-  <div class="layer-controls">
-    <button id="satellite-toggle" title="Toggle Satellite View">🌍</button>
-    <button id="terrain-toggle" title="Toggle Terrain View">🏞️</button>
-    <button id="traffic-toggle" title="Toggle Traffic Layer">🚗</button>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
