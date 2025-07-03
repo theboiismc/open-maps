@@ -102,11 +102,11 @@ function selectPlace(feature, label) {
 
 // Add layers
 map.on('load', function () {
-  // Satellite Layer (Using ESRI Satellite imagery tiles)
+  // Satellite Layer (Using CartoDB Positron for a lighter satellite-like view)
   map.addSource('satellite', {
     'type': 'raster',
     'tiles': [
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',  // ESRI's satellite imagery tiles
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', // CartoDB Positron tiles
     ],
     'tileSize': 256
   });
@@ -120,13 +120,15 @@ map.on('load', function () {
     }
   });
 
-  // Terrain Layer (Using Stamen Terrain tiles)
+  // Terrain Layer (Using Stamen Terrain tiles for topographic view)
   map.addSource('terrain', {
     'type': 'raster',
     'tiles': [
-      'https://{s}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg',  // Stamen Terrain tiles for topographic view
+      'https://{s}.tile.stamen.com/terrain/{z}/{x}/{y}.jpg',  // Stamen Terrain tiles
     ],
-    'tileSize': 256
+    'tileSize': 256,
+    'minzoom': 1,  // Minimum zoom for terrain detail
+    'maxzoom': 18,  // Maximum zoom for terrain detail
   });
 
   map.addLayer({
