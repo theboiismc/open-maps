@@ -5,7 +5,6 @@ const map = new maplibregl.Map({
   zoom: 1.5,
   pitch: 0,
   bearing: 0,
-  hash: false,
   dragRotate: true,
   touchZoomRotate: true,
   scrollZoom: true,
@@ -15,12 +14,76 @@ const map = new maplibregl.Map({
   rotationAnimation: true,
 });
 
+// Add navigation and geolocate controls bottom right
 map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
-map.addControl(new maplibregl.GeolocateControl({
-  positionOptions: { enableHighAccuracy: true },
-  trackUserLocation: true,
-  showUserHeading: true,
-}), 'bottom-right');
+map.addControl(
+  new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: true },
+    trackUserLocation: true,
+    showUserHeading: true,
+  }),
+  'bottom-right'
+);
+
+let marker;
+
+const input = document.getElementById('search');
+const suggestionsBox = document.getElementById('suggestions');
+
+input.addEventListener('input', async () => {
+  const query = input.value.trim();
+  if (!query) {
+    suggestionsBox.style.display = 'none';
+    return;
+  }
+  suggestionsBox.innerHTML = '<div class="suggestion">Searching...</div>';
+  suggestionsBox.style.display = 'block';
+  try {
+    const res = await fetch(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`
+    );
+    const data = await res.json();
+    suggestionsBox.innerHTML = '';
+    if (data.features.length > 0) {
+      data.features.forEach((feature) => {
+        const props = feature.properties;
+        const name = props.name;
+        const city = props.city || '';
+        const state = props.state || '';
+        const country = props.country || '';
+        const label = `${name}${city ? ', ' + city : ''}${state ? ', ' + state : ''}${
+          country ? ', ' + country : ''
+        }`;
+        const div = document.createElement('div');
+        div.className = 'suggestion';
+        div.textContent = label;
+        div.onclick = () => selectPlace(feature, label);
+        suggestionsBox.appendChild(div);
+      });
+    } else {
+      suggestionsBox.innerHTML = '<div class="suggestion">No results found</div>';
+    }
+  } catch (err) {
+    suggestionsBox.innerHTML = '<div class="suggestion">Error fetching suggestions</div>';
+  }
+});
+
+function selectPlace(feature, label) {
+  const [lon, lat] = feature.geometry.coordinates;
+  map.flyTo({
+    center: [lon, lat],
+    zoom: 12,
+    speed: 1,
+    curve: 1,
+    easing(t) {
+      return t;
+    },
+  });
+  if (marker) marker.remove();
+  marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
+  input.value = label;
+  suggestionsBox.style.display = 'none';
+}
 
 let satelliteVisible = false;
 
