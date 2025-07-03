@@ -10,17 +10,19 @@ const map = new maplibregl.Map({
   scrollZoom: true,  // Enable scroll zoom
   maxZoom: 18,  // Max zoom for Google Maps-like feel
   minZoom: 2,  // Min zoom for Google Maps-like feel
-  maxPitch: 45,  // Limit pitch to a reasonable 45 degrees (Google Maps-like)
-  minPitch: 0,  // Keep map from excessive tilting (flat view)
   zoomAnimation: true,  // Enable smooth zooming
   rotationAnimation: true,  // Enable smooth map rotation
-  fadeDuration: 0, // Instant fades, for a cleaner experience
 });
 
 let marker;
 const input = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
 const infoBox = document.getElementById('info');
+
+// Layer visibility flags
+let satelliteVisible = false;
+let terrainVisible = false;
+let trafficVisible = false;
 
 // Add navigation and geolocation controls
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -98,40 +100,8 @@ function selectPlace(feature, label) {
   infoBox.style.display = 'block';
 }
 
-// Hide suggestions on outside click
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.search-bar')) {
-    suggestionsBox.style.display = 'none';
-  }
-});
-
-// Handle Enter key to select the first suggestion
-input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && suggestionsBox.firstChild) {
-    suggestionsBox.firstChild.click();
-  }
-});
-
-// Add layers after map loads
+// Add layers
 map.on('load', function () {
-  // Check if OpenFreeMap style has 3D buildings and add them
-  if (map.getSource('composite') && map.getSource('composite').getLayer('building')) {
-    map.addLayer({
-      'id': '3d-buildings',
-      'type': 'fill-extrusion',
-      'source': 'composite',
-      'source-layer': 'building',
-      'minzoom': 15,
-      'paint': {
-        'fill-extrusion-color': '#aaa',
-        'fill-extrusion-height': ['get', 'height'],
-        'fill-extrusion-base': ['get', 'min_height'],
-        'fill-extrusion-opacity': 0.6
-      }
-    });
-  }
-
-  // Add Satellite Layer (Mapbox Satellite)
   map.addSource('satellite', {
     'type': 'raster',
     'url': 'mapbox://mapbox.satellite',
@@ -147,7 +117,6 @@ map.on('load', function () {
     }
   });
 
-  // Add Terrain Layer (Mapbox Terrain)
   map.addSource('terrain', {
     'type': 'raster',
     'url': 'mapbox://mapbox.terrain-rgb',
@@ -163,7 +132,6 @@ map.on('load', function () {
     }
   });
 
-  // Add Traffic Layer (Traffic Flow from Mapbox)
   map.addSource('traffic', {
     'type': 'vector',
     'url': 'mapbox://mapbox.mapbox-traffic-v1'
@@ -181,3 +149,19 @@ map.on('load', function () {
     }
   });
 });
+
+// Layer toggling functionality
+document.getElementById('satellite-toggle').onclick = () => {
+  satelliteVisible = !satelliteVisible;
+  map.setLayoutProperty('satellite-layer', 'visibility', satelliteVisible ? 'visible' : 'none');
+};
+
+document.getElementById('terrain-toggle').onclick = () => {
+  terrainVisible = !terrainVisible;
+  map.setLayoutProperty('terrain-layer', 'visibility', terrainVisible ? 'visible' : 'none');
+};
+
+document.getElementById('traffic-toggle').onclick = () => {
+  trafficVisible = !trafficVisible;
+  map.setLayoutProperty('traffic-layer', 'visibility', trafficVisible ? 'visible' : 'none');
+};
