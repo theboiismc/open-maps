@@ -1,11 +1,21 @@
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/liberty',
+  style: 'https://tiles.openfreemap.org/styles/liberty',  // OpenFreeMap style
   center: [0, 20],
-  zoom: 2
+  zoom: 2,
+  pitch: 45,  // Start the map with a 45° pitch for 3D look
+  bearing: 0, // Default rotation
+  dragRotate: true,  // Allow map rotation
+  touchZoomRotate: true,  // Enable pinch zoom and rotate on mobile
+  scrollZoom: true,  // Enable scroll zoom
 });
 
-// Add map controls
+let marker;
+const input = document.getElementById('search');
+const suggestionsBox = document.getElementById('suggestions');
+const infoBox = document.getElementById('info');
+
+// Add navigation and geolocation controls
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
@@ -13,13 +23,7 @@ map.addControl(new maplibregl.GeolocateControl({
   showUserHeading: true
 }), 'top-right');
 
-// Elements
-const input = document.getElementById('search');
-const suggestionsBox = document.getElementById('suggestions');
-const infoBox = document.getElementById('info');
-let marker;
-
-// Handle input
+// Handle input for search functionality
 input.addEventListener('input', async () => {
   const query = input.value.trim();
   if (!query) {
@@ -33,8 +37,8 @@ input.addEventListener('input', async () => {
   try {
     const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
     const data = await res.json();
-
     suggestionsBox.innerHTML = '';
+
     if (data.features.length > 0) {
       data.features.forEach(feature => {
         const props = feature.properties;
@@ -43,7 +47,6 @@ input.addEventListener('input', async () => {
         const state = props.state || '';
         const country = props.country || '';
         const label = `${name}${city ? ', ' + city : ''}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
-
         const div = document.createElement('div');
         div.className = 'suggestion';
         div.textContent = label;
@@ -58,7 +61,7 @@ input.addEventListener('input', async () => {
   }
 });
 
-// On select
+// Select a place from suggestions
 function selectPlace(feature, label) {
   const [lon, lat] = feature.geometry.coordinates;
   map.flyTo({ center: [lon, lat], zoom: 12 });
@@ -87,9 +90,29 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Enter key selects first suggestion
+// Handle Enter key to select the first suggestion
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && suggestionsBox.firstChild) {
     suggestionsBox.firstChild.click();
+  }
+});
+
+// Add 3D building layer if available in OpenFreeMap style
+map.on('load', function () {
+  // Check if OpenFreeMap style has 3D buildings and add them
+  if (map.getSource('composite') && map.getSource('composite').getLayer('building')) {
+    map.addLayer({
+      'id': '3d-buildings',
+      'type': 'fill-extrusion',
+      'source': 'composite',
+      'source-layer': 'building',
+      'minzoom': 15,
+      'paint': {
+        'fill-extrusion-color': '#aaa',
+        'fill-extrusion-height': ['get', 'height'],
+        'fill-extrusion-base': ['get', 'min_height'],
+        'fill-extrusion-opacity': 0.6
+      }
+    });
   }
 });
