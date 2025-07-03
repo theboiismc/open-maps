@@ -3,10 +3,10 @@ const map = new maplibregl.Map({
   style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 20],
   zoom: 3,
-  pitch: 0,      // Ensure flat view
+  pitch: 0,
   bearing: 0,
-  dragRotate: false,         // Disable drag rotation for flat map
-  touchZoomRotate: false,    // Disable touch rotation as well
+  dragRotate: false,
+  touchZoomRotate: false,
   scrollZoom: true,
   maxZoom: 18,
   minZoom: 2
@@ -17,13 +17,20 @@ const input = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
 const infoBox = document.getElementById('info');
 
-// Add controls in bottom-right (these are not tilt-enabled)
+// Add controls to bottom-right
 map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
   trackUserLocation: true,
   showUserHeading: true
 }), 'bottom-right');
+
+// 🔒 LOCK map in flat mode after load
+map.on('load', () => {
+  map.setPitch(0);                            // Make sure it's flat
+  map.dragRotate.disable();                  // Prevent mouse tilting
+  map.touchZoomRotate.disableRotation();     // Prevent touch tilt
+});
 
 // Handle search input
 input.addEventListener('input', async () => {
@@ -34,11 +41,13 @@ input.addEventListener('input', async () => {
   }
   suggestionsBox.innerHTML = '<div class="suggestion">Searching...</div>';
   suggestionsBox.style.display = 'block';
+
   try {
     const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
     const data = await res.json();
     suggestionsBox.innerHTML = '';
-    if (data.features.length) {
+
+    if (data.features.length > 0) {
       data.features.forEach(feature => {
         const p = feature.properties;
         const label = `${p.name}${p.city ? ', ' + p.city : ''}${p.state ? ', ' + p.state : ''}${p.country ? ', ' + p.country : ''}`;
@@ -46,17 +55,17 @@ input.addEventListener('input', async () => {
         div.className = 'suggestion';
         div.textContent = label;
         div.onclick = () => selectPlace(feature, label);
-        suggestionsBox.append(div);
+        suggestionsBox.appendChild(div);
       });
     } else {
       suggestionsBox.innerHTML = '<div class="suggestion">No results found</div>';
     }
-  } catch {
+  } catch (err) {
     suggestionsBox.innerHTML = '<div class="suggestion">Error fetching suggestions</div>';
   }
 });
 
-// Fly to selection
+// Select and fly to place
 function selectPlace(feature, label) {
   const [lon, lat] = feature.geometry.coordinates;
   map.flyTo({ center: [lon, lat], zoom: 12, speed: 1, curve: 1, easing: t => t });
@@ -64,6 +73,7 @@ function selectPlace(feature, label) {
   marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
   input.value = label;
   suggestionsBox.style.display = 'none';
+
   const p = feature.properties;
   infoBox.innerHTML = `
     <h2>${p.name}</h2>
@@ -82,7 +92,7 @@ document.addEventListener('click', e => {
   }
 });
 
-// Pressing Enter selects the first suggestion
+// Enter selects first suggestion
 input.addEventListener('keydown', e => {
   if (e.key === 'Enter' && suggestionsBox.firstChild) {
     suggestionsBox.firstChild.click();
