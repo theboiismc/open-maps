@@ -77,7 +77,6 @@ const getDirectionsButton = document.getElementById('get-directions');
 let currentSearchResults = [];
 let originCoordinates = null; // Track the coordinates for the origin
 
-// Location search event listener
 searchInput.addEventListener('input', async (e) => {
   const query = e.target.value;
   if (!query) {
@@ -85,7 +84,6 @@ searchInput.addEventListener('input', async (e) => {
     return;
   }
 
-  // Fetch results from Nominatim API (OpenStreetMap geocoding service)
   const response = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
   );
@@ -119,7 +117,6 @@ originInput.addEventListener('input', async (e) => {
     return;
   }
 
-  // Fetch results from Nominatim API (OpenStreetMap geocoding service)
   const response = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
   );
@@ -156,75 +153,88 @@ getDirectionsButton.addEventListener('click', async () => {
   const destination = currentSearchResults[0]; // Use the first search result as destination
   const origin = originCoordinates;
   
-  // Construct the routing URL using OpenStreetMap's routing API
-  const routeUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&steps=true`;
+  // Construct the routing URL using OpenStreetMap's routing API with polyline encoding
+  const routeUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&steps=true&geometries=polyline`;
 
   try {
     const routeResponse = await fetch(routeUrl);
     const routeData = await routeResponse.json();
 
+    console.log('Route Response:', routeData);  // Log the full API response for debugging
+
     if (routeData.routes && routeData.routes.length > 0) {
       const route = routeData.routes[0];
-      const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
 
-      // Add route to map
-      if (!map.getSource('route')) {
-        map.addSource('route', {
-          type: 'geojson',
-          data: {
+      // Check if route has valid polyline geometry
+      if (route.geometry) {
+        const polylineEncoded = route.geometry;  // This is the polyline string
+
+        // Decode the polyline to get the coordinates
+        const coords = polyline.decode(polylineEncoded).map(([lat, lon]) => [lon, lat]);
+
+        // Add route to map
+        if (!map.getSource('route')) {
+          map.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: coords,
+              },
+            },
+          });
+          map.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-cap': 'round',
+              'line-join': 'round',
+            },
+            paint: {
+              'line-color': '#0078ff',
+              'line-width': 6,
+            },
+          });
+        } else {
+          map.getSource('route').setData({
             type: 'Feature',
             geometry: {
               type: 'LineString',
               coordinates: coords,
             },
-          },
-        });
-        map.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
-          layout: {
-            'line-cap': 'round',
-            'line-join': 'round',
-          },
-          paint: {
-            'line-color': '#0078ff',
-            'line-width': 6,
-          },
+          });
+        }
+
+        // Fit map bounds to the route
+        const bounds = coords.reduce(
+          (b, c) => b.extend(c),
+          new maplibregl.LngLatBounds(coords[0], coords[0])
+        );
+        map.fitBounds(bounds, { padding: 50 });
+
+        // Display directions steps
+        const steps = route.legs[0].steps;
+        directionsSteps.innerHTML = '';
+        steps.forEach((step, i) => {
+          const div = document.createElement('div');
+          div.innerHTML = `
+            <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
+            <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
+          `;
+          div.style.marginBottom = '8px';
+          directionsSteps.appendChild(div);
         });
       } else {
-        map.getSource('route').setData({
-          type: 'Feature',
-          geometry: {
-            type: 'LineString',
-            coordinates: coords,
-          },
-        });
+        console.error('Route data does not contain valid polyline geometry');
+        alert('Failed to fetch valid route data.');
       }
-
-      // Fit map bounds to the route
-      const bounds = coords.reduce(
-        (b, c) => b.extend(c),
-        new maplibregl.LngLatBounds(coords[0], coords[0])
-      );
-      map.fitBounds(bounds, { padding: 50 });
-
-      // Display directions steps
-      const steps = route.legs[0].steps;
-      directionsSteps.innerHTML = '';
-      steps.forEach((step, i) => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-          <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
-          <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
-        `;
-        div.style.marginBottom = '8px';
-        directionsSteps.appendChild(div);
-      });
     } else {
       alert('Failed to fetch directions.');
     }
   } catch (error) {
+    console.error('Error fetching directions:', error);
     alert('Failed to fetch directions: ' + error.message);
   }
 });
