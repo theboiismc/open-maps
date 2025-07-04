@@ -22,6 +22,8 @@ const input = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
 
 const originInput = document.getElementById('origin');
+const originSuggestionsBox = document.getElementById('origin-suggestions');
+
 const getDirBtn = document.getElementById('get-directions');
 const directionsUI = document.getElementById('directions-ui');
 const directionsSteps = document.getElementById('directions-steps');
@@ -36,7 +38,7 @@ const geoControl = new maplibregl.GeolocateControl({
 document.getElementById('map-controls').appendChild(navControl.onAdd(map));
 document.getElementById('map-controls').appendChild(geoControl.onAdd(map));
 
-// Search input handler
+// ---- MAIN SEARCH (DESTINATION) HANDLER ---- //
 input.addEventListener('input', async () => {
   const query = input.value.trim();
   if (!query) {
@@ -104,7 +106,59 @@ function selectPlace(feature, label) {
   originInput.dataset.origLat = '';
 }
 
-// Geolocate origin on focus and autofill
+// ---- ORIGIN INPUT SUGGESTIONS ---- //
+originInput.addEventListener('input', async () => {
+  const query = originInput.value.trim();
+  if (!query || query.toLowerCase() === 'my location') {
+    originSuggestionsBox.style.display = 'none';
+    return;
+  }
+
+  originSuggestionsBox.innerHTML = '<div class="origin-suggestion">Searching...</div>';
+  originSuggestionsBox.style.display = 'block';
+
+  try {
+    const res = await fetch(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`
+    );
+    const data = await res.json();
+    originSuggestionsBox.innerHTML = '';
+    if (data.features.length > 0) {
+      data.features.forEach(feature => {
+        const props = feature.properties;
+        const name = props.name;
+        const city = props.city || '';
+        const state = props.state || '';
+        const country = props.country || '';
+        const label = `${name}${city ? ', ' + city : ''}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
+        const div = document.createElement('div');
+        div.className = 'origin-suggestion';
+        div.textContent = label;
+        div.onclick = () => {
+          originInput.value = label;
+          originInput.dataset.autofilled = '';
+          originInput.dataset.origLon = feature.geometry.coordinates[0];
+          originInput.dataset.origLat = feature.geometry.coordinates[1];
+          originSuggestionsBox.style.display = 'none';
+        };
+        originSuggestionsBox.appendChild(div);
+      });
+    } else {
+      originSuggestionsBox.innerHTML = '<div class="origin-suggestion">No results found</div>';
+    }
+  } catch {
+    originSuggestionsBox.innerHTML = '<div class="origin-suggestion">Error fetching suggestions</div>';
+  }
+});
+
+// Hide origin suggestions when clicking outside
+document.addEventListener('click', e => {
+  if (!originInput.contains(e.target) && !originSuggestionsBox.contains(e.target)) {
+    originSuggestionsBox.style.display = 'none';
+  }
+});
+
+// Geolocate origin on focus and autofill "My Location"
 originInput.addEventListener('focus', () => {
   if (!originInput.dataset.autofilled && navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
@@ -116,7 +170,7 @@ originInput.addEventListener('focus', () => {
   }
 });
 
-// Clear any existing route layer
+// ---- ROUTING & DRAWING ---- //
 function clearRoute() {
   if (map.getLayer(routeLayerId)) {
     map.removeLayer(routeLayerId);
@@ -127,9 +181,8 @@ function clearRoute() {
   directionsSteps.innerHTML = '';
 }
 
-// Draw route using ORS API and show step-by-step
 async function drawRoute(oLon, oLat, dLon, dLat) {
-  const apiKey = 'YOUR_ORS_API_KEY'; // <-- Replace this with your OpenRouteService API key
+  const apiKey = 'YOUR_ORS_API_KEY'; // <-- replace with your OpenRouteService API key
   const url =
     `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}` +
     `&start=${oLon},${oLat}&end=${dLon},${dLat}`;
@@ -174,7 +227,7 @@ async function drawRoute(oLon, oLat, dLon, dLat) {
   });
 }
 
-// Get directions button click
+// ---- GET DIRECTIONS BUTTON ---- //
 getDirBtn.addEventListener('click', async () => {
   if (!destination) {
     alert('Pick a destination first');
@@ -212,7 +265,7 @@ getDirBtn.addEventListener('click', async () => {
   }
 });
 
-// Layer toggle buttons (unchanged)
+// ---- LAYER TOGGLE (unchanged) ---- //
 let satelliteVisible = false;
 map.on('load', () => {
   map.addSource('satellite', {
