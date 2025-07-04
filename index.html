@@ -16,7 +16,7 @@
       position: absolute; top: 0; bottom: 0; width: 100%; z-index: 0;
     }
 
-    /* New search bar in top-left corner */
+    /* Search bar fixed top-left with stable suggestions */
     .search-bar {
       position: absolute;
       top: 16px;
@@ -32,6 +32,7 @@
       gap: 8px;
       font-family: 'Segoe UI', sans-serif;
       user-select: none;
+      position: relative; /* IMPORTANT for positioning suggestions */
     }
 
     #hamburger-btn, #search-btn {
@@ -61,16 +62,18 @@
       font-weight: 500;
     }
 
-    /* Suggestions and directions UI styling */
-    #suggestions, #origin-suggestions {
-      margin-top: 8px;
-      border-radius: 12px;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+    /* Suggestions box positioned absolutely to avoid layout issues */
+    #suggestions {
+      position: absolute;
+      top: 48px; /* below search bar */
+      left: 0;
+      right: 0;
       max-height: 220px;
       overflow-y: auto;
       background: white;
+      border-radius: 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
       font-size: 14px;
-      position: relative;
       z-index: 15000;
     }
 
@@ -97,6 +100,17 @@
 
     #origin-suggestions {
       margin-top: 4px;
+      position: absolute;
+      top: 48px;
+      left: 0;
+      right: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+      font-size: 14px;
+      z-index: 16000;
     }
 
     .origin-suggestion, .suggestion {
