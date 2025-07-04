@@ -50,7 +50,7 @@
       box-shadow: 0 0 6px #0078ffaa;
     }
 
-    #suggestions {
+    #suggestions, #origin-suggestions {
       max-height: 220px;
       overflow-y: auto;
       border-radius: 8px;
@@ -58,12 +58,15 @@
       background: white;
       font-size: 14px;
       display: none;
+      margin-top: 4px;
+      position: relative;
+      z-index: 15000;
     }
-    .suggestion {
+    .suggestion, .origin-suggestion {
       padding: 10px 16px;
       cursor: pointer;
     }
-    .suggestion:hover {
+    .suggestion:hover, .origin-suggestion:hover {
       background: #f0f8ff;
     }
 
@@ -171,6 +174,7 @@
         autocomplete="off"
         spellcheck="false"
       />
+      <div id="origin-suggestions"></div>
       <button id="get-directions">Get Directions</button>
       <div id="directions-steps"></div>
     </div>
