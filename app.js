@@ -61,9 +61,7 @@ input.addEventListener('input', async () => {
         const city = props.city || '';
         const state = props.state || '';
         const country = props.country || '';
-        const label = `${name}${city ? ', ' + city : ''}${
-          state ? ', ' + state : ''
-        }${country ? ', ' + country : ''}`;
+        const label = `${name}${city ? ', ' + city : ''}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
         const div = document.createElement('div');
         div.className = 'suggestion';
         div.textContent = label;
@@ -127,17 +125,15 @@ function clearRoute() {
   directionsSteps.innerHTML = '';
 }
 
-// Draw route using ORS API and show step-by-step
+// Draw route using OSRM and show step-by-step
 async function drawRoute(oLon, oLat, dLon, dLat) {
-  const apiKey = 'YOUR_ORS_API_KEY'; // <-- Replace this with your OpenRouteService API key
   const url =
-    `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}` +
-    `&start=${oLon},${oLat}&end=${dLon},${dLat}`;
+    `https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${dLon},${dLat}?overview=full&steps=true`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch route');
   const json = await res.json();
-  const coords = json.features[0].geometry.coordinates;
+  const coords = json.routes[0].geometry.coordinates;
 
   clearRoute();
 
@@ -161,12 +157,12 @@ async function drawRoute(oLon, oLat, dLon, dLat) {
   map.fitBounds(bounds, { padding: 50 });
 
   // Show step-by-step instructions
-  const steps = json.features[0].properties.segments[0].steps;
+  const steps = json.routes[0].legs[0].steps;
   directionsSteps.innerHTML = '';
   steps.forEach((step, i) => {
     const div = document.createElement('div');
     div.innerHTML = `
-      <strong>Step ${i + 1}:</strong> ${step.instruction} <br/>
+      <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
       <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
     `;
     div.style.marginBottom = '8px';
