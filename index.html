@@ -15,6 +15,7 @@
     #map {
       position: absolute; top: 0; bottom: 0; width: 100%; z-index: 0;
     }
+
     /* Search bar fixed top center */
     .search-bar {
       position: absolute;
@@ -26,23 +27,35 @@
       max-width: 600px;
       display: flex;
       flex-direction: column;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 12px 16px;
+      gap: 8px;
+      transition: height 0.3s ease;
     }
-    #search {
+
+    #search, #origin {
       width: 100%;
       padding: 12px 16px;
       font-size: 16px;
-      border: none;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
       outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.3s ease;
     }
+    #search:focus, #origin:focus {
+      border-color: #0078ff;
+      box-shadow: 0 0 6px #0078ffaa;
+    }
+
     #suggestions {
-      margin-top: 4px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-      max-height: 200px;
+      max-height: 220px;
       overflow-y: auto;
+      border-radius: 8px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+      background: white;
       font-size: 14px;
       display: none;
     }
@@ -51,8 +64,44 @@
       cursor: pointer;
     }
     .suggestion:hover {
-      background: #f5f5f5;
+      background: #f0f8ff;
     }
+
+    #directions-ui {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #get-directions {
+      padding: 12px 0;
+      border-radius: 8px;
+      border: none;
+      background-color: #0078ff;
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 3px 8px #0078ffcc;
+      transition: background-color 0.25s ease;
+    }
+    #get-directions:hover {
+      background-color: #005fcc;
+      box-shadow: 0 4px 12px #005fcccc;
+    }
+
+    #directions-steps {
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 14px;
+      line-height: 1.4;
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #222;
+      box-shadow: inset 0 0 5px #ddd;
+    }
+
     /* Layer toggle bottom left */
     .layer-toggle {
       position: absolute;
@@ -88,6 +137,7 @@
       color: white;
       box-shadow: none;
     }
+
     /* Controls bottom right */
     .map-controls {
       position: absolute;
@@ -109,8 +159,21 @@
       type="text"
       placeholder="Search city, state, place..."
       autocomplete="off"
+      spellcheck="false"
     />
     <div id="suggestions"></div>
+
+    <div id="directions-ui">
+      <input
+        id="origin"
+        type="text"
+        placeholder="Use my location or type origin..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="get-directions">Get Directions</button>
+      <div id="directions-steps"></div>
+    </div>
   </div>
 
   <div class="layer-toggle">
