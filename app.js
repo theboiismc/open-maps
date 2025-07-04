@@ -228,6 +228,7 @@ map.on('load', () => {
   });
 });
 
+// Satellite Layer Toggle
 document.getElementById('satellite-toggle').onclick = () => {
   satelliteVisible = !satelliteVisible;
   map.setLayoutProperty(
@@ -239,6 +240,7 @@ document.getElementById('satellite-toggle').onclick = () => {
   toggleButtonStyle('regular-toggle', !satelliteVisible);
 };
 
+// Regular Map Layer Toggle
 document.getElementById('regular-toggle').onclick = () => {
   satelliteVisible = false;
   map.setLayoutProperty('satellite-layer', 'visibility', 'none');
@@ -246,8 +248,15 @@ document.getElementById('regular-toggle').onclick = () => {
   toggleButtonStyle('regular-toggle', true);
 };
 
+// Helper function to toggle button styles based on state
 function toggleButtonStyle(buttonId, isActive) {
   const btn = document.getElementById(buttonId);
   if (isActive) btn.classList.add('active');
   else btn.classList.remove('active');
 }
+
+// Additional Error Handling (Optional)
+map.on('error', (e) => {
+  console.error('Map error: ', e.error);
+  alert('An error occurred while loading the map. Please try again later.');
+});
