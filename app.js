@@ -20,10 +20,11 @@ let destination = null;
 
 const input = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
-const infoBox = document.getElementById('info'); // If you have an info box
-// New Directions UI elements
+
 const originInput = document.getElementById('origin');
 const getDirBtn = document.getElementById('get-directions');
+const directionsUI = document.getElementById('directions-ui');
+const directionsSteps = document.getElementById('directions-steps');
 
 // Add navigation and geolocate controls into #map-controls container
 const navControl = new maplibregl.NavigationControl();
@@ -32,7 +33,6 @@ const geoControl = new maplibregl.GeolocateControl({
   trackUserLocation: true,
   showUserHeading: true,
 });
-
 document.getElementById('map-controls').appendChild(navControl.onAdd(map));
 document.getElementById('map-controls').appendChild(geoControl.onAdd(map));
 
@@ -41,8 +41,9 @@ input.addEventListener('input', async () => {
   const query = input.value.trim();
   if (!query) {
     suggestionsBox.style.display = 'none';
-    // Hide directions UI when clearing search
-    if (getDirBtn) getDirBtn.parentElement.style.display = 'none';
+    directionsUI.style.display = 'none';
+    destination = null;
+    clearRoute();
     return;
   }
   suggestionsBox.innerHTML = '<div class="suggestion">Searching...</div>';
@@ -95,56 +96,50 @@ function selectPlace(feature, label) {
 
   // Set destination and show directions UI
   destination = { lon, lat };
-  if (originInput && getDirBtn) {
-    originInput.value = '';
-    originInput.dataset.autofilled = '';
-    originInput.dataset.origLon = '';
-    originInput.dataset.origLat = '';
-    originInput.parentElement.style.display = 'flex';
+  directionsUI.style.display = 'flex';
+  directionsSteps.innerHTML = '';
+  originInput.value = '';
+  originInput.dataset.autofilled = '';
+  originInput.dataset.origLon = '';
+  originInput.dataset.origLat = '';
+}
+
+// Geolocate origin on focus and autofill
+originInput.addEventListener('focus', () => {
+  if (!originInput.dataset.autofilled && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      originInput.value = 'My Location';
+      originInput.dataset.autofilled = 'true';
+      originInput.dataset.origLon = pos.coords.longitude;
+      originInput.dataset.origLat = pos.coords.latitude;
+    });
   }
+});
 
-  // Optional: show info box if you have one
-  /*
-  const props = feature.properties;
-  infoBox.innerHTML = `
-    <h2>${props.name}</h2>
-    <p><strong>City:</strong> ${props.city || '—'}</p>
-    <p><strong>State:</strong> ${props.state || '—'}</p>
-    <p><strong>Country:</strong> ${props.country || '—'}</p>
-    <p><strong>OSM Type:</strong> ${props.osm_value || '—'}</p>
-  `;
-  infoBox.style.display = 'block';
-  */
+// Clear any existing route layer
+function clearRoute() {
+  if (map.getLayer(routeLayerId)) {
+    map.removeLayer(routeLayerId);
+  }
+  if (map.getSource(routeLayerId)) {
+    map.removeSource(routeLayerId);
+  }
+  directionsSteps.innerHTML = '';
 }
 
-// Geolocate origin on focus
-if (originInput) {
-  originInput.addEventListener('focus', () => {
-    if (!originInput.dataset.autofilled && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(pos => {
-        originInput.value = 'My Location';
-        originInput.dataset.autofilled = 'true';
-        originInput.dataset.origLon = pos.coords.longitude;
-        originInput.dataset.origLat = pos.coords.latitude;
-      });
-    }
-  });
-}
-
-// Function to draw route using ORS
+// Draw route using ORS API and show step-by-step
 async function drawRoute(oLon, oLat, dLon, dLat) {
-  const apiKey = 'YOUR_ORS_API_KEY'; // put your ORS key here
-  const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}` +
-              `&start=${oLon},${oLat}&end=${dLon},${dLat}`;
+  const apiKey = 'YOUR_ORS_API_KEY'; // <-- Replace this with your OpenRouteService API key
+  const url =
+    `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}` +
+    `&start=${oLon},${oLat}&end=${dLon},${dLat}`;
+
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch route');
   const json = await res.json();
   const coords = json.features[0].geometry.coordinates;
 
-  if (map.getLayer(routeLayerId)) {
-    map.removeLayer(routeLayerId);
-    map.removeSource(routeLayerId);
-  }
+  clearRoute();
 
   map.addSource(routeLayerId, {
     type: 'geojson',
@@ -155,59 +150,67 @@ async function drawRoute(oLon, oLat, dLon, dLat) {
     type: 'line',
     source: routeLayerId,
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-width': 5, 'line-color': '#0078ff' },
+    paint: { 'line-width': 6, 'line-color': '#0078ff' },
   });
 
+  // Fit map to route bounds with padding
   const bounds = coords.reduce(
     (b, c) => b.extend(c),
     new maplibregl.LngLatBounds(coords[0], coords[0])
   );
   map.fitBounds(bounds, { padding: 50 });
 
-  const distKm = (json.features[0].properties.summary.distance / 1000).toFixed(1);
-  const durMin = Math.round(json.features[0].properties.summary.duration / 60);
-  alert(`Route: ${distKm} km, ~${durMin} min`);
-}
-
-// Handle Get Directions button click
-if (getDirBtn) {
-  getDirBtn.addEventListener('click', async () => {
-    if (!destination) {
-      alert('Pick a destination first');
-      return;
-    }
-
-    let oLon = parseFloat(originInput.dataset.origLon);
-    let oLat = parseFloat(originInput.dataset.origLat);
-
-    // If manual origin entered
-    if (!oLon || !oLat || originInput.value.toLowerCase() !== 'my location') {
-      if (!originInput.value.trim()) {
-        alert('Enter an origin or use your location');
-        return;
-      }
-      // Geocode manual origin via Photon
-      try {
-        const res = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(originInput.value.trim())}&limit=1`
-        );
-        const data = await res.json();
-        if (!data.features.length) throw new Error('Origin not found');
-        [oLon, oLat] = data.features[0].geometry.coordinates;
-      } catch (e) {
-        alert('Could not find the origin location');
-        return;
-      }
-    }
-
-    try {
-      await drawRoute(oLon, oLat, destination.lon, destination.lat);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to draw route');
-    }
+  // Show step-by-step instructions
+  const steps = json.features[0].properties.segments[0].steps;
+  directionsSteps.innerHTML = '';
+  steps.forEach((step, i) => {
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <strong>Step ${i + 1}:</strong> ${step.instruction} <br/>
+      <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
+    `;
+    div.style.marginBottom = '8px';
+    directionsSteps.appendChild(div);
   });
 }
+
+// Get directions button click
+getDirBtn.addEventListener('click', async () => {
+  if (!destination) {
+    alert('Pick a destination first');
+    return;
+  }
+
+  let oLon = parseFloat(originInput.dataset.origLon);
+  let oLat = parseFloat(originInput.dataset.origLat);
+
+  // Manual origin input or fallback if not 'My Location'
+  if (!oLon || !oLat || originInput.value.toLowerCase() !== 'my location') {
+    if (!originInput.value.trim()) {
+      alert('Enter an origin or use your location');
+      return;
+    }
+    // Geocode manual origin via Photon
+    try {
+      const res = await fetch(
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(originInput.value.trim())}&limit=1`
+      );
+      const data = await res.json();
+      if (!data.features.length) throw new Error('Origin not found');
+      [oLon, oLat] = data.features[0].geometry.coordinates;
+    } catch {
+      alert('Could not find the origin location');
+      return;
+    }
+  }
+
+  try {
+    await drawRoute(oLon, oLat, destination.lon, destination.lat);
+  } catch (err) {
+    console.error(err);
+    alert('Failed to draw route');
+  }
+});
 
 // Layer toggle buttons (unchanged)
 let satelliteVisible = false;
@@ -252,7 +255,3 @@ function toggleButtonStyle(buttonId, isActive) {
   if (isActive) btn.classList.add('active');
   else btn.classList.remove('active');
 }
-
-map.on('zoom', () => {
-  if (destination) originInput.parentElement.style.display = 'flex';
-});
