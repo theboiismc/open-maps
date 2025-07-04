@@ -152,89 +152,44 @@ getDirectionsButton.addEventListener('click', async () => {
 
   const destination = currentSearchResults[0]; // Use the first search result as destination
   const origin = originCoordinates;
-  
-  // Construct the routing URL using OpenStreetMap's routing API with polyline encoding
-  const routeUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&steps=true&geometries=polyline`;
+
+  // Construct the OpenStreetMap route URL with no geometry (overview=false)
+  const routeUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=false&steps=true`;
 
   try {
     const routeResponse = await fetch(routeUrl);
     const routeData = await routeResponse.json();
 
-    console.log('Route Response:', routeData);  // Log the full API response for debugging
-
     if (routeData.routes && routeData.routes.length > 0) {
       const route = routeData.routes[0];
 
-      // Check if route has valid polyline geometry
-      if (route.geometry) {
-        const polylineEncoded = route.geometry;  // This is the polyline string
+      // Add markers for the origin and destination on the map
+      new maplibregl.Marker()
+        .setLngLat([origin.lon, origin.lat])
+        .setPopup(new maplibregl.Popup().setHTML('Origin'))
+        .addTo(map);
 
-        // Decode the polyline to get the coordinates
-        const coords = polyline.decode(polylineEncoded).map(([lat, lon]) => [lon, lat]);
+      new maplibregl.Marker()
+        .setLngLat([destination.lon, destination.lat])
+        .setPopup(new maplibregl.Popup().setHTML('Destination'))
+        .addTo(map);
 
-        // Add route to map
-        if (!map.getSource('route')) {
-          map.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: coords,
-              },
-            },
-          });
-          map.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-cap': 'round',
-              'line-join': 'round',
-            },
-            paint: {
-              'line-color': '#0078ff',
-              'line-width': 6,
-            },
-          });
-        } else {
-          map.getSource('route').setData({
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: coords,
-            },
-          });
-        }
-
-        // Fit map bounds to the route
-        const bounds = coords.reduce(
-          (b, c) => b.extend(c),
-          new maplibregl.LngLatBounds(coords[0], coords[0])
-        );
-        map.fitBounds(bounds, { padding: 50 });
-
-        // Display directions steps
-        const steps = route.legs[0].steps;
-        directionsSteps.innerHTML = '';
-        steps.forEach((step, i) => {
-          const div = document.createElement('div');
-          div.innerHTML = `
-            <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
-            <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
-          `;
-          div.style.marginBottom = '8px';
-          directionsSteps.appendChild(div);
-        });
-      } else {
-        console.error('Route data does not contain valid polyline geometry');
-        alert('Failed to fetch valid route data.');
-      }
+      // Display directions steps
+      const steps = route.legs[0].steps;
+      directionsSteps.innerHTML = '';
+      steps.forEach((step, i) => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
+          <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
+        `;
+        div.style.marginBottom = '8px';
+        directionsSteps.appendChild(div);
+      });
     } else {
       alert('Failed to fetch directions.');
     }
   } catch (error) {
-    console.error('Error fetching directions:', error);
     alert('Failed to fetch directions: ' + error.message);
   }
 });
