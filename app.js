@@ -17,7 +17,6 @@ const map = new maplibregl.Map({
 let marker;
 let routeLayerId = 'route';
 let destination = null;
-let origin = null;
 
 const input = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
