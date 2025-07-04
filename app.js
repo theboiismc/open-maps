@@ -77,6 +77,7 @@ const getDirectionsButton = document.getElementById('get-directions');
 let currentSearchResults = [];
 let originCoordinates = null; // Track the coordinates for the origin
 
+// Location search event listener
 searchInput.addEventListener('input', async (e) => {
   const query = e.target.value;
   if (!query) {
@@ -84,6 +85,7 @@ searchInput.addEventListener('input', async (e) => {
     return;
   }
 
+  // Fetch results from Nominatim API (OpenStreetMap geocoding service)
   const response = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
   );
@@ -117,6 +119,7 @@ originInput.addEventListener('input', async (e) => {
     return;
   }
 
+  // Fetch results from Nominatim API (OpenStreetMap geocoding service)
   const response = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
   );
@@ -153,8 +156,8 @@ getDirectionsButton.addEventListener('click', async () => {
   const destination = currentSearchResults[0]; // Use the first search result as destination
   const origin = originCoordinates;
   
-  // Construct the OSRM route URL
-  const routeUrl = `https://router.project-osrm.org/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&steps=true`;
+  // Construct the routing URL using OpenStreetMap's routing API
+  const routeUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&steps=true`;
 
   try {
     const routeResponse = await fetch(routeUrl);
