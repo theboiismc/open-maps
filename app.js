@@ -1,6 +1,6 @@
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/liberty',  // Retaining your original style
+  style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 0],
   zoom: 2,
   pitch: 0,
@@ -75,6 +75,7 @@ const directionsSteps = document.getElementById('directions-steps');
 const getDirectionsButton = document.getElementById('get-directions');
 
 let currentSearchResults = [];
+let originCoordinates = null; // Track the coordinates for the origin
 
 searchInput.addEventListener('input', async (e) => {
   const query = e.target.value;
@@ -133,8 +134,10 @@ originInput.addEventListener('input', async (e) => {
   document.querySelectorAll('.suggestion').forEach((el) =>
     el.addEventListener('click', (event) => {
       originInput.value = event.target.innerText;
-      data.origLat = event.target.dataset.lat;
-      data.origLon = event.target.dataset.lon;
+      originCoordinates = {
+        lat: event.target.dataset.lat,
+        lon: event.target.dataset.lon,
+      };
       originSuggestionsBox.innerHTML = '';
     })
   );
@@ -142,47 +145,83 @@ originInput.addEventListener('input', async (e) => {
 
 // Handle 'Get Directions' button click
 getDirectionsButton.addEventListener('click', async () => {
-  if (!data.origLat || !data.origLon || !currentSearchResults.length) {
+  if (!originCoordinates || !currentSearchResults.length) {
     alert('Please select both origin and destination.');
     return;
   }
 
   const destination = currentSearchResults[0]; // Use the first search result as destination
-  const routeUrl = `https://router.project-osrm.org/route/v1/driving/${data.origLon},${data.origLat};${destination.lon},${destination.lat}?overview=full&steps=true`;
+  const origin = originCoordinates;
+  
+  // Construct the OSRM route URL
+  const routeUrl = `https://router.project-osrm.org/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&steps=true`;
 
-  const routeResponse = await fetch(routeUrl);
-  const routeData = await routeResponse.json();
+  try {
+    const routeResponse = await fetch(routeUrl);
+    const routeData = await routeResponse.json();
 
-  if (routeData.routes && routeData.routes.length > 0) {
-    const route = routeData.routes[0];
-    const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+    if (routeData.routes && routeData.routes.length > 0) {
+      const route = routeData.routes[0];
+      const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
 
-    map.getSource('route').setData({
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: coords,
-      },
-    });
+      // Add route to map
+      if (!map.getSource('route')) {
+        map.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: coords,
+            },
+          },
+        });
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': '#0078ff',
+            'line-width': 6,
+          },
+        });
+      } else {
+        map.getSource('route').setData({
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: coords,
+          },
+        });
+      }
 
-    const bounds = coords.reduce(
-      (b, c) => b.extend(c),
-      new maplibregl.LngLatBounds(coords[0], coords[0])
-    );
-    map.fitBounds(bounds, { padding: 50 });
+      // Fit map bounds to the route
+      const bounds = coords.reduce(
+        (b, c) => b.extend(c),
+        new maplibregl.LngLatBounds(coords[0], coords[0])
+      );
+      map.fitBounds(bounds, { padding: 50 });
 
-    const steps = route.legs[0].steps;
-    directionsSteps.innerHTML = '';
-    steps.forEach((step, i) => {
-      const div = document.createElement('div');
-      div.innerHTML = `
-        <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
-        <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
-      `;
-      div.style.marginBottom = '8px';
-      directionsSteps.appendChild(div);
-    });
-  } else {
-    alert('Failed to fetch directions.');
+      // Display directions steps
+      const steps = route.legs[0].steps;
+      directionsSteps.innerHTML = '';
+      steps.forEach((step, i) => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
+          <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
+        `;
+        div.style.marginBottom = '8px';
+        directionsSteps.appendChild(div);
+      });
+    } else {
+      alert('Failed to fetch directions.');
+    }
+  } catch (error) {
+    alert('Failed to fetch directions: ' + error.message);
   }
 });
