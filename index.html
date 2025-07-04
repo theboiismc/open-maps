@@ -63,7 +63,7 @@
     }
 
     /* Suggestions box positioned absolutely to avoid layout issues */
-    #suggestions {
+    #suggestions, #origin-suggestions {
       position: absolute;
       top: 48px; /* below search bar */
       left: 0;
@@ -75,6 +75,15 @@
       box-shadow: 0 3px 12px rgba(0,0,0,0.1);
       font-size: 14px;
       z-index: 15000;
+    }
+
+    .suggestion {
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+
+    .suggestion:hover {
+      background: #f0f8ff;
     }
 
     /* Directions UI */
@@ -97,71 +106,6 @@
     #origin:focus {
       border-color: #0078ff;
       box-shadow: 0 0 6px #0078ffaa;
-    }
-
-    #origin-suggestions {
-      margin-top: 4px;
-      position: absolute;
-      top: 48px;
-      left: 0;
-      right: 0;
-      max-height: 200px;
-      overflow-y: auto;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
-      font-size: 14px;
-      z-index: 16000;
-    }
-
-    .origin-suggestion, .suggestion {
-      padding: 10px 16px;
-      cursor: pointer;
-    }
-
-    .origin-suggestion:hover, .suggestion:hover {
-      background: #f0f8ff;
-    }
-
-    /* Location info panel */
-    #location-info {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      z-index: 10000;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
-      padding: 16px;
-      width: 320px;
-      display: none;
-    }
-
-    #location-info h3 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    #location-info p {
-      margin: 8px 0;
-      font-size: 14px;
-      color: #555;
-    }
-
-    #location-info .btn {
-      padding: 8px 14px;
-      background-color: #0078ff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-      margin-top: 12px;
-    }
-
-    #location-info .btn:hover {
-      background-color: #005ecb;
     }
 
     /* Layer toggle bottom left */
@@ -218,7 +162,6 @@
 <body>
   <div id="map"></div>
 
-  <!-- Search bar -->
   <div class="search-bar">
     <button id="hamburger-btn" aria-label="Menu">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -245,7 +188,6 @@
 
     <div id="suggestions"></div>
 
-    <!-- Directions panel -->
     <div id="directions-ui">
       <input
         id="origin"
@@ -260,14 +202,6 @@
     </div>
   </div>
 
-  <!-- Location Info Panel -->
-  <div id="location-info">
-    <h3>Location Name</h3>
-    <p id="location-address">Address: Loading...</p>
-    <button id="get-directions-btn" class="btn">Get Directions</button>
-  </div>
-
-  <!-- Layer toggle -->
   <div class="layer-toggle">
     <button id="regular-toggle" class="active">Regular</button>
     <button id="satellite-toggle">Satellite</button>
