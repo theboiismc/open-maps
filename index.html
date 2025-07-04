@@ -10,61 +10,119 @@
   />
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      font-family: 'Segoe UI', sans-serif;
-      background: #f2f2f2;
+      margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Segoe UI', sans-serif; background: #f2f2f2;
     }
     #map {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 100%;
-      z-index: 0;
+      position: absolute; top: 0; bottom: 0; width: 100%; z-index: 0;
     }
-    /* Search bar positioned at top left */
+
+    /* Search bar fixed top-left with stable suggestions */
     .search-bar {
       position: absolute;
       top: 16px;
       left: 16px;
       z-index: 10000;
-      width: 90%;
-      max-width: 400px;
+      width: 320px;
+      background: white;
+      border-radius: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       display: flex;
-      flex-direction: row;
       align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+      font-family: 'Segoe UI', sans-serif;
+      user-select: none;
+      position: relative; /* IMPORTANT for positioning suggestions */
+    }
+
+    #hamburger-btn, #search-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s ease;
+    }
+
+    #hamburger-btn:hover, #search-btn:hover {
+      background-color: #e6f0ff;
+    }
+
+    #search {
+      flex-grow: 1;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      border-radius: 30px;
+      padding: 10px 14px;
+      user-select: text;
+      font-weight: 500;
+    }
+
+    /* Suggestions box positioned absolutely to avoid layout issues */
+    #suggestions {
+      position: absolute;
+      top: 48px; /* below search bar */
+      left: 0;
+      right: 0;
+      max-height: 220px;
+      overflow-y: auto;
       background: white;
       border-radius: 12px;
-      padding: 6px 10px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+      font-size: 14px;
+      z-index: 15000;
     }
-    #search {
-      width: 100%;
-      padding: 8px 10px;
+
+    #directions-ui {
+      margin-top: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #origin {
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      padding: 12px 16px;
       font-size: 16px;
-      border: none;
-      border-radius: 12px;
       outline: none;
+      transition: border-color 0.3s ease;
     }
-    #suggestions {
+
+    #origin:focus {
+      border-color: #0078ff;
+      box-shadow: 0 0 6px #0078ffaa;
+    }
+
+    #origin-suggestions {
       margin-top: 4px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      position: absolute;
+      top: 48px;
+      left: 0;
+      right: 0;
       max-height: 200px;
       overflow-y: auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
       font-size: 14px;
-      display: none;
+      z-index: 16000;
     }
-    .suggestion {
+
+    .origin-suggestion, .suggestion {
       padding: 10px 16px;
       cursor: pointer;
     }
-    .suggestion:hover {
-      background: #f5f5f5;
+
+    .origin-suggestion:hover, .suggestion:hover {
+      background: #f0f8ff;
     }
+
+    /* Layer toggle bottom left */
     .layer-toggle {
       position: absolute;
       bottom: 16px;
@@ -99,6 +157,8 @@
       color: white;
       box-shadow: none;
     }
+
+    /* Controls bottom right */
     .map-controls {
       position: absolute;
       bottom: 16px;
@@ -108,56 +168,49 @@
       flex-direction: column;
       gap: 8px;
     }
-    /* Directions box */
-    .directions-box {
-      position: absolute;
-      top: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      max-width: 400px;
-      z-index: 1000;
-      display: none;
-    }
-    .directions-box h2 {
-      margin: 0;
-      font-size: 18px;
-    }
-    .directions-box ul {
-      list-style-type: none;
-      padding-left: 0;
-    }
-    .directions-box li {
-      margin-bottom: 8px;
-    }
-    .directions-box .close-btn {
-      cursor: pointer;
-      color: red;
-      font-size: 14px;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
   <div class="search-bar">
+    <button id="hamburger-btn" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+
     <input
       id="search"
       type="text"
       placeholder="Search city, state, place..."
       autocomplete="off"
+      spellcheck="false"
     />
-    <span id="search-icon" style="cursor: pointer; font-size: 20px;">🔍</span>
-  </div>
+    
+    <button id="search-btn" aria-label="Search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </button>
 
-  <div class="directions-box" id="directions-box">
-    <h2>Directions</h2>
-    <ul id="directions-list"></ul>
-    <span class="close-btn" onclick="closeDirections()">Close</span>
+    <div id="suggestions"></div>
+
+    <div id="directions-ui">
+      <input
+        id="origin"
+        type="text"
+        placeholder="Use my location or type origin..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div id="origin-suggestions"></div>
+      <button id="get-directions">Get Directions</button>
+      <div id="directions-steps"></div>
+    </div>
   </div>
 
   <div class="layer-toggle">
