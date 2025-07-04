@@ -1,14 +1,34 @@
-// Initialize the map
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 0],
   zoom: 2,
+  pitch: 0,
+  bearing: 0,
+  dragRotate: true,
+  touchZoomRotate: true,
+  scrollZoom: true,
+  maxZoom: 18,
+  minZoom: 1,
+  zoomAnimation: true,
+  rotationAnimation: true,
 });
+
+// Add navigation and geolocate controls to the map
+const navControl = new maplibregl.NavigationControl();
+const geoControl = new maplibregl.GeolocateControl({
+  positionOptions: { enableHighAccuracy: true },
+  trackUserLocation: true,
+  showUserHeading: true,
+});
+
+document.getElementById('map-controls').appendChild(navControl.onAdd(map));
+document.getElementById('map-controls').appendChild(geoControl.onAdd(map));
 
 // Layer toggle functionality
 let satelliteVisible = false;
 map.on('load', () => {
+  // Satellite layer
   map.addSource('satellite', {
     type: 'raster',
     tiles: [
@@ -26,7 +46,6 @@ map.on('load', () => {
   });
 });
 
-// Toggle layers between regular and satellite
 document.getElementById('satellite-toggle').onclick = () => {
   satelliteVisible = !satelliteVisible;
   map.setLayoutProperty(
@@ -38,6 +57,7 @@ document.getElementById('satellite-toggle').onclick = () => {
   document.getElementById('regular-toggle').classList.toggle('active');
 };
 
+// Regular layer toggle
 document.getElementById('regular-toggle').onclick = () => {
   satelliteVisible = false;
   map.setLayoutProperty('satellite-layer', 'visibility', 'none');
@@ -45,10 +65,17 @@ document.getElementById('regular-toggle').onclick = () => {
   document.getElementById('satellite-toggle').classList.toggle('active');
 };
 
-// Location search logic
+// Location search box and suggestions
 const searchInput = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
+const directionsUI = document.getElementById('directions-ui');
+const originInput = document.getElementById('origin');
+const originSuggestionsBox = document.getElementById('origin-suggestions');
+const directionsSteps = document.getElementById('directions-steps');
+const getDirectionsButton = document.getElementById('get-directions');
+
 let currentSearchResults = [];
+let originCoordinates = null; // Track the coordinates for the origin
 
 searchInput.addEventListener('input', async (e) => {
   const query = e.target.value;
@@ -61,8 +88,8 @@ searchInput.addEventListener('input', async (e) => {
     `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
   );
   const data = await response.json();
-  currentSearchResults = data;
 
+  currentSearchResults = data;
   suggestionsBox.innerHTML = data
     .map(
       (result) => `
@@ -77,25 +104,24 @@ searchInput.addEventListener('input', async (e) => {
       const lat = event.target.dataset.lat;
       const lon = event.target.dataset.lon;
       map.flyTo({ center: [lon, lat], zoom: 15 });
-      suggestionsBox.innerHTML = ''; // Clear the suggestions
-      document.getElementById('directions-ui').style.display = 'flex'; // Show directions UI
+      directionsUI.style.display = 'flex'; // Show directions UI when a location is selected
     })
   );
 });
 
-// Handle origin input for directions
-const originInput = document.getElementById('origin');
-let originCoordinates = null;
-
+// Handling origin search box for directions
 originInput.addEventListener('input', async (e) => {
   const query = e.target.value;
-  if (!query) return;
+  if (!query) {
+    originSuggestionsBox.innerHTML = '';
+    return;
+  }
 
   const response = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
   );
   const data = await response.json();
-  const originSuggestionsBox = document.getElementById('origin-suggestions');
+
   originSuggestionsBox.innerHTML = data
     .map(
       (result) => `
@@ -117,21 +143,23 @@ originInput.addEventListener('input', async (e) => {
   );
 });
 
-// Get directions logic
-document.getElementById('get-directions').addEventListener('click', async () => {
+// Handle 'Get Directions' button click
+getDirectionsButton.addEventListener('click', async () => {
   if (!originCoordinates || !currentSearchResults.length) {
     alert('Please select both origin and destination.');
     return;
   }
 
-  const destination = currentSearchResults[0]; // Use first search result as destination
+  const destination = currentSearchResults[0]; // Use the first search result as destination
   const origin = originCoordinates;
-
+  
+  // Construct the OSRM route URL
   const routeUrl = `https://router.project-osrm.org/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=full&steps=true`;
 
   try {
     const routeResponse = await fetch(routeUrl);
     const routeData = await routeResponse.json();
+
     if (routeData.routes && routeData.routes.length > 0) {
       const route = routeData.routes[0];
       const coords = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
@@ -148,7 +176,6 @@ document.getElementById('get-directions').addEventListener('click', async () => 
             },
           },
         });
-
         map.addLayer({
           id: 'route',
           type: 'line',
@@ -172,26 +199,27 @@ document.getElementById('get-directions').addEventListener('click', async () => 
         });
       }
 
-      // Fit the map to the route
+      // Fit map bounds to the route
       const bounds = coords.reduce(
         (b, c) => b.extend(c),
         new maplibregl.LngLatBounds(coords[0], coords[0])
       );
       map.fitBounds(bounds, { padding: 50 });
 
-      // Display directions
-      const directionsSteps = document.getElementById('directions-steps');
+      // Display directions steps
+      const steps = route.legs[0].steps;
       directionsSteps.innerHTML = '';
-      route.legs[0].steps.forEach((step, i) => {
+      steps.forEach((step, i) => {
         const div = document.createElement('div');
         div.innerHTML = `
           <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
           <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
         `;
+        div.style.marginBottom = '8px';
         directionsSteps.appendChild(div);
       });
     } else {
-      alert('No valid route found.');
+      alert('Failed to fetch directions.');
     }
   } catch (error) {
     alert('Failed to fetch directions: ' + error.message);
