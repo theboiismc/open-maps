@@ -1,3 +1,4 @@
+// Initialize the map
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -25,6 +26,7 @@ map.on('load', () => {
   });
 });
 
+// Toggle layers between regular and satellite
 document.getElementById('satellite-toggle').onclick = () => {
   satelliteVisible = !satelliteVisible;
   map.setLayoutProperty(
@@ -43,10 +45,9 @@ document.getElementById('regular-toggle').onclick = () => {
   document.getElementById('satellite-toggle').classList.toggle('active');
 };
 
-// Handle Location Search
+// Location search logic
 const searchInput = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
-const directionsUI = document.getElementById('directions-ui');
 let currentSearchResults = [];
 
 searchInput.addEventListener('input', async (e) => {
@@ -76,7 +77,8 @@ searchInput.addEventListener('input', async (e) => {
       const lat = event.target.dataset.lat;
       const lon = event.target.dataset.lon;
       map.flyTo({ center: [lon, lat], zoom: 15 });
-      directionsUI.style.display = 'flex'; // Show directions UI when a location is selected
+      suggestionsBox.innerHTML = ''; // Clear the suggestions
+      document.getElementById('directions-ui').style.display = 'flex'; // Show directions UI
     })
   );
 });
@@ -115,7 +117,7 @@ originInput.addEventListener('input', async (e) => {
   );
 });
 
-// Handle Get Directions button
+// Get directions logic
 document.getElementById('get-directions').addEventListener('click', async () => {
   if (!originCoordinates || !currentSearchResults.length) {
     alert('Please select both origin and destination.');
@@ -186,7 +188,6 @@ document.getElementById('get-directions').addEventListener('click', async () => 
           <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
           <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
         `;
-        div.style.marginBottom = '8px';
         directionsSteps.appendChild(div);
       });
     } else {
