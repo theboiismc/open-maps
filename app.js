@@ -120,29 +120,6 @@ function getRoute() {
     });
 }
 
-// Handle origin input
-const originInput = document.createElement('input');
-originInput.id = 'origin-input';
-originInput.placeholder = 'Type origin';
-originInput.addEventListener('input', async () => {
-  const query = originInput.value.trim();
-  if (!query) {
-    return;
-  }
-  try {
-    const res = await fetch(
-      `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`
-    );
-    const data = await res.json();
-    if (data.features.length > 0) {
-      originCoordinates = data.features[0].geometry.coordinates;
-      getRoute();
-    }
-  } catch (err) {
-    console.error('Error fetching origin suggestions');
-  }
-});
-
 // Add event listener to search icon
 searchIcon.addEventListener('click', () => {
   const query = input.value.trim();
