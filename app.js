@@ -15,10 +15,15 @@ const map = new maplibregl.Map({
 });
 
 let marker;
+let routeLayerId = 'route';
+let destination = null;
 
 const input = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
 const infoBox = document.getElementById('info'); // If you have an info box
+// New Directions UI elements
+const originInput = document.getElementById('origin');
+const getDirBtn = document.getElementById('get-directions');
 
 // Add navigation and geolocate controls into #map-controls container
 const navControl = new maplibregl.NavigationControl();
@@ -36,6 +41,8 @@ input.addEventListener('input', async () => {
   const query = input.value.trim();
   if (!query) {
     suggestionsBox.style.display = 'none';
+    // Hide directions UI when clearing search
+    if (getDirBtn) getDirBtn.parentElement.style.display = 'none';
     return;
   }
   suggestionsBox.innerHTML = '<div class="suggestion">Searching...</div>';
@@ -85,6 +92,17 @@ function selectPlace(feature, label) {
   marker = new maplibregl.Marker().setLngLat([lon, lat]).addTo(map);
   input.value = label;
   suggestionsBox.style.display = 'none';
+
+  // Set destination and show directions UI
+  destination = { lon, lat };
+  if (originInput && getDirBtn) {
+    originInput.value = '';
+    originInput.dataset.autofilled = '';
+    originInput.dataset.origLon = '';
+    originInput.dataset.origLat = '';
+    originInput.parentElement.style.display = 'flex';
+  }
+
   // Optional: show info box if you have one
   /*
   const props = feature.properties;
@@ -99,11 +117,101 @@ function selectPlace(feature, label) {
   */
 }
 
-// Layer toggle buttons
-let satelliteVisible = false;
+// Geolocate origin on focus
+if (originInput) {
+  originInput.addEventListener('focus', () => {
+    if (!originInput.dataset.autofilled && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        originInput.value = 'My Location';
+        originInput.dataset.autofilled = 'true';
+        originInput.dataset.origLon = pos.coords.longitude;
+        originInput.dataset.origLat = pos.coords.latitude;
+      });
+    }
+  });
+}
 
+// Function to draw route using ORS
+async function drawRoute(oLon, oLat, dLon, dLat) {
+  const apiKey = 'YOUR_ORS_API_KEY'; // put your ORS key here
+  const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}` +
+              `&start=${oLon},${oLat}&end=${dLon},${dLat}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch route');
+  const json = await res.json();
+  const coords = json.features[0].geometry.coordinates;
+
+  if (map.getLayer(routeLayerId)) {
+    map.removeLayer(routeLayerId);
+    map.removeSource(routeLayerId);
+  }
+
+  map.addSource(routeLayerId, {
+    type: 'geojson',
+    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords } },
+  });
+  map.addLayer({
+    id: routeLayerId,
+    type: 'line',
+    source: routeLayerId,
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-width': 5, 'line-color': '#0078ff' },
+  });
+
+  const bounds = coords.reduce(
+    (b, c) => b.extend(c),
+    new maplibregl.LngLatBounds(coords[0], coords[0])
+  );
+  map.fitBounds(bounds, { padding: 50 });
+
+  const distKm = (json.features[0].properties.summary.distance / 1000).toFixed(1);
+  const durMin = Math.round(json.features[0].properties.summary.duration / 60);
+  alert(`Route: ${distKm} km, ~${durMin} min`);
+}
+
+// Handle Get Directions button click
+if (getDirBtn) {
+  getDirBtn.addEventListener('click', async () => {
+    if (!destination) {
+      alert('Pick a destination first');
+      return;
+    }
+
+    let oLon = parseFloat(originInput.dataset.origLon);
+    let oLat = parseFloat(originInput.dataset.origLat);
+
+    // If manual origin entered
+    if (!oLon || !oLat || originInput.value.toLowerCase() !== 'my location') {
+      if (!originInput.value.trim()) {
+        alert('Enter an origin or use your location');
+        return;
+      }
+      // Geocode manual origin via Photon
+      try {
+        const res = await fetch(
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(originInput.value.trim())}&limit=1`
+        );
+        const data = await res.json();
+        if (!data.features.length) throw new Error('Origin not found');
+        [oLon, oLat] = data.features[0].geometry.coordinates;
+      } catch (e) {
+        alert('Could not find the origin location');
+        return;
+      }
+    }
+
+    try {
+      await drawRoute(oLon, oLat, destination.lon, destination.lat);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to draw route');
+    }
+  });
+}
+
+// Layer toggle buttons (unchanged)
+let satelliteVisible = false;
 map.on('load', () => {
-  // Add satellite source & layer
   map.addSource('satellite', {
     type: 'raster',
     tiles: [
@@ -144,3 +252,7 @@ function toggleButtonStyle(buttonId, isActive) {
   if (isActive) btn.classList.add('active');
   else btn.classList.remove('active');
 }
+
+map.on('zoom', () => {
+  if (destination) originInput.parentElement.style.display = 'flex';
+});
