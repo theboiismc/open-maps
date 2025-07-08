@@ -23,7 +23,7 @@ map.addControl(new maplibregl.GeolocateControl({
   showUserHeading: true
 }), 'top-left');
 
-// Satellite toggle setup
+// Satellite toggle
 let satVisible = false;
 map.on('load', () => {
   map.addSource('satellite', {
@@ -41,14 +41,12 @@ map.on('load', () => {
     paint: { 'raster-opacity': 0.8 }
   });
 });
-
 document.getElementById('satellite-toggle').onclick = () => {
   satVisible = !satVisible;
   map.setLayoutProperty('sat-layer', 'visibility', satVisible ? 'visible' : 'none');
   document.getElementById('satellite-toggle').classList.toggle('active');
   document.getElementById('regular-toggle').classList.toggle('active');
 };
-
 document.getElementById('regular-toggle').onclick = () => {
   satVisible = false;
   map.setLayoutProperty('sat-layer', 'visibility', 'none');
@@ -57,20 +55,18 @@ document.getElementById('regular-toggle').onclick = () => {
 };
 
 // DOM refs
-const destInput       = document.getElementById('search');
-const destList        = document.getElementById('suggestions');
-const originInput     = document.getElementById('origin');
-const originList      = document.getElementById('origin-suggestions');
-const directionsUI    = document.getElementById('directions-ui');
-const stepsContainer  = document.getElementById('directions-steps');
-const getDirectionsBtn= document.getElementById('get-directions');
+const destInput        = document.getElementById('search');
+const destList         = document.getElementById('suggestions');
+const originInput      = document.getElementById('origin');
+const originList       = document.getElementById('origin-suggestions');
+const getDirectionsBtn = document.getElementById('get-directions');
 
 let destResults   = [];
 let originResults = [];
 let originCoord   = null;
 let activeMarkers = [];
 
-// Helper: search Nominatim
+// Helper: Nominatim search
 async function nominatimSearch(q) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`
@@ -78,7 +74,7 @@ async function nominatimSearch(q) {
   return res.json();
 }
 
-// Handle destination autocomplete
+// Destination autocomplete
 destInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   destList.innerHTML = '';
@@ -93,16 +89,7 @@ destInput.addEventListener('input', async e => {
   });
 });
 
-// Destination click
-destList.addEventListener('click', e => {
-  const idx = e.target.dataset.idx;
-  if (idx == null) return;
-  const place = destResults[idx];
-  map.flyTo({ center: [+place.lon, +place.lat], zoom: 14 });
-  directionsUI.style.display = 'flex';
-});
-
-// Handle origin autocomplete
+// Origin autocomplete
 originInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   originList.innerHTML = '';
@@ -117,7 +104,14 @@ originInput.addEventListener('input', async e => {
   });
 });
 
-// Origin click
+// Click handlers
+destList.addEventListener('click', e => {
+  const idx = e.target.dataset.idx;
+  if (idx == null) return;
+  const place = destResults[idx];
+  map.flyTo({ center: [+place.lon, +place.lat], zoom: 14 });
+});
+
 originList.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
   if (idx == null) return;
@@ -127,7 +121,7 @@ originList.addEventListener('click', e => {
   originList.innerHTML = '';
 });
 
-// Clear old route & markers
+// Clear previous route & markers
 function clearRoute() {
   if (map.getLayer('route-line')) {
     map.removeLayer('route-line');
@@ -135,10 +129,9 @@ function clearRoute() {
   }
   activeMarkers.forEach(m => m.remove());
   activeMarkers = [];
-  stepsContainer.innerHTML = '';
 }
 
-// Get Directions click
+// Fetch & draw route on click
 getDirectionsBtn.addEventListener('click', async () => {
   if (!originCoord || !destResults.length) {
     alert('Select both origin and destination.');
@@ -146,9 +139,10 @@ getDirectionsBtn.addEventListener('click', async () => {
   }
 
   const dest = destResults[0];
-  const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/` +
-              `${originCoord.lon},${originCoord.lat};${dest.lon},${dest.lat}` +
-              `?overview=full&geometries=geojson&steps=true`;
+  const url = 
+    `https://routing.openstreetmap.de/routed-car/route/v1/driving/` +
+    `${originCoord.lon},${originCoord.lat};${dest.lon},${dest.lat}` +
+    `?overview=full&geometries=geojson&steps=false`;
 
   try {
     const res  = await fetch(url);
@@ -161,7 +155,7 @@ getDirectionsBtn.addEventListener('click', async () => {
     clearRoute();
     const route = json.routes[0];
 
-    // Add GeoJSON line
+    // Draw the GeoJSON LineString
     map.addSource('route-line', {
       type: 'geojson',
       data: {
@@ -177,28 +171,21 @@ getDirectionsBtn.addEventListener('click', async () => {
       paint: { 'line-color': '#3b82f6', 'line-width': 6, 'line-opacity': 0.8 }
     });
 
-    // Add markers
-    const m1 = new maplibregl.Marker().setLngLat([originCoord.lon, originCoord.lat]).addTo(map);
-    const m2 = new maplibregl.Marker().setLngLat([+dest.lon, +dest.lat]).addTo(map);
+    // Add origin/dest markers
+    const m1 = new maplibregl.Marker()
+      .setLngLat([originCoord.lon, originCoord.lat])
+      .addTo(map);
+    const m2 = new maplibregl.Marker()
+      .setLngLat([+dest.lon, +dest.lat])
+      .addTo(map);
     activeMarkers.push(m1, m2);
 
-    // Populate steps
-    route.legs[0].steps.forEach((s,i) => {
-      const div = document.createElement('div');
-      div.innerHTML = `
-        <strong>Step ${i+1}:</strong> ${s.maneuver.instruction}
-        <br><small>${(s.distance/1000).toFixed(2)} km, ${Math.round(s.duration)} s</small>
-      `;
-      div.style.margin = '8px 0';
-      stepsContainer.append(div);
-    });
-
-    // Center on midpoint
+    // Center on route midpoint
     const coords = route.geometry.coordinates;
     const mid    = coords[Math.floor(coords.length/2)];
     map.flyTo({ center: mid, zoom: 13 });
 
   } catch (err) {
-    alert('Error fetching directions: ' + err.message);
+    alert('Error fetching route: ' + err.message);
   }
 });
