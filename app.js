@@ -55,26 +55,33 @@ document.getElementById('regular-toggle').onclick = () => {
 };
 
 // DOM refs
+const searchContainer = document.getElementById('search-container');
 const searchInput = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
-const originInput = document.getElementById('origin');
-const originSuggestions = document.getElementById('origin-suggestions');
-const destinationInput = document.getElementById('destination');
-const destinationSuggestions = document.getElementById('destination-suggestions');
+
 const sidebar = document.getElementById('sidebar');
+const sidebarContent = document.getElementById('sidebar-content');
 const sidebarCloseBtn = document.getElementById('sidebar-close');
+
 const directionsToggle = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
+
+const originInput = document.getElementById('origin');
+const originSuggestions = document.getElementById('origin-suggestions');
+
+const destinationInput = document.getElementById('destination');
+const destinationSuggestions = document.getElementById('destination-suggestions');
+
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
-const routeSummary = document.getElementById('route-summary');
-const routeInfoBox = document.getElementById('route-info');
 
-let destinationResults = [];
 let originResults = [];
+let destinationResults = [];
 let originCoord = null;
 let destinationCoord = null;
 let activeMarkers = [];
+
+const originalParent = searchContainer.parentElement; // where search bar lives initially
 
 // Nominatim search helper
 async function nominatimSearch(q) {
@@ -97,7 +104,7 @@ function renderSuggestions(container, results) {
   });
 }
 
-// Search autocomplete
+// Search autocomplete (main search input outside sidebar)
 searchInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   if (!q) {
@@ -112,29 +119,50 @@ suggestionsBox.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
   if (idx == null) return;
   const place = destinationResults[idx];
+
   searchInput.value = place.display_name;
   destinationCoord = { lon: +place.lon, lat: +place.lat };
 
-  // Open sidebar with place info and directions toggle
-  sidebar.hidden = false;
-  setTimeout(() => sidebar.classList.add('open'), 10);
+  // Move sidebar and search bar inside it
+  openSidebar();
 
+  // Hide suggestions box
+  clearSuggestions(suggestionsBox);
+
+  // Fly to selected place on map
+  map.flyTo({ center: [destinationCoord.lon, destinationCoord.lat], zoom: 14 });
+
+  // Hide directions form and reset toggle button
   directionsForm.style.display = 'none';
   directionsToggle.textContent = 'Show Directions';
 
-  clearSuggestions(suggestionsBox);
-
-  // Fly to selected place
-  map.flyTo({ center: [destinationCoord.lon, destinationCoord.lat], zoom: 14 });
+  // Clear origin input + coords for fresh directions
+  originInput.value = '';
+  originCoord = null;
+  clearSuggestions(originSuggestions);
 });
 
-// Sidebar close button
-sidebarCloseBtn.addEventListener('click', () => {
+// Sidebar open function
+function openSidebar() {
+  sidebar.hidden = false;
+  sidebar.classList.add('open');
+  // Move search container inside sidebar content, at top
+  sidebarContent.insertBefore(searchContainer, sidebarContent.firstChild);
+}
+
+// Sidebar close function
+function closeSidebar() {
   sidebar.classList.remove('open');
-  setTimeout(() => { sidebar.hidden = true; }, 300);
-});
+  // Move search container back to original place
+  originalParent.insertBefore(searchContainer, originalParent.firstChild);
+  setTimeout(() => {
+    sidebar.hidden = true;
+  }, 300);
+}
 
-// Directions toggle
+sidebarCloseBtn.addEventListener('click', closeSidebar);
+
+// Directions toggle button
 directionsToggle.addEventListener('click', () => {
   if (directionsForm.style.display === 'flex' || directionsForm.style.display === 'block') {
     directionsForm.style.display = 'none';
@@ -142,10 +170,17 @@ directionsToggle.addEventListener('click', () => {
   } else {
     directionsForm.style.display = 'flex';
     directionsToggle.textContent = 'Hide Directions';
+
+    // If destination input is empty in form, prefill with main search selection
+    if (!destinationInput.value && destinationCoord) {
+      destinationInput.value = searchInput.value;
+      // Set destination coords to match
+      destinationCoord = { ...destinationCoord };
+    }
   }
 });
 
-// Origin autocomplete
+// Origin autocomplete inside directions form
 originInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   if (!q) {
@@ -187,14 +222,14 @@ destinationSuggestions.addEventListener('click', e => {
   clearSuggestions(destinationSuggestions);
 });
 
-// Close suggestions on click outside
+// Close suggestions on outside click
 document.addEventListener('click', e => {
   if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) clearSuggestions(suggestionsBox);
   if (!originInput.contains(e.target) && !originSuggestions.contains(e.target)) clearSuggestions(originSuggestions);
   if (!destinationInput.contains(e.target) && !destinationSuggestions.contains(e.target)) clearSuggestions(destinationSuggestions);
 });
 
-// Hide suggestions on ESC
+// Hide suggestions on ESC key
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     clearSuggestions(suggestionsBox);
@@ -212,15 +247,13 @@ function clearRoute() {
   if (map.getSource('route-line')) map.removeSource('route-line');
   activeMarkers.forEach(m => m.remove());
   activeMarkers = [];
-  // Removed routeSummary & routeInfoBox UI updates completely
 }
 
-// Clear route button
 clearRouteBtn.addEventListener('click', () => {
   clearRoute();
 });
 
-// Get and draw route
+// Get and draw route on map
 getRouteBtn.addEventListener('click', async () => {
   if (!originCoord) {
     alert('Please select a valid origin from the suggestions.');
@@ -253,6 +286,7 @@ getRouteBtn.addEventListener('click', async () => {
         geometry: route.geometry
       }
     });
+
     map.addLayer({
       id: 'route-line',
       type: 'line',
@@ -268,17 +302,15 @@ getRouteBtn.addEventListener('click', async () => {
       }
     });
 
+    // Add origin and destination markers
     const m1 = new maplibregl.Marker().setLngLat([originCoord.lon, originCoord.lat]).addTo(map);
     const m2 = new maplibregl.Marker().setLngLat([destinationCoord.lon, destinationCoord.lat]).addTo(map);
     activeMarkers.push(m1, m2);
 
-    // Removed route summary display here
-
-    // Fly to midpoint
+    // Fly to midpoint of route
     const coords = route.geometry.coordinates;
     const mid = coords[Math.floor(coords.length / 2)];
     map.flyTo({ center: mid, zoom: 13 });
-
   } catch (err) {
     alert('Error fetching directions: ' + err.message);
   }
