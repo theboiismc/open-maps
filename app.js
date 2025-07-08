@@ -1,4 +1,3 @@
-// Initialize MapLibre map
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -13,7 +12,6 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Controls
 map.addControl(new maplibregl.NavigationControl(), 'top-left');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
@@ -48,11 +46,11 @@ document.getElementById('satellite-toggle').onclick = () => {
 document.getElementById('regular-toggle').onclick = () => {
   satVisible = false;
   map.setLayoutProperty('sat-layer', 'visibility', 'none');
-  document.getElementById('satellite-toggle').classList.toggle('active');
-  document.getElementById('regular-toggle').classList.toggle('active');
+  document.getElementById('satellite-toggle').classList.remove('active');
+  document.getElementById('regular-toggle').classList.add('active');
 };
 
-// DOM refs
+// DOM
 const destInput = document.getElementById('search');
 const destList = document.getElementById('suggestions');
 const originInput = document.getElementById('origin');
@@ -61,26 +59,35 @@ const directionsUI = document.getElementById('directions-ui');
 const getDirectionsBtn = document.getElementById('get-directions');
 const routeInfoBox = document.getElementById('route-info');
 const routeSummary = document.getElementById('route-summary');
+const closeRouteInfo = document.getElementById('close-route-info');
 
-let destResults = [], originResults = [];
+let destResults = [];
+let originResults = [];
 let originCoord = null;
 let activeMarkers = [];
-let destSelectedIndex = -1;
-let originSelectedIndex = -1;
+let currentRoute = null;
+let navStarted = false;
 
-// Helper: search
+// Voice synth
+const synth = window.speechSynthesis;
+function speak(text) {
+  if (!synth.speaking) {
+    const utter = new SpeechSynthesisUtterance(text);
+    synth.speak(utter);
+  }
+}
+
+// Nominatim
 async function nominatimSearch(q) {
   const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`);
   return res.json();
 }
 
-// Destination autocomplete
+// Autocomplete
 destInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   destList.innerHTML = '';
-  destSelectedIndex = -1;
   if (!q) return;
-
   destResults = await nominatimSearch(q);
   destResults.forEach((r, i) => {
     const div = document.createElement('div');
@@ -91,51 +98,10 @@ destInput.addEventListener('input', async e => {
   });
 });
 
-destInput.addEventListener('keydown', e => {
-  const suggestions = destList.querySelectorAll('.suggestion');
-  if (!suggestions.length) return;
-
-  if (e.key === 'Escape') {
-    destList.innerHTML = '';
-    destSelectedIndex = -1;
-    return;
-  }
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    destSelectedIndex = (destSelectedIndex + 1) % suggestions.length;
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    destSelectedIndex = (destSelectedIndex - 1 + suggestions.length) % suggestions.length;
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (destSelectedIndex >= 0) suggestions[destSelectedIndex].click();
-  }
-
-  suggestions.forEach((el, i) => {
-    el.style.background = i === destSelectedIndex ? '#e6f0ff' : '';
-  });
-});
-
-destList.addEventListener('click', e => {
-  const idx = e.target.dataset.idx;
-  if (idx == null) return;
-  const place = destResults[idx];
-  destInput.value = place.display_name;
-  map.flyTo({ center: [+place.lon, +place.lat], zoom: 14 });
-  directionsUI.style.display = 'flex';
-  destList.innerHTML = '';
-  destSelectedIndex = -1;
-  destInput.blur();
-});
-
-// Origin autocomplete
 originInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   originList.innerHTML = '';
-  originSelectedIndex = -1;
   if (!q) return;
-
   originResults = await nominatimSearch(q);
   originResults.forEach((r, i) => {
     const div = document.createElement('div');
@@ -146,30 +112,14 @@ originInput.addEventListener('input', async e => {
   });
 });
 
-originInput.addEventListener('keydown', e => {
-  const suggestions = originList.querySelectorAll('.suggestion');
-  if (!suggestions.length) return;
-
-  if (e.key === 'Escape') {
-    originList.innerHTML = '';
-    originSelectedIndex = -1;
-    return;
-  }
-
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    originSelectedIndex = (originSelectedIndex + 1) % suggestions.length;
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    originSelectedIndex = (originSelectedIndex - 1 + suggestions.length) % suggestions.length;
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (originSelectedIndex >= 0) suggestions[originSelectedIndex].click();
-  }
-
-  suggestions.forEach((el, i) => {
-    el.style.background = i === originSelectedIndex ? '#e6f0ff' : '';
-  });
+// Select from suggestions
+destList.addEventListener('click', e => {
+  const idx = e.target.dataset.idx;
+  if (idx == null) return;
+  const place = destResults[idx];
+  map.flyTo({ center: [+place.lon, +place.lat], zoom: 14 });
+  directionsUI.style.display = 'flex';
+  destList.innerHTML = '';
 });
 
 originList.addEventListener('click', e => {
@@ -179,21 +129,21 @@ originList.addEventListener('click', e => {
   originInput.value = place.display_name;
   originCoord = { lon: +place.lon, lat: +place.lat };
   originList.innerHTML = '';
-  originSelectedIndex = -1;
-  originInput.blur();
 });
 
-// Hide suggestions on outside click
+// Hide suggestions on blur or ESC
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    destList.innerHTML = '';
+    originList.innerHTML = '';
+  }
+});
 document.addEventListener('click', e => {
-  if (!destInput.contains(e.target) && !destList.contains(e.target)) destList.innerHTML = '';
-  if (!originInput.contains(e.target) && !originList.contains(e.target)) originList.innerHTML = '';
+  if (!destInput.contains(e.target)) destList.innerHTML = '';
+  if (!originInput.contains(e.target)) originList.innerHTML = '';
 });
 
-// Optional: hide on blur (mobile)
-destInput.addEventListener('blur', () => setTimeout(() => destList.innerHTML = '', 150));
-originInput.addEventListener('blur', () => setTimeout(() => originList.innerHTML = '', 150));
-
-// Clear route
+// Clear
 function clearRoute() {
   if (map.getLayer('route-line')) {
     map.removeLayer('route-line');
@@ -203,17 +153,19 @@ function clearRoute() {
   activeMarkers = [];
   routeSummary.textContent = '';
   routeInfoBox.classList.add('hidden');
+  navStarted = false;
 }
 
-// Get Directions
+// Get directions
 getDirectionsBtn.addEventListener('click', async () => {
   if (!originCoord || !destResults.length) {
     alert('Select both origin and destination.');
     return;
   }
   const dest = destResults[0];
-  const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${originCoord.lon},${originCoord.lat};${dest.lon},${dest.lat}?overview=full&geometries=geojson&steps=true`;
-
+  const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/` +
+              `${originCoord.lon},${originCoord.lat};${dest.lon},${dest.lat}` +
+              `?overview=full&geometries=geojson&steps=true`;
   try {
     const res = await fetch(url);
     const json = await res.json();
@@ -224,15 +176,13 @@ getDirectionsBtn.addEventListener('click', async () => {
 
     clearRoute();
     const route = json.routes[0];
+    currentRoute = route;
+    const coords = route.geometry.coordinates;
 
     map.addSource('route-line', {
       type: 'geojson',
-      data: {
-        type: 'Feature',
-        geometry: route.geometry
-      }
+      data: { type: 'Feature', geometry: route.geometry }
     });
-
     map.addLayer({
       id: 'route-line',
       type: 'line',
@@ -250,10 +200,37 @@ getDirectionsBtn.addEventListener('click', async () => {
     routeSummary.textContent = `Distance: ${distanceKm} km · Duration: ${durationMin} min`;
     routeInfoBox.classList.remove('hidden');
 
-    const coords = route.geometry.coordinates;
     const mid = coords[Math.floor(coords.length / 2)];
     map.flyTo({ center: mid, zoom: 13 });
+
+    // Start real-time GPS nav
+    if (navigator.geolocation) {
+      speak('Navigation started');
+      navStarted = true;
+      navigator.geolocation.watchPosition(pos => {
+        if (!navStarted || !currentRoute) return;
+        const { latitude, longitude } = pos.coords;
+        const nextStep = currentRoute.legs[0].steps.find(step => {
+          return step.maneuver && step.maneuver.location &&
+                 distance([longitude, latitude], step.maneuver.location) < 0.05;
+        });
+        if (nextStep) speak(nextStep.maneuver.instruction);
+        map.flyTo({ center: [longitude, latitude], zoom: 15 });
+      }, console.error, { enableHighAccuracy: true });
+    }
   } catch (err) {
     alert('Error fetching directions: ' + err.message);
   }
 });
+
+closeRouteInfo.addEventListener('click', clearRoute);
+
+// Geo dist helper
+function distance([lon1, lat1], [lon2, lat2]) {
+  const toRad = d => d * Math.PI / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
