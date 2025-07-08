@@ -1,4 +1,4 @@
-// Initialize MapLibre map
+// Initialize MapLibre
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -20,7 +20,7 @@ map.addControl(new maplibregl.GeolocateControl({
   showUserHeading: true
 }), 'top-left');
 
-// Satellite toggle setup
+// Satellite toggle
 let satVisible = false;
 map.on('load', () => {
   map.addSource('satellite', {
@@ -39,146 +39,255 @@ map.on('load', () => {
   });
 });
 
-document.getElementById('satellite-toggle').onclick = () => {
-  satVisible = !satVisible;
-  map.setLayoutProperty('sat-layer', 'visibility', satVisible ? 'visible' : 'none');
-  document.getElementById('satellite-toggle').classList.toggle('active');
-  document.getElementById('regular-toggle').classList.toggle('active');
-};
+// Layer toggle buttons
+const regularToggle = document.getElementById('regular-toggle');
+const satelliteToggle = document.getElementById('satellite-toggle');
+const darkToggle = document.getElementById('dark-toggle');
 
-document.getElementById('regular-toggle').onclick = () => {
+regularToggle.onclick = () => {
   satVisible = false;
   map.setLayoutProperty('sat-layer', 'visibility', 'none');
-  document.getElementById('satellite-toggle').classList.toggle('active');
-  document.getElementById('regular-toggle').classList.toggle('active');
+  regularToggle.classList.add('active');
+  satelliteToggle.classList.remove('active');
+  regularToggle.setAttribute('aria-pressed', 'true');
+  satelliteToggle.setAttribute('aria-pressed', 'false');
+};
+
+satelliteToggle.onclick = () => {
+  satVisible = !satVisible;
+  map.setLayoutProperty('sat-layer', 'visibility', satVisible ? 'visible' : 'none');
+  satelliteToggle.classList.toggle('active', satVisible);
+  regularToggle.classList.toggle('active', !satVisible);
+  satelliteToggle.setAttribute('aria-pressed', satVisible.toString());
+  regularToggle.setAttribute('aria-pressed', (!satVisible).toString());
+};
+
+darkToggle.onclick = () => {
+  document.body.classList.toggle('dark-mode');
+  const isDark = document.body.classList.contains('dark-mode');
+  darkToggle.setAttribute('aria-pressed', isDark.toString());
 };
 
 // DOM refs
-const destInput = document.getElementById('search');
-const destList = document.getElementById('suggestions');
+const searchInput = document.getElementById('search');
+const suggestionsBox = document.getElementById('suggestions');
+
+const sidebar = document.getElementById('sidebar');
+const sidebarCloseBtn = document.getElementById('sidebar-close');
+const placeInfo = document.getElementById('place-info');
+const directionsToggle = document.getElementById('directions-toggle');
+const directionsForm = document.getElementById('directions-form');
 const originInput = document.getElementById('origin');
-const originList = document.getElementById('origin-suggestions');
-const directionsUI = document.getElementById('directions-ui');
-const getDirectionsBtn = document.getElementById('get-directions');
-const clearBtn = document.getElementById('clear-directions');
+const originSuggestions = document.getElementById('origin-suggestions');
+const destinationInput = document.getElementById('destination');
+const destinationSuggestions = document.getElementById('destination-suggestions');
+const getRouteBtn = document.getElementById('get-route');
+const clearRouteBtn = document.getElementById('clear-route');
+
 const routeInfoBox = document.getElementById('route-info');
 const routeSummary = document.getElementById('route-summary');
 
 let destResults = [];
 let originResults = [];
+let destinationResults = [];
 let originCoord = null;
+let destinationCoord = null;
+let selectedPlace = null;
 let activeMarkers = [];
 
-// Search Nominatim
-async function nominatimSearch(q) {
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`);
+// Nominatim Search helper
+async function nominatimSearch(query) {
+  if (!query) return [];
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
   return res.json();
 }
 
-// Destination autocomplete
-destInput.addEventListener('input', async e => {
-  const q = e.target.value.trim();
-  destList.innerHTML = '';
-  if (!q) return;
-  destResults = await nominatimSearch(q);
-  destResults.forEach((r, i) => {
+// Helpers to clear suggestion boxes
+function clearSuggestions(container) {
+  container.innerHTML = '';
+}
+
+// Render suggestions
+function renderSuggestions(container, results) {
+  clearSuggestions(container);
+  results.forEach((place, i) => {
     const div = document.createElement('div');
     div.className = 'suggestion';
-    div.textContent = r.display_name;
+    div.textContent = place.display_name;
+    div.tabIndex = 0;
     div.dataset.idx = i;
-    destList.append(div);
+    container.appendChild(div);
   });
+}
+
+// Handle search input (main search bar)
+searchInput.addEventListener('input', async e => {
+  const q = e.target.value.trim();
+  if (!q) {
+    clearSuggestions(suggestionsBox);
+    return;
+  }
+  destResults = await nominatimSearch(q);
+  renderSuggestions(suggestionsBox, destResults);
 });
 
-destList.addEventListener('click', e => {
+suggestionsBox.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
   if (idx == null) return;
-  const place = destResults[idx];
-  map.flyTo({ center: [+place.lon, +place.lat], zoom: 14 });
-  directionsUI.style.display = 'flex';
-  destList.innerHTML = '';
+  selectedPlace = destResults[idx];
+  clearSuggestions(suggestionsBox);
+  searchInput.value = selectedPlace.display_name;
+
+  // Fly to selected place
+  map.flyTo({ center: [+selectedPlace.lon, +selectedPlace.lat], zoom: 14 });
+
+  // Show sidebar with place info
+  placeInfo.textContent = selectedPlace.display_name;
+  sidebar.hidden = false;
+  setTimeout(() => sidebar.classList.add('open'), 10);
+
+  // Setup directions toggle and form
+  directionsForm.style.display = 'none';
+  directionsToggle.textContent = 'Show Directions';
+
+  // Pre-fill origin input with selected place
+  originInput.value = selectedPlace.display_name;
+  originCoord = { lon: +selectedPlace.lon, lat: +selectedPlace.lat };
+
+  // Clear previous destination input and results
+  destinationInput.value = '';
+  destinationResults = [];
+  destinationCoord = null;
+
+  clearRoute();
+});
+
+// Close sidebar
+sidebarCloseBtn.addEventListener('click', () => {
+  sidebar.classList.remove('open');
+  setTimeout(() => { sidebar.hidden = true; }, 300);
+});
+
+// Directions toggle show/hide form
+directionsToggle.addEventListener('click', () => {
+  if (directionsForm.style.display === 'flex' || directionsForm.style.display === 'block') {
+    directionsForm.style.display = 'none';
+    directionsToggle.textContent = 'Show Directions';
+  } else {
+    directionsForm.style.display = 'flex';
+    directionsToggle.textContent = 'Hide Directions';
+  }
 });
 
 // Origin autocomplete
 originInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
-  originList.innerHTML = '';
-  if (!q) return;
+  if (!q) {
+    clearSuggestions(originSuggestions);
+    originCoord = null;
+    return;
+  }
   originResults = await nominatimSearch(q);
-  originResults.forEach((r, i) => {
-    const div = document.createElement('div');
-    div.className = 'suggestion';
-    div.textContent = r.display_name;
-    div.dataset.idx = i;
-    originList.append(div);
-  });
+  renderSuggestions(originSuggestions, originResults);
 });
 
-originList.addEventListener('click', e => {
+originSuggestions.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
   if (idx == null) return;
   const place = originResults[idx];
   originInput.value = place.display_name;
   originCoord = { lon: +place.lon, lat: +place.lat };
-  originList.innerHTML = '';
+  clearSuggestions(originSuggestions);
 });
 
-// Click outside suggestion boxes
+// Destination autocomplete
+destinationInput.addEventListener('input', async e => {
+  const q = e.target.value.trim();
+  if (!q) {
+    clearSuggestions(destinationSuggestions);
+    destinationCoord = null;
+    return;
+  }
+  destinationResults = await nominatimSearch(q);
+  renderSuggestions(destinationSuggestions, destinationResults);
+});
+
+destinationSuggestions.addEventListener('click', e => {
+  const idx = e.target.dataset.idx;
+  if (idx == null) return;
+  const place = destinationResults[idx];
+  destinationInput.value = place.display_name;
+  destinationCoord = { lon: +place.lon, lat: +place.lat };
+  clearSuggestions(destinationSuggestions);
+});
+
+// Click outside suggestion boxes to close them
 document.addEventListener('click', e => {
-  if (!destInput.contains(e.target) && !destList.contains(e.target)) {
-    destList.innerHTML = '';
-  }
-  if (!originInput.contains(e.target) && !originList.contains(e.target)) {
-    originList.innerHTML = '';
-  }
+  if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) clearSuggestions(suggestionsBox);
+  if (!originInput.contains(e.target) && !originSuggestions.contains(e.target)) clearSuggestions(originSuggestions);
+  if (!destinationInput.contains(e.target) && !destinationSuggestions.contains(e.target)) clearSuggestions(destinationSuggestions);
 });
 
-// Hide on ESC key
+// Hide suggestions on ESC
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    destList.innerHTML = '';
-    originList.innerHTML = '';
-    destInput.blur();
+    clearSuggestions(suggestionsBox);
+    clearSuggestions(originSuggestions);
+    clearSuggestions(destinationSuggestions);
+    searchInput.blur();
     originInput.blur();
+    destinationInput.blur();
   }
 });
 
-// Clear route
+// Clear route from map and UI
 function clearRoute() {
   if (map.getLayer('route-line')) {
     map.removeLayer('route-line');
+  }
+  if (map.getSource('route-line')) {
     map.removeSource('route-line');
   }
   activeMarkers.forEach(m => m.remove());
   activeMarkers = [];
   routeSummary.textContent = '';
-  routeInfoBox.classList.add('hidden');
+  routeInfoBox.classList.remove('visible');
 }
 
-clearBtn.addEventListener('click', () => {
+// Clear button handler
+clearRouteBtn.addEventListener('click', () => {
   clearRoute();
 });
 
-// Get Directions
-getDirectionsBtn.addEventListener('click', async () => {
-  if (!originCoord || !destResults.length) {
-    alert('Select both origin and destination.');
+// Get route and draw on map
+getRouteBtn.addEventListener('click', async () => {
+  // Validate origin and destination coords
+  if (!originCoord) {
+    alert('Please select a valid origin from the suggestions.');
     return;
   }
-  const dest = destResults[0];
-  const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${originCoord.lon},${originCoord.lat};${dest.lon},${dest.lat}?overview=full&geometries=geojson&steps=true`;
+  if (!destinationCoord) {
+    alert('Please select a valid destination from the suggestions.');
+    return;
+  }
+
+  // Build routing URL
+  const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${originCoord.lon},${originCoord.lat};${destinationCoord.lon},${destinationCoord.lat}?overview=full&geometries=geojson&steps=true`;
 
   try {
     const res = await fetch(url);
     const json = await res.json();
+
     if (!json.routes?.length) {
       alert('No route found.');
       return;
     }
+
     clearRoute();
+
     const route = json.routes[0];
 
-    // Add GeoJSON line
+    // Add GeoJSON route line
     map.addSource('route-line', {
       type: 'geojson',
       data: {
@@ -186,27 +295,33 @@ getDirectionsBtn.addEventListener('click', async () => {
         geometry: route.geometry
       }
     });
-
     map.addLayer({
       id: 'route-line',
       type: 'line',
       source: 'route-line',
-      layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': '#3b82f6', 'line-width': 6, 'line-opacity': 0.8 }
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round'
+      },
+      paint: {
+        'line-color': '#3b82f6',
+        'line-width': 6,
+        'line-opacity': 0.8
+      }
     });
 
     // Add markers
     const m1 = new maplibregl.Marker().setLngLat([originCoord.lon, originCoord.lat]).addTo(map);
-    const m2 = new maplibregl.Marker().setLngLat([+dest.lon, +dest.lat]).addTo(map);
+    const m2 = new maplibregl.Marker().setLngLat([destinationCoord.lon, destinationCoord.lat]).addTo(map);
     activeMarkers.push(m1, m2);
 
-    // Show route summary
+    // Show route summary info
     const distanceKm = (route.distance / 1000).toFixed(2);
     const durationMin = Math.round(route.duration / 60);
     routeSummary.textContent = `Distance: ${distanceKm} km · Duration: ${durationMin} min`;
-    routeInfoBox.classList.remove('hidden');
+    routeInfoBox.classList.add('visible');
 
-    // Center on midpoint
+    // Fly map to midpoint of route
     const coords = route.geometry.coordinates;
     const mid = coords[Math.floor(coords.length / 2)];
     map.flyTo({ center: mid, zoom: 13 });
