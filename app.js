@@ -1,4 +1,4 @@
-// Initialize MapLibre map
+// === Map Initialization ===
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -13,7 +13,6 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Add nav + geolocate controls
 map.addControl(new maplibregl.NavigationControl(), 'top-left');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
@@ -21,7 +20,6 @@ map.addControl(new maplibregl.GeolocateControl({
   showUserHeading: true
 }), 'top-left');
 
-// Satellite toggle setup
 let satVisible = false;
 map.on('load', () => {
   map.addSource('satellite', {
@@ -61,15 +59,39 @@ const originInput      = document.getElementById('origin');
 const originList       = document.getElementById('origin-suggestions');
 const directionsUI     = document.getElementById('directions-ui');
 const getDirectionsBtn = document.getElementById('get-directions');
+const clearDirectionsBtn = document.getElementById('clear-directions');
 const routeInfoBox     = document.getElementById('route-info');
 const routeSummary     = document.getElementById('route-summary');
+const routeEta         = document.getElementById('route-eta');
+const closeRouteBtn    = document.getElementById('close-route-info');
+const darkToggleBtn    = document.getElementById('dark-toggle');
 
 let destResults   = [];
 let originResults = [];
 let originCoord   = null;
 let activeMarkers = [];
 
-// Helper: search Nominatim
+// Dark mode functions
+function applyDarkMode(enabled) {
+  if(enabled) {
+    document.body.classList.add('dark-mode');
+    darkToggleBtn.textContent = 'Light Mode';
+  } else {
+    document.body.classList.remove('dark-mode');
+    darkToggleBtn.textContent = 'Dark Mode';
+  }
+}
+
+// Apply dark mode based on system preference initially
+const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+applyDarkMode(prefersDark);
+
+darkToggleBtn.addEventListener('click', () => {
+  const darkModeOn = document.body.classList.toggle('dark-mode');
+  darkToggleBtn.textContent = darkModeOn ? 'Light Mode' : 'Dark Mode';
+});
+
+// Nominatim search helper
 async function nominatimSearch(q) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`
@@ -77,7 +99,7 @@ async function nominatimSearch(q) {
   return res.json();
 }
 
-// Handle destination autocomplete
+// Destination autocomplete
 destInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   destList.innerHTML = '';
@@ -101,7 +123,7 @@ destList.addEventListener('click', e => {
   directionsUI.style.display = 'flex';
 });
 
-// Handle origin autocomplete
+// Origin autocomplete
 originInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   originList.innerHTML = '';
@@ -135,7 +157,14 @@ function clearRoute() {
   activeMarkers.forEach(m => m.remove());
   activeMarkers = [];
   routeSummary.textContent = '';
+  routeEta.textContent = '';
   routeInfoBox.classList.add('hidden');
+}
+
+// Format ETA time
+function formatETA(durationSeconds) {
+  const arrival = new Date(Date.now() + durationSeconds * 1000);
+  return arrival.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 // Get Directions click
@@ -183,10 +212,13 @@ getDirectionsBtn.addEventListener('click', async () => {
     const m2 = new maplibregl.Marker().setLngLat([+dest.lon, +dest.lat]).addTo(map);
     activeMarkers.push(m1, m2);
 
-    // Show route summary
+    // Show route summary and ETA
     const distanceKm = (route.distance / 1000).toFixed(2);
     const durationMin = Math.round(route.duration / 60);
     routeSummary.textContent = `Distance: ${distanceKm} km · Duration: ${durationMin} min`;
+
+    routeEta.textContent = `ETA: ${formatETA(route.duration)}`;
+
     routeInfoBox.classList.remove('hidden');
 
     // Center on midpoint
@@ -196,5 +228,57 @@ getDirectionsBtn.addEventListener('click', async () => {
 
   } catch (err) {
     alert('Error fetching directions: ' + err.message);
+  }
+});
+
+// Clear Directions button
+clearDirectionsBtn.addEventListener('click', () => {
+  clearRoute();
+  originInput.value = '';
+  destInput.value = '';
+  destList.innerHTML = '';
+  originList.innerHTML = '';
+  directionsUI.style.display = 'none';
+});
+
+// Close route info button
+closeRouteBtn.addEventListener('click', () => {
+  routeInfoBox.classList.add('hidden');
+});
+
+// Swipe-to-dismiss on mobile
+let touchStartY = 0;
+let touchCurrentY = 0;
+let isDragging = false;
+
+routeInfoBox.addEventListener('touchstart', e => {
+  if(window.innerWidth > 767) return; // only mobile
+  if(e.touches.length !== 1) return;
+  touchStartY = e.touches[0].clientY;
+  isDragging = true;
+  routeInfoBox.style.transition = ''; // cancel transition during drag
+});
+
+routeInfoBox.addEventListener('touchmove', e => {
+  if(!isDragging) return;
+  touchCurrentY = e.touches[0].clientY;
+  const deltaY = touchCurrentY - touchStartY;
+  if(deltaY > 0) { // only drag down
+    routeInfoBox.style.transform = `translateY(${deltaY}px)`;
+  }
+});
+
+routeInfoBox.addEventListener('touchend', e => {
+  if(!isDragging) return;
+  isDragging = false;
+  const deltaY = touchCurrentY - touchStartY;
+  routeInfoBox.style.transition = 'transform 0.3s ease';
+  if(deltaY > 100) {
+    // swipe down enough to close
+    routeInfoBox.classList.add('hidden');
+    routeInfoBox.style.transform = '';
+  } else {
+    // snap back
+    routeInfoBox.style.transform = '';
   }
 });
