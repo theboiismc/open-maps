@@ -12,7 +12,6 @@ const map = new maplibregl.Map({
   maxZoom: 18,
   minZoom: 1
 });
-
 map.addControl(new maplibregl.NavigationControl(), 'top-left');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
@@ -52,7 +51,6 @@ regularToggle.onclick = () => {
   regularToggle.setAttribute('aria-pressed', 'true');
   satelliteToggle.setAttribute('aria-pressed', 'false');
 };
-
 satelliteToggle.onclick = () => {
   satVisible = !satVisible;
   map.setLayoutProperty('sat-layer', 'visibility', satVisible ? 'visible' : 'none');
@@ -61,7 +59,6 @@ satelliteToggle.onclick = () => {
   satelliteToggle.setAttribute('aria-pressed', satVisible.toString());
   regularToggle.setAttribute('aria-pressed', (!satVisible).toString());
 };
-
 darkToggle.onclick = () => {
   document.body.classList.toggle('dark-mode');
   const isDark = document.body.classList.contains('dark-mode');
@@ -71,7 +68,6 @@ darkToggle.onclick = () => {
 // DOM refs
 const searchInput = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
-
 const sidebar = document.getElementById('sidebar');
 const sidebarCloseBtn = document.getElementById('sidebar-close');
 const placeInfo = document.getElementById('place-info');
@@ -83,7 +79,6 @@ const destinationInput = document.getElementById('destination');
 const destinationSuggestions = document.getElementById('destination-suggestions');
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
-
 const routeInfoBox = document.getElementById('route-info');
 const routeSummary = document.getElementById('route-summary');
 
@@ -146,6 +141,9 @@ suggestionsBox.addEventListener('click', e => {
   sidebar.hidden = false;
   setTimeout(() => sidebar.classList.add('open'), 10);
 
+  // 🔥 Hide search bar when sidebar opens
+  searchInput.style.display = 'none';
+
   // Setup directions toggle and form
   directionsForm.style.display = 'none';
   directionsToggle.textContent = 'Show Directions';
@@ -158,7 +156,6 @@ suggestionsBox.addEventListener('click', e => {
   destinationInput.value = '';
   destinationResults = [];
   destinationCoord = null;
-
   clearRoute();
 });
 
@@ -166,6 +163,9 @@ suggestionsBox.addEventListener('click', e => {
 sidebarCloseBtn.addEventListener('click', () => {
   sidebar.classList.remove('open');
   setTimeout(() => { sidebar.hidden = true; }, 300);
+
+  // 🔥 Show search bar again when sidebar closes
+  searchInput.style.display = '';
 });
 
 // Directions toggle show/hide form
@@ -190,7 +190,6 @@ originInput.addEventListener('input', async e => {
   originResults = await nominatimSearch(q);
   renderSuggestions(originSuggestions, originResults);
 });
-
 originSuggestions.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
   if (idx == null) return;
@@ -211,7 +210,6 @@ destinationInput.addEventListener('input', async e => {
   destinationResults = await nominatimSearch(q);
   renderSuggestions(destinationSuggestions, destinationResults);
 });
-
 destinationSuggestions.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
   if (idx == null) return;
@@ -261,7 +259,6 @@ clearRouteBtn.addEventListener('click', () => {
 
 // Get route and draw on map
 getRouteBtn.addEventListener('click', async () => {
-  // Validate origin and destination coords
   if (!originCoord) {
     alert('Please select a valid origin from the suggestions.');
     return;
@@ -271,13 +268,10 @@ getRouteBtn.addEventListener('click', async () => {
     return;
   }
 
-  // Build routing URL
   const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${originCoord.lon},${originCoord.lat};${destinationCoord.lon},${destinationCoord.lat}?overview=full&geometries=geojson&steps=true`;
-
   try {
     const res = await fetch(url);
     const json = await res.json();
-
     if (!json.routes?.length) {
       alert('No route found.');
       return;
@@ -287,7 +281,6 @@ getRouteBtn.addEventListener('click', async () => {
 
     const route = json.routes[0];
 
-    // Add GeoJSON route line
     map.addSource('route-line', {
       type: 'geojson',
       data: {
@@ -295,6 +288,7 @@ getRouteBtn.addEventListener('click', async () => {
         geometry: route.geometry
       }
     });
+
     map.addLayer({
       id: 'route-line',
       type: 'line',
@@ -310,22 +304,18 @@ getRouteBtn.addEventListener('click', async () => {
       }
     });
 
-    // Add markers
     const m1 = new maplibregl.Marker().setLngLat([originCoord.lon, originCoord.lat]).addTo(map);
     const m2 = new maplibregl.Marker().setLngLat([destinationCoord.lon, destinationCoord.lat]).addTo(map);
     activeMarkers.push(m1, m2);
 
-    // Show route summary info
     const distanceKm = (route.distance / 1000).toFixed(2);
     const durationMin = Math.round(route.duration / 60);
     routeSummary.textContent = `Distance: ${distanceKm} km · Duration: ${durationMin} min`;
     routeInfoBox.classList.add('visible');
 
-    // Fly map to midpoint of route
     const coords = route.geometry.coordinates;
     const mid = coords[Math.floor(coords.length / 2)];
     map.flyTo({ center: mid, zoom: 13 });
-
   } catch (err) {
     alert('Error fetching directions: ' + err.message);
   }
