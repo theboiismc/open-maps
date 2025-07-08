@@ -62,6 +62,22 @@
     #clear-directions:hover {
       background-color: #ba2d2d;
     }
+    #start-navigation {
+      background-color: #0078ff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
+      transition: background-color 0.3s ease;
+      padding: 10px;
+      margin-top: 8px;
+      display: none;
+    }
+    #start-navigation:hover {
+      background-color: #005fcc;
+    }
     #suggestions,
     #origin-suggestions {
       background: white;
@@ -83,21 +99,6 @@
       flex-direction: column;
       gap: 8px;
       position: relative;
-    }
-    #start-navigation {
-      margin-top: 10px;
-      padding: 10px 14px;
-      background: #0078ff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      user-select: none;
-      transition: background-color 0.3s ease;
-    }
-    #start-navigation:hover {
-      background-color: #005fcc;
     }
     .layer-toggle {
       position: absolute;
@@ -142,7 +143,6 @@
       flex-direction: column;
       gap: 8px;
     }
-    /* Close button */
     #close-route-info {
       position: absolute;
       top: 6px;
@@ -159,9 +159,7 @@
     #close-route-info:hover {
       color: #000;
     }
-    /* Swipe-to-dismiss on mobile */
     @media (max-width: 767px) {
-      /* Search bar full width and centered */
       .search-bar {
         width: calc(100% - 32px);
         left: 50%;
@@ -200,10 +198,6 @@
         user-select: none;
         transition: background-color 0.3s ease, box-shadow 0.3s ease;
       }
-      #get-directions:hover {
-        background-color: #005fcc;
-        box-shadow: 0 8px 20px rgba(0, 95, 204, 0.65);
-      }
       #clear-directions {
         box-shadow: 0 5px 14px rgba(244, 67, 54, 0.35);
       }
@@ -211,7 +205,11 @@
         background-color: #ba2d2d;
         box-shadow: 0 8px 20px rgba(186, 45, 45, 0.65);
       }
-      /* Suggestions scroll */
+      #get-directions:hover,
+      #start-navigation:hover {
+        background-color: #005fcc;
+        box-shadow: 0 8px 20px rgba(0, 95, 204, 0.65);
+      }
       #suggestions,
       #origin-suggestions {
         max-height: 240px;
@@ -219,7 +217,6 @@
         box-shadow: 0 5px 18px rgba(0,0,0,0.12);
         font-size: 15px;
       }
-      /* Route info panel - slide up bottom panel */
       #route-info {
         position: fixed;
         bottom: 0;
@@ -255,7 +252,6 @@
       #close-route-info:hover {
         color: #111;
       }
-      /* Layer toggle bar horizontally scrollable */
       .layer-toggle {
         left: 50%;
         transform: translateX(-50%);
@@ -276,7 +272,6 @@
         font-size: 16px;
         border-radius: 16px;
       }
-      /* Map controls vertical stack */
       .map-controls {
         bottom: 84px;
         right: 16px;
@@ -284,7 +279,6 @@
         z-index: 10002;
       }
     }
-    /* Dark mode styling */
     body.dark-mode {
       background: #121212;
       color: #ddd;
@@ -319,28 +313,23 @@
 </head>
 <body>
   <div id="map"></div>
-
   <div class="search-bar">
     <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" />
     <div id="suggestions"></div>
-
     <div id="directions-ui">
       <input id="origin" type="text" placeholder="Use my location or type origin..." autocomplete="off" spellcheck="false" />
       <div id="origin-suggestions"></div>
       <button id="get-directions">Get Directions</button>
       <button id="clear-directions">Clear</button>
-      <!-- Start Navigation btn inserted dynamically -->
+      <button id="start-navigation" style="display:none;">Start Navigation</button>
     </div>
   </div>
-
   <div class="layer-toggle" role="region" aria-label="Map layer toggles">
     <button id="regular-toggle" class="active" aria-pressed="true">Regular</button>
     <button id="satellite-toggle" aria-pressed="false">Satellite</button>
     <button id="dark-toggle" aria-pressed="false">Dark Mode</button>
   </div>
-
   <div class="map-controls" id="map-controls"></div>
-
   <div id="route-info" class="route-panel hidden" role="region" aria-label="Route information">
     <button id="close-route-info" aria-label="Close route info">&times;</button>
     <h3>Route Info</h3>
