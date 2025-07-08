@@ -14,21 +14,21 @@ const map = new maplibregl.Map({
   rotationAnimation: true,
 });
 
-// Controls
+// Add navigation and geolocate controls to the map
 const navControl = new maplibregl.NavigationControl();
 const geoControl = new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
   trackUserLocation: true,
   showUserHeading: true,
 });
+
 document.getElementById('map-controls').appendChild(navControl.onAdd(map));
 document.getElementById('map-controls').appendChild(geoControl.onAdd(map));
 
-// Layer toggle
+// Layer toggle functionality
 let satelliteVisible = false;
-let darkVisible = false;
-
 map.on('load', () => {
+  // Satellite layer
   map.addSource('satellite', {
     type: 'raster',
     tiles: [
@@ -44,59 +44,28 @@ map.on('load', () => {
     layout: { visibility: 'none' },
     paint: { 'raster-opacity': 0.8 },
   });
-
-  map.addSource('dark', {
-    type: 'raster',
-    tiles: [
-      'https://tiles.stadiamaps.com/tiles/alidade_dark/{z}/{x}/{y}{r}.png',
-    ],
-    tileSize: 256,
-  });
-
-  map.addLayer({
-    id: 'dark-layer',
-    type: 'raster',
-    source: 'dark',
-    layout: { visibility: 'none' },
-  });
 });
 
-// Toggle buttons
 document.getElementById('satellite-toggle').onclick = () => {
   satelliteVisible = !satelliteVisible;
-  map.setLayoutProperty('satellite-layer', 'visibility', satelliteVisible ? 'visible' : 'none');
-  if (satelliteVisible) {
-    darkVisible = false;
-    map.setLayoutProperty('dark-layer', 'visibility', 'none');
-  }
-  toggleActiveButton();
+  map.setLayoutProperty(
+    'satellite-layer',
+    'visibility',
+    satelliteVisible ? 'visible' : 'none'
+  );
+  document.getElementById('satellite-toggle').classList.toggle('active');
+  document.getElementById('regular-toggle').classList.toggle('active');
 };
 
+// Regular layer toggle
 document.getElementById('regular-toggle').onclick = () => {
   satelliteVisible = false;
-  darkVisible = false;
   map.setLayoutProperty('satellite-layer', 'visibility', 'none');
-  map.setLayoutProperty('dark-layer', 'visibility', 'none');
-  toggleActiveButton();
+  document.getElementById('regular-toggle').classList.toggle('active');
+  document.getElementById('satellite-toggle').classList.toggle('active');
 };
 
-document.getElementById('dark-toggle').onclick = () => {
-  darkVisible = !darkVisible;
-  map.setLayoutProperty('dark-layer', 'visibility', darkVisible ? 'visible' : 'none');
-  if (darkVisible) {
-    satelliteVisible = false;
-    map.setLayoutProperty('satellite-layer', 'visibility', 'none');
-  }
-  toggleActiveButton();
-};
-
-function toggleActiveButton() {
-  document.getElementById('regular-toggle').classList.toggle('active', !satelliteVisible && !darkVisible);
-  document.getElementById('satellite-toggle').classList.toggle('active', satelliteVisible);
-  document.getElementById('dark-toggle').classList.toggle('active', darkVisible);
-}
-
-// Search & Directions
+// Location search box and suggestions
 const searchInput = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
 const directionsUI = document.getElementById('directions-ui');
@@ -104,167 +73,123 @@ const originInput = document.getElementById('origin');
 const originSuggestionsBox = document.getElementById('origin-suggestions');
 const directionsSteps = document.getElementById('directions-steps');
 const getDirectionsButton = document.getElementById('get-directions');
-const clearDirectionsButton = document.getElementById('clear-directions');
 
-let originCoordinates = null;
-let destinationCoordinates = null;
-const routeLayerId = 'route-line';
-let originMarker = null;
-let destinationMarker = null;
+let currentSearchResults = [];
+let originCoordinates = null; // Track the coordinates for the origin
 
-// Helper: Clear route and UI
-function clearRoute() {
-  if (map.getLayer(routeLayerId)) {
-    map.removeLayer(routeLayerId);
-  }
-  if (map.getSource(routeLayerId)) {
-    map.removeSource(routeLayerId);
-  }
-  if (originMarker) {
-    originMarker.remove();
-    originMarker = null;
-  }
-  if (destinationMarker) {
-    destinationMarker.remove();
-    destinationMarker = null;
-  }
-  directionsSteps.innerHTML = '';
-  originCoordinates = null;
-  destinationCoordinates = null;
-  directionsUI.style.display = 'none';
-  originInput.value = '';
-  searchInput.value = '';
-  suggestionsBox.innerHTML = '';
-  originSuggestionsBox.innerHTML = '';
-}
-
-// Search box for destination
-searchInput.addEventListener('input', async e => {
-  const query = e.target.value.trim();
+searchInput.addEventListener('input', async (e) => {
+  const query = e.target.value;
   if (!query) {
     suggestionsBox.innerHTML = '';
-    destinationCoordinates = null;
     return;
   }
-  try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
-    const data = await res.json();
-    suggestionsBox.innerHTML = data.map(result => 
-      `<div class="suggestion" data-lat="${result.lat}" data-lon="${result.lon}">${result.display_name}</div>`
-    ).join('');
-    
-    document.querySelectorAll('#suggestions .suggestion').forEach(el =>
-      el.addEventListener('click', event => {
-        const lat = parseFloat(event.target.dataset.lat);
-        const lon = parseFloat(event.target.dataset.lon);
-        destinationCoordinates = { lat, lon };
-        searchInput.value = event.target.textContent;
-        suggestionsBox.innerHTML = '';
-        map.flyTo({ center: [lon, lat], zoom: 15 });
-        directionsUI.style.display = 'flex';
-      })
-    );
-  } catch {
-    suggestionsBox.innerHTML = '';
-  }
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
+  );
+  const data = await response.json();
+
+  currentSearchResults = data;
+  suggestionsBox.innerHTML = data
+    .map(
+      (result) => `
+      <div class="suggestion" data-lat="${result.lat}" data-lon="${result.lon}">
+        ${result.display_name}
+      </div>`
+    )
+    .join('');
+
+  document.querySelectorAll('.suggestion').forEach((el) =>
+    el.addEventListener('click', (event) => {
+      const lat = event.target.dataset.lat;
+      const lon = event.target.dataset.lon;
+      map.flyTo({ center: [lon, lat], zoom: 15 });
+      directionsUI.style.display = 'flex'; // Show directions UI when a location is selected
+    })
+  );
 });
 
-// Search box for origin
-originInput.addEventListener('input', async e => {
-  const query = e.target.value.trim();
+// Handling origin search box for directions
+originInput.addEventListener('input', async (e) => {
+  const query = e.target.value;
   if (!query) {
     originSuggestionsBox.innerHTML = '';
-    originCoordinates = null;
     return;
   }
-  try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
-    const data = await res.json();
-    originSuggestionsBox.innerHTML = data.map(result => 
-      `<div class="suggestion" data-lat="${result.lat}" data-lon="${result.lon}">${result.display_name}</div>`
-    ).join('');
-    document.querySelectorAll('#origin-suggestions .suggestion').forEach(el =>
-      el.addEventListener('click', event => {
-        const lat = parseFloat(event.target.dataset.lat);
-        const lon = parseFloat(event.target.dataset.lon);
-        originCoordinates = { lat, lon };
-        originInput.value = event.target.textContent;
-        originSuggestionsBox.innerHTML = '';
-      })
-    );
-  } catch {
-    originSuggestionsBox.innerHTML = '';
-  }
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
+  );
+  const data = await response.json();
+
+  originSuggestionsBox.innerHTML = data
+    .map(
+      (result) => `
+      <div class="suggestion" data-lat="${result.lat}" data-lon="${result.lon}">
+        ${result.display_name}
+      </div>`
+    )
+    .join('');
+
+  document.querySelectorAll('.suggestion').forEach((el) =>
+    el.addEventListener('click', (event) => {
+      originInput.value = event.target.innerText;
+      originCoordinates = {
+        lat: event.target.dataset.lat,
+        lon: event.target.dataset.lon,
+      };
+      originSuggestionsBox.innerHTML = '';
+    })
+  );
 });
 
-// Get Directions
+// Handle 'Get Directions' button click
 getDirectionsButton.addEventListener('click', async () => {
-  if (!originCoordinates || !destinationCoordinates) {
+  if (!originCoordinates || !currentSearchResults.length) {
     alert('Please select both origin and destination.');
     return;
   }
+
+  const destination = currentSearchResults[0]; // Use the first search result as destination
+  const origin = originCoordinates;
+
+  // Construct the OpenStreetMap route URL with no geometry (overview=false)
+  const routeUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=false&steps=true`;
+
   try {
-    const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${originCoordinates.lon},${originCoordinates.lat};${destinationCoordinates.lon},${destinationCoordinates.lat}?overview=full&steps=true&geometries=geojson`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!data.routes || data.routes.length === 0) {
-      alert('No route found.');
-      return;
+    const routeResponse = await fetch(routeUrl);
+    const routeData = await routeResponse.json();
+
+    if (routeData.routes && routeData.routes.length > 0) {
+      const route = routeData.routes[0];
+
+      // Add markers for the origin and destination on the map
+      new maplibregl.Marker()
+        .setLngLat([origin.lon, origin.lat])
+        .setPopup(new maplibregl.Popup().setHTML('Origin'))
+        .addTo(map);
+
+      new maplibregl.Marker()
+        .setLngLat([destination.lon, destination.lat])
+        .setPopup(new maplibregl.Popup().setHTML('Destination'))
+        .addTo(map);
+
+      // Display directions steps
+      const steps = route.legs[0].steps;
+      directionsSteps.innerHTML = '';
+      steps.forEach((step, i) => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
+          <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
+        `;
+        div.style.marginBottom = '8px';
+        directionsSteps.appendChild(div);
+      });
+    } else {
+      alert('Failed to fetch directions.');
     }
-    clearRoute();
-
-    const route = data.routes[0];
-
-    // Add origin and destination markers
-    originMarker = new maplibregl.Marker({ color: 'green' })
-      .setLngLat([originCoordinates.lon, originCoordinates.lat])
-      .setPopup(new maplibregl.Popup().setText('Origin'))
-      .addTo(map);
-    destinationMarker = new maplibregl.Marker({ color: 'red' })
-      .setLngLat([destinationCoordinates.lon, destinationCoordinates.lat])
-      .setPopup(new maplibregl.Popup().setText('Destination'))
-      .addTo(map);
-
-    // Add route line
-    map.addSource(routeLayerId, {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        geometry: route.geometry
-      }
-    });
-
-    map.addLayer({
-      id: routeLayerId,
-      type: 'line',
-      source: routeLayerId,
-      layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': '#0078ff',
-        'line-width': 5,
-        'line-opacity': 0.8
-      }
-    });
-
-    // Fit map to route bounds with padding
-    const bounds = new maplibregl.LngLatBounds();
-    route.geometry.coordinates.forEach(coord => bounds.extend(coord));
-    map.fitBounds(bounds, { padding: 50 });
-
-    // Show step-by-step instructions
-    directionsSteps.innerHTML = '';
-    route.legs[0].steps.forEach((step, i) => {
-      const stepDiv = document.createElement('div');
-      stepDiv.innerHTML = `<strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br><small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>`;
-      stepDiv.style.marginBottom = '8px';
-      directionsSteps.appendChild(stepDiv);
-    });
-  } catch (e) {
-    alert('Failed to fetch directions: ' + e.message);
+  } catch (error) {
+    alert('Failed to fetch directions: ' + error.message);
   }
-});
-
-// Clear directions button
-clearDirectionsButton.addEventListener('click', () => {
-  clearRoute();
 });
