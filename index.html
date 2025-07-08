@@ -6,263 +6,121 @@
   <title>TheBoiisMC Map</title>
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
-
-    html, body {
+    body, html {
       margin: 0;
       padding: 0;
       height: 100%;
-      width: 100%;
-      font-family: 'Roboto', sans-serif;
-      background: #f2f2f2;
-      color: #202124;
+      font-family: sans-serif;
     }
-
     #map {
       position: absolute;
-      top: 0; bottom: 0;
-      width: 100%;
-      z-index: 0;
+      top: 0; bottom: 0; left: 0; right: 0;
     }
-
-    /* Search container outside sidebar */
     #search-container {
       position: absolute;
-      top: 24px;
-      left: 24px;
-      width: 440px;
-      z-index: 10000;
-      transition: all 0.3s ease;
+      top: 20px;
+      left: 20px;
+      z-index: 999;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      padding: 10px;
+      width: 300px;
     }
-
-    /* Search bar styles */
-    #search-container input {
+    #search {
       width: 100%;
-      font-size: 16px;
-      padding: 14px 20px;
-      border: none;
-      border-radius: 28px;
-      background: #e7e0ec;
-      color: #1c1b1f;
-      box-shadow:
-        inset 0 1px 3px #ffffff80,
-        inset 0 -1px 2px #bab7c3;
-      outline-offset: 4px;
-      transition:
-        background-color 0.3s ease,
-        box-shadow 0.3s ease;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
     }
-
-    #search-container input::placeholder {
-      color: #8f8da4;
-    }
-
-    #search-container input:focus {
-      background: #f5f3f7;
-      box-shadow:
-        inset 0 1px 4px #d1cde6,
-        0 0 0 3px #6750a4;
-      color: #1c1b1f;
-      outline: none;
-    }
-
     #suggestions {
       background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-      max-height: 260px;
+      max-height: 150px;
       overflow-y: auto;
-      font-size: 15px;
-      margin-top: 8px;
-      padding: 8px 0;
-      user-select: none;
+      margin-top: 4px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-
     .suggestion {
-      padding: 12px 24px;
+      padding: 8px;
       cursor: pointer;
-      color: #1c1b1f;
-      border-radius: 12px;
-      transition: background-color 0.25s ease;
     }
-
-    .suggestion:hover, .suggestion:focus {
-      background-color: #ede7f6;
-      outline: none;
+    .suggestion:hover {
+      background-color: #eee;
     }
-
-    /* Sidebar styles */
     #sidebar {
       position: fixed;
-      top: 0;
-      left: 0;
-      height: 100vh;
+      top: 0; left: -320px;
       width: 320px;
-      background: #fff;
-      box-shadow: 4px 0 20px rgba(0,0,0,0.15);
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
-      z-index: 15000;
-      display: flex;
-      flex-direction: column;
-      padding: 16px;
-      overflow-y: auto;
+      height: 100%;
+      background: white;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+      padding: 20px;
+      box-sizing: border-box;
+      z-index: 1000;
+      transition: left 0.3s ease;
     }
     #sidebar.open {
-      transform: translateX(0);
+      left: 0;
     }
-
-    #sidebar-close {
-      background: transparent;
-      border: none;
-      font-size: 28px;
-      line-height: 1;
-      cursor: pointer;
-      color: #625b71;
-      padding: 0 0 12px 0;
-      user-select: none;
-      align-self: flex-end;
-      transition: color 0.25s ease;
+    #sidebar h2 {
+      margin-top: 0;
     }
-    #sidebar-close:hover {
-      color: #1e1a29;
-    }
-
-    #sidebar-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    /* When sidebar open, move search container inside and adjust */
-    #sidebar.open #search-container {
-      position: relative !important;
-      top: auto !important;
-      left: auto !important;
-      width: 100% !important;
-      margin-bottom: 16px;
-      z-index: auto;
-    }
-
-    /* Directions toggle button */
-    #directions-toggle {
-      background: #6750a4;
+    #toggle-sidebar {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: #333;
       color: white;
       border: none;
-      border-radius: 20px;
-      padding: 12px 24px;
-      font-weight: 600;
+      border-radius: 4px;
+      padding: 8px 12px;
+      z-index: 1001;
       cursor: pointer;
-      user-select: none;
-      transition: background-color 0.3s ease;
-      align-self: flex-start;
-    }
-    #directions-toggle:hover {
-      background-color: #5b3eae;
-    }
-
-    /* Directions form */
-    #directions-form {
-      display: none;
-      flex-direction: column;
-      gap: 8px;
     }
     #directions-form input {
-      padding: 10px 14px;
-      border-radius: 20px;
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      border-radius: 8px;
       border: 1px solid #ccc;
-      font-size: 14px;
-      outline-offset: 2px;
     }
-    #directions-form input:focus {
-      border-color: #6750a4;
-      box-shadow: 0 0 6px #6750a4aa;
-      outline: none;
-    }
-
     #directions-form button {
-      background: #6750a4;
+      width: 100%;
+      padding: 10px;
+      background: #3b82f6;
       color: white;
       border: none;
-      border-radius: 20px;
-      padding: 12px 24px;
-      font-weight: 600;
+      border-radius: 8px;
       cursor: pointer;
-      user-select: none;
-      transition: background-color 0.3s ease;
     }
-    #directions-form button:hover {
-      background-color: #5b3eae;
-    }
-
-    /* Hide map controls top-left from MapLibre default */
-    .maplibregl-ctrl-top-left {
-      display: none !important;
-    }
-
-    /* Map controls bottom right container override */
-    .maplibregl-ctrl-bottom-right {
-      position: absolute !important;
-      bottom: 20px !important;
-      right: 20px !important;
-      z-index: 10000 !important;
-    }
-
-    /* Mobile adjustments */
-    @media (max-width: 767px) {
-      #search-container {
-        width: calc(100% - 48px);
-        left: 24px;
-        top: 20px;
-      }
-      #sidebar {
-        width: 100vw;
-      }
-    }
-
-    /* Dark mode support (optional) */
-    body.dark-mode {
-      background: #121212;
-      color: #ddd;
-    }
-    body.dark-mode #sidebar {
-      background: #222;
-      color: #ddd;
-      box-shadow: 4px 0 20px rgba(255,255,255,0.1);
-    }
-    body.dark-mode #directions-toggle,
-    body.dark-mode #directions-form button {
-      background-color: #4a90e2;
+    #sidebar #search-container {
+      width: 100%;
+      position: static;
+      box-shadow: none;
+      padding: 0;
+      margin-bottom: 16px;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- Search container, initially outside sidebar -->
+  <button id="toggle-sidebar">☰</button>
+
   <div id="search-container">
-    <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Destination" />
-    <div id="suggestions" role="listbox" tabindex="-1"></div>
+    <input id="search" type="text" placeholder="Search..." />
+    <div id="suggestions"></div>
   </div>
 
-  <!-- Sidebar -->
-  <div id="sidebar" hidden>
-    <button id="sidebar-close" aria-label="Close menu">&times;</button>
-    <div id="sidebar-content">
-      <!-- Search container will be moved here when sidebar opens -->
-      
-      <div id="directions-section">
-        <button id="directions-toggle">Show Directions</button>
-        <form id="directions-form">
-          <input id="origin" type="text" placeholder="Origin" autocomplete="off" spellcheck="false" aria-label="Origin" />
-          <div id="origin-suggestions" role="listbox" tabindex="-1"></div>
-          <input id="destination" type="text" placeholder="Destination" autocomplete="off" spellcheck="false" aria-label="Destination" />
-          <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
-          <button type="button" id="get-route">Get Route</button>
-          <button type="button" id="clear-route">Clear</button>
-        </form>
-      </div>
+  <div id="sidebar">
+    <h2>Location Info</h2>
+    <div id="search-container-sidebar">
+      <input id="destination" type="text" placeholder="Destination..." />
+    </div>
+    <div id="directions-form">
+      <input id="origin" type="text" placeholder="Origin..." />
+      <button id="get-route">Get Route</button>
     </div>
   </div>
 
