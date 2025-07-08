@@ -1,4 +1,3 @@
-// ==== INIT MAP & CONTROLS ====
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -10,168 +9,187 @@ const map = new maplibregl.Map({
   touchZoomRotate: true,
   scrollZoom: true,
   maxZoom: 18,
-  minZoom: 1
+  minZoom: 1,
+  zoomAnimation: true,
+  rotationAnimation: true,
 });
 
-map.addControl(new maplibregl.NavigationControl());
-const geo = new maplibregl.GeolocateControl({ trackUserLocation: true, showUserHeading: true });
-map.addControl(geo);
-
-// ==== STATE ====
-let originCoordinates = null;
-let destinationCoordinates = null;
-let originMarker = null;
-let destinationMarker = null;
-const ROUTE_LAYER = 'route-line';
-
-// ==== HELPERS ====
-function clearRoute() {
-  if (map.getLayer(ROUTE_LAYER)) map.removeLayer(ROUTE_LAYER);
-  if (map.getSource(ROUTE_LAYER)) map.removeSource(ROUTE_LAYER);
-  originMarker?.remove();
-  destinationMarker?.remove();
-  originMarker = destinationMarker = null;
-  document.getElementById('directions-steps').innerHTML = '';
-  originCoordinates = destinationCoordinates = null;
-  document.getElementById('directions-ui').style.display = 'none';
-  document.getElementById('search').value = '';
-  document.getElementById('origin').value = '';
-  document.getElementById('suggestions').innerHTML = '';
-  document.getElementById('origin-suggestions').innerHTML = '';
-}
-
-geo.on('geolocate', e => {
-  if (!originCoordinates) {
-    originCoordinates = { lat: e.coords.latitude, lon: e.coords.longitude };
-    document.getElementById('origin').value = 'Your Location';
-  }
+// Add navigation and geolocate controls to the map
+const navControl = new maplibregl.NavigationControl();
+const geoControl = new maplibregl.GeolocateControl({
+  positionOptions: { enableHighAccuracy: true },
+  trackUserLocation: true,
+  showUserHeading: true,
 });
 
-// ==== DESTINATION SEARCH & SUGGESTIONS ====
-document.getElementById('search').addEventListener('input', async e => {
-  const q = e.target.value.trim();
-  if (!q) {
-    document.getElementById('suggestions').innerHTML = '';
+document.getElementById('map-controls').appendChild(navControl.onAdd(map));
+document.getElementById('map-controls').appendChild(geoControl.onAdd(map));
+
+// Layer toggle functionality
+let satelliteVisible = false;
+map.on('load', () => {
+  // Satellite layer
+  map.addSource('satellite', {
+    type: 'raster',
+    tiles: [
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    ],
+    tileSize: 256,
+  });
+
+  map.addLayer({
+    id: 'satellite-layer',
+    type: 'raster',
+    source: 'satellite',
+    layout: { visibility: 'none' },
+    paint: { 'raster-opacity': 0.8 },
+  });
+});
+
+document.getElementById('satellite-toggle').onclick = () => {
+  satelliteVisible = !satelliteVisible;
+  map.setLayoutProperty(
+    'satellite-layer',
+    'visibility',
+    satelliteVisible ? 'visible' : 'none'
+  );
+  document.getElementById('satellite-toggle').classList.toggle('active');
+  document.getElementById('regular-toggle').classList.toggle('active');
+};
+
+// Regular layer toggle
+document.getElementById('regular-toggle').onclick = () => {
+  satelliteVisible = false;
+  map.setLayoutProperty('satellite-layer', 'visibility', 'none');
+  document.getElementById('regular-toggle').classList.toggle('active');
+  document.getElementById('satellite-toggle').classList.toggle('active');
+};
+
+// Location search box and suggestions
+const searchInput = document.getElementById('search');
+const suggestionsBox = document.getElementById('suggestions');
+const directionsUI = document.getElementById('directions-ui');
+const originInput = document.getElementById('origin');
+const originSuggestionsBox = document.getElementById('origin-suggestions');
+const directionsSteps = document.getElementById('directions-steps');
+const getDirectionsButton = document.getElementById('get-directions');
+
+let currentSearchResults = [];
+let originCoordinates = null; // Track the coordinates for the origin
+
+searchInput.addEventListener('input', async (e) => {
+  const query = e.target.value;
+  if (!query) {
+    suggestionsBox.innerHTML = '';
     return;
   }
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
   );
-  const items = await res.json();
-  document.getElementById('suggestions').innerHTML = items
-    .map(i => `<div class="suggestion" data-lat="${i.lat}" data-lon="${i.lon}">${i.display_name}</div>`)
+  const data = await response.json();
+
+  currentSearchResults = data;
+  suggestionsBox.innerHTML = data
+    .map(
+      (result) => `
+      <div class="suggestion" data-lat="${result.lat}" data-lon="${result.lon}">
+        ${result.display_name}
+      </div>`
+    )
     .join('');
 
-  document.querySelectorAll('#suggestions .suggestion').forEach(el => {
-    el.addEventListener('click', event => {
-      // use event.target.closest() to find the .suggestion div
-      const tile = event.target.closest('.suggestion');
-      if (!tile) return;
-      const lat = parseFloat(tile.dataset.lat);
-      const lon = parseFloat(tile.dataset.lon);
-      destinationCoordinates = { lat, lon };
-      document.getElementById('search').value = tile.textContent;
-      document.getElementById('suggestions').innerHTML = '';
+  document.querySelectorAll('.suggestion').forEach((el) =>
+    el.addEventListener('click', (event) => {
+      const lat = event.target.dataset.lat;
+      const lon = event.target.dataset.lon;
       map.flyTo({ center: [lon, lat], zoom: 15 });
-      document.getElementById('directions-ui').style.display = 'flex';
-    });
-  });
+      directionsUI.style.display = 'flex'; // Show directions UI when a location is selected
+    })
+  );
 });
 
-// ==== ORIGIN SEARCH & SUGGESTIONS ====
-document.getElementById('origin').addEventListener('input', async e => {
-  const q = e.target.value.trim();
-  if (!q) {
-    document.getElementById('origin-suggestions').innerHTML = '';
+// Handling origin search box for directions
+originInput.addEventListener('input', async (e) => {
+  const query = e.target.value;
+  if (!query) {
+    originSuggestionsBox.innerHTML = '';
     return;
   }
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`
   );
-  const items = await res.json();
-  document.getElementById('origin-suggestions').innerHTML = items
-    .map(i => `<div class="suggestion" data-lat="${i.lat}" data-lon="${i.lon}">${i.display_name}</div>`)
+  const data = await response.json();
+
+  originSuggestionsBox.innerHTML = data
+    .map(
+      (result) => `
+      <div class="suggestion" data-lat="${result.lat}" data-lon="${result.lon}">
+        ${result.display_name}
+      </div>`
+    )
     .join('');
 
-  document.querySelectorAll('#origin-suggestions .suggestion').forEach(el => {
-    el.addEventListener('click', event => {
-      const tile = event.target.closest('.suggestion');
-      if (!tile) return;
-      const lat = parseFloat(tile.dataset.lat);
-      const lon = parseFloat(tile.dataset.lon);
-      originCoordinates = { lat, lon };
-      document.getElementById('origin').value = tile.textContent;
-      document.getElementById('origin-suggestions').innerHTML = '';
-    });
-  });
+  document.querySelectorAll('.suggestion').forEach((el) =>
+    el.addEventListener('click', (event) => {
+      originInput.value = event.target.innerText;
+      originCoordinates = {
+        lat: event.target.dataset.lat,
+        lon: event.target.dataset.lon,
+      };
+      originSuggestionsBox.innerHTML = '';
+    })
+  );
 });
 
-// ==== GET & DRAW DIRECTIONS ====
-document.getElementById('get-directions').addEventListener('click', async () => {
-  if (!originCoordinates || !destinationCoordinates) {
+// Handle 'Get Directions' button click
+getDirectionsButton.addEventListener('click', async () => {
+  if (!originCoordinates || !currentSearchResults.length) {
     alert('Please select both origin and destination.');
     return;
   }
-  clearRoute();
-  const url =
-    'https://routing.openstreetmap.de/routed-car/route/v1/driving/' +
-    `${originCoordinates.lon},${originCoordinates.lat};${destinationCoordinates.lon},${destinationCoordinates.lat}` +
-    '?overview=full&steps=true&geometries=geojson';
+
+  const destination = currentSearchResults[0]; // Use the first search result as destination
+  const origin = originCoordinates;
+
+  // Construct the OpenStreetMap route URL with no geometry (overview=false)
+  const routeUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${origin.lon},${origin.lat};${destination.lon},${destination.lat}?overview=false&steps=true`;
 
   try {
-    const res = await fetch(url);
-    const { routes } = await res.json();
-    if (!routes?.length) {
-      alert('No route found.');
-      return;
+    const routeResponse = await fetch(routeUrl);
+    const routeData = await routeResponse.json();
+
+    if (routeData.routes && routeData.routes.length > 0) {
+      const route = routeData.routes[0];
+
+      // Add markers for the origin and destination on the map
+      new maplibregl.Marker()
+        .setLngLat([origin.lon, origin.lat])
+        .setPopup(new maplibregl.Popup().setHTML('Origin'))
+        .addTo(map);
+
+      new maplibregl.Marker()
+        .setLngLat([destination.lon, destination.lat])
+        .setPopup(new maplibregl.Popup().setHTML('Destination'))
+        .addTo(map);
+
+      // Display directions steps
+      const steps = route.legs[0].steps;
+      directionsSteps.innerHTML = '';
+      steps.forEach((step, i) => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <strong>Step ${i + 1}:</strong> ${step.maneuver.instruction} <br/>
+          <small>Distance: ${(step.distance / 1000).toFixed(2)} km, Duration: ${Math.round(step.duration)} sec</small>
+        `;
+        div.style.marginBottom = '8px';
+        directionsSteps.appendChild(div);
+      });
+    } else {
+      alert('Failed to fetch directions.');
     }
-    const route = routes[0];
-
-    // Markers
-    originMarker = new maplibregl.Marker({ color: 'green' })
-      .setLngLat([originCoordinates.lon, originCoordinates.lat])
-      .setPopup(new maplibregl.Popup().setText('Origin'))
-      .addTo(map);
-
-    destinationMarker = new maplibregl.Marker({ color: 'red' })
-      .setLngLat([destinationCoordinates.lon, destinationCoordinates.lat])
-      .setPopup(new maplibregl.Popup().setText('Destination'))
-      .addTo(map);
-
-    // Route line
-    map.addSource(ROUTE_LAYER, {
-      type: 'geojson',
-      data: { type: 'Feature', geometry: route.geometry }
-    });
-    map.addLayer({
-      id: ROUTE_LAYER,
-      type: 'line',
-      source: ROUTE_LAYER,
-      layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': '#0078ff', 'line-width': 5, 'line-opacity': 0.8 }
-    });
-
-    // Fit bounds
-    const bounds = new maplibregl.LngLatBounds();
-    route.geometry.coordinates.forEach(pt => bounds.extend(pt));
-    map.fitBounds(bounds, { padding: 40 });
-
-    // Text steps
-    const stepsEl = document.getElementById('directions-steps');
-    stepsEl.innerHTML = '';
-    route.legs[0].steps.forEach((s, i) => {
-      const div = document.createElement('div');
-      div.innerHTML = `<strong>Step ${i + 1}:</strong> ${s.maneuver.instruction}
-        <br/><small>Distance: ${(s.distance / 1000).toFixed(2)} km, Duration: ${Math.round(
-        s.duration
-      )} s</small>`;
-      div.style.marginBottom = '6px';
-      stepsEl.appendChild(div);
-    });
-  } catch (err) {
-    alert('Error fetching directions: ' + err.message);
+  } catch (error) {
+    alert('Failed to fetch directions: ' + error.message);
   }
 });
-
-// ==== CLEAR BUTTON ====
-document.getElementById('clear-directions').addEventListener('click', clearRoute);
