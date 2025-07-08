@@ -62,7 +62,6 @@ const destList        = document.getElementById('suggestions');
 const originInput     = document.getElementById('origin');
 const originList      = document.getElementById('origin-suggestions');
 const directionsUI    = document.getElementById('directions-ui');
-const stepsContainer  = document.getElementById('directions-steps');
 const getDirectionsBtn= document.getElementById('get-directions');
 
 let destResults   = [];
@@ -84,7 +83,7 @@ destInput.addEventListener('input', async e => {
   destList.innerHTML = '';
   if (!q) return;
   destResults = await nominatimSearch(q);
-  destResults.forEach((r,i) => {
+  destResults.forEach((r, i) => {
     const div = document.createElement('div');
     div.className = 'suggestion';
     div.textContent = r.display_name;
@@ -108,7 +107,7 @@ originInput.addEventListener('input', async e => {
   originList.innerHTML = '';
   if (!q) return;
   originResults = await nominatimSearch(q);
-  originResults.forEach((r,i) => {
+  originResults.forEach((r, i) => {
     const div = document.createElement('div');
     div.className = 'suggestion';
     div.textContent = r.display_name;
@@ -135,7 +134,6 @@ function clearRoute() {
   }
   activeMarkers.forEach(m => m.remove());
   activeMarkers = [];
-  stepsContainer.innerHTML = '';
 }
 
 // Get Directions click
@@ -151,7 +149,7 @@ getDirectionsBtn.addEventListener('click', async () => {
               `?overview=full&geometries=geojson&steps=true`;
 
   try {
-    const res  = await fetch(url);
+    const res = await fetch(url);
     const json = await res.json();
     if (!json.routes?.length) {
       alert('No route found.');
@@ -169,6 +167,7 @@ getDirectionsBtn.addEventListener('click', async () => {
         geometry: route.geometry
       }
     });
+
     map.addLayer({
       id: 'route-line',
       type: 'line',
@@ -182,20 +181,9 @@ getDirectionsBtn.addEventListener('click', async () => {
     const m2 = new maplibregl.Marker().setLngLat([+dest.lon, +dest.lat]).addTo(map);
     activeMarkers.push(m1, m2);
 
-    // Populate steps
-    route.legs[0].steps.forEach((s,i) => {
-      const div = document.createElement('div');
-      div.innerHTML = `
-        <strong>Step ${i+1}:</strong> ${s.maneuver.instruction}
-        <br><small>${(s.distance/1000).toFixed(2)} km, ${Math.round(s.duration)} s</small>
-      `;
-      div.style.margin = '8px 0';
-      stepsContainer.append(div);
-    });
-
     // Center on midpoint
     const coords = route.geometry.coordinates;
-    const mid    = coords[Math.floor(coords.length/2)];
+    const mid = coords[Math.floor(coords.length / 2)];
     map.flyTo({ center: mid, zoom: 13 });
 
   } catch (err) {
