@@ -1,14 +1,13 @@
-let map = new maplibregl.Map({
+const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 0],
-  zoom: 2
+  zoom: 2,
 });
 
 map.addControl(new maplibregl.NavigationControl(), 'top-left');
 map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), 'top-left');
 
-// Satellite layer
 map.on('load', () => {
   map.addSource('satellite', {
     type: 'raster',
@@ -24,11 +23,10 @@ map.on('load', () => {
 });
 
 document.getElementById('satellite-toggle').onclick = () => {
-  let vis = map.getLayoutProperty('sat-layer', 'visibility');
+  const vis = map.getLayoutProperty('sat-layer', 'visibility');
   map.setLayoutProperty('sat-layer', 'visibility', vis === 'none' ? 'visible' : 'none');
 };
 
-// DOM
 const search = document.getElementById('search');
 const origin = document.getElementById('origin');
 const suggestions = document.getElementById('suggestions');
@@ -54,59 +52,64 @@ async function nominatimSearch(q) {
   return res.json();
 }
 
-function populateSuggestions(q, targetEl, results, setter) {
-  targetEl.innerHTML = '';
-  results.forEach((r, i) => {
-    let div = document.createElement('div');
-    div.className = 'suggestion';
-    div.textContent = r.display_name;
-    div.onclick = () => {
-      setter(r);
-      targetEl.innerHTML = '';
-    };
-    targetEl.append(div);
-  });
-}
-
-search.addEventListener('input', async e => {
-  let q = e.target.value;
+search.addEventListener('input', async (e) => {
+  const q = e.target.value.trim();
   if (!q) return;
-  let results = await nominatimSearch(q);
-  populateSuggestions(q, suggestions, results, r => {
-    destinationCoord = [parseFloat(r.lon), parseFloat(r.lat)];
-    search.value = r.display_name;
+  const results = await nominatimSearch(q);
+  suggestions.innerHTML = '';
+  results.forEach((place) => {
+    const div = document.createElement('div');
+    div.className = 'suggestion';
+    div.textContent = place.display_name;
+    div.onclick = () => {
+      destinationCoord = [parseFloat(place.lon), parseFloat(place.lat)];
+      search.value = place.display_name;
+      suggestions.innerHTML = '';
+    };
+    suggestions.appendChild(div);
   });
 });
 
-origin.addEventListener('input', async e => {
-  let q = e.target.value;
+origin.addEventListener('input', async (e) => {
+  const q = e.target.value.trim();
   if (!q) return;
-  let results = await nominatimSearch(q);
-  populateSuggestions(q, originSuggestions, results, r => {
-    originCoord = [parseFloat(r.lon), parseFloat(r.lat)];
-    origin.value = r.display_name;
+  const results = await nominatimSearch(q);
+  originSuggestions.innerHTML = '';
+  results.forEach((place) => {
+    const div = document.createElement('div');
+    div.className = 'suggestion';
+    div.textContent = place.display_name;
+    div.onclick = () => {
+      originCoord = [parseFloat(place.lon), parseFloat(place.lat)];
+      origin.value = place.display_name;
+      originSuggestions.innerHTML = '';
+    };
+    originSuggestions.appendChild(div);
   });
 });
 
 directionsBtn.onclick = async () => {
   if (!originCoord || !destinationCoord) {
-    alert("Set both origin and destination.");
+    alert("Select both origin and destination.");
     return;
   }
 
-  let url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${originCoord[0]},${originCoord[1]};${destinationCoord[0]},${destinationCoord[1]}?overview=full&steps=true&geometries=geojson`;
-  let res = await fetch(url);
-  let json = await res.json();
+  const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${originCoord[0]},${originCoord[1]};${destinationCoord[0]},${destinationCoord[1]}?overview=full&steps=true&geometries=geojson`;
+  const res = await fetch(url);
+  const json = await res.json();
 
-  if (!json.routes?.length) return alert("Route not found");
+  if (!json.routes?.length) {
+    alert("No route found.");
+    return;
+  }
 
-  let route = json.routes[0];
+  const route = json.routes[0];
   routeSteps = route.legs[0].steps;
   routeCoords = route.geometry.coordinates;
 
   if (routeLine) {
-    map.removeLayer('route');
-    map.removeSource('route');
+    map.removeLayer(routeLine);
+    map.removeSource(routeLine);
   }
 
   map.addSource('route', {
@@ -125,7 +128,6 @@ directionsBtn.onclick = async () => {
   });
 
   routeLine = 'route';
-
   map.fitBounds([originCoord, destinationCoord], { padding: 60 });
   navPanel.style.display = 'block';
   navText.textContent = `Ready to start. ${Math.round(route.distance / 1000)} km – ${Math.round(route.duration / 60)} min`;
@@ -152,20 +154,20 @@ stopNavBtn.onclick = () => {
 
 function speakStep() {
   if (!routeSteps[currentStep]) return;
-  let text = routeSteps[currentStep].maneuver.instruction;
-  navText.textContent = text;
-  let utter = new SpeechSynthesisUtterance(text);
+  const instruction = routeSteps[currentStep].maneuver.instruction;
+  navText.textContent = instruction;
+  const utter = new SpeechSynthesisUtterance(instruction);
   speech.cancel();
   speech.speak(utter);
 }
 
 function watchPosition() {
   routeWatcher = navigator.geolocation.watchPosition(pos => {
-    let userPos = [pos.coords.longitude, pos.coords.latitude];
-    map.flyTo({ center: userPos, zoom: 16, bearing: pos.coords.heading || 0 });
-    let target = [routeSteps[currentStep].maneuver.location[0], routeSteps[currentStep].maneuver.location[1]];
-    let dist = distance(userPos, target);
+    const userPos = [pos.coords.longitude, pos.coords.latitude];
+    const target = routeSteps[currentStep].maneuver.location;
+    const dist = distance(userPos, target);
 
+    map.flyTo({ center: userPos, zoom: 16, bearing: pos.coords.heading || 0 });
     etaDisplay.textContent = `Speed: ${Math.round(pos.coords.speed * 3.6 || 0)} km/h`;
 
     if (dist < 30 && currentStep < routeSteps.length - 1) {
@@ -174,7 +176,7 @@ function watchPosition() {
     }
   }, err => {
     console.error("GPS error:", err);
-    alert("Unable to access GPS.");
+    alert("GPS not available.");
   }, {
     enableHighAccuracy: true,
     timeout: 10000,
@@ -189,7 +191,6 @@ function distance(coord1, coord2) {
   const dLon = toRad(coord2[0] - coord1[0]);
   const lat1 = toRad(coord1[1]);
   const lat2 = toRad(coord2[1]);
-
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
