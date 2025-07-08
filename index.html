@@ -7,26 +7,16 @@
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
+      margin: 0; padding: 0; height: 100%; width: 100%;
       font-family: 'Segoe UI', sans-serif;
       background: #f2f2f2;
     }
-
     #map {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 100%;
-      z-index: 0;
+      position: absolute; top: 0; bottom: 0; width: 100%; z-index: 0;
     }
-
     .search-bar {
       position: absolute;
-      top: 16px;
-      left: 16px;
+      top: 16px; left: 16px;
       z-index: 10000;
       width: 320px;
       background: white;
@@ -37,7 +27,6 @@
       flex-direction: column;
       gap: 10px;
     }
-
     .search-bar input {
       font-size: 16px;
       padding: 10px 14px;
@@ -45,12 +34,10 @@
       border-radius: 8px;
       outline: none;
     }
-
     .search-bar input:focus {
       border-color: #0078ff;
       box-shadow: 0 0 6px #0078ffaa;
     }
-
     .search-bar button {
       padding: 10px;
       font-size: 15px;
@@ -59,17 +46,14 @@
       border-radius: 6px;
       cursor: pointer;
     }
-
     #get-directions {
       background-color: #0078ff;
       color: white;
     }
-
     #clear-directions {
       background-color: #f44336;
       color: white;
     }
-
     #suggestions,
     #origin-suggestions {
       background: white;
@@ -79,40 +63,35 @@
       overflow-y: auto;
       font-size: 14px;
     }
-
     .suggestion {
       padding: 10px 16px;
       cursor: pointer;
     }
-
     .suggestion:hover {
       background: #f0f8ff;
     }
-
     #directions-ui {
       display: none;
       flex-direction: column;
       gap: 8px;
     }
-
     #directions-steps {
       font-size: 14px;
       margin-top: 10px;
+      max-height: 220px;
+      overflow-y: auto;
     }
-
     .layer-toggle {
       position: absolute;
-      bottom: 16px;
-      left: 16px;
+      bottom: 16px; left: 16px;
       z-index: 10000;
       background: white;
       border-radius: 8px;
       padding: 8px 12px;
       display: flex;
       gap: 12px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }
-
     .layer-toggle button {
       border: none;
       background: white;
@@ -124,26 +103,21 @@
       font-weight: 600;
       transition: background 0.25s, box-shadow 0.25s;
     }
-
     .layer-toggle button:hover {
       background: #f0f0f0;
       color: #0078ff;
     }
-
     .layer-toggle button.active {
       background: #0078ff;
       color: white;
     }
-
     #dark-toggle {
       background: #111;
       color: white;
     }
-
     .map-controls {
       position: absolute;
-      bottom: 16px;
-      right: 16px;
+      bottom: 16px; right: 16px;
       z-index: 10000;
       display: flex;
       flex-direction: column;
