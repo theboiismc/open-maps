@@ -1,14 +1,21 @@
 // app.js
 
-// 1. Initialize MapLibre map
+// Initialize MapLibre map
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 0],
   zoom: 2,
+  pitch: 0,
+  bearing: 0,
+  dragRotate: true,
+  touchZoomRotate: true,
+  scrollZoom: true,
   maxZoom: 18,
   minZoom: 1
 });
+
+// Add nav + geolocate controls
 map.addControl(new maplibregl.NavigationControl(), 'top-left');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
@@ -16,8 +23,8 @@ map.addControl(new maplibregl.GeolocateControl({
   showUserHeading: true
 }), 'top-left');
 
-// 2. Satellite toggle
-let satOn = false;
+// Satellite toggle setup
+let satVisible = false;
 map.on('load', () => {
   map.addSource('satellite', {
     type: 'raster',
@@ -27,39 +34,43 @@ map.on('load', () => {
     tileSize: 256
   });
   map.addLayer({
-    id: 'satellite-layer',
+    id: 'sat-layer',
     type: 'raster',
     source: 'satellite',
-    layout: { visibility: 'none' }
+    layout: { visibility: 'none' },
+    paint: { 'raster-opacity': 0.8 }
   });
 });
+
 document.getElementById('satellite-toggle').onclick = () => {
-  satOn = !satOn;
-  map.setLayoutProperty('satellite-layer', 'visibility', satOn ? 'visible' : 'none');
-  document.getElementById('satellite-toggle').classList.toggle('active');
-  document.getElementById('regular-toggle').classList.toggle('active');
-};
-document.getElementById('regular-toggle').onclick = () => {
-  satOn = false;
-  map.setLayoutProperty('satellite-layer', 'visibility', 'none');
+  satVisible = !satVisible;
+  map.setLayoutProperty('sat-layer', 'visibility', satVisible ? 'visible' : 'none');
   document.getElementById('satellite-toggle').classList.toggle('active');
   document.getElementById('regular-toggle').classList.toggle('active');
 };
 
-// 3. DOM refs & state
-const originInput     = document.getElementById('origin');
-const originList      = document.getElementById('origin-suggestions');
+document.getElementById('regular-toggle').onclick = () => {
+  satVisible = false;
+  map.setLayoutProperty('sat-layer', 'visibility', 'none');
+  document.getElementById('satellite-toggle').classList.toggle('active');
+  document.getElementById('regular-toggle').classList.toggle('active');
+};
+
+// DOM refs
 const destInput       = document.getElementById('search');
 const destList        = document.getElementById('suggestions');
-const getBtn          = document.getElementById('get-directions');
+const originInput     = document.getElementById('origin');
+const originList      = document.getElementById('origin-suggestions');
+const directionsUI    = document.getElementById('directions-ui');
+const stepsContainer  = document.getElementById('directions-steps');
+const getDirectionsBtn= document.getElementById('get-directions');
 
-let originResults = [];
 let destResults   = [];
+let originResults = [];
 let originCoord   = null;
-let destCoord     = null;
 let activeMarkers = [];
 
-// 4. Nominatim helper
+// Helper: search Nominatim
 async function nominatimSearch(q) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`
@@ -67,30 +78,13 @@ async function nominatimSearch(q) {
   return res.json();
 }
 
-// 5. Autocomplete for origin
-originInput.addEventListener('input', async e => {
-  const q = e.target.value.trim();
-  originList.innerHTML = '';
-  originCoord = null;
-  if (!q) return;
-  originResults = await nominatimSearch(q);
-  originResults.forEach((r, i) => {
-    const div = document.createElement('div');
-    div.className = 'suggestion';
-    div.textContent = r.display_name;
-    div.dataset.idx = i;
-    originList.append(div);
-  });
-});
-
-// 6. Autocomplete for destination
+// Handle destination autocomplete
 destInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   destList.innerHTML = '';
-  destCoord = null;
   if (!q) return;
   destResults = await nominatimSearch(q);
-  destResults.forEach((r, i) => {
+  destResults.forEach((r,i) => {
     const div = document.createElement('div');
     div.className = 'suggestion';
     div.textContent = r.display_name;
@@ -99,37 +93,41 @@ destInput.addEventListener('input', async e => {
   });
 });
 
-// 7. Select origin from list
-originList.addEventListener('click', e => {
-  if (!e.target.matches('.suggestion')) return;
-  const idx = e.target.dataset.idx;
-  const place = originResults[idx];
-  originCoord = { lon: +place.lon, lat: +place.lat };
-  originInput.value = place.display_name;
-  originList.innerHTML = '';
-  map.flyTo({ center: [originCoord.lon, originCoord.lat], zoom: 13 });
-  checkReady();
-});
-
-// 8. Select destination from list
+// Destination click
 destList.addEventListener('click', e => {
-  if (!e.target.matches('.suggestion')) return;
   const idx = e.target.dataset.idx;
+  if (idx == null) return;
   const place = destResults[idx];
-  destCoord = { lon: +place.lon, lat: +place.lat };
-  destInput.value = place.display_name;
-  destList.innerHTML = '';
-  map.flyTo({ center: [destCoord.lon, destCoord.lat], zoom: 13 });
-  checkReady();
+  map.flyTo({ center: [+place.lon, +place.lat], zoom: 14 });
+  directionsUI.style.display = 'flex';
 });
 
-// 9. Enable button only when both coords set
-function checkReady() {
-  getBtn.disabled = !(originCoord && destCoord);
-}
-getBtn.disabled = true;
+// Handle origin autocomplete
+originInput.addEventListener('input', async e => {
+  const q = e.target.value.trim();
+  originList.innerHTML = '';
+  if (!q) return;
+  originResults = await nominatimSearch(q);
+  originResults.forEach((r,i) => {
+    const div = document.createElement('div');
+    div.className = 'suggestion';
+    div.textContent = r.display_name;
+    div.dataset.idx = i;
+    originList.append(div);
+  });
+});
 
-// 10. Clear previous route & markers
+// Origin click
+originList.addEventListener('click', e => {
+  const idx = e.target.dataset.idx;
+  if (idx == null) return;
+  const place = originResults[idx];
+  originInput.value = place.display_name;
+  originCoord = { lon: +place.lon, lat: +place.lat };
+  originList.innerHTML = '';
+});
+
+// Clear old route & markers
 function clearRoute() {
   if (map.getLayer('route-line')) {
     map.removeLayer('route-line');
@@ -137,15 +135,20 @@ function clearRoute() {
   }
   activeMarkers.forEach(m => m.remove());
   activeMarkers = [];
+  stepsContainer.innerHTML = '';
 }
 
-// 11. Draw the route polyline
-getBtn.addEventListener('click', async () => {
-  if (!originCoord || !destCoord) return;
+// Get Directions click
+getDirectionsBtn.addEventListener('click', async () => {
+  if (!originCoord || !destResults.length) {
+    alert('Select both origin and destination.');
+    return;
+  }
 
+  const dest = destResults[0];
   const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/` +
-              `${originCoord.lon},${originCoord.lat};${destCoord.lon},${destCoord.lat}` +
-              `?overview=full&geometries=geojson&steps=false`;
+              `${originCoord.lon},${originCoord.lat};${dest.lon},${dest.lat}` +
+              `?overview=full&geometries=geojson&steps=true`;
 
   try {
     const res  = await fetch(url);
@@ -156,36 +159,46 @@ getBtn.addEventListener('click', async () => {
     }
 
     clearRoute();
-    const geom = json.routes[0].geometry;
+    const route = json.routes[0];
 
-    // add GeoJSON line
+    // Add GeoJSON line
     map.addSource('route-line', {
       type: 'geojson',
-      data: { type: 'Feature', geometry: geom }
+      data: {
+        type: 'Feature',
+        geometry: route.geometry
+      }
     });
     map.addLayer({
       id: 'route-line',
       type: 'line',
       source: 'route-line',
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': '#3b82f6', 'line-width': 6 }
+      paint: { 'line-color': '#3b82f6', 'line-width': 6, 'line-opacity': 0.8 }
     });
 
-    // add origin/dest markers
-    const m1 = new maplibregl.Marker()
-      .setLngLat([originCoord.lon, originCoord.lat])
-      .addTo(map);
-    const m2 = new maplibregl.Marker()
-      .setLngLat([destCoord.lon, destCoord.lat])
-      .addTo(map);
+    // Add markers
+    const m1 = new maplibregl.Marker().setLngLat([originCoord.lon, originCoord.lat]).addTo(map);
+    const m2 = new maplibregl.Marker().setLngLat([+dest.lon, +dest.lat]).addTo(map);
     activeMarkers.push(m1, m2);
 
-    // center on midpoint
-    const coords = geom.coordinates;
-    const mid    = coords[Math.floor(coords.length / 2)];
-    map.flyTo({ center: mid, zoom: 12 });
+    // Populate steps
+    route.legs[0].steps.forEach((s,i) => {
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <strong>Step ${i+1}:</strong> ${s.maneuver.instruction}
+        <br><small>${(s.distance/1000).toFixed(2)} km, ${Math.round(s.duration)} s</small>
+      `;
+      div.style.margin = '8px 0';
+      stepsContainer.append(div);
+    });
+
+    // Center on midpoint
+    const coords = route.geometry.coordinates;
+    const mid    = coords[Math.floor(coords.length/2)];
+    map.flyTo({ center: mid, zoom: 13 });
 
   } catch (err) {
-    alert('Route fetch error: ' + err.message);
+    alert('Error fetching directions: ' + err.message);
   }
 });
