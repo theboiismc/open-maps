@@ -1,5 +1,3 @@
-// app.js
-
 // Initialize MapLibre map
 const map = new maplibregl.Map({
   container: 'map',
@@ -57,12 +55,14 @@ document.getElementById('regular-toggle').onclick = () => {
 };
 
 // DOM refs
-const destInput       = document.getElementById('search');
-const destList        = document.getElementById('suggestions');
-const originInput     = document.getElementById('origin');
-const originList      = document.getElementById('origin-suggestions');
-const directionsUI    = document.getElementById('directions-ui');
-const getDirectionsBtn= document.getElementById('get-directions');
+const destInput        = document.getElementById('search');
+const destList         = document.getElementById('suggestions');
+const originInput      = document.getElementById('origin');
+const originList       = document.getElementById('origin-suggestions');
+const directionsUI     = document.getElementById('directions-ui');
+const getDirectionsBtn = document.getElementById('get-directions');
+const routeInfoBox     = document.getElementById('route-info');
+const routeSummary     = document.getElementById('route-summary');
 
 let destResults   = [];
 let originResults = [];
@@ -134,6 +134,8 @@ function clearRoute() {
   }
   activeMarkers.forEach(m => m.remove());
   activeMarkers = [];
+  routeSummary.textContent = '';
+  routeInfoBox.classList.add('hidden');
 }
 
 // Get Directions click
@@ -180,6 +182,12 @@ getDirectionsBtn.addEventListener('click', async () => {
     const m1 = new maplibregl.Marker().setLngLat([originCoord.lon, originCoord.lat]).addTo(map);
     const m2 = new maplibregl.Marker().setLngLat([+dest.lon, +dest.lat]).addTo(map);
     activeMarkers.push(m1, m2);
+
+    // Show route summary
+    const distanceKm = (route.distance / 1000).toFixed(2);
+    const durationMin = Math.round(route.duration / 60);
+    routeSummary.textContent = `Distance: ${distanceKm} km · Duration: ${durationMin} min`;
+    routeInfoBox.classList.remove('hidden');
 
     // Center on midpoint
     const coords = route.geometry.coordinates;
