@@ -12,7 +12,6 @@ const map = new maplibregl.Map({
   maxZoom: 18,
   minZoom: 1
 });
-
 map.addControl(new maplibregl.NavigationControl(), 'top-left');
 map.addControl(new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
@@ -38,13 +37,13 @@ map.on('load', () => {
   });
 });
 
+// Satellite toggle buttons
 document.getElementById('satellite-toggle').onclick = () => {
   satVisible = !satVisible;
   map.setLayoutProperty('sat-layer', 'visibility', satVisible ? 'visible' : 'none');
   document.getElementById('satellite-toggle').classList.toggle('active');
   document.getElementById('regular-toggle').classList.toggle('active');
 };
-
 document.getElementById('regular-toggle').onclick = () => {
   satVisible = false;
   map.setLayoutProperty('sat-layer', 'visibility', 'none');
@@ -53,27 +52,28 @@ document.getElementById('regular-toggle').onclick = () => {
 };
 
 // DOM refs
-const destInput        = document.getElementById('search');
-const destList         = document.getElementById('suggestions');
-const originInput      = document.getElementById('origin');
-const originList       = document.getElementById('origin-suggestions');
-const directionsUI     = document.getElementById('directions-ui');
+const destInput = document.getElementById('search');
+const destList = document.getElementById('suggestions');
+const originInput = document.getElementById('origin');
+const originList = document.getElementById('origin-suggestions');
+const directionsUI = document.getElementById('directions-ui');
 const getDirectionsBtn = document.getElementById('get-directions');
 const clearDirectionsBtn = document.getElementById('clear-directions');
-const routeInfoBox     = document.getElementById('route-info');
-const routeSummary     = document.getElementById('route-summary');
-const routeEta         = document.getElementById('route-eta');
-const closeRouteBtn    = document.getElementById('close-route-info');
-const darkToggleBtn    = document.getElementById('dark-toggle');
+const routeInfoBox = document.getElementById('route-info');
+const routeSummary = document.getElementById('route-summary');
+const routeEta = document.getElementById('route-eta');
+const closeRouteBtn = document.getElementById('close-route-info');
+const darkToggleBtn = document.getElementById('dark-toggle');
+const startNavBtn = document.createElement('button'); // Start Navigation button
 
-let destResults   = [];
+let destResults = [];
 let originResults = [];
-let originCoord   = null;
+let originCoord = null;
 let activeMarkers = [];
 
-// Dark mode functions
+// --- Dark mode functions ---
 function applyDarkMode(enabled) {
-  if(enabled) {
+  if (enabled) {
     document.body.classList.add('dark-mode');
     darkToggleBtn.textContent = 'Light Mode';
   } else {
@@ -81,17 +81,15 @@ function applyDarkMode(enabled) {
     darkToggleBtn.textContent = 'Dark Mode';
   }
 }
-
 // Apply dark mode based on system preference initially
 const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 applyDarkMode(prefersDark);
-
 darkToggleBtn.addEventListener('click', () => {
   const darkModeOn = document.body.classList.toggle('dark-mode');
   darkToggleBtn.textContent = darkModeOn ? 'Light Mode' : 'Dark Mode';
 });
 
-// Nominatim search helper
+// --- Nominatim search helper ---
 async function nominatimSearch(q) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`
@@ -99,7 +97,7 @@ async function nominatimSearch(q) {
   return res.json();
 }
 
-// Destination autocomplete
+// --- Destination autocomplete ---
 destInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   destList.innerHTML = '';
@@ -114,7 +112,7 @@ destInput.addEventListener('input', async e => {
   });
 });
 
-// Destination click
+// --- Destination click ---
 destList.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
   if (idx == null) return;
@@ -123,7 +121,7 @@ destList.addEventListener('click', e => {
   directionsUI.style.display = 'flex';
 });
 
-// Origin autocomplete
+// --- Origin autocomplete ---
 originInput.addEventListener('input', async e => {
   const q = e.target.value.trim();
   originList.innerHTML = '';
@@ -138,7 +136,7 @@ originInput.addEventListener('input', async e => {
   });
 });
 
-// Origin click
+// --- Origin click ---
 originList.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
   if (idx == null) return;
@@ -148,7 +146,7 @@ originList.addEventListener('click', e => {
   originList.innerHTML = '';
 });
 
-// Clear old route & markers
+// --- Clear old route & markers ---
 function clearRoute() {
   if (map.getLayer('route-line')) {
     map.removeLayer('route-line');
@@ -159,26 +157,172 @@ function clearRoute() {
   routeSummary.textContent = '';
   routeEta.textContent = '';
   routeInfoBox.classList.add('hidden');
+  stopNavigation();
 }
 
-// Format ETA time
+// --- Format ETA time ---
 function formatETA(durationSeconds) {
   const arrival = new Date(Date.now() + durationSeconds * 1000);
   return arrival.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// Get Directions click
+// --- Navigation state ---
+let route = null;           // full route data from API
+let currentStepIndex = 0;   // which navigation step we're on
+let navActive = false;      // are we navigating right now
+let watchId = null;         // geolocation watch ID
+
+// --- Create Start Navigation button ---
+startNavBtn.id = 'start-navigation';
+startNavBtn.textContent = 'Start Navigation';
+startNavBtn.style.marginLeft = '10px';
+startNavBtn.style.padding = '8px 16px';
+startNavBtn.style.fontSize = '1rem';
+startNavBtn.style.cursor = 'pointer';
+startNavBtn.style.display = 'none'; // hide initially
+directionsUI.appendChild(startNavBtn);
+
+// --- Voice directions helper ---
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US'; // You can customize language here
+  window.speechSynthesis.speak(utterance);
+}
+
+// --- Update step UI and voice ---
+function updateStepUI(step) {
+  // Show next maneuver text and distance
+  const instruction = step.maneuver.instruction || step.name || 'Continue';
+  const distanceMeters = step.distance || 0;
+  const distanceStr = distanceMeters >= 1000
+    ? `${(distanceMeters / 1000).toFixed(1)} km`
+    : `${Math.round(distanceMeters)} m`;
+  
+  routeSummary.textContent = `Next: ${instruction} — ${distanceStr}`;
+  routeEta.textContent = `ETA: ${formatETA(route.duration - step.duration)}`;
+
+  // Voice
+  speak(instruction);
+}
+
+// --- Start Navigation ---
+function startNavigation() {
+  if (!route) {
+    alert('No route to navigate.');
+    return;
+  }
+  navActive = true;
+  currentStepIndex = 0;
+
+  // Show panel if hidden
+  routeInfoBox.classList.remove('hidden');
+  startNavBtn.style.display = 'none'; // hide start nav btn while navigating
+
+  // Start watching position
+  if (navigator.geolocation) {
+    watchId = navigator.geolocation.watchPosition(onPositionUpdate, onPositionError, {
+      enableHighAccuracy: true,
+      maximumAge: 1000,
+      timeout: 10000
+    });
+  } else {
+    alert('Geolocation is not supported by your browser.');
+  }
+
+  // Show first step
+  if (route.legs && route.legs[0].steps.length > 0) {
+    updateStepUI(route.legs[0].steps[0]);
+  }
+}
+
+// --- Stop Navigation ---
+function stopNavigation() {
+  navActive = false;
+  currentStepIndex = 0;
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  startNavBtn.style.display = 'inline-block'; // show start nav btn again
+  routeSummary.textContent = '';
+  routeEta.textContent = '';
+}
+
+// --- Check distance helper ---
+function distanceBetweenCoords(c1, c2) {
+  const toRad = deg => deg * Math.PI / 180;
+  const R = 6371e3; // meters
+  const φ1 = toRad(c1.lat);
+  const φ2 = toRad(c2.lat);
+  const Δφ = toRad(c2.lat - c1.lat);
+  const Δλ = toRad(c2.lon - c1.lon);
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// --- On position update ---
+function onPositionUpdate(position) {
+  if (!navActive) return;
+
+  const userPos = {
+    lat: position.coords.latitude,
+    lon: position.coords.longitude
+  };
+
+  // Recenter map on user
+  map.flyTo({ center: [userPos.lon, userPos.lat], zoom: 16, speed: 1.2, curve: 1 });
+
+  // Get current step
+  const steps = route.legs[0].steps;
+
+  if (currentStepIndex >= steps.length) {
+    // Navigation finished
+    speak('You have arrived at your destination.');
+    stopNavigation();
+    return;
+  }
+
+  const currentStep = steps[currentStepIndex];
+  const stepCoord = {
+    lat: currentStep.maneuver.location[1],
+    lon: currentStep.maneuver.location[0]
+  };
+
+  // If user is within 30m of current step, move to next
+  const distToStep = distanceBetweenCoords(userPos, stepCoord);
+
+  if (distToStep < 30) {
+    currentStepIndex++;
+    if (currentStepIndex < steps.length) {
+      updateStepUI(steps[currentStepIndex]);
+    } else {
+      // Reached end
+      speak('You have arrived at your destination.');
+      stopNavigation();
+    }
+  }
+}
+
+// --- On position error ---
+function onPositionError(err) {
+  console.warn('Geolocation error:', err);
+}
+
+// --- Get Directions click ---
 getDirectionsBtn.addEventListener('click', async () => {
   if (!originCoord || !destResults.length) {
     alert('Select both origin and destination.');
     return;
   }
-
   const dest = destResults[0];
   const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/` +
               `${originCoord.lon},${originCoord.lat};${dest.lon},${dest.lat}` +
               `?overview=full&geometries=geojson&steps=true`;
-
   try {
     const res = await fetch(url);
     const json = await res.json();
@@ -186,9 +330,8 @@ getDirectionsBtn.addEventListener('click', async () => {
       alert('No route found.');
       return;
     }
-
     clearRoute();
-    const route = json.routes[0];
+    route = json.routes[0];
 
     // Add GeoJSON line
     map.addSource('route-line', {
@@ -198,7 +341,6 @@ getDirectionsBtn.addEventListener('click', async () => {
         geometry: route.geometry
       }
     });
-
     map.addLayer({
       id: 'route-line',
       type: 'line',
@@ -212,26 +354,26 @@ getDirectionsBtn.addEventListener('click', async () => {
     const m2 = new maplibregl.Marker().setLngLat([+dest.lon, +dest.lat]).addTo(map);
     activeMarkers.push(m1, m2);
 
-    // Show route summary and ETA
+    // Show summary and ETA
     const distanceKm = (route.distance / 1000).toFixed(2);
     const durationMin = Math.round(route.duration / 60);
     routeSummary.textContent = `Distance: ${distanceKm} km · Duration: ${durationMin} min`;
-
     routeEta.textContent = `ETA: ${formatETA(route.duration)}`;
-
     routeInfoBox.classList.remove('hidden');
+
+    // Show "Start Navigation" button
+    startNavBtn.style.display = 'inline-block';
 
     // Center on midpoint
     const coords = route.geometry.coordinates;
     const mid = coords[Math.floor(coords.length / 2)];
     map.flyTo({ center: mid, zoom: 13 });
-
   } catch (err) {
     alert('Error fetching directions: ' + err.message);
   }
 });
 
-// Clear Directions button
+// --- Clear Directions button ---
 clearDirectionsBtn.addEventListener('click', () => {
   clearRoute();
   originInput.value = '';
@@ -241,44 +383,49 @@ clearDirectionsBtn.addEventListener('click', () => {
   directionsUI.style.display = 'none';
 });
 
-// Close route info button
+// --- Close route info button ---
 closeRouteBtn.addEventListener('click', () => {
   routeInfoBox.classList.add('hidden');
+  stopNavigation();
 });
 
-// Swipe-to-dismiss on mobile
+// --- Swipe-to-dismiss on mobile for route info ---
 let touchStartY = 0;
 let touchCurrentY = 0;
 let isDragging = false;
 
 routeInfoBox.addEventListener('touchstart', e => {
-  if(window.innerWidth > 767) return; // only mobile
-  if(e.touches.length !== 1) return;
+  if (window.innerWidth > 767) return; // only mobile
+  if (e.touches.length !== 1) return;
   touchStartY = e.touches[0].clientY;
   isDragging = true;
   routeInfoBox.style.transition = ''; // cancel transition during drag
 });
-
 routeInfoBox.addEventListener('touchmove', e => {
-  if(!isDragging) return;
+  if (!isDragging) return;
   touchCurrentY = e.touches[0].clientY;
   const deltaY = touchCurrentY - touchStartY;
-  if(deltaY > 0) { // only drag down
+  if (deltaY > 0) { // only drag down
     routeInfoBox.style.transform = `translateY(${deltaY}px)`;
   }
 });
-
 routeInfoBox.addEventListener('touchend', e => {
-  if(!isDragging) return;
+  if (!isDragging) return;
   isDragging = false;
   const deltaY = touchCurrentY - touchStartY;
   routeInfoBox.style.transition = 'transform 0.3s ease';
-  if(deltaY > 100) {
+  if (deltaY > 100) {
     // swipe down enough to close
     routeInfoBox.classList.add('hidden');
     routeInfoBox.style.transform = '';
+    stopNavigation();
   } else {
     // snap back
     routeInfoBox.style.transform = '';
   }
+});
+
+// --- Start Navigation button click ---
+startNavBtn.addEventListener('click', () => {
+  startNavigation();
 });
