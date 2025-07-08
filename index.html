@@ -6,268 +6,81 @@
   <title>TheBoiisMC Map</title>
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%;
-      font-family: 'Segoe UI', sans-serif;
-      background: #f2f2f2;
-    }
-
-    #map {
-      position: absolute; top: 0; bottom: 0; width: 100%; z-index: 0;
-    }
+    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Segoe UI', sans-serif; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
     .search-bar {
-      position: absolute;
-      top: 16px; left: 16px;
-      z-index: 10000;
-      width: 320px;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      position: absolute; top: 16px; left: 16px; z-index: 999;
+      background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 12px; width: 300px; display: flex; flex-direction: column; gap: 8px;
     }
 
-    .search-bar input {
-      font-size: 16px;
-      padding: 10px 14px;
-      border: 1.5px solid #ccc;
-      border-radius: 8px;
-      outline: none;
+    .search-bar input, .search-bar button {
+      font-size: 16px; padding: 10px; border-radius: 6px; border: 1px solid #ccc;
     }
 
-    .search-bar input:focus {
-      border-color: #0078ff;
-      box-shadow: 0 0 6px #0078ffaa;
+    #suggestions, #origin-suggestions {
+      background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      max-height: 150px; overflow-y: auto;
     }
 
-    .search-bar button {
-      padding: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    #get-directions {
-      background-color: #0078ff;
-      color: white;
-    }
-
-    #clear-directions {
-      background-color: #f44336;
-      color: white;
-    }
-
-    #suggestions,
-    #origin-suggestions {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
-      max-height: 200px;
-      overflow-y: auto;
-      font-size: 14px;
-    }
-
-    .suggestion {
-      padding: 10px 16px;
-      cursor: pointer;
-    }
-
-    .suggestion:hover {
-      background: #f0f8ff;
-    }
-
-    #directions-ui {
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .suggestion { padding: 8px 12px; cursor: pointer; }
+    .suggestion:hover { background: #f0f0f0; }
 
     .layer-toggle {
-      position: absolute;
-      bottom: 16px; left: 16px;
-      z-index: 10000;
-      background: white;
-      border-radius: 8px;
-      padding: 8px 12px;
-      display: flex;
-      gap: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      position: absolute; bottom: 16px; left: 16px;
+      display: flex; gap: 10px; z-index: 999;
     }
 
     .layer-toggle button {
-      border: none;
-      background: white;
-      padding: 8px 14px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      color: #333;
-      font-weight: 600;
-      transition: background 0.25s, box-shadow 0.25s;
+      padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer;
+      background: white; font-weight: 600;
     }
 
-    .layer-toggle button:hover {
-      background: #f0f0f0;
-      color: #0078ff;
+    #nav-panel {
+      position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      z-index: 999; width: 90%; max-width: 360px; display: none;
+      text-align: center;
     }
 
-    .layer-toggle button.active {
-      background: #0078ff;
-      color: white;
+    #nav-instruction { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    #nav-controls button {
+      padding: 8px 12px; margin: 4px; border: none; border-radius: 6px;
+      font-weight: bold; cursor: pointer;
     }
 
-    #dark-toggle {
-      background: #111;
-      color: white;
-    }
-
-    .map-controls {
-      position: absolute;
-      bottom: 16px; right: 16px;
-      z-index: 10000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    /* Close button */
-    #close-route-info {
-      position: absolute;
-      top: 6px;
-      right: 8px;
-      background: transparent;
-      border: none;
-      font-size: 24px;
-      line-height: 1;
-      cursor: pointer;
-      color: #555;
-      padding: 0;
-      user-select: none;
-    }
-
-    #close-route-info:hover {
-      color: #000;
-    }
-
-    /* Swipe-to-dismiss on mobile */
-    @media (max-width: 767px) {
-      #route-info {
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
-        border-radius: 12px 12px 0 0;
-        touch-action: pan-y;
-        will-change: transform;
-        transition: transform 0.3s ease;
-      }
-    }
-
-    /* Route info panel */
-    .route-panel {
-      position: fixed;
-      background: white;
-      box-shadow: 0 0 10px rgba(0,0,0,0.15);
-      z-index: 999;
-      padding: 1rem;
-      font-family: sans-serif;
-      border-radius: 12px;
-      transition: transform 0.3s ease, bottom 0.3s ease;
-    }
-
-    #route-info.hidden {
-      display: none;
-    }
-
-    @media (min-width: 768px) {
-      #route-info {
-        top: 80px;
-        right: 20px;
-        width: 250px;
-      }
-    }
-
-    @media (max-width: 767px) {
-      #route-info {
-        /* overrides above */
-      }
-    }
-
-    /* Dark mode styling */
-    body.dark-mode {
-      background: #121212;
-      color: #ddd;
-    }
-
-    body.dark-mode #route-info {
-      background: #222;
-      box-shadow: 0 0 15px rgba(255,255,255,0.15);
-      color: #ddd;
-    }
-
-    body.dark-mode .search-bar,
-    body.dark-mode .layer-toggle,
-    body.dark-mode .map-controls {
-      background: #222;
-      color: #ddd;
-      box-shadow: 0 0 12px rgba(255,255,255,0.1);
-    }
-
-    body.dark-mode .search-bar input,
-    body.dark-mode input,
-    body.dark-mode button {
-      background: #333;
-      color: #ddd;
-      border-color: #555;
-    }
-
-    body.dark-mode .search-bar input:focus {
-      box-shadow: 0 0 6px #4a90e2aa;
-    }
-
-    body.dark-mode .layer-toggle button.active {
-      background: #4a90e2;
-      color: white;
-    }
+    #eta { font-size: 14px; color: #666; margin-top: 4px; }
   </style>
 </head>
-
 <body>
-  <div id="map"></div>
 
-  <div class="search-bar">
-    <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" />
-    <div id="suggestions"></div>
+<div id="map"></div>
 
-    <div id="directions-ui">
-      <input id="origin" type="text" placeholder="Use my location or type origin..." autocomplete="off" spellcheck="false" />
-      <div id="origin-suggestions"></div>
-      <button id="get-directions">Get Directions</button>
-      <button id="clear-directions">Clear</button>
-    </div>
+<div class="search-bar">
+  <input id="search" type="text" placeholder="Destination..." autocomplete="off" />
+  <div id="suggestions"></div>
+  <input id="origin" type="text" placeholder="Origin..." autocomplete="off" />
+  <div id="origin-suggestions"></div>
+  <button id="get-directions">Get Directions</button>
+</div>
+
+<div class="layer-toggle">
+  <button id="regular-toggle" class="active">Regular</button>
+  <button id="satellite-toggle">Satellite</button>
+</div>
+
+<div id="nav-panel">
+  <div id="nav-instruction">Starting...</div>
+  <div id="eta"></div>
+  <div id="nav-controls">
+    <button id="start-nav">Start Navigation</button>
+    <button id="stop-nav">Stop</button>
   </div>
+</div>
 
-  <div class="layer-toggle">
-    <button id="regular-toggle" class="active">Regular</button>
-    <button id="satellite-toggle">Satellite</button>
-    <button id="dark-toggle">Dark Mode</button>
-  </div>
+<script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
 
-  <div class="map-controls" id="map-controls"></div>
-
-  <!-- Route Info UI -->
-  <div id="route-info" class="route-panel hidden" role="region" aria-label="Route information">
-    <button id="close-route-info" aria-label="Close route info">&times;</button>
-    <h3>Route Info</h3>
-    <p id="route-summary">Loading...</p>
-    <p id="route-eta"></p>
-  </div>
-
-  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-  <script src="app.js"></script>
 </body>
 </html>
