@@ -135,7 +135,39 @@
       gap: 8px;
     }
 
-    /* 🔥 New route info panel */
+    /* Close button */
+    #close-route-info {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      color: #555;
+      padding: 0;
+      user-select: none;
+    }
+
+    #close-route-info:hover {
+      color: #000;
+    }
+
+    /* Swipe-to-dismiss on mobile */
+    @media (max-width: 767px) {
+      #route-info {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        border-radius: 12px 12px 0 0;
+        touch-action: pan-y;
+        will-change: transform;
+        transition: transform 0.3s ease;
+      }
+    }
+
+    /* Route info panel */
     .route-panel {
       position: fixed;
       background: white;
@@ -161,11 +193,45 @@
 
     @media (max-width: 767px) {
       #route-info {
-        left: 10px;
-        right: 10px;
-        bottom: 10px;
-        transform: translateY(0);
+        /* overrides above */
       }
+    }
+
+    /* Dark mode styling */
+    body.dark-mode {
+      background: #121212;
+      color: #ddd;
+    }
+
+    body.dark-mode #route-info {
+      background: #222;
+      box-shadow: 0 0 15px rgba(255,255,255,0.15);
+      color: #ddd;
+    }
+
+    body.dark-mode .search-bar,
+    body.dark-mode .layer-toggle,
+    body.dark-mode .map-controls {
+      background: #222;
+      color: #ddd;
+      box-shadow: 0 0 12px rgba(255,255,255,0.1);
+    }
+
+    body.dark-mode .search-bar input,
+    body.dark-mode input,
+    body.dark-mode button {
+      background: #333;
+      color: #ddd;
+      border-color: #555;
+    }
+
+    body.dark-mode .search-bar input:focus {
+      box-shadow: 0 0 6px #4a90e2aa;
+    }
+
+    body.dark-mode .layer-toggle button.active {
+      background: #4a90e2;
+      color: white;
     }
   </style>
 </head>
@@ -188,15 +254,17 @@
   <div class="layer-toggle">
     <button id="regular-toggle" class="active">Regular</button>
     <button id="satellite-toggle">Satellite</button>
-    <button id="dark-toggle">Dark</button>
+    <button id="dark-toggle">Dark Mode</button>
   </div>
 
   <div class="map-controls" id="map-controls"></div>
 
-  <!-- ✅ Route Info UI -->
-  <div id="route-info" class="route-panel hidden">
+  <!-- Route Info UI -->
+  <div id="route-info" class="route-panel hidden" role="region" aria-label="Route information">
+    <button id="close-route-info" aria-label="Close route info">&times;</button>
     <h3>Route Info</h3>
     <p id="route-summary">Loading...</p>
+    <p id="route-eta"></p>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
