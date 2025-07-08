@@ -45,6 +45,7 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      user-select: none;
     }
     #get-directions {
       background-color: #0078ff;
@@ -76,16 +77,15 @@
       gap: 8px;
       position: relative;
     }
-    /* Placeholder div for Start Navigation button */
     #start-navigation {
-      margin-left: 10px;
-      padding: 8px 16px;
-      font-size: 1rem;
-      cursor: pointer;
-      border-radius: 6px;
-      border: none;
-      background-color: #0078ff;
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: #0078ff;
       color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
       user-select: none;
       transition: background-color 0.3s ease;
     }
@@ -173,6 +173,7 @@
       font-family: sans-serif;
       border-radius: 12px;
       transition: transform 0.3s ease, bottom 0.3s ease;
+      max-width: 300px;
     }
     #route-info.hidden {
       display: none;
@@ -219,30 +220,36 @@
 </head>
 <body>
   <div id="map"></div>
+
   <div class="search-bar">
     <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" />
     <div id="suggestions"></div>
+
     <div id="directions-ui">
       <input id="origin" type="text" placeholder="Use my location or type origin..." autocomplete="off" spellcheck="false" />
       <div id="origin-suggestions"></div>
+
       <button id="get-directions">Get Directions</button>
       <button id="clear-directions">Clear</button>
-      <!-- Start Navigation button will be appended here dynamically -->
+      <!-- Start Navigation btn dynamically inserted here -->
     </div>
   </div>
+
   <div class="layer-toggle">
     <button id="regular-toggle" class="active">Regular</button>
     <button id="satellite-toggle">Satellite</button>
     <button id="dark-toggle">Dark Mode</button>
   </div>
+
   <div class="map-controls" id="map-controls"></div>
-  <!-- Route Info UI -->
+
   <div id="route-info" class="route-panel hidden" role="region" aria-label="Route information">
     <button id="close-route-info" aria-label="Close route info">&times;</button>
     <h3>Route Info</h3>
     <p id="route-summary">Loading...</p>
     <p id="route-eta"></p>
   </div>
+
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
