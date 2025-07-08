@@ -7,263 +7,307 @@
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
-
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
+      margin: 0; padding: 0; height: 100%; width: 100%;
       font-family: 'Roboto', sans-serif;
       background: #f2f2f2;
       color: #202124;
     }
-
     #map {
       position: absolute;
-      top: 0; bottom: 0;
-      width: 100%;
+      top: 0; bottom: 0; left: 0; right: 0;
       z-index: 0;
     }
-
-    /* Search container outside sidebar */
-    #search-container {
+    /* Search bar top-left */
+    .search-bar {
       position: absolute;
-      top: 24px;
-      left: 24px;
-      width: 440px;
+      top: 20px;
+      left: 20px;
+      width: 320px;
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 12px 20px;
       z-index: 10000;
-      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-
-    /* Search bar styles */
-    #search-container input {
-      width: 100%;
+    .search-bar input {
       font-size: 16px;
-      padding: 14px 20px;
+      padding: 10px 16px;
       border: none;
-      border-radius: 28px;
+      border-radius: 20px;
       background: #e7e0ec;
       color: #1c1b1f;
-      box-shadow:
-        inset 0 1px 3px #ffffff80,
-        inset 0 -1px 2px #bab7c3;
       outline-offset: 4px;
-      transition:
-        background-color 0.3s ease,
-        box-shadow 0.3s ease;
+      box-shadow: inset 0 1px 3px #fff8, inset 0 -1px 2px #bab7c3;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
     }
-
-    #search-container input::placeholder {
+    .search-bar input::placeholder {
       color: #8f8da4;
     }
-
-    #search-container input:focus {
+    .search-bar input:focus {
       background: #f5f3f7;
-      box-shadow:
-        inset 0 1px 4px #d1cde6,
-        0 0 0 3px #6750a4;
+      box-shadow: inset 0 1px 4px #d1cde6, 0 0 0 3px #6750a4;
       color: #1c1b1f;
       outline: none;
     }
-
     #suggestions {
       background: #fff;
       border-radius: 16px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-      max-height: 260px;
+      max-height: 200px;
       overflow-y: auto;
       font-size: 15px;
-      margin-top: 8px;
-      padding: 8px 0;
-      user-select: none;
+      z-index: 10001;
+      padding: 4px 0;
     }
-
     .suggestion {
-      padding: 12px 24px;
+      padding: 10px 20px;
       cursor: pointer;
       color: #1c1b1f;
       border-radius: 12px;
+      user-select: none;
       transition: background-color 0.25s ease;
     }
-
     .suggestion:hover, .suggestion:focus {
       background-color: #ede7f6;
       outline: none;
     }
-
-    /* Sidebar styles */
+    /* Sidebar panel */
     #sidebar {
       position: fixed;
-      top: 0;
-      left: 0;
-      height: 100vh;
+      top: 0; bottom: 0; left: 0;
       width: 320px;
       background: #fff;
-      box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+      box-shadow: 2px 0 14px rgba(0,0,0,0.16);
       transform: translateX(-100%);
-      transition: transform 0.3s ease;
-      z-index: 15000;
+      transition: transform 0.3s ease-in-out;
+      z-index: 10002;
       display: flex;
       flex-direction: column;
-      padding: 16px;
+      padding: 24px 20px;
       overflow-y: auto;
     }
     #sidebar.open {
       transform: translateX(0);
     }
-
     #sidebar-close {
+      align-self: flex-end;
       background: transparent;
       border: none;
-      font-size: 28px;
-      line-height: 1;
+      font-size: 32px;
       cursor: pointer;
       color: #625b71;
-      padding: 0 0 12px 0;
+      padding: 0;
       user-select: none;
-      align-self: flex-end;
+      margin-bottom: 12px;
       transition: color 0.25s ease;
     }
     #sidebar-close:hover {
       color: #1e1a29;
     }
-
-    #sidebar-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    #place-info {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      color: #202124;
     }
-
-    /* When sidebar open, move search container inside and adjust */
-    #sidebar.open #search-container {
-      position: relative !important;
-      top: auto !important;
-      left: auto !important;
-      width: 100% !important;
-      margin-bottom: 16px;
-      z-index: auto;
-    }
-
-    /* Directions toggle button */
     #directions-toggle {
+      padding: 12px 0;
+      font-weight: 600;
+      font-size: 16px;
       background: #6750a4;
       color: white;
       border: none;
       border-radius: 20px;
-      padding: 12px 24px;
-      font-weight: 600;
       cursor: pointer;
+      box-shadow: 0 2px 8px rgba(103, 80, 164, 0.6);
       user-select: none;
       transition: background-color 0.3s ease;
-      align-self: flex-start;
     }
     #directions-toggle:hover {
       background-color: #5b3eae;
     }
-
-    /* Directions form */
     #directions-form {
+      margin-top: 20px;
       display: none;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
     }
     #directions-form input {
-      padding: 10px 14px;
+      width: 100%;
+      padding: 10px 16px;
       border-radius: 20px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-      outline-offset: 2px;
+      border: none;
+      font-size: 16px;
+      background: #e7e0ec;
+      color: #1c1b1f;
+      box-shadow: inset 0 1px 3px #fff8, inset 0 -1px 2px #bab7c3;
+      outline-offset: 4px;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
     }
     #directions-form input:focus {
-      border-color: #6750a4;
-      box-shadow: 0 0 6px #6750a4aa;
+      background: #f5f3f7;
+      box-shadow: inset 0 1px 4px #d1cde6, 0 0 0 3px #6750a4;
       outline: none;
+      color: #1c1b1f;
     }
-
-    #directions-form button {
-      background: #6750a4;
+    #get-route {
+      background: #3b82f6;
       color: white;
       border: none;
       border-radius: 20px;
-      padding: 12px 24px;
+      padding: 12px 0;
+      font-size: 16px;
       font-weight: 600;
       cursor: pointer;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.8);
       user-select: none;
       transition: background-color 0.3s ease;
     }
-    #directions-form button:hover {
-      background-color: #5b3eae;
+    #get-route:hover {
+      background-color: #2563eb;
     }
-
-    /* Hide map controls top-left from MapLibre default */
-    .maplibregl-ctrl-top-left {
-      display: none !important;
+    /* Route info panel */
+    #route-info {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.18);
+      padding: 20px 28px 28px;
+      font-size: 16px;
+      z-index: 10003;
+      display: none;
     }
-
-    /* Map controls bottom right container override */
-    .maplibregl-ctrl-bottom-right {
-      position: absolute !important;
-      bottom: 20px !important;
-      right: 20px !important;
-      z-index: 10000 !important;
+    #route-info.visible {
+      display: block;
     }
-
-    /* Mobile adjustments */
-    @media (max-width: 767px) {
-      #search-container {
-        width: calc(100% - 48px);
-        left: 24px;
-        top: 20px;
-      }
-      #sidebar {
-        width: 100vw;
-      }
+    #route-summary {
+      margin: 0;
     }
-
-    /* Dark mode support (optional) */
+    /* Layer toggle buttons */
+    .layer-toggle {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10000;
+      background: #fff;
+      border-radius: 24px;
+      padding: 8px 12px;
+      display: flex;
+      gap: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    .layer-toggle button {
+      border: none;
+      background: #ede7f6;
+      border-radius: 9999px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #625b71;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      user-select: none;
+      box-shadow: 0 0 0 0 transparent;
+    }
+    .layer-toggle button:hover {
+      background-color: #d6cfff;
+      color: #3f3d56;
+    }
+    .layer-toggle button.active {
+      background-color: #6750a4;
+      color: white;
+      box-shadow: 0 4px 16px rgba(103, 80, 164, 0.48);
+    }
+    #dark-toggle {
+      background: #1e1a29;
+      color: #ccc;
+    }
+    #dark-toggle:hover {
+      background: #3a3353;
+      color: white;
+    }
+    /* Dark mode */
     body.dark-mode {
       background: #121212;
       color: #ddd;
     }
-    body.dark-mode #sidebar {
+    body.dark-mode #route-info {
+      background: #222;
+      box-shadow: 0 0 15px rgba(255,255,255,0.15);
+      color: #ddd;
+    }
+    body.dark-mode .search-bar,
+    body.dark-mode .layer-toggle {
       background: #222;
       color: #ddd;
-      box-shadow: 4px 0 20px rgba(255,255,255,0.1);
+      box-shadow: 0 0 12px rgba(255,255,255,0.1);
     }
-    body.dark-mode #directions-toggle,
-    body.dark-mode #directions-form button {
-      background-color: #4a90e2;
+    body.dark-mode .search-bar input,
+    body.dark-mode button {
+      background: #333;
+      color: #ddd;
+      border-color: #555;
+    }
+    body.dark-mode .search-bar input:focus {
+      box-shadow: 0 0 6px #4a90e2aa;
+    }
+    body.dark-mode .layer-toggle button.active {
+      background: #4a90e2;
+      color: white;
+    }
+    /* Responsive */
+    @media (max-width: 767px) {
+      .search-bar {
+        width: calc(100% - 40px);
+      }
+      #sidebar {
+        width: 90vw;
+      }
+      .layer-toggle {
+        bottom: 16px;
+        right: 50%;
+        transform: translateX(50%);
+        gap: 16px;
+        padding: 8px 16px;
+      }
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <!-- Search container, initially outside sidebar -->
-  <div id="search-container">
-    <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Destination" />
+  <div class="search-bar" role="search">
+    <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
     <div id="suggestions" role="listbox" tabindex="-1"></div>
   </div>
 
-  <!-- Sidebar -->
-  <div id="sidebar" hidden>
-    <button id="sidebar-close" aria-label="Close menu">&times;</button>
-    <div id="sidebar-content">
-      <!-- Search container will be moved here when sidebar opens -->
-      
-      <div id="directions-section">
-        <button id="directions-toggle">Show Directions</button>
-        <form id="directions-form">
-          <input id="origin" type="text" placeholder="Origin" autocomplete="off" spellcheck="false" aria-label="Origin" />
-          <div id="origin-suggestions" role="listbox" tabindex="-1"></div>
-          <input id="destination" type="text" placeholder="Destination" autocomplete="off" spellcheck="false" aria-label="Destination" />
-          <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
-          <button type="button" id="get-route">Get Route</button>
-          <button type="button" id="clear-route">Clear</button>
-        </form>
-      </div>
+  <div id="sidebar" role="region" aria-label="Place details and directions panel" hidden>
+    <button id="sidebar-close" aria-label="Close sidebar">&times;</button>
+    <div id="place-info">Loading...</div>
+    <button id="directions-toggle">Show Directions</button>
+    <div id="directions-form" aria-label="Directions form">
+      <input id="origin" type="text" placeholder="Start" aria-label="Origin" autocomplete="off" spellcheck="false" />
+      <div id="origin-suggestions" role="listbox" tabindex="-1"></div>
+      <input id="destination" type="text" placeholder="Destination" aria-label="Destination" autocomplete="off" spellcheck="false" />
+      <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
+      <button id="get-route">Get Directions</button>
+      <button id="clear-route" style="margin-top: 8px; background:#b3261e; color:#fff; border:none; border-radius:20px; padding: 10px 0; font-weight:600; cursor:pointer;">Clear</button>
     </div>
+  </div>
+
+  <div class="layer-toggle" role="region" aria-label="Map layer toggles">
+    <button id="regular-toggle" class="active" aria-pressed="true">Regular</button>
+    <button id="satellite-toggle" aria-pressed="false">Satellite</button>
+    <button id="dark-toggle" aria-pressed="false">Dark Mode</button>
+  </div>
+
+  <div id="route-info" role="region" aria-live="polite" aria-atomic="true" aria-label="Route information">
+    <p id="route-summary"></p>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
