@@ -1,284 +1,195 @@
-// === Map Initialization ===
-const map = new maplibregl.Map({
+let map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 0],
-  zoom: 2,
-  pitch: 0,
-  bearing: 0,
-  dragRotate: true,
-  touchZoomRotate: true,
-  scrollZoom: true,
-  maxZoom: 18,
-  minZoom: 1
+  zoom: 2
 });
 
 map.addControl(new maplibregl.NavigationControl(), 'top-left');
-map.addControl(new maplibregl.GeolocateControl({
-  positionOptions: { enableHighAccuracy: true },
-  trackUserLocation: true,
-  showUserHeading: true
-}), 'top-left');
+map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), 'top-left');
 
-let satVisible = false;
+// Satellite layer
 map.on('load', () => {
   map.addSource('satellite', {
     type: 'raster',
-    tiles: [
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-    ],
+    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
     tileSize: 256
   });
   map.addLayer({
     id: 'sat-layer',
     type: 'raster',
     source: 'satellite',
-    layout: { visibility: 'none' },
-    paint: { 'raster-opacity': 0.8 }
+    layout: { visibility: 'none' }
   });
 });
 
 document.getElementById('satellite-toggle').onclick = () => {
-  satVisible = !satVisible;
-  map.setLayoutProperty('sat-layer', 'visibility', satVisible ? 'visible' : 'none');
-  document.getElementById('satellite-toggle').classList.toggle('active');
-  document.getElementById('regular-toggle').classList.toggle('active');
+  let vis = map.getLayoutProperty('sat-layer', 'visibility');
+  map.setLayoutProperty('sat-layer', 'visibility', vis === 'none' ? 'visible' : 'none');
 };
 
-document.getElementById('regular-toggle').onclick = () => {
-  satVisible = false;
-  map.setLayoutProperty('sat-layer', 'visibility', 'none');
-  document.getElementById('satellite-toggle').classList.toggle('active');
-  document.getElementById('regular-toggle').classList.toggle('active');
-};
+// DOM
+const search = document.getElementById('search');
+const origin = document.getElementById('origin');
+const suggestions = document.getElementById('suggestions');
+const originSuggestions = document.getElementById('origin-suggestions');
+const directionsBtn = document.getElementById('get-directions');
+const navPanel = document.getElementById('nav-panel');
+const navText = document.getElementById('nav-instruction');
+const startNavBtn = document.getElementById('start-nav');
+const stopNavBtn = document.getElementById('stop-nav');
+const etaDisplay = document.getElementById('eta');
 
-// DOM refs
-const destInput        = document.getElementById('search');
-const destList         = document.getElementById('suggestions');
-const originInput      = document.getElementById('origin');
-const originList       = document.getElementById('origin-suggestions');
-const directionsUI     = document.getElementById('directions-ui');
-const getDirectionsBtn = document.getElementById('get-directions');
-const clearDirectionsBtn = document.getElementById('clear-directions');
-const routeInfoBox     = document.getElementById('route-info');
-const routeSummary     = document.getElementById('route-summary');
-const routeEta         = document.getElementById('route-eta');
-const closeRouteBtn    = document.getElementById('close-route-info');
-const darkToggleBtn    = document.getElementById('dark-toggle');
+let routeSteps = [];
+let currentStep = 0;
+let routeCoords = [];
+let routeWatcher = null;
+let speech = window.speechSynthesis;
+let routeLine;
+let originCoord = null;
+let destinationCoord = null;
 
-let destResults   = [];
-let originResults = [];
-let originCoord   = null;
-let activeMarkers = [];
-
-// Dark mode functions
-function applyDarkMode(enabled) {
-  if(enabled) {
-    document.body.classList.add('dark-mode');
-    darkToggleBtn.textContent = 'Light Mode';
-  } else {
-    document.body.classList.remove('dark-mode');
-    darkToggleBtn.textContent = 'Dark Mode';
-  }
-}
-
-// Apply dark mode based on system preference initially
-const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-applyDarkMode(prefersDark);
-
-darkToggleBtn.addEventListener('click', () => {
-  const darkModeOn = document.body.classList.toggle('dark-mode');
-  darkToggleBtn.textContent = darkModeOn ? 'Light Mode' : 'Dark Mode';
-});
-
-// Nominatim search helper
 async function nominatimSearch(q) {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`
-  );
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`);
   return res.json();
 }
 
-// Destination autocomplete
-destInput.addEventListener('input', async e => {
-  const q = e.target.value.trim();
-  destList.innerHTML = '';
-  if (!q) return;
-  destResults = await nominatimSearch(q);
-  destResults.forEach((r, i) => {
-    const div = document.createElement('div');
+function populateSuggestions(q, targetEl, results, setter) {
+  targetEl.innerHTML = '';
+  results.forEach((r, i) => {
+    let div = document.createElement('div');
     div.className = 'suggestion';
     div.textContent = r.display_name;
-    div.dataset.idx = i;
-    destList.append(div);
+    div.onclick = () => {
+      setter(r);
+      targetEl.innerHTML = '';
+    };
+    targetEl.append(div);
+  });
+}
+
+search.addEventListener('input', async e => {
+  let q = e.target.value;
+  if (!q) return;
+  let results = await nominatimSearch(q);
+  populateSuggestions(q, suggestions, results, r => {
+    destinationCoord = [parseFloat(r.lon), parseFloat(r.lat)];
+    search.value = r.display_name;
   });
 });
 
-// Destination click
-destList.addEventListener('click', e => {
-  const idx = e.target.dataset.idx;
-  if (idx == null) return;
-  const place = destResults[idx];
-  map.flyTo({ center: [+place.lon, +place.lat], zoom: 14 });
-  directionsUI.style.display = 'flex';
-});
-
-// Origin autocomplete
-originInput.addEventListener('input', async e => {
-  const q = e.target.value.trim();
-  originList.innerHTML = '';
+origin.addEventListener('input', async e => {
+  let q = e.target.value;
   if (!q) return;
-  originResults = await nominatimSearch(q);
-  originResults.forEach((r, i) => {
-    const div = document.createElement('div');
-    div.className = 'suggestion';
-    div.textContent = r.display_name;
-    div.dataset.idx = i;
-    originList.append(div);
+  let results = await nominatimSearch(q);
+  populateSuggestions(q, originSuggestions, results, r => {
+    originCoord = [parseFloat(r.lon), parseFloat(r.lat)];
+    origin.value = r.display_name;
   });
 });
 
-// Origin click
-originList.addEventListener('click', e => {
-  const idx = e.target.dataset.idx;
-  if (idx == null) return;
-  const place = originResults[idx];
-  originInput.value = place.display_name;
-  originCoord = { lon: +place.lon, lat: +place.lat };
-  originList.innerHTML = '';
-});
-
-// Clear old route & markers
-function clearRoute() {
-  if (map.getLayer('route-line')) {
-    map.removeLayer('route-line');
-    map.removeSource('route-line');
-  }
-  activeMarkers.forEach(m => m.remove());
-  activeMarkers = [];
-  routeSummary.textContent = '';
-  routeEta.textContent = '';
-  routeInfoBox.classList.add('hidden');
-}
-
-// Format ETA time
-function formatETA(durationSeconds) {
-  const arrival = new Date(Date.now() + durationSeconds * 1000);
-  return arrival.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-// Get Directions click
-getDirectionsBtn.addEventListener('click', async () => {
-  if (!originCoord || !destResults.length) {
-    alert('Select both origin and destination.');
+directionsBtn.onclick = async () => {
+  if (!originCoord || !destinationCoord) {
+    alert("Set both origin and destination.");
     return;
   }
 
-  const dest = destResults[0];
-  const url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/` +
-              `${originCoord.lon},${originCoord.lat};${dest.lon},${dest.lat}` +
-              `?overview=full&geometries=geojson&steps=true`;
+  let url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${originCoord[0]},${originCoord[1]};${destinationCoord[0]},${destinationCoord[1]}?overview=full&steps=true&geometries=geojson`;
+  let res = await fetch(url);
+  let json = await res.json();
 
-  try {
-    const res = await fetch(url);
-    const json = await res.json();
-    if (!json.routes?.length) {
-      alert('No route found.');
-      return;
+  if (!json.routes?.length) return alert("Route not found");
+
+  let route = json.routes[0];
+  routeSteps = route.legs[0].steps;
+  routeCoords = route.geometry.coordinates;
+
+  if (routeLine) {
+    map.removeLayer('route');
+    map.removeSource('route');
+  }
+
+  map.addSource('route', {
+    type: 'geojson',
+    data: {
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: routeCoords }
     }
+  });
 
-    clearRoute();
-    const route = json.routes[0];
+  map.addLayer({
+    id: 'route',
+    type: 'line',
+    source: 'route',
+    paint: { 'line-color': '#0078ff', 'line-width': 6 }
+  });
 
-    // Add GeoJSON line
-    map.addSource('route-line', {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        geometry: route.geometry
-      }
-    });
+  routeLine = 'route';
 
-    map.addLayer({
-      id: 'route-line',
-      type: 'line',
-      source: 'route-line',
-      layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': '#3b82f6', 'line-width': 6, 'line-opacity': 0.8 }
-    });
+  map.fitBounds([originCoord, destinationCoord], { padding: 60 });
+  navPanel.style.display = 'block';
+  navText.textContent = `Ready to start. ${Math.round(route.distance / 1000)} km – ${Math.round(route.duration / 60)} min`;
+  etaDisplay.textContent = "";
+};
 
-    // Add markers
-    const m1 = new maplibregl.Marker().setLngLat([originCoord.lon, originCoord.lat]).addTo(map);
-    const m2 = new maplibregl.Marker().setLngLat([+dest.lon, +dest.lat]).addTo(map);
-    activeMarkers.push(m1, m2);
+startNavBtn.onclick = () => {
+  if (!routeSteps.length) return;
+  currentStep = 0;
+  speakStep();
+  watchPosition();
+};
 
-    // Show route summary and ETA
-    const distanceKm = (route.distance / 1000).toFixed(2);
-    const durationMin = Math.round(route.duration / 60);
-    routeSummary.textContent = `Distance: ${distanceKm} km · Duration: ${durationMin} min`;
-
-    routeEta.textContent = `ETA: ${formatETA(route.duration)}`;
-
-    routeInfoBox.classList.remove('hidden');
-
-    // Center on midpoint
-    const coords = route.geometry.coordinates;
-    const mid = coords[Math.floor(coords.length / 2)];
-    map.flyTo({ center: mid, zoom: 13 });
-
-  } catch (err) {
-    alert('Error fetching directions: ' + err.message);
+stopNavBtn.onclick = () => {
+  if (routeWatcher) navigator.geolocation.clearWatch(routeWatcher);
+  navPanel.style.display = 'none';
+  routeSteps = [];
+  routeCoords = [];
+  if (routeLine) {
+    map.removeLayer(routeLine);
+    map.removeSource(routeLine);
   }
-});
+};
 
-// Clear Directions button
-clearDirectionsBtn.addEventListener('click', () => {
-  clearRoute();
-  originInput.value = '';
-  destInput.value = '';
-  destList.innerHTML = '';
-  originList.innerHTML = '';
-  directionsUI.style.display = 'none';
-});
+function speakStep() {
+  if (!routeSteps[currentStep]) return;
+  let text = routeSteps[currentStep].maneuver.instruction;
+  navText.textContent = text;
+  let utter = new SpeechSynthesisUtterance(text);
+  speech.cancel();
+  speech.speak(utter);
+}
 
-// Close route info button
-closeRouteBtn.addEventListener('click', () => {
-  routeInfoBox.classList.add('hidden');
-});
+function watchPosition() {
+  routeWatcher = navigator.geolocation.watchPosition(pos => {
+    let userPos = [pos.coords.longitude, pos.coords.latitude];
+    map.flyTo({ center: userPos, zoom: 16, bearing: pos.coords.heading || 0 });
+    let target = [routeSteps[currentStep].maneuver.location[0], routeSteps[currentStep].maneuver.location[1]];
+    let dist = distance(userPos, target);
 
-// Swipe-to-dismiss on mobile
-let touchStartY = 0;
-let touchCurrentY = 0;
-let isDragging = false;
+    etaDisplay.textContent = `Speed: ${Math.round(pos.coords.speed * 3.6 || 0)} km/h`;
 
-routeInfoBox.addEventListener('touchstart', e => {
-  if(window.innerWidth > 767) return; // only mobile
-  if(e.touches.length !== 1) return;
-  touchStartY = e.touches[0].clientY;
-  isDragging = true;
-  routeInfoBox.style.transition = ''; // cancel transition during drag
-});
+    if (dist < 30 && currentStep < routeSteps.length - 1) {
+      currentStep++;
+      speakStep();
+    }
+  }, err => {
+    console.error("GPS error:", err);
+    alert("Unable to access GPS.");
+  }, {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
+  });
+}
 
-routeInfoBox.addEventListener('touchmove', e => {
-  if(!isDragging) return;
-  touchCurrentY = e.touches[0].clientY;
-  const deltaY = touchCurrentY - touchStartY;
-  if(deltaY > 0) { // only drag down
-    routeInfoBox.style.transform = `translateY(${deltaY}px)`;
-  }
-});
+function distance(coord1, coord2) {
+  const R = 6371e3;
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(coord2[1] - coord1[1]);
+  const dLon = toRad(coord2[0] - coord1[0]);
+  const lat1 = toRad(coord1[1]);
+  const lat2 = toRad(coord2[1]);
 
-routeInfoBox.addEventListener('touchend', e => {
-  if(!isDragging) return;
-  isDragging = false;
-  const deltaY = touchCurrentY - touchStartY;
-  routeInfoBox.style.transition = 'transform 0.3s ease';
-  if(deltaY > 100) {
-    // swipe down enough to close
-    routeInfoBox.classList.add('hidden');
-    routeInfoBox.style.transform = '';
-  } else {
-    // snap back
-    routeInfoBox.style.transform = '';
-  }
-});
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
