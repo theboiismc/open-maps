@@ -8,7 +8,7 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
     
-    /* Body and layout setup */
+    /* General setup */
     html, body {
       margin: 0;
       padding: 0;
@@ -20,8 +20,8 @@
       display: flex;
       flex-direction: column;
     }
-    
-    /* Map area */
+
+    /* Map container */
     #map {
       position: absolute;
       top: 0;
@@ -31,25 +31,25 @@
       z-index: 0;
     }
 
-    /* Search bar centered */
+    /* Search bar styling */
     .search-bar {
       position: absolute;
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      width: 320px;
-      background: rgba(255, 255, 255, 0.7);
+      width: 90%;
+      max-width: 420px;
+      background: rgba(255, 255, 255, 0.9);
       border-radius: 50px;
-      padding: 10px 20px;
+      padding: 12px 20px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      transition: all 0.3s ease;
     }
 
-    /* Input in search bar */
+    /* Input field in search bar */
     .search-bar input {
       font-size: 16px;
       padding: 10px 16px;
@@ -70,7 +70,7 @@
       box-shadow: 0 0 6px rgba(103, 80, 164, 0.5);
     }
 
-    /* Suggestions container */
+    /* Suggestions box */
     #suggestions {
       background: #fff;
       border-radius: 16px;
@@ -100,7 +100,7 @@
       outline: none;
     }
 
-    /* Floating buttons (location and compass) */
+    /* Floating buttons (Location and Directions) */
     .floating-buttons {
       position: absolute;
       bottom: 20px;
@@ -113,69 +113,46 @@
 
     .floating-buttons button {
       background-color: #4a90e2;
-      border-radius: 50%;
-      padding: 15px;
+      border-radius: 30px;
+      padding: 12px 20px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       cursor: pointer;
       transition: all 0.3s ease;
       border: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      width: 100%;
     }
 
-    .floating-buttons button:hover {
+    /* Location button */
+    .floating-buttons .location {
+      background-color: #4a90e2;
+    }
+
+    .floating-buttons .location:hover {
       background-color: #357ab7;
     }
 
-    .floating-buttons .compass {
-      background: #f0a500;
+    /* Directions button */
+    .floating-buttons .directions {
+      background-color: #f0a500;
     }
 
-    .floating-buttons .compass:hover {
-      background: #e07f00;
+    .floating-buttons .directions:hover {
+      background-color: #e07f00;
     }
 
-    /* Sidebar panel */
-    #sidebar {
+    /* Footer styling */
+    #footer {
       position: fixed;
-      top: 0;
-      bottom: 0;
+      bottom: 20px;
       left: 0;
-      width: 320px;
-      background: #fff;
-      box-shadow: 2px 0 14px rgba(0, 0, 0, 0.16);
-      transform: translateX(-100%);
-      transition: transform 0.3s ease-in-out;
-      z-index: 1002;
-      display: flex;
-      flex-direction: column;
-      padding: 24px 20px;
-      overflow-y: auto;
-    }
-
-    #sidebar.open {
-      transform: translateX(0);
-    }
-
-    #sidebar-close {
-      align-self: flex-end;
-      background: transparent;
-      border: none;
-      font-size: 32px;
-      cursor: pointer;
-      color: #625b71;
-      padding: 0;
-      user-select: none;
-      margin-bottom: 12px;
-    }
-
-    #sidebar-close:hover {
-      color: #1e1a29;
-    }
-
-    #place-info {
-      font-size: 18px;
-      font-weight: 500;
-      margin-bottom: 20px;
-      color: #202124;
+      right: 0;
+      font-size: 12px;
+      color: #8f8da4;
+      text-align: center;
+      z-index: 999;
     }
 
     /* Dark mode styles */
@@ -193,13 +170,16 @@
       background: #555;
       color: #ddd;
     }
-    
-    body.dark-mode .layer-toggle {
-      background: #333;
-      color: #ddd;
+
+    body.dark-mode .floating-buttons button {
+      background-color: #444;
     }
 
-    /* Responsive adjustments for mobile view */
+    body.dark-mode .floating-buttons button:hover {
+      background-color: #666;
+    }
+
+    /* Mobile responsive adjustments */
     @media (max-width: 767px) {
       .search-bar {
         width: calc(100% - 40px);
@@ -210,11 +190,13 @@
 <body>
   <div id="map"></div>
 
+  <!-- Search Bar -->
   <div class="search-bar" role="search">
     <input id="search" type="text" placeholder="Find a place" autocomplete="off" spellcheck="false" aria-label="Search for destination" />
     <div id="suggestions" role="listbox" tabindex="-1"></div>
   </div>
 
+  <!-- Sidebar -->
   <div id="sidebar" role="region" aria-label="Place details and directions panel" hidden>
     <button id="sidebar-close" aria-label="Close sidebar">&times;</button>
     <div id="place-info">Loading...</div>
@@ -229,15 +211,17 @@
     </div>
   </div>
 
+  <!-- Floating Buttons (Location and Directions) -->
   <div class="floating-buttons">
     <!-- Location button -->
-    <button id="location-btn">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Google_Maps_pin.svg" alt="location" style="width: 24px; height: 24px;"/>
-    </button>
-    <!-- Compass button -->
-    <button class="compass" id="compass-btn">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Compass_rose_%28North%29.svg/1200px-Compass_rose_%28North%29.svg.png" alt="compass" style="width: 24px; height: 24px;"/>
-    </button>
+    <button id="location-btn" class="location">Location</button>
+    <!-- Directions button -->
+    <button id="directions-btn" class="directions">Directions</button>
+  </div>
+
+  <!-- Footer Attribution -->
+  <div id="footer">
+    OpenFreeMap © OpenMapTiles Data from OpenStreetMap
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
