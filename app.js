@@ -22,6 +22,7 @@ const directionsToggleBtn = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
 const routeInfoDiv = document.getElementById('route-info');
 
+// Add satellite layer
 const addSatelliteLayer = () => {
   if (!satelliteLayerAdded) {
     map.addSource('satellite', {
@@ -78,10 +79,16 @@ regularToggle.onclick = switchToRegular;
 // Directions panel toggle
 directionsToggleBtn.addEventListener('click', () => {
   const isVisible = directionsForm.style.display === 'flex';
+  const mainSearchInput = document.getElementById('search');
+
   if (isVisible) {
+    // Close directions panel, show search bar
     directionsForm.style.display = 'none';
+    mainSearchInput.style.display = 'block';  // Show search bar
     directionsToggleBtn.setAttribute('aria-pressed', 'false');
   } else {
+    // Show directions panel, hide search bar
+    mainSearchInput.style.display = 'none';  // Hide search bar
     directionsForm.style.display = 'flex';
     directionsToggleBtn.setAttribute('aria-pressed', 'true');
   }
