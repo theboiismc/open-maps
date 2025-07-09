@@ -222,6 +222,14 @@
     user-select: none;
   }
 
+  /* Built-in MapLibre controls bottom right */
+  .maplibregl-ctrl-bottom-right {
+    bottom: 20px !important;
+    right: 20px !important;
+    margin: 0 !important;
+    z-index: 10000;
+  }
+
 </style>
 </head>
 <body>
@@ -245,7 +253,6 @@
 
   <div class="map-controls" aria-label="Map controls">
     <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel" title="Directions">🗺️</button>
-    <button id="location-btn" aria-label="Find My Location" title="Find My Location">📍</button>
   </div>
 
   <button id="style-toggle" aria-pressed="false" aria-label="Toggle map style" title="Toggle Map Style">
