@@ -77,26 +77,27 @@
     color: #888;
   }
 
-  /* Directions Panel - no slide, just toggle display */
+  /* Directions Panel */
   #directions-form {
     position: fixed;
     top: 0;
     left: 0;
-    height: 100vh;
+    height: 100%;
     width: 320px;
     background: #fff;
     border-radius: 0 0 24px 0;
     box-shadow: 2px 0 12px rgba(0,0,0,0.15);
     padding: 20px;
-    display: none; /* hidden by default */
+    display: flex;
     flex-direction: column;
     gap: 8px;
     z-index: 10002;
-    overflow-y: auto;
+    transition: transform 0.3s ease;
+    transform: translateX(-100%);
   }
 
   #directions-form.open {
-    display: flex; /* show when open */
+    transform: translateX(0);
   }
 
   #directions-form input {
@@ -184,28 +185,6 @@
   .map-controls button:hover {
     background-color: #d6cfff;
   }
-
-  body.dark-mode {
-    background: #121212;
-    color: #ddd;
-  }
-
-  body.dark-mode .search-bar,
-  body.dark-mode .map-controls {
-    background: #222;
-    color: #ddd;
-  }
-
-  body.dark-mode .search-bar input,
-  body.dark-mode button {
-    background: #333;
-    color: #ddd;
-    border-color: #555;
-  }
-
-  body.dark-mode .search-bar input:focus {
-    box-shadow: 0 0 6px #4a90e2aa;
-  }
 </style>
 </head>
 <body>
@@ -230,7 +209,6 @@
   <div class="map-controls">
     <button id="regular-toggle" class="active" aria-pressed="true" aria-label="Regular map style">Regular</button>
     <button id="satellite-toggle" aria-pressed="false" aria-label="Satellite map style">Satellite</button>
-    <button id="dark-toggle" aria-pressed="false" aria-label="Toggle dark mode">Dark Mode</button>
     <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel">Directions</button>
   </div>
 
