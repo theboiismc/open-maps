@@ -45,7 +45,7 @@ satelliteToggle.onclick = () => {
     satelliteToggle.classList.toggle('active', satVisible);
 };
 
-// Handle layer toggle for Regular view
+// Regular Layer Toggle
 const regularToggle = document.getElementById('regular-toggle');
 regularToggle.onclick = () => {
     map.setStyle('https://tiles.openfreemap.org/styles/liberty');
