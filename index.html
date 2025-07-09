@@ -77,7 +77,7 @@
     color: #888;
   }
 
-  /* Directions Panel - fixed, always visible when open */
+  /* Directions Panel */
   #directions-form {
     position: fixed;
     top: 0;
@@ -88,14 +88,16 @@
     border-radius: 0 0 24px 0;
     box-shadow: 2px 0 12px rgba(0,0,0,0.15);
     padding: 20px;
-    display: none; /* hidden by default */
+    display: flex;
     flex-direction: column;
     gap: 8px;
     z-index: 10002;
+    transition: transform 0.3s ease;
+    transform: translateX(-100%);
   }
 
   #directions-form.open {
-    display: flex;
+    transform: translateX(0);
   }
 
   #directions-form input {
@@ -160,7 +162,6 @@
     color: #4a3d87;
   }
 
-  /* Map controls container */
   .map-controls {
     position: absolute;
     bottom: 20px;
@@ -171,30 +172,56 @@
     gap: 12px;
   }
 
-  /* Directions toggle button: positioned left of MapLibre controls */
   #directions-toggle {
-    position: absolute;
-    bottom: 20px;        /* same vertical offset as controls */
-    right: 88px;         /* shifted left to clear MapLibre controls */
-    z-index: 10001;
     background: #fff;
+    padding: 12px;
     border-radius: 50%;
     border: none;
-    width: 48px;
-    height: 48px;
-    font-size: 24px;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.3s ease;
   }
 
-  #directions-toggle[aria-pressed="true"] {
+  #directions-toggle.active,
+  #directions-toggle:hover {
     background-color: #d6cfff;
   }
 
+  /* Map style toggle tile bottom left */
+  #map-style-toggle {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    padding: 6px 12px;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 500;
+    font-size: 14px;
+    width: 140px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+  }
+
+  #map-style-toggle img {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+  }
+
+  #map-style-toggle:hover {
+    background-color: #e3e0ff;
+  }
+
+  #map-style-toggle.moved-right {
+    transform: translateX(180px);
+    transition: transform 0.3s ease;
+  }
 </style>
 </head>
 <body>
@@ -216,9 +243,14 @@
     <div id="route-info" role="region" aria-live="polite" aria-atomic="true" style="margin-top: 8px; font-weight: 500;"></div>
   </div>
 
-  <div class="map-controls"></div>
+  <div class="map-controls">
+    <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel">Directions</button>
+  </div>
 
-  <button id="directions-toggle" aria-label="Toggle directions panel" aria-pressed="false">🚗</button>
+  <button id="map-style-toggle" aria-pressed="false" aria-label="Toggle map style">
+    <img id="map-style-img" src="default_style.png" alt="Map style preview" />
+    <span id="map-style-label">Regular</span>
+  </button>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
