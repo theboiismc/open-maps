@@ -13,29 +13,37 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Your self-hosted images for style toggle
-const regularThumbnail = '/default_style.png';
-const satelliteThumbnail = '/satelite_style.png';
+// Add MapLibre geolocate control bottom right
+const geolocateControl = new maplibregl.GeolocateControl({
+  positionOptions: {
+    enableHighAccuracy: true,
+  },
+  trackUserLocation: true,
+  showUserHeading: true,
+});
+map.addControl(geolocateControl, 'bottom-right');
 
-// Elements
+// Controls elements
+const directionsToggleBtn = document.getElementById('directions-toggle');
+const directionsForm = document.getElementById('directions-form');
+const closeDirectionsBtn = document.getElementById('close-directions');
+const routeInfoDiv = document.getElementById('route-info');
+
+// Style toggle button elements
 const styleToggleBtn = document.getElementById('style-toggle');
 const styleImage = document.getElementById('style-image');
 const styleLabel = document.getElementById('style-label');
 
-const directionsToggleBtn = document.getElementById('directions-toggle');
-const directionsForm = document.getElementById('directions-form');
-const closeDirectionsBtn = document.getElementById('close-directions');
-
-const routeInfoDiv = document.getElementById('route-info');
-
+// Satellite layer flag
 let satelliteLayerAdded = false;
 let currentStyle = 'regular';
 
-function addSatelliteLayer() {
+const addSatelliteLayer = () => {
   if (!satelliteLayerAdded) {
     map.addSource('satellite', {
       type: 'raster',
       tiles: [
+        // Use your self-hosted satellite tiles or public ones here
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
       ],
       tileSize: 256
@@ -49,28 +57,31 @@ function addSatelliteLayer() {
     });
     satelliteLayerAdded = true;
   }
-}
+};
 
-function switchToRegular() {
-  if (satelliteLayerAdded) {
-    map.setLayoutProperty('sat-layer', 'visibility', 'none');
-  }
-  styleImage.src = regularThumbnail;
-  styleLabel.textContent = 'Regular';
-  styleToggleBtn.setAttribute('aria-pressed', 'false');
-  currentStyle = 'regular';
-}
-
-function switchToSatellite() {
-  if (!satelliteLayerAdded) addSatelliteLayer();
+const switchToSatellite = () => {
   map.setLayoutProperty('sat-layer', 'visibility', 'visible');
-  styleImage.src = satelliteThumbnail;
-  styleLabel.textContent = 'Satellite';
   styleToggleBtn.setAttribute('aria-pressed', 'true');
+  styleImage.src = '/satellite_style.png';
+  styleLabel.textContent = 'Satellite';
   currentStyle = 'satellite';
-}
+};
 
-// Toggle map style on button click
+const switchToRegular = () => {
+  map.setLayoutProperty('sat-layer', 'visibility', 'none');
+  styleToggleBtn.setAttribute('aria-pressed', 'false');
+  styleImage.src = '/default_style.png';
+  styleLabel.textContent = 'Regular';
+  currentStyle = 'regular';
+};
+
+// On map load setup
+map.on('load', () => {
+  addSatelliteLayer();
+  switchToRegular();
+});
+
+// Style toggle button click
 styleToggleBtn.addEventListener('click', () => {
   if (currentStyle === 'regular') {
     switchToSatellite();
@@ -79,27 +90,22 @@ styleToggleBtn.addEventListener('click', () => {
   }
 });
 
-// On map load init
-map.on('load', () => {
-  addSatelliteLayer();
-  switchToRegular();
-});
-
-// Directions panel helpers
+// Directions panel toggle helpers
 function openDirectionsPanel() {
   directionsForm.classList.add('open');
   document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
-  styleToggleBtn.classList.add('shifted');
+  document.querySelector('.map-controls').classList.add('shifted');
 }
 
 function closeDirectionsPanel() {
   directionsForm.classList.remove('open');
-  document.querySelector('.search-bar').style.display = 'block';
+  document.querySelector('.search-bar').style.display = 'flex';
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
-  styleToggleBtn.classList.remove('shifted');
+  document.querySelector('.map-controls').classList.remove('shifted');
 }
 
+// Directions toggle button
 directionsToggleBtn.addEventListener('click', () => {
   if (directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
@@ -108,12 +114,45 @@ directionsToggleBtn.addEventListener('click', () => {
   }
 });
 
+// Close button inside directions panel
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
+// Close on ESC key
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   }
+});
+
+// Close on click outside directions panel (ignore clicks inside panel or toggle)
+document.addEventListener('click', e => {
+  if (
+    directionsForm.classList.contains('open') &&
+    !directionsForm.contains(e.target) &&
+    !directionsToggleBtn.contains(e.target)
+  ) {
+    // Do NOT close panel here per your request to only close on X or ESC
+  }
+});
+
+// Swipe to dismiss directions panel on mobile (optional)
+let startX = 0, currentX = 0, isSwiping = false;
+directionsForm.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) return;
+  startX = e.touches[0].clientX;
+  isSwiping = true;
+});
+directionsForm.addEventListener('touchmove', e => {
+  if (!isSwiping) return;
+  currentX = e.touches[0].clientX;
+  const deltaX = currentX - startX;
+  if (deltaX < 0) directionsForm.style.transform = `translateX(${deltaX}px)`;
+});
+directionsForm.addEventListener('touchend', () => {
+  const deltaX = currentX - startX;
+  if (deltaX < -100) closeDirectionsPanel();
+  directionsForm.style.transform = '';
+  isSwiping = false;
 });
 
 // Photon search setup
@@ -151,8 +190,8 @@ function renderSuggestions(container, results) {
   results.forEach(feature => {
     const div = document.createElement('div');
     div.className = 'suggestion';
-    div.textContent = feature.properties.name + 
-      (feature.properties.state ? ', ' + feature.properties.state : '') + 
+    div.textContent = feature.properties.name +
+      (feature.properties.state ? ', ' + feature.properties.state : '') +
       (feature.properties.country ? ', ' + feature.properties.country : '');
     div.tabIndex = 0;
     div.dataset.lon = feature.geometry.coordinates[0];
@@ -161,6 +200,7 @@ function renderSuggestions(container, results) {
   });
 }
 
+// Setup search inputs
 function setupSearch(inputEl, suggestionsEl) {
   const debouncedSearch = debounce(async (query) => {
     if (!query) {
@@ -205,12 +245,9 @@ function setupSearch(inputEl, suggestionsEl) {
   });
 }
 
-// Wait for DOM content fully loaded before attaching search handlers
-document.addEventListener('DOMContentLoaded', () => {
-  setupSearch(document.getElementById('search'), document.getElementById('suggestions'));
-  setupSearch(document.getElementById('origin'), document.getElementById('origin-suggestions'));
-  setupSearch(document.getElementById('destination'), document.getElementById('destination-suggestions'));
-});
+setupSearch(document.getElementById('search'), document.getElementById('suggestions'));
+setupSearch(document.getElementById('origin'), document.getElementById('origin-suggestions'));
+setupSearch(document.getElementById('destination'), document.getElementById('destination-suggestions'));
 
 // Routing with OSRM
 const getRouteBtn = document.getElementById('get-route');
@@ -229,11 +266,7 @@ function drawRoute(routeGeoJSON) {
       type: 'line',
       source: 'route',
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': '#6750a4',
-        'line-width': 6,
-        'line-opacity': 0.8
-      }
+      paint: { 'line-color': '#6750a4', 'line-width': 6 }
     });
   }
 }
@@ -244,83 +277,59 @@ function clearRoute() {
   routeInfoDiv.textContent = '';
 }
 
+async function fetchRoute(start, end) {
+  const url = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("OSRM request failed");
+    const data = await res.json();
+    if (data.routes && data.routes.length) return data.routes[0];
+    throw new Error("No routes found");
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
 getRouteBtn.addEventListener('click', async () => {
   const originInput = document.getElementById('origin');
   const destinationInput = document.getElementById('destination');
 
-  const originLon = originInput.dataset.lon;
-  const originLat = originInput.dataset.lat;
-  const destinationLon = destinationInput.dataset.lon;
-  const destinationLat = destinationInput.dataset.lat;
+  const startLon = parseFloat(originInput.dataset.lon);
+  const startLat = parseFloat(originInput.dataset.lat);
+  const endLon = parseFloat(destinationInput.dataset.lon);
+  const endLat = parseFloat(destinationInput.dataset.lat);
 
-  if (!originLon || !originLat || !destinationLon || !destinationLat) {
-    alert("Please select both origin and destination from suggestions.");
+  if (
+    isNaN(startLon) || isNaN(startLat) ||
+    isNaN(endLon) || isNaN(endLat)
+  ) {
+    routeInfoDiv.textContent = 'Please select valid start and destination from suggestions.';
     return;
   }
 
-  clearRoute();
-
-  const coords = `${originLon},${originLat};${destinationLon},${destinationLat}`;
-  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=true`;
-
   routeInfoDiv.textContent = 'Routing...';
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Routing request failed');
-    const data = await res.json();
-    if (data.code !== 'Ok' || !data.routes.length) throw new Error('No route found');
-
-    const route = data.routes[0];
-    drawRoute({
-      type: 'Feature',
-      geometry: route.geometry
-    });
-
-    map.fitBounds([
-      [originLon, originLat],
-      [destinationLon, destinationLat]
-    ], { padding: 60 });
-
-    routeInfoDiv.textContent = `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
-
-  } catch (e) {
-    routeInfoDiv.textContent = 'Failed to get route.';
-    console.error(e);
+  const route = await fetchRoute([startLon, startLat], [endLon, endLat]);
+  if (!route) {
+    routeInfoDiv.textContent = 'Route not found.';
+    return;
   }
+  drawRoute(route.geometry);
+  routeInfoDiv.textContent = `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
+  map.fitBounds([
+    [Math.min(startLon, endLon), Math.min(startLat, endLat)],
+    [Math.max(startLon, endLon), Math.max(startLat, endLat)]
+  ], { padding: 40 });
 });
 
 clearRouteBtn.addEventListener('click', () => {
   clearRoute();
-  const originInput = document.getElementById('origin');
-  const destinationInput = document.getElementById('destination');
-  originInput.value = '';
-  destinationInput.value = '';
-  originInput.dataset.lon = '';
-  originInput.dataset.lat = '';
-  destinationInput.dataset.lon = '';
-  destinationInput.dataset.lat = '';
+  document.getElementById('origin').value = '';
+  document.getElementById('destination').value = '';
+  document.getElementById('origin').removeAttribute('data-lon');
+  document.getElementById('origin').removeAttribute('data-lat');
+  document.getElementById('destination').removeAttribute('data-lon');
+  document.getElementById('destination').removeAttribute('data-lat');
   routeInfoDiv.textContent = '';
 });
 
-// Location button in map controls
-const locationBtn = document.createElement('button');
-locationBtn.id = 'location-btn';
-locationBtn.title = 'Find My Location';
-locationBtn.innerHTML = '📍';
-locationBtn.style.fontSize = '20px';
-
-locationBtn.addEventListener('click', () => {
-  if (!navigator.geolocation) {
-    alert('Geolocation is not supported by your browser.');
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(pos => {
-    const coords = [pos.coords.longitude, pos.coords.latitude];
-    map.flyTo({ center: coords, zoom: 15 });
-  }, err => {
-    alert('Unable to retrieve your location.');
-  });
-});
-
-document.querySelector('.map-controls').appendChild(locationBtn);
