@@ -76,18 +76,18 @@ map.on('load', () => {
 satelliteToggle.onclick = switchToSatellite;
 regularToggle.onclick = switchToRegular;
 
-// Directions panel toggle
+// Directions panel toggle (Replaces the search bar with the directions form)
 directionsToggleBtn.addEventListener('click', () => {
   const isVisible = directionsForm.style.display === 'flex';
   const mainSearchInput = document.getElementById('search');
 
   if (isVisible) {
-    // Close directions panel, show search bar
+    // Close directions panel and show search bar
     directionsForm.style.display = 'none';
     mainSearchInput.style.display = 'block';  // Show search bar
     directionsToggleBtn.setAttribute('aria-pressed', 'false');
   } else {
-    // Show directions panel, hide search bar
+    // Show directions panel, hide search bar (positioned in same place)
     mainSearchInput.style.display = 'none';  // Hide search bar
     directionsForm.style.display = 'flex';
     directionsToggleBtn.setAttribute('aria-pressed', 'true');
@@ -313,26 +313,3 @@ clearRouteBtn.addEventListener('click', () => {
   destinationInput.removeAttribute('data-lon');
   destinationInput.removeAttribute('data-lat');
 });
-
-// Optional: Follow user location with GPS (basic example)
-if ("geolocation" in navigator) {
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    map.setCenter([longitude, latitude]);
-    map.setZoom(14);
-
-    // Optionally add user location marker
-    const userMarker = new maplibregl.Marker({ color: '#ff6347' })
-      .setLngLat([longitude, latitude])
-      .addTo(map);
-
-    // Follow user location continuously (simple watch)
-    navigator.geolocation.watchPosition(pos => {
-      const { latitude, longitude } = pos.coords;
-      userMarker.setLngLat([longitude, latitude]);
-      // Optionally update map center or bearing here for navigation
-    }, err => {
-      console.warn('Geolocation watch failed:', err);
-    }, { enableHighAccuracy: true });
-  });
-}
