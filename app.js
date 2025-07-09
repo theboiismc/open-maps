@@ -205,9 +205,12 @@ function setupSearch(inputEl, suggestionsEl) {
   });
 }
 
-setupSearch(document.getElementById('search'), document.getElementById('suggestions'));
-setupSearch(document.getElementById('origin'), document.getElementById('origin-suggestions'));
-setupSearch(document.getElementById('destination'), document.getElementById('destination-suggestions'));
+// Wait for DOM content fully loaded before attaching search handlers
+document.addEventListener('DOMContentLoaded', () => {
+  setupSearch(document.getElementById('search'), document.getElementById('suggestions'));
+  setupSearch(document.getElementById('origin'), document.getElementById('origin-suggestions'));
+  setupSearch(document.getElementById('destination'), document.getElementById('destination-suggestions'));
+});
 
 // Routing with OSRM
 const getRouteBtn = document.getElementById('get-route');
