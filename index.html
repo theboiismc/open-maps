@@ -15,7 +15,7 @@
       height: 100%;
       width: 100%;
       font-family: 'Roboto', sans-serif;
-      background: #f2f2f2;
+      background: #fff;
       color: #202124;
       display: flex;
       flex-direction: column;
@@ -38,7 +38,7 @@
       left: 50%;
       transform: translateX(-50%);
       width: 320px;
-      background: #fff;
+      background: rgba(255, 255, 255, 0.7);
       border-radius: 50px;
       padding: 10px 20px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -55,10 +55,19 @@
       padding: 10px 16px;
       border: none;
       border-radius: 20px;
-      background: #e7e0ec;
-      color: #1c1b1f;
-      outline-offset: 4px;
+      background: transparent;
+      color: #202124;
+      outline: none;
       width: 100%;
+    }
+
+    .search-bar input::placeholder {
+      color: #8f8da4;
+    }
+
+    .search-bar input:focus {
+      background: #f5f3f7;
+      box-shadow: 0 0 6px rgba(103, 80, 164, 0.5);
     }
 
     /* Suggestions container */
