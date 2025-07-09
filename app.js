@@ -69,18 +69,13 @@ regularToggle.onclick = () => {
   switchToRegular();   // Switch to Regular view
 };
 
-// Directions Panel Elements
-const originInput = document.getElementById('origin');
-const destinationInput = document.getElementById('destination');
-const originSuggestionsBox = document.getElementById('origin-suggestions');
-const destinationSuggestionsBox = document.getElementById('destination-suggestions');
-const getRouteBtn = document.getElementById('get-route');
-const clearRouteBtn = document.getElementById('clear-route');
+// Main Search Bar (for general location search)
+const mainSearchInput = document.getElementById('search');
+const mainSuggestionsBox = document.getElementById('suggestions');
 
-// Function to handle Nominatim search
+// Function to handle Nominatim search (for main search bar)
 async function nominatimSearch(query) {
   if (!query) return [];
-  // Return empty array if query is empty
   const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
   return res.json();
 }
@@ -102,7 +97,39 @@ function renderSuggestions(container, results) {
   });
 }
 
-// Event listener for the origin search input
+// Event listener for the main search bar input
+mainSearchInput.addEventListener('input', async (e) => {
+  const query = e.target.value.trim();
+  if (!query) {
+    mainSuggestionsBox.innerHTML = ''; // Clear suggestions if empty
+    return;
+  }
+  const results = await nominatimSearch(query);
+  renderSuggestions(mainSuggestionsBox, results);
+});
+
+// Handle click on suggestions (for the main search bar)
+mainSuggestionsBox.addEventListener('click', (e) => {
+  const idx = e.target.dataset.idx;
+  if (idx == null) return;
+
+  const selectedPlace = e.target.textContent;
+  const selectedLatLon = [parseFloat(e.target.dataset.lon), parseFloat(e.target.dataset.lat)];
+
+  mainSearchInput.value = selectedPlace;
+  map.flyTo({ center: selectedLatLon, zoom: 14 });
+  mainSuggestionsBox.innerHTML = ''; // Clear suggestions after selecting
+});
+
+// Directions Panel Elements
+const originInput = document.getElementById('origin');
+const destinationInput = document.getElementById('destination');
+const originSuggestionsBox = document.getElementById('origin-suggestions');
+const destinationSuggestionsBox = document.getElementById('destination-suggestions');
+const getRouteBtn = document.getElementById('get-route');
+const clearRouteBtn = document.getElementById('clear-route');
+
+// Event listener for the origin search input (directions panel)
 originInput.addEventListener('input', async (e) => {
   const query = e.target.value.trim();
   if (!query) {
@@ -113,7 +140,7 @@ originInput.addEventListener('input', async (e) => {
   renderSuggestions(originSuggestionsBox, results);
 });
 
-// Event listener for the destination search input
+// Event listener for the destination search input (directions panel)
 destinationInput.addEventListener('input', async (e) => {
   const query = e.target.value.trim();
   if (!query) {
@@ -124,7 +151,19 @@ destinationInput.addEventListener('input', async (e) => {
   renderSuggestions(destinationSuggestionsBox, results);
 });
 
-// Handle click on suggestions
+// Handle click on origin suggestions (directions panel)
+originSuggestionsBox.addEventListener('click', (e) => {
+  const selectedLatLon = handleSuggestionClick(e, originInput, originSuggestionsBox);
+  if (selectedLatLon) originLatLon = selectedLatLon;
+});
+
+// Handle click on destination suggestions (directions panel)
+destinationSuggestionsBox.addEventListener('click', (e) => {
+  const selectedLatLon = handleSuggestionClick(e, destinationInput, destinationSuggestionsBox);
+  if (selectedLatLon) destinationLatLon = selectedLatLon;
+});
+
+// Function to handle click on suggestion
 function handleSuggestionClick(e, inputField, suggestionsBox) {
   const idx = e.target.dataset.idx;
   if (idx == null) return;
@@ -139,29 +178,16 @@ function handleSuggestionClick(e, inputField, suggestionsBox) {
   return selectedLatLon;
 }
 
-// Handle clicks on origin suggestions
-originSuggestionsBox.addEventListener('click', (e) => {
-  const selectedLatLon = handleSuggestionClick(e, originInput, originSuggestionsBox);
-  if (selectedLatLon) originLatLon = selectedLatLon;
-});
-
-// Handle clicks on destination suggestions
-destinationSuggestionsBox.addEventListener('click', (e) => {
-  const selectedLatLon = handleSuggestionClick(e, destinationInput, destinationSuggestionsBox);
-  if (selectedLatLon) destinationLatLon = selectedLatLon;
-});
-
-// Route API Call (Using OpenRouteService as an example)
+// Route API Call (Using GraphHopper as an example)
 async function getRoute(originLatLon, destinationLatLon) {
   const [originLng, originLat] = originLatLon;
   const [destinationLng, destinationLat] = destinationLatLon;
 
-  const apiKey = 'YOUR_OPENROUTESERVICE_API_KEY'; // Replace with your API key
-  const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${originLng},${originLat}&end=${destinationLng},${destinationLat}`;
+  const url = `https://graphhopper.com/api/1/route?point=${originLat},${originLng}&point=${destinationLat},${destinationLng}&type=json&locale=en&vehicle=car&weighting=fastest&calc_points=true`;
 
   const res = await fetch(url);
   const data = await res.json();
-  return data.routes[0].geometry.coordinates;
+  return data.paths[0].points.coordinates;
 }
 
 // Handle "Get Route" button click
