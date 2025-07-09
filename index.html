@@ -88,14 +88,18 @@
     border-radius: 0 0 24px 0;
     box-shadow: 2px 0 12px rgba(0,0,0,0.15);
     padding: 20px;
-    display: none;
+    display: flex;
     flex-direction: column;
     gap: 8px;
     z-index: 10002;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
   }
 
   #directions-form.open {
-    display: flex;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   #directions-form input {
@@ -160,76 +164,59 @@
     color: #4a3d87;
   }
 
-  /* Map Controls Styling */
-  .map-controls {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    transition: right 0.3s ease;
+  #route-info {
+    margin-top: 8px;
+    font-weight: 500;
   }
 
-  .map-controls.shifted {
-    right: 360px; /* shift right when directions panel open */
-  }
-
-  .map-controls button {
-    background: #fff;
-    padding: 16px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s ease;
-  }
-
-  .map-controls button:hover,
-  .map-controls button.active {
-    background-color: #d6cfff;
-  }
-
-  /* Style Toggle Button at bottom left */
+  /* Style toggle button bottom left */
   #style-toggle {
     position: absolute;
     bottom: 20px;
     left: 20px;
-    display: flex !important;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px !important;
-    border-radius: 12px !important;
-    border: none !important;
-    cursor: pointer !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    font-size: 16px;
+    z-index: 10001;
+    width: 80px;
+    height: 48px;
+    border-radius: 12px;
+    border: none;
     background: #fff;
-    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 10px;
+    font-weight: 500;
   }
 
   #style-toggle img {
-    height: 28px;
-    width: 28px;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
   }
 
-  #style-label {
-    user-select: none;
+  /* Directions toggle button bottom right */
+  #directions-toggle {
+    position: absolute;
+    bottom: 90px;
+    right: 20px;
+    z-index: 10001;
+    background: #fff;
+    border-radius: 50%;
+    border: none;
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* Built-in MapLibre controls bottom right */
-  .maplibregl-ctrl-bottom-right {
-    bottom: 20px !important;
-    right: 20px !important;
-    margin: 0 !important;
-    z-index: 10000;
+  #directions-toggle[aria-pressed="true"] {
+    background-color: #d6cfff;
   }
-
 </style>
 </head>
 <body>
@@ -248,17 +235,15 @@
     <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
     <button id="get-route">Get Directions</button>
     <button id="clear-route">Clear</button>
-    <div id="route-info" role="region" aria-live="polite" aria-atomic="true" style="margin-top: 8px; font-weight: 500;"></div>
+    <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
   </div>
 
-  <div class="map-controls" aria-label="Map controls">
-    <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel" title="Directions">🗺️</button>
-  </div>
-
-  <button id="style-toggle" aria-pressed="false" aria-label="Toggle map style" title="Toggle Map Style">
-    <img id="style-image" src="/default_style.png" alt="Map style preview" />
+  <button id="style-toggle" aria-label="Toggle map style" aria-pressed="false">
+    <img src="default_style.png" alt="Default style" />
     <span id="style-label">Regular</span>
   </button>
+
+  <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel" title="Directions">🗺️</button>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
