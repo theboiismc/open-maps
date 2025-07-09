@@ -30,6 +30,7 @@
     gap: 8px;
     padding: 0;
     z-index: 10001;
+    transition: opacity 0.3s ease, transform 0.3s ease;
   }
 
   .search-bar input {
@@ -78,7 +79,7 @@
 
   /* Directions Panel */
   #directions-form {
-    display: none; /* hidden by default */
+    display: none;
     position: absolute;
     bottom: 20px;
     left: 20px;
@@ -90,6 +91,7 @@
     flex-direction: column;
     gap: 8px;
     z-index: 10002;
+    transition: opacity 0.3s ease, transform 0.3s ease;
   }
 
   #directions-form input {
