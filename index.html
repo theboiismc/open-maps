@@ -21,7 +21,7 @@
   .search-bar {
     position: absolute;
     top: 20px; left: 20px;
-    width: 300px;
+    width: 320px;
     background: #fff;
     border-radius: 24px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -36,7 +36,7 @@
   .search-wrapper input {
     font-size: 16px;
     padding: 10px 16px;
-    padding-right: 40px; /* space for icon */
+    padding-right: 44px;
     width: 100%;
     border: none;
     border-radius: 20px;
@@ -46,26 +46,14 @@
 
   #search-icon {
     position: absolute;
-    right: 12px;
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
-    background: transparent;
+    background: none;
     border: none;
-    padding: 0;
-    margin: 0;
+    font-size: 18px;
     cursor: pointer;
-    outline: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  #search-icon img {
-    width: 20px;
-    height: 20px;
-    filter: grayscale(60%) contrast(85%);
-    user-select: none;
-    pointer-events: none;
+    color: #333;
   }
 
   #suggestions {
@@ -84,76 +72,162 @@
     outline: none;
   }
 
-  .map-controls {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    z-index: 10000;
-    display: flex;
-    gap: 12px;
+  /* Directions panel */
+  #directions-form {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 320px;
+    background: #fff;
+    border-radius: 0 0 24px 0;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+    padding: 20px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10002;
   }
 
-  #directions-toggle {
-    background: #6750a4;
+  #directions-form.open {
+    display: flex;
+  }
+
+  #directions-form input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f5f5f5;
+    margin-bottom: 8px;
+  }
+
+  #directions-form button {
+    background-color: #6750a4;
     color: white;
-    border: none;
-    padding: 12px 16px;
+    padding: 12px 20px;
     border-radius: 20px;
+    border: none;
     cursor: pointer;
     font-weight: 500;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    transition: background-color 0.3s ease;
+    margin-top: 8px;
   }
 
-  #directions-toggle:hover {
+  #directions-form button:hover {
     background-color: #4a3d87;
   }
 
-  #style-toggle {
-    width: 48px;
-    height: 48px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    background: #fff;
+  #clear-route {
+    background-color: #b3261e;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 20px;
+    border: none;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    padding: 4px;
+    font-weight: 500;
+    margin-top: 8px;
+  }
+
+  #clear-route:hover {
+    background-color: #9b1d14;
+  }
+
+  #close-directions {
+    align-self: flex-end;
+    font-size: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 12px;
+    color: #6750a4;
+  }
+
+  #close-directions:hover {
+    color: #4a3d87;
+  }
+
+  #route-info {
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  /* Style toggle button - bottom left */
+  #style-toggle {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 72px;
+    height: 72px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    font-weight: 600;
+    color: #333;
+    z-index: 10000;
+    user-select: none;
   }
 
   #style-toggle img {
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 4px;
+    object-fit: contain;
+  }
+
+  /* Directions toggle button - bottom right */
+  #directions-toggle {
+    position: fixed;
+    bottom: 70px; /* above map controls */
+    right: 20px;
+    background-color: #6750a4;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    z-index: 10001;
     user-select: none;
-    pointer-events: none;
   }
 </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <div class="search-bar" role="search" aria-label="Main Search">
+  <div class="search-bar" role="search" aria-label="Main search">
     <div class="search-wrapper">
       <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
-      <button id="search-icon" aria-label="Search" type="button">
-        <img src="search_icon.png" alt="Search" />
-      </button>
+      <button id="search-icon" aria-label="Search"><span>🔍</span></button>
     </div>
     <div id="suggestions" role="listbox" tabindex="-1"></div>
   </div>
 
-  <div class="map-controls" aria-label="Map Controls">
-    <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel">Directions</button>
-    <button id="style-toggle" aria-pressed="false" aria-label="Toggle map style">
-      <img id="style-toggle-img" src="default_style.png" alt="Map style thumbnail" />
-    </button>
+  <div id="directions-form" aria-label="Directions form" role="region" aria-live="polite" aria-atomic="true">
+    <button id="close-directions" aria-label="Close directions panel">×</button>
+    <input id="origin" type="text" placeholder="Start" aria-label="Origin" autocomplete="off" spellcheck="false" />
+    <div id="origin-suggestions" role="listbox" tabindex="-1"></div>
+    <input id="destination" type="text" placeholder="Destination" aria-label="Destination" autocomplete="off" spellcheck="false" />
+    <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
+    <button id="get-route">Get Directions</button>
+    <button id="clear-route">Clear</button>
+    <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
   </div>
+
+  <div id="style-toggle" aria-label="Toggle map style" role="button" tabindex="0" aria-pressed="false">
+    <img id="style-icon" src="default_style.png" alt="Map style icon" />
+    <span id="style-label">Regular</span>
+  </div>
+
+  <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel">Directions</button>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
-
