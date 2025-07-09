@@ -30,7 +30,6 @@ map.on('load', () => {
     ],
     tileSize: 256
   });
-
   map.addLayer({
     id: 'sat-layer',
     type: 'raster',
@@ -56,20 +55,21 @@ const sidebarCloseBtn = document.getElementById('sidebar-close');
 
 // Helper for Nominatim search
 async function nominatimSearch(query) {
-  if (!query) return [];  // Return empty array if query is empty
+  if (!query) return [];
+  // Return empty array if query is empty
   const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
   return res.json();
 }
 
 // Clear the suggestion box
 function clearSuggestions(container) {
-  container.innerHTML = '';  // Clear all suggestions
+  container.innerHTML = ''; // Clear all suggestions
 }
 
 // Render suggestions in the box
 function renderSuggestions(container, results) {
   clearSuggestions(container);
-  if (results.length === 0) return;  // Don't show anything if no results
+  if (results.length === 0) return; // Don't show anything if no results
   
   results.forEach((place, i) => {
     const div = document.createElement('div');
@@ -90,26 +90,24 @@ searchInput.addEventListener('input', async e => {
     clearSuggestions(suggestionsBox);  // Clear suggestions if input is empty
     return;
   }
-
   const results = await nominatimSearch(q);  // Get suggestions from Nominatim API
   renderSuggestions(suggestionsBox, results);  // Render the suggestions
 });
 
-// Handle click event on suggestion
+// Handle click event on suggestions
 suggestionsBox.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
   if (idx == null) return;  // If no suggestion clicked, do nothing
   
   const selectedPlace = e.target.textContent;
   const selectedLatLon = [parseFloat(e.target.dataset.lon), parseFloat(e.target.dataset.lat)];
-
   searchInput.value = selectedPlace;  // Set the selected place to the search input
   map.flyTo({ center: selectedLatLon, zoom: 14 });  // Fly to the selected place on the map
   
   // Optionally, show sidebar with place info (you can modify as needed)
   sidebar.classList.add('open');
   sidebar.hidden = false;
-  // Set place info or handle as per your app structure
+  document.getElementById('place-info').textContent = selectedPlace;
 });
 
 // Close suggestions when clicking outside of them
@@ -117,4 +115,32 @@ document.addEventListener('click', e => {
   if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
     clearSuggestions(suggestionsBox);
   }
+});
+
+// Add location button functionality
+const locationBtn = document.getElementById('location-btn');
+locationBtn.addEventListener('click', () => {
+  map.getUserLocation();
+});
+
+// Add dark mode toggle functionality
+const darkToggle = document.getElementById('dark-toggle');
+darkToggle.addEventListener('click', () => {
+  document.body.classList.toggle('dark-mode');
+});
+
+// Directions toggle
+const directionsToggle = document.getElementById('directions-toggle');
+const directionsForm = document.getElementById('directions-form');
+directionsToggle.addEventListener('click', () => {
+  directionsForm.classList.toggle('open');
+  directionsToggle.textContent = directionsForm.classList.contains('open') ? 'Hide Directions' : 'Show Directions';
+});
+
+// Clear Route Button
+const clearRouteBtn = document.getElementById('clear-route');
+clearRouteBtn.addEventListener('click', () => {
+  map.removeLayer('route');
+  map.removeSource('route');
+  document.getElementById('route-summary').textContent = '';
 });
