@@ -119,6 +119,15 @@ mainSuggestionsBox.addEventListener('click', (e) => {
   mainSearchInput.value = selectedPlace;
   map.flyTo({ center: selectedLatLon, zoom: 14 });
   mainSuggestionsBox.innerHTML = ''; // Clear suggestions after selecting
+
+  // Open the sidebar and populate it with the selected place info
+  const sidebar = document.getElementById('sidebar');
+  const placeInfo = document.getElementById('place-info');
+  placeInfo.textContent = selectedPlace; // Update place info with the selected place
+
+  // Show the sidebar
+  sidebar.classList.add('open');
+  sidebar.hidden = false;
 });
 
 // Directions Panel Elements
