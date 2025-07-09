@@ -13,37 +13,33 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Add MapLibre geolocate control bottom right
-const geolocateControl = new maplibregl.GeolocateControl({
-  positionOptions: {
-    enableHighAccuracy: true,
-  },
+// Add MapLibre default controls (zoom + rotation + geolocate) bottom right
+map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+map.addControl(new maplibregl.GeolocateControl({
+  positionOptions: { enableHighAccuracy: true },
   trackUserLocation: true,
   showUserHeading: true,
-});
-map.addControl(geolocateControl, 'bottom-right');
+}), 'bottom-right');
 
-// Controls elements
+// Elements
+const styleToggleBtn = document.getElementById('style-toggle');
+const styleLabel = document.getElementById('style-label');
+const styleToggleImg = styleToggleBtn.querySelector('img');
+
 const directionsToggleBtn = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
 const closeDirectionsBtn = document.getElementById('close-directions');
 const routeInfoDiv = document.getElementById('route-info');
 
-// Style toggle button elements
-const styleToggleBtn = document.getElementById('style-toggle');
-const styleImage = document.getElementById('style-image');
-const styleLabel = document.getElementById('style-label');
-
 // Satellite layer flag
 let satelliteLayerAdded = false;
-let currentStyle = 'regular';
-
 const addSatelliteLayer = () => {
   if (!satelliteLayerAdded) {
     map.addSource('satellite', {
       type: 'raster',
       tiles: [
-        // Use your self-hosted satellite tiles or public ones here
+        // Your local satellite tiles or fallback here if you want
+        // For now blank so we rely on ArcGIS server
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
       ],
       tileSize: 256
@@ -62,50 +58,52 @@ const addSatelliteLayer = () => {
 const switchToSatellite = () => {
   map.setLayoutProperty('sat-layer', 'visibility', 'visible');
   styleToggleBtn.setAttribute('aria-pressed', 'true');
-  styleImage.src = '/satellite_style.png';
   styleLabel.textContent = 'Satellite';
-  currentStyle = 'satellite';
+  styleToggleImg.src = 'satellite_style.png';
+  styleToggleImg.alt = 'Satellite style';
 };
 
 const switchToRegular = () => {
   map.setLayoutProperty('sat-layer', 'visibility', 'none');
   styleToggleBtn.setAttribute('aria-pressed', 'false');
-  styleImage.src = '/default_style.png';
   styleLabel.textContent = 'Regular';
-  currentStyle = 'regular';
+  styleToggleImg.src = 'default_style.png';
+  styleToggleImg.alt = 'Regular style';
 };
 
-// On map load setup
+// Setup initial map style on load
 map.on('load', () => {
   addSatelliteLayer();
   switchToRegular();
 });
 
-// Style toggle button click
+// Toggle map style on styleToggleBtn click
 styleToggleBtn.addEventListener('click', () => {
-  if (currentStyle === 'regular') {
-    switchToSatellite();
-  } else {
+  const isSatellite = map.getLayoutProperty('sat-layer', 'visibility') === 'visible';
+  if (isSatellite) {
     switchToRegular();
+  } else {
+    switchToSatellite();
   }
 });
 
-// Directions panel toggle helpers
+// Directions panel open/close helpers
 function openDirectionsPanel() {
   directionsForm.classList.add('open');
   document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
-  document.querySelector('.map-controls').classList.add('shifted');
+  // Move directions toggle button left to avoid overlap with controls
+  directionsToggleBtn.style.right = '310px'; // 320 width + 10px margin
 }
 
 function closeDirectionsPanel() {
   directionsForm.classList.remove('open');
   document.querySelector('.search-bar').style.display = 'flex';
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
-  document.querySelector('.map-controls').classList.remove('shifted');
+  directionsToggleBtn.style.right = '20px';
 }
 
-// Directions toggle button
+// Directions toggle button event
 directionsToggleBtn.addEventListener('click', () => {
   if (directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
@@ -114,7 +112,7 @@ directionsToggleBtn.addEventListener('click', () => {
   }
 });
 
-// Close button inside directions panel
+// Close directions panel on close button click
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
 // Close on ESC key
@@ -124,35 +122,20 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Close on click outside directions panel (ignore clicks inside panel or toggle)
+// Prevent directions panel from closing on suggestion clicks or form clicks
+directionsForm.addEventListener('click', e => {
+  e.stopPropagation();
+});
+
+// Prevent outside clicks from closing directions panel
 document.addEventListener('click', e => {
   if (
     directionsForm.classList.contains('open') &&
     !directionsForm.contains(e.target) &&
-    !directionsToggleBtn.contains(e.target)
+    e.target !== directionsToggleBtn
   ) {
-    // Do NOT close panel here per your request to only close on X or ESC
+    closeDirectionsPanel();
   }
-});
-
-// Swipe to dismiss directions panel on mobile (optional)
-let startX = 0, currentX = 0, isSwiping = false;
-directionsForm.addEventListener('touchstart', e => {
-  if (e.touches.length !== 1) return;
-  startX = e.touches[0].clientX;
-  isSwiping = true;
-});
-directionsForm.addEventListener('touchmove', e => {
-  if (!isSwiping) return;
-  currentX = e.touches[0].clientX;
-  const deltaX = currentX - startX;
-  if (deltaX < 0) directionsForm.style.transform = `translateX(${deltaX}px)`;
-});
-directionsForm.addEventListener('touchend', () => {
-  const deltaX = currentX - startX;
-  if (deltaX < -100) closeDirectionsPanel();
-  directionsForm.style.transform = '';
-  isSwiping = false;
 });
 
 // Photon search setup
@@ -190,8 +173,8 @@ function renderSuggestions(container, results) {
   results.forEach(feature => {
     const div = document.createElement('div');
     div.className = 'suggestion';
-    div.textContent = feature.properties.name +
-      (feature.properties.state ? ', ' + feature.properties.state : '') +
+    div.textContent = feature.properties.name + 
+      (feature.properties.state ? ', ' + feature.properties.state : '') + 
       (feature.properties.country ? ', ' + feature.properties.country : '');
     div.tabIndex = 0;
     div.dataset.lon = feature.geometry.coordinates[0];
@@ -266,7 +249,11 @@ function drawRoute(routeGeoJSON) {
       type: 'line',
       source: 'route',
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': '#6750a4', 'line-width': 6 }
+      paint: {
+        'line-color': '#6750a4',
+        'line-width': 6,
+        'line-opacity': 0.8
+      }
     });
   }
 }
@@ -293,43 +280,92 @@ async function fetchRoute(start, end) {
 
 getRouteBtn.addEventListener('click', async () => {
   const originInput = document.getElementById('origin');
-  const destinationInput = document.getElementById('destination');
+  const destInput = document.getElementById('destination');
+  const start = [parseFloat(originInput.dataset.lon), parseFloat(originInput.dataset.lat)];
+  const end = [parseFloat(destInput.dataset.lon), parseFloat(destInput.dataset.lat)];
 
-  const startLon = parseFloat(originInput.dataset.lon);
-  const startLat = parseFloat(originInput.dataset.lat);
-  const endLon = parseFloat(destinationInput.dataset.lon);
-  const endLat = parseFloat(destinationInput.dataset.lat);
-
-  if (
-    isNaN(startLon) || isNaN(startLat) ||
-    isNaN(endLon) || isNaN(endLat)
-  ) {
-    routeInfoDiv.textContent = 'Please select valid start and destination from suggestions.';
+  if (!start.every(coord => !isNaN(coord)) || !end.every(coord => !isNaN(coord))) {
+    alert("Please select valid origin and destination from suggestions.");
     return;
   }
 
-  routeInfoDiv.textContent = 'Routing...';
-  const route = await fetchRoute([startLon, startLat], [endLon, endLat]);
+  clearRoute();
+  const route = await fetchRoute(start, end);
   if (!route) {
-    routeInfoDiv.textContent = 'Route not found.';
+    alert("Route not found.");
     return;
   }
-  drawRoute(route.geometry);
-  routeInfoDiv.textContent = `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
-  map.fitBounds([
-    [Math.min(startLon, endLon), Math.min(startLat, endLat)],
-    [Math.max(startLon, endLon), Math.max(startLat, endLat)]
-  ], { padding: 40 });
+
+  const routeGeoJSON = {
+    type: "Feature",
+    geometry: route.geometry
+  };
+
+  drawRoute(routeGeoJSON);
+
+  // Zoom map to fit route bounds
+  const coords = route.geometry.coordinates;
+  const bounds = coords.reduce((b, coord) => b.extend(coord), new maplibregl.LngLatBounds(coords[0], coords[0]));
+  map.fitBounds(bounds, { padding: 80 });
+
+  // Show summary info
+  const distKm = (route.distance / 1000).toFixed(1);
+  const durationMin = Math.round(route.duration / 60);
+  routeInfoDiv.textContent = `Distance: ${distKm} km | Duration: ${durationMin} min`;
 });
 
+// Clear route button handler
 clearRouteBtn.addEventListener('click', () => {
   clearRoute();
   document.getElementById('origin').value = '';
-  document.getElementById('destination').value = '';
   document.getElementById('origin').removeAttribute('data-lon');
   document.getElementById('origin').removeAttribute('data-lat');
+  document.getElementById('destination').value = '';
   document.getElementById('destination').removeAttribute('data-lon');
   document.getElementById('destination').removeAttribute('data-lat');
   routeInfoDiv.textContent = '';
 });
 
+// Prevent closing directions panel on clicks inside it
+directionsForm.addEventListener('click', e => e.stopPropagation());
+
+// Prevent closing directions panel on suggestion click inside origin/dest
+document.getElementById('origin-suggestions').addEventListener('click', e => e.stopPropagation());
+document.getElementById('destination-suggestions').addEventListener('click', e => e.stopPropagation());
+
+// Prevent clicks inside main search suggestions from closing it
+document.getElementById('suggestions').addEventListener('click', e => e.stopPropagation());
+
+// Clicking outside closes main search suggestions or directions panel if open
+document.addEventListener('click', e => {
+  if (!directionsForm.contains(e.target) && e.target !== directionsToggleBtn) {
+    if (directionsForm.classList.contains('open')) closeDirectionsPanel();
+  }
+  // Clear suggestions if click outside inputs
+  if (!document.getElementById('search').contains(e.target) &&
+      !document.getElementById('suggestions').contains(e.target)) {
+    document.getElementById('suggestions').innerHTML = '';
+  }
+  if (!document.getElementById('origin').contains(e.target) &&
+      !document.getElementById('origin-suggestions').contains(e.target)) {
+    document.getElementById('origin-suggestions').innerHTML = '';
+  }
+  if (!document.getElementById('destination').contains(e.target) &&
+      !document.getElementById('destination-suggestions').contains(e.target)) {
+    document.getElementById('destination-suggestions').innerHTML = '';
+  }
+});
+
+// Main search input: fly to location on select
+document.getElementById('suggestions').addEventListener('click', e => {
+  if (!e.target.classList.contains('suggestion')) return;
+  const lon = parseFloat(e.target.dataset.lon);
+  const lat = parseFloat(e.target.dataset.lat);
+  const text = e.target.textContent;
+  const input = document.getElementById('search');
+  input.value = text;
+  input.dataset.lon = lon;
+  input.dataset.lat = lat;
+  document.getElementById('suggestions').innerHTML = '';
+  map.flyTo({ center: [lon, lat], zoom: 14 });
+});
