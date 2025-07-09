@@ -21,7 +21,6 @@ const directionsToggleBtn = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
 const closeDirectionsBtn = document.getElementById('close-directions');
 const routeInfoDiv = document.getElementById('route-info');
-const searchBar = document.querySelector('.search-bar');
 
 // Satellite layer flag
 let satelliteLayerAdded = false;
@@ -77,22 +76,22 @@ map.on('load', () => {
 satelliteToggle.onclick = switchToSatellite;
 regularToggle.onclick = switchToRegular;
 
-// Directions panel toggle (no sliding, just display flex/none)
+// Directions panel toggle helpers
 function openDirectionsPanel() {
-  directionsForm.style.display = 'flex';
-  searchBar.style.display = 'none';
+  directionsForm.classList.add('open');
+  document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
-  document.getElementById('origin').focus();
 }
 
 function closeDirectionsPanel() {
-  directionsForm.style.display = 'none';
-  searchBar.style.display = 'flex';
+  directionsForm.classList.remove('open');
+  document.querySelector('.search-bar').style.display = 'flex';
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
 }
 
+// Toggle directions panel button
 directionsToggleBtn.addEventListener('click', () => {
-  if (directionsForm.style.display === 'flex') {
+  if (directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   } else {
     openDirectionsPanel();
@@ -104,23 +103,25 @@ closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
 // Close on ESC key
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && directionsForm.style.display === 'flex') {
+  if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   }
 });
 
-// Close on click outside directions panel
+// Close on click outside directions panel — fixed to ignore clicks inside suggestion containers
 document.addEventListener('click', e => {
   if (
-    directionsForm.style.display === 'flex' &&
+    directionsForm.classList.contains('open') &&
     !directionsForm.contains(e.target) &&
-    !directionsToggleBtn.contains(e.target)
+    !directionsToggleBtn.contains(e.target) &&
+    !document.getElementById('origin-suggestions').contains(e.target) &&
+    !document.getElementById('destination-suggestions').contains(e.target)
   ) {
     closeDirectionsPanel();
   }
 });
 
-// Swipe to dismiss directions panel on mobile (optional, can remove if buggy)
+// Swipe to dismiss directions panel on mobile
 let startX = 0, currentX = 0, isSwiping = false;
 directionsForm.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) return;
@@ -175,8 +176,8 @@ function renderSuggestions(container, results) {
   results.forEach(feature => {
     const div = document.createElement('div');
     div.className = 'suggestion';
-    div.textContent = feature.properties.name +
-      (feature.properties.state ? ', ' + feature.properties.state : '') +
+    div.textContent = feature.properties.name + 
+      (feature.properties.state ? ', ' + feature.properties.state : '') + 
       (feature.properties.country ? ', ' + feature.properties.country : '');
     div.tabIndex = 0;
     div.dataset.lon = feature.geometry.coordinates[0];
@@ -185,7 +186,7 @@ function renderSuggestions(container, results) {
   });
 }
 
-// Setup search inputs autocomplete
+// Setup search inputs
 function setupSearch(inputEl, suggestionsEl) {
   const debouncedSearch = debounce(async (query) => {
     if (!query) {
@@ -283,7 +284,9 @@ getRouteBtn.addEventListener('click', async () => {
   clearRoute();
 
   const coords = `${originLon},${originLat};${destinationLon},${destinationLat}`;
-  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=true`;
+
+  routeInfoDiv.textContent = 'Routing...';
 
   try {
     const res = await fetch(url);
@@ -324,5 +327,24 @@ clearRouteBtn.addEventListener('click', () => {
   routeInfoDiv.textContent = '';
 });
 
-// Bonus: Center on user location button can be added later if you want
+// BONUS: Add location button on map controls (optional)
+const locationBtn = document.createElement('button');
+locationBtn.id = 'location-btn';
+locationBtn.title = 'Find My Location';
+locationBtn.innerHTML = '📍';
+locationBtn.style.fontSize = '20px';
 
+locationBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    alert('Geolocation is not supported by your browser.');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const coords = [pos.coords.longitude, pos.coords.latitude];
+    map.flyTo({ center: coords, zoom: 15 });
+  }, err => {
+    alert('Unable to retrieve your location.');
+  });
+});
+
+document.querySelector('.map-controls').appendChild(locationBtn);
