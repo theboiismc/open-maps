@@ -13,15 +13,17 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Layers toggle
-let satelliteLayerAdded = false;
+// Controls
 const satelliteToggle = document.getElementById('satellite-toggle');
 const regularToggle = document.getElementById('regular-toggle');
 const darkToggle = document.getElementById('dark-toggle');
 const directionsToggleBtn = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
+const closeDirectionsBtn = document.getElementById('close-directions');
 const routeInfoDiv = document.getElementById('route-info');
 
+// Add satellite layer
+let satelliteLayerAdded = false;
 const addSatelliteLayer = () => {
   if (!satelliteLayerAdded) {
     map.addSource('satellite', {
@@ -58,48 +60,81 @@ const switchToRegular = () => {
   satelliteToggle.setAttribute('aria-pressed', 'false');
 };
 
-// Dark mode toggle
+// Dark mode
 darkToggle.addEventListener('click', () => {
   document.body.classList.toggle('dark-mode');
   const isDark = document.body.classList.contains('dark-mode');
   darkToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
 });
 
-// Add layers on map load
+// On map load
 map.on('load', () => {
   addSatelliteLayer();
   switchToRegular();
 });
 
-// Layers buttons
 satelliteToggle.onclick = switchToSatellite;
 regularToggle.onclick = switchToRegular;
 
-// Directions panel toggle (Replaces the search bar with the directions form)
-directionsToggleBtn.addEventListener('click', () => {
-  const isVisible = directionsForm.style.display === 'flex';
-  const mainSearchInput = document.getElementById('search');
+// Directions panel slide toggle
+function openDirectionsPanel() {
+  directionsForm.classList.add('open');
+  document.querySelector('.search-bar').style.display = 'none';
+  directionsToggleBtn.setAttribute('aria-pressed', 'true');
+}
 
-  // Toggle the directions form and search bar visibility
-  if (isVisible) {
-    // Close directions panel and show search bar
-    directionsForm.style.display = 'none';
-    mainSearchInput.style.display = 'block';  // Show search bar
-    directionsToggleBtn.setAttribute('aria-pressed', 'false');
-  } else {
-    // Show directions panel, hide search bar (positioned in same place)
-    mainSearchInput.style.display = 'none';  // Hide search bar
-    directionsForm.style.display = 'flex';
-    directionsToggleBtn.setAttribute('aria-pressed', 'true');
+function closeDirectionsPanel() {
+  directionsForm.classList.remove('open');
+  document.querySelector('.search-bar').style.display = 'flex';
+  directionsToggleBtn.setAttribute('aria-pressed', 'false');
+}
+
+directionsToggleBtn.addEventListener('click', () => {
+  const isOpen = directionsForm.classList.contains('open');
+  isOpen ? closeDirectionsPanel() : openDirectionsPanel();
+});
+closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDirectionsPanel();
+});
+
+document.addEventListener('click', e => {
+  if (
+    directionsForm.classList.contains('open') &&
+    !directionsForm.contains(e.target) &&
+    !directionsToggleBtn.contains(e.target)
+  ) {
+    closeDirectionsPanel();
   }
 });
 
-// Helper for Photon search with loading indicator and debounce
+// Swipe to dismiss (mobile)
+let startX = 0, currentX = 0, isSwiping = false;
+directionsForm.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) return;
+  startX = e.touches[0].clientX;
+  isSwiping = true;
+});
+directionsForm.addEventListener('touchmove', e => {
+  if (!isSwiping) return;
+  currentX = e.touches[0].clientX;
+  const deltaX = currentX - startX;
+  if (deltaX < 0) directionsForm.style.transform = `translateX(${deltaX}px)`;
+});
+directionsForm.addEventListener('touchend', () => {
+  const deltaX = currentX - startX;
+  if (deltaX < -100) closeDirectionsPanel();
+  directionsForm.style.transform = '';
+  isSwiping = false;
+});
+
+// Photon search
 const photonUrl = "https://photon.komoot.io/api/?q=";
 const debounce = (fn, delay) => {
   let timeoutId;
   return (...args) => {
-    if (timeoutId) clearTimeout(timeoutId);
+    clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn(...args), delay);
   };
 };
@@ -117,7 +152,6 @@ async function photonSearch(query) {
   }
 }
 
-// Show loading or clear suggestions
 function showLoading(container) {
   container.innerHTML = '<div class="loading">Loading…</div>';
 }
@@ -130,26 +164,17 @@ function renderSuggestions(container, results) {
   results.forEach((feature, i) => {
     const div = document.createElement('div');
     div.className = 'suggestion';
-    div.textContent = feature.properties.name + (feature.properties.state ? ', ' + feature.properties.state : '') + (feature.properties.country ? ', ' + feature.properties.country : '');
+    div.textContent = feature.properties.name + 
+      (feature.properties.state ? ', ' + feature.properties.state : '') + 
+      (feature.properties.country ? ', ' + feature.properties.country : '');
     div.tabIndex = 0;
     div.dataset.lon = feature.geometry.coordinates[0];
     div.dataset.lat = feature.geometry.coordinates[1];
-    div.dataset.idx = i;
     container.appendChild(div);
   });
 }
 
 // Setup search inputs
-const mainSearchInput = document.getElementById('search');
-const mainSuggestions = document.getElementById('suggestions');
-
-const originInput = document.getElementById('origin');
-const originSuggestions = document.getElementById('origin-suggestions');
-
-const destinationInput = document.getElementById('destination');
-const destinationSuggestions = document.getElementById('destination-suggestions');
-
-// Search input handler with debounce and loading indicator
 function setupSearch(inputEl, suggestionsEl) {
   const debouncedSearch = debounce(async (query) => {
     if (!query) {
@@ -162,11 +187,9 @@ function setupSearch(inputEl, suggestionsEl) {
   }, 250);
 
   inputEl.addEventListener('input', e => {
-    const q = e.target.value.trim();
-    debouncedSearch(q);
+    debouncedSearch(e.target.value.trim());
   });
 
-  // Click handler for selecting a suggestion
   suggestionsEl.addEventListener('click', e => {
     if (!e.target.classList.contains('suggestion')) return;
     const lon = parseFloat(e.target.dataset.lon);
@@ -176,14 +199,11 @@ function setupSearch(inputEl, suggestionsEl) {
     inputEl.dataset.lon = lon;
     inputEl.dataset.lat = lat;
     clearSuggestions(suggestionsEl);
-
-    // If main search input, fly to location immediately
-    if (inputEl === mainSearchInput) {
+    if (inputEl.id === 'search') {
       map.flyTo({ center: [lon, lat], zoom: 14 });
     }
   });
 
-  // Keyboard support (enter key)
   suggestionsEl.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.classList.contains('suggestion')) {
       e.preventDefault();
@@ -192,7 +212,6 @@ function setupSearch(inputEl, suggestionsEl) {
     }
   });
 
-  // Close suggestions on outside click
   document.addEventListener('click', e => {
     if (!inputEl.contains(e.target) && !suggestionsEl.contains(e.target)) {
       clearSuggestions(suggestionsEl);
@@ -200,20 +219,17 @@ function setupSearch(inputEl, suggestionsEl) {
   });
 }
 
-setupSearch(mainSearchInput, mainSuggestions);
-setupSearch(originInput, originSuggestions);
-setupSearch(destinationInput, destinationSuggestions);
+setupSearch(document.getElementById('search'), document.getElementById('suggestions'));
+setupSearch(document.getElementById('origin'), document.getElementById('origin-suggestions'));
+setupSearch(document.getElementById('destination'), document.getElementById('destination-suggestions'));
 
-// Routing
+// Routing with OSRM
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
-
 let currentRouteId = null;
 
-// OpenRouteService API-free route (Using openrouteservice with demo key or fallback to OSRM public server, but since you want no key — let's use OSRM public demo server)
 const routeServiceUrl = "https://router.project-osrm.org/route/v1/driving/";
 
-// Draw route on map
 function drawRoute(routeGeoJSON) {
   if (map.getSource('route')) {
     map.getSource('route').setData(routeGeoJSON);
@@ -226,10 +242,7 @@ function drawRoute(routeGeoJSON) {
       id: 'route',
       type: 'line',
       source: 'route',
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round'
-      },
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
       paint: {
         'line-color': '#6750a4',
         'line-width': 6,
@@ -240,16 +253,15 @@ function drawRoute(routeGeoJSON) {
 }
 
 function clearRoute() {
-  if (map.getLayer('route')) {
-    map.removeLayer('route');
-  }
-  if (map.getSource('route')) {
-    map.removeSource('route');
-  }
+  if (map.getLayer('route')) map.removeLayer('route');
+  if (map.getSource('route')) map.removeSource('route');
   routeInfoDiv.textContent = '';
 }
 
 getRouteBtn.addEventListener('click', async () => {
+  const originInput = document.getElementById('origin');
+  const destinationInput = document.getElementById('destination');
+
   const originLon = originInput.dataset.lon;
   const originLat = originInput.dataset.lat;
   const destinationLon = destinationInput.dataset.lon;
@@ -269,24 +281,14 @@ getRouteBtn.addEventListener('click', async () => {
 
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error("Routing request failed");
     const data = await res.json();
-    if (!data.routes || !data.routes.length) throw new Error("No route found");
-
     const route = data.routes[0];
-    drawRoute({
-      type: 'Feature',
-      geometry: route.geometry
-    });
+    drawRoute({ type: 'Feature', geometry: route.geometry });
 
-    // Zoom to route bounds
     const coordsArr = route.geometry.coordinates;
-    const bounds = coordsArr.reduce(function(bounds, coord) {
-      return bounds.extend(coord);
-    }, new maplibregl.LngLatBounds(coordsArr[0], coordsArr[0]));
+    const bounds = coordsArr.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coordsArr[0], coordsArr[0]));
     map.fitBounds(bounds, { padding: 80 });
 
-    // Display summary and steps
     const distanceKm = (route.distance / 1000).toFixed(2);
     const durationMin = Math.round(route.duration / 60);
     routeInfoDiv.innerHTML = `
@@ -297,7 +299,6 @@ getRouteBtn.addEventListener('click', async () => {
         ${route.legs[0].steps.map(step => `<li>${step.maneuver.instruction}</li>`).join('')}
       </ol>
     `;
-
   } catch (err) {
     console.error(err);
     routeInfoDiv.textContent = 'Failed to get route. Please try again.';
@@ -306,33 +307,26 @@ getRouteBtn.addEventListener('click', async () => {
 
 clearRouteBtn.addEventListener('click', () => {
   clearRoute();
-  originInput.value = '';
-  destinationInput.value = '';
-  originInput.removeAttribute('data-lon');
-  originInput.removeAttribute('data-lat');
-  destinationInput.removeAttribute('data-lon');
-  destinationInput.removeAttribute('data-lat');
+  ['origin', 'destination'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = '';
+    el.removeAttribute('data-lon');
+    el.removeAttribute('data-lat');
+  });
 });
 
-// Optional: Follow user location with GPS (basic example)
+// Geolocation
 if ("geolocation" in navigator) {
   navigator.geolocation.getCurrentPosition(pos => {
     const { latitude, longitude } = pos.coords;
     map.setCenter([longitude, latitude]);
     map.setZoom(14);
-
-    // Optionally add user location marker
     const userMarker = new maplibregl.Marker({ color: '#ff6347' })
       .setLngLat([longitude, latitude])
       .addTo(map);
 
-    // Follow user location continuously (simple watch)
     navigator.geolocation.watchPosition(pos => {
-      const { latitude, longitude } = pos.coords;
-      userMarker.setLngLat([longitude, latitude]);
-      // Optionally update map center or bearing here for navigation
-    }, err => {
-      console.warn('Geolocation watch failed:', err);
-    }, { enableHighAccuracy: true });
+      userMarker.setLngLat([pos.coords.longitude, pos.coords.latitude]);
+    }, err => console.warn('Geolocation watch failed:', err), { enableHighAccuracy: true });
   });
 }
