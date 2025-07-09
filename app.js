@@ -1,7 +1,7 @@
 // Initialize MapLibre map
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/liberty', // default style
+  style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 0],
   zoom: 2,
   pitch: 0,
@@ -13,32 +13,50 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Add MapLibre default controls (zoom + geolocation)
-const nav = new maplibregl.NavigationControl({ showCompass: true });
-map.addControl(nav, 'bottom-right');
-
-const geolocate = new maplibregl.GeolocateControl({
-  positionOptions: { enableHighAccuracy: true },
-  trackUserLocation: true,
-  showUserHeading: true
+// Add navigation controls (zoom + rotation + geolocate) bottom right
+const navControl = new maplibregl.NavigationControl({
+  showCompass: true,
+  showZoom: true,
+  visualizePitch: true,
 });
-map.addControl(geolocate, 'bottom-right');
+map.addControl(navControl, 'bottom-right');
 
-// DOM elements
+const geolocateControl = new maplibregl.GeolocateControl({
+  positionOptions: {
+    enableHighAccuracy: true
+  },
+  trackUserLocation: true,
+  showAccuracyCircle: false,
+});
+map.addControl(geolocateControl, 'bottom-right');
+
+// Elements
 const directionsToggleBtn = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
-const searchBar = document.querySelector('.search-bar');
-const styleToggleBtn = document.getElementById('style-toggle');
-const styleToggleImg = document.getElementById('style-toggle-img');
-
+const closeDirectionsBtn = document.getElementById('close-directions');
 const routeInfoDiv = document.getElementById('route-info');
 
-// Track current style (regular = true, satellite = false)
-let isRegularStyle = true;
+const styleToggle = document.getElementById('style-toggle');
+const styleIcon = document.getElementById('style-icon');
+const styleLabel = document.getElementById('style-label');
 
-// Add satellite raster layer flag & setup
+const searchInput = document.getElementById('search');
+const searchSuggestions = document.getElementById('suggestions');
+
+const originInput = document.getElementById('origin');
+const originSuggestions = document.getElementById('origin-suggestions');
+
+const destinationInput = document.getElementById('destination');
+const destinationSuggestions = document.getElementById('destination-suggestions');
+
+const getRouteBtn = document.getElementById('get-route');
+const clearRouteBtn = document.getElementById('clear-route');
+
+// Satellite layer flag
 let satelliteLayerAdded = false;
-function addSatelliteLayer() {
+let isSatellite = false;
+
+const addSatelliteLayer = () => {
   if (!satelliteLayerAdded) {
     map.addSource('satellite', {
       type: 'raster',
@@ -56,113 +74,100 @@ function addSatelliteLayer() {
     });
     satelliteLayerAdded = true;
   }
-}
+};
 
-function switchToRegular() {
-  if (satelliteLayerAdded) {
-    map.setLayoutProperty('sat-layer', 'visibility', 'none');
-  }
-  styleToggleImg.src = 'default_style.png';
-  styleToggleBtn.setAttribute('aria-pressed', 'false');
-  isRegularStyle = true;
-}
-
-function switchToSatellite() {
-  if (!satelliteLayerAdded) addSatelliteLayer();
+const switchToSatellite = () => {
   map.setLayoutProperty('sat-layer', 'visibility', 'visible');
-  styleToggleImg.src = 'satelite_style.png';
-  styleToggleBtn.setAttribute('aria-pressed', 'true');
-  isRegularStyle = false;
-}
+  isSatellite = true;
+  styleIcon.src = 'satelite_style.png';
+  styleLabel.textContent = 'Satellite';
+  styleToggle.setAttribute('aria-pressed', 'true');
+};
 
-// Toggle map style button click
-styleToggleBtn.addEventListener('click', () => {
-  if (isRegularStyle) {
-    switchToSatellite();
-  } else {
-    switchToRegular();
-  }
-});
+const switchToRegular = () => {
+  map.setLayoutProperty('sat-layer', 'visibility', 'none');
+  isSatellite = false;
+  styleIcon.src = 'default_style.png';
+  styleLabel.textContent = 'Regular';
+  styleToggle.setAttribute('aria-pressed', 'false');
+};
 
-// On map load, add satellite layer and default to regular style
 map.on('load', () => {
   addSatelliteLayer();
   switchToRegular();
 });
 
-// Directions panel toggle logic
-const directionsPanelId = 'directions-form';
+// Toggle style on click
+styleToggle.addEventListener('click', () => {
+  if (isSatellite) {
+    switchToRegular();
+  } else {
+    switchToSatellite();
+  }
+});
 
-// We'll create directions form dynamically to avoid errors (since your HTML only has directions-toggle button)
-// So let's build minimal directions panel here:
-
-let directionsPanel = document.getElementById(directionsPanelId);
-if (!directionsPanel) {
-  directionsPanel = document.createElement('div');
-  directionsPanel.id = directionsPanelId;
-  directionsPanel.style.position = 'fixed';
-  directionsPanel.style.top = '0';
-  directionsPanel.style.left = '0';
-  directionsPanel.style.width = '320px';
-  directionsPanel.style.height = '100%';
-  directionsPanel.style.background = '#fff';
-  directionsPanel.style.padding = '20px';
-  directionsPanel.style.boxShadow = '2px 0 12px rgba(0,0,0,0.15)';
-  directionsPanel.style.display = 'none';
-  directionsPanel.style.flexDirection = 'column';
-  directionsPanel.style.zIndex = '10002';
-  directionsPanel.style.borderRadius = '0 0 24px 0';
-  directionsPanel.innerHTML = `
-    <button id="close-directions" aria-label="Close directions panel" style="font-size:28px; background:none; border:none; cursor:pointer; color:#6750a4; margin-bottom:12px;">×</button>
-    <input id="origin" type="text" placeholder="Start" aria-label="Origin" autocomplete="off" spellcheck="false" style="width:100%; padding:12px; margin-bottom:8px; border:1px solid #ddd; border-radius:8px;" />
-    <div id="origin-suggestions" role="listbox" tabindex="-1" style="max-height: 150px; overflow-y:auto; margin-bottom:8px;"></div>
-    <input id="destination" type="text" placeholder="Destination" aria-label="Destination" autocomplete="off" spellcheck="false" style="width:100%; padding:12px; margin-bottom:8px; border:1px solid #ddd; border-radius:8px;" />
-    <div id="destination-suggestions" role="listbox" tabindex="-1" style="max-height: 150px; overflow-y:auto; margin-bottom:8px;"></div>
-    <button id="get-route" style="background-color:#6750a4; color:#fff; padding:12px 20px; border-radius:20px; border:none; cursor:pointer; font-weight:500; margin-bottom:8px;">Get Directions</button>
-    <button id="clear-route" style="background-color:#b3261e; color:#fff; padding:12px 20px; border-radius:20px; border:none; cursor:pointer; font-weight:500;">Clear</button>
-    <div id="route-info" role="region" aria-live="polite" aria-atomic="true" style="margin-top: 8px; font-weight: 500;"></div>
-  `;
-  document.body.appendChild(directionsPanel);
-}
-
-// Show/hide directions panel
+// Directions panel toggle funcs
 function openDirectionsPanel() {
-  directionsPanel.style.display = 'flex';
-  // Move style toggle left to avoid overlap
-  styleToggleBtn.style.transform = 'translateX(70px)';
+  directionsForm.classList.add('open');
+  document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
-  // Optionally hide search bar if needed
-  searchBar.style.display = 'none';
+  // Move style toggle left when directions open
+  styleToggle.style.left = '100px';
 }
 
 function closeDirectionsPanel() {
-  directionsPanel.style.display = 'none';
-  styleToggleBtn.style.transform = 'translateX(0)';
+  directionsForm.classList.remove('open');
+  document.querySelector('.search-bar').style.display = 'block';
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
-  searchBar.style.display = 'block';
+  styleToggle.style.left = '20px';
 }
 
-// Directions toggle button click
 directionsToggleBtn.addEventListener('click', () => {
-  if (directionsPanel.style.display === 'flex') {
+  if (directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   } else {
     openDirectionsPanel();
   }
 });
 
-// Close directions panel on close button click
-document.getElementById('close-directions').addEventListener('click', closeDirectionsPanel);
+closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
-// Close on ESC key press
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && directionsPanel.style.display === 'flex') {
+  if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   }
 });
 
-// Prevent directions panel from closing on suggestion clicks
-// No click outside close needed, only close with X or ESC
+// Prevent directions panel from closing when clicking inside it or on suggestions
+document.addEventListener('click', e => {
+  if (
+    directionsForm.classList.contains('open') &&
+    !directionsForm.contains(e.target) &&
+    !directionsToggleBtn.contains(e.target)
+  ) {
+    // Do nothing (ignore click outside so panel only closes on X or ESC)
+  }
+});
+
+// Swipe to dismiss directions panel on mobile
+let startX = 0, currentX = 0, isSwiping = false;
+directionsForm.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) return;
+  startX = e.touches[0].clientX;
+  isSwiping = true;
+});
+directionsForm.addEventListener('touchmove', e => {
+  if (!isSwiping) return;
+  currentX = e.touches[0].clientX;
+  const deltaX = currentX - startX;
+  if (deltaX < 0) directionsForm.style.transform = `translateX(${deltaX}px)`;
+});
+directionsForm.addEventListener('touchend', () => {
+  const deltaX = currentX - startX;
+  if (deltaX < -100) closeDirectionsPanel();
+  directionsForm.style.transform = '';
+  isSwiping = false;
+});
 
 // Photon search setup
 const photonUrl = "https://photon.komoot.io/api/?q=";
@@ -190,12 +195,10 @@ async function photonSearch(query) {
 function showLoading(container) {
   container.innerHTML = '<div class="loading">Loading…</div>';
 }
-
 function clearSuggestions(container) {
   container.innerHTML = '';
 }
-
-function renderSuggestions(container, results) {
+function renderSuggestions(container, results, inputEl) {
   clearSuggestions(container);
   if (!results.length) return;
   results.forEach(feature => {
@@ -207,6 +210,22 @@ function renderSuggestions(container, results) {
     div.tabIndex = 0;
     div.dataset.lon = feature.geometry.coordinates[0];
     div.dataset.lat = feature.geometry.coordinates[1];
+    div.addEventListener('click', () => {
+      inputEl.value = div.textContent;
+      inputEl.dataset.lon = div.dataset.lon;
+      inputEl.dataset.lat = div.dataset.lat;
+      clearSuggestions(container);
+      if (inputEl.id === 'search') {
+        map.flyTo({ center: [parseFloat(div.dataset.lon), parseFloat(div.dataset.lat)], zoom: 14 });
+      }
+    });
+    div.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        div.click();
+        inputEl.focus();
+      }
+    });
     container.appendChild(div);
   });
 }
@@ -219,38 +238,14 @@ function setupSearch(inputEl, suggestionsEl) {
     }
     showLoading(suggestionsEl);
     const results = await photonSearch(query);
-    renderSuggestions(suggestionsEl, results);
+    renderSuggestions(suggestionsEl, results, inputEl);
   }, 250);
 
   inputEl.addEventListener('input', e => {
     debouncedSearch(e.target.value.trim());
   });
 
-  suggestionsEl.addEventListener('click', e => {
-    if (!e.target.classList.contains('suggestion')) return;
-    const lon = parseFloat(e.target.dataset.lon);
-    const lat = parseFloat(e.target.dataset.lat);
-    const text = e.target.textContent;
-    inputEl.value = text;
-    inputEl.dataset.lon = lon;
-    inputEl.dataset.lat = lat;
-    clearSuggestions(suggestionsEl);
-
-    // Center map if it's the main search input
-    if (inputEl.id === 'search') {
-      map.flyTo({ center: [lon, lat], zoom: 14 });
-    }
-  });
-
-  suggestionsEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && e.target.classList.contains('suggestion')) {
-      e.preventDefault();
-      e.target.click();
-      inputEl.focus();
-    }
-  });
-
-  // Close suggestions when clicking outside input or suggestions
+  // Close suggestions if clicking outside input or suggestions
   document.addEventListener('click', e => {
     if (!inputEl.contains(e.target) && !suggestionsEl.contains(e.target)) {
       clearSuggestions(suggestionsEl);
@@ -258,15 +253,11 @@ function setupSearch(inputEl, suggestionsEl) {
   });
 }
 
-// Setup search bars
-setupSearch(document.getElementById('search'), document.getElementById('suggestions'));
-setupSearch(document.getElementById('origin'), document.getElementById('origin-suggestions'));
-setupSearch(document.getElementById('destination'), document.getElementById('destination-suggestions'));
+setupSearch(searchInput, searchSuggestions);
+setupSearch(originInput, originSuggestions);
+setupSearch(destinationInput, destinationSuggestions);
 
 // Routing with OSRM
-const getRouteBtn = document.getElementById('get-route');
-const clearRouteBtn = document.getElementById('clear-route');
-
 function drawRoute(routeGeoJSON) {
   if (map.getSource('route')) {
     map.getSource('route').setData(routeGeoJSON);
@@ -296,16 +287,16 @@ function clearRoute() {
 }
 
 getRouteBtn.addEventListener('click', async () => {
-  const originInput = document.getElementById('origin');
-  const destinationInput = document.getElementById('destination');
+  const originLon = parseFloat(originInput.dataset.lon);
+  const originLat = parseFloat(originInput.dataset.lat);
+  const destinationLon = parseFloat(destinationInput.dataset.lon);
+  const destinationLat = parseFloat(destinationInput.dataset.lat);
 
-  const originLon = originInput.dataset.lon;
-  const originLat = originInput.dataset.lat;
-  const destinationLon = destinationInput.dataset.lon;
-  const destinationLat = destinationInput.dataset.lat;
-
-  if (!originLon || !originLat || !destinationLon || !destinationLat) {
-    alert("Please select both origin and destination from suggestions.");
+  if (
+    Number.isNaN(originLon) || Number.isNaN(originLat) ||
+    Number.isNaN(destinationLon) || Number.isNaN(destinationLat)
+  ) {
+    alert("Yo, select both origin and destination from suggestions.");
     return;
   }
 
@@ -343,14 +334,13 @@ getRouteBtn.addEventListener('click', async () => {
 
 clearRouteBtn.addEventListener('click', () => {
   clearRoute();
-  const originInput = document.getElementById('origin');
-  const destinationInput = document.getElementById('destination');
-
   originInput.value = '';
   destinationInput.value = '';
-  originInput.dataset.lon = '';
-  originInput.dataset.lat = '';
-  destinationInput.dataset.lon = '';
-  destinationInput.dataset.lat = '';
-  routeInfoDiv.textContent = '';
+  delete originInput.dataset.lon;
+  delete originInput.dataset.lat;
+  delete destinationInput.dataset.lon;
+  delete destinationInput.dataset.lat;
 });
+
+// Close directions on outside click or ESC key handled above
+
