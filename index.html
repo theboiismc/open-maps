@@ -76,6 +76,7 @@
     outline: none;
   }
 
+  /* Controls container */
   .map-controls {
     position: absolute;
     bottom: 20px;
@@ -83,8 +84,10 @@
     z-index: 10000;
     display: flex;
     gap: 10px;
+    align-items: center;
   }
 
+  /* Directions button */
   #directions-toggle {
     padding: 10px 16px;
     border: none;
@@ -95,8 +98,10 @@
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     flex-shrink: 0;
+    margin-right: 10px; /* spacing from map controls */
   }
 
+  /* Style toggle button bottom-left */
   #style-toggle {
     width: 60px;
     height: 60px;
@@ -107,7 +112,7 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     cursor: pointer;
     position: absolute;
-    bottom: 100px;
+    bottom: 20px;
     left: 20px;
     z-index: 10000;
     display: flex;
@@ -118,6 +123,8 @@
     font-weight: bold;
     text-shadow: 0 0 4px #000;
     user-select: none;
+    font-size: 12px;
+    line-height: 1;
   }
 
   /* Directions panel */
