@@ -77,27 +77,26 @@
     color: #888;
   }
 
-  /* Directions Panel - sliding in from left */
+  /* Directions Panel - no slide, just toggle display */
   #directions-form {
     position: fixed;
     top: 0;
     left: 0;
-    height: 100%;
+    height: 100vh;
     width: 320px;
     background: #fff;
     border-radius: 0 0 24px 0;
     box-shadow: 2px 0 12px rgba(0,0,0,0.15);
     padding: 20px;
-    display: flex;
+    display: none; /* hidden by default */
     flex-direction: column;
     gap: 8px;
     z-index: 10002;
-    transition: transform 0.3s ease;
-    transform: translateX(-100%);
+    overflow-y: auto;
   }
 
   #directions-form.open {
-    transform: translateX(0);
+    display: flex; /* show when open */
   }
 
   #directions-form input {
