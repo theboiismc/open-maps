@@ -21,7 +21,7 @@
   .search-bar {
     position: absolute;
     top: 20px; left: 20px;
-    width: 300px; /* shrunk from 320 */
+    width: 300px;
     background: #fff;
     border-radius: 24px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -51,19 +51,21 @@
     transform: translateY(-50%);
     background: transparent;
     border: none;
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    fill: #5f6368; /* subtle google-like gray */
     padding: 0;
     margin: 0;
+    cursor: pointer;
     outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  #search-icon svg {
+  #search-icon img {
     width: 20px;
     height: 20px;
-    fill: currentColor;
+    filter: grayscale(60%) contrast(85%);
+    user-select: none;
+    pointer-events: none;
   }
 
   #suggestions {
@@ -91,7 +93,6 @@
     gap: 12px;
   }
 
-  /* Directions toggle styling */
   #directions-toggle {
     background: #6750a4;
     color: white;
@@ -108,7 +109,6 @@
     background-color: #4a3d87;
   }
 
-  /* Style toggle tile */
   #style-toggle {
     width: 48px;
     height: 48px;
@@ -139,9 +139,7 @@
     <div class="search-wrapper">
       <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
       <button id="search-icon" aria-label="Search" type="button">
-        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-          <path d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 001.48-5.34C15.22 6.08 12.98 4 10.25 4S5.28 6.08 5.28 8.39c0 2.31 2.24 4.39 4.97 4.39 1.32 0 2.53-.55 3.4-1.44l.27.28v.79l4.25 4.25 1.49-1.49-4.25-4.25zm-5.25 0C8.4 14 7 12.6 7 10.75S8.4 7.5 10.25 7.5 13.5 8.9 13.5 10.75 12.1 14 10.25 14z"/>
-        </svg>
+        <img src="search_icon.png" alt="Search" />
       </button>
     </div>
     <div id="suggestions" role="listbox" tabindex="-1"></div>
@@ -158,3 +156,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
