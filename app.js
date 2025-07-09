@@ -61,7 +61,7 @@ darkToggle.onclick = () => {
   darkToggle.setAttribute('aria-pressed', isDark.toString());
 };
 
-// DOM refs
+// DOM refs for the search bar and location button
 const searchInput = document.getElementById('search');
 const suggestionsBox = document.getElementById('suggestions');
 const sidebar = document.getElementById('sidebar');
@@ -303,4 +303,16 @@ getRouteBtn.addEventListener('click', async () => {
   } catch (err) {
     alert('Error fetching directions: ' + err.message);
   }
+});
+
+// Add geolocate button for location tracking
+const locationBtn = document.getElementById('location-btn');
+locationBtn.addEventListener('click', () => {
+  const geolocate = new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: true },
+    trackUserLocation: true,
+    showUserHeading: true
+  });
+  map.addControl(geolocate);
+  geolocate.trigger();
 });
