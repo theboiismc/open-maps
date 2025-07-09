@@ -13,9 +13,9 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Map style toggle images (Flaticon CDN)
-const regularThumbnail = 'https://cdn-icons-png.flaticon.com/512/684/684908.png';  // map icon
-const satelliteThumbnail = 'https://cdn-icons-png.flaticon.com/512/138/138281.png'; // satellite icon
+// Your self-hosted images for style toggle
+const regularThumbnail = '/default_style.png';
+const satelliteThumbnail = '/satelite_style.png';
 
 // Elements
 const styleToggleBtn = document.getElementById('style-toggle');
@@ -57,21 +57,21 @@ function switchToRegular() {
   }
   styleImage.src = regularThumbnail;
   styleLabel.textContent = 'Regular';
+  styleToggleBtn.setAttribute('aria-pressed', 'false');
   currentStyle = 'regular';
 }
 
 function switchToSatellite() {
-  if (satelliteLayerAdded) {
-    map.setLayoutProperty('sat-layer', 'visibility', 'visible');
-  }
+  if (!satelliteLayerAdded) addSatelliteLayer();
+  map.setLayoutProperty('sat-layer', 'visibility', 'visible');
   styleImage.src = satelliteThumbnail;
   styleLabel.textContent = 'Satellite';
+  styleToggleBtn.setAttribute('aria-pressed', 'true');
   currentStyle = 'satellite';
 }
 
 // Toggle map style on button click
 styleToggleBtn.addEventListener('click', () => {
-  if (!satelliteLayerAdded) addSatelliteLayer();
   if (currentStyle === 'regular') {
     switchToSatellite();
   } else {
@@ -85,12 +85,11 @@ map.on('load', () => {
   switchToRegular();
 });
 
-// Directions panel slide toggle helpers (but no slide, just show/hide)
+// Directions panel helpers
 function openDirectionsPanel() {
   directionsForm.classList.add('open');
   document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
-  // Shift style toggle right so it's visible and usable
   styleToggleBtn.classList.add('shifted');
 }
 
@@ -101,7 +100,6 @@ function closeDirectionsPanel() {
   styleToggleBtn.classList.remove('shifted');
 }
 
-// Toggle directions panel button
 directionsToggleBtn.addEventListener('click', () => {
   if (directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
@@ -110,18 +108,13 @@ directionsToggleBtn.addEventListener('click', () => {
   }
 });
 
-// Close button inside directions panel
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
-// Close on ESC key
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   }
 });
-
-// Prevent directions panel from closing on suggestion clicks or input clicks
-// We only close on close button or ESC now
 
 // Photon search setup
 const photonUrl = "https://photon.komoot.io/api/?q=";
@@ -168,17 +161,7 @@ function renderSuggestions(container, results) {
   });
 }
 
-// Setup search inputs with suggestions
-function setupSearch(inputEl) {
-  // Create suggestions container
-  let suggestionsEl = document.createElement('div');
-  suggestionsEl.className = 'suggestions';
-  suggestionsEl.style.position = 'absolute';
-  suggestionsEl.style.top = (inputEl.getBoundingClientRect().bottom + window.scrollY) + 'px';
-  suggestionsEl.style.left = (inputEl.getBoundingClientRect().left + window.scrollX) + 'px';
-  suggestionsEl.style.width = inputEl.offsetWidth + 'px';
-  document.body.appendChild(suggestionsEl);
-
+function setupSearch(inputEl, suggestionsEl) {
   const debouncedSearch = debounce(async (query) => {
     if (!query) {
       clearSuggestions(suggestionsEl);
@@ -222,9 +205,9 @@ function setupSearch(inputEl) {
   });
 }
 
-setupSearch(document.getElementById('search'));
-setupSearch(document.getElementById('origin'));
-setupSearch(document.getElementById('destination'));
+setupSearch(document.getElementById('search'), document.getElementById('suggestions'));
+setupSearch(document.getElementById('origin'), document.getElementById('origin-suggestions'));
+setupSearch(document.getElementById('destination'), document.getElementById('destination-suggestions'));
 
 // Routing with OSRM
 const getRouteBtn = document.getElementById('get-route');
