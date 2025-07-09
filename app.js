@@ -1,331 +1,231 @@
-// Initialize MapLibre map
+// Initialize the map
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/liberty',
+  style: 'https://demotiles.maplibre.org/style.json',
   center: [0, 0],
   zoom: 2,
-  pitch: 0,
-  bearing: 0,
-  dragRotate: true,
-  touchZoomRotate: true,
-  scrollZoom: true,
-  maxZoom: 18,
-  minZoom: 1
+  attributionControl: false // Disable default attribution control
 });
 
-// Layers toggle
-let satelliteLayerAdded = false;
-const satelliteToggle = document.getElementById('satellite-toggle');
-const regularToggle = document.getElementById('regular-toggle');
-const darkToggle = document.getElementById('dark-toggle');
-const directionsToggleBtn = document.getElementById('directions-toggle');
-const directionsForm = document.getElementById('directions-form');
-const routeInfoDiv = document.getElementById('route-info');
+// Store the user's location
+let userLocation = null;
 
-const addSatelliteLayer = () => {
-  if (!satelliteLayerAdded) {
-    map.addSource('satellite', {
-      type: 'raster',
-      tiles: [
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      ],
-      tileSize: 256
+// When the page loads, try to get the user's current location
+navigator.geolocation.getCurrentPosition(position => {
+  const { latitude, longitude } = position.coords;
+  userLocation = { lat: latitude, lon: longitude };
+
+  // Place a marker for the user's location
+  new maplibregl.Marker()
+    .setLngLat([longitude, latitude])
+    .addTo(map);
+
+  // Zoom out and center the map on user's location without zooming in fully
+  map.flyTo({
+    center: [longitude, latitude],
+    zoom: 4, // Set zoom level to a "zoomed-out" view
+    speed: 1.6,
+    essential: true
+  });
+}, error => console.warn('Location access denied', error));
+
+// Add event listener to the Locate Me button
+const locateBtn = document.getElementById('locate-btn');
+locateBtn.addEventListener('click', () => {
+  if (userLocation) {
+    map.flyTo({
+      center: [userLocation.lon, userLocation.lat],
+      zoom: 14,
+      speed: 1.6,
+      essential: true
     });
-    map.addLayer({
-      id: 'sat-layer',
-      type: 'raster',
-      source: 'satellite',
-      layout: { visibility: 'none' },
-      paint: { 'raster-opacity': 0.8 }
-    });
-    satelliteLayerAdded = true;
-  }
-};
-
-const switchToSatellite = () => {
-  map.setLayoutProperty('sat-layer', 'visibility', 'visible');
-  satelliteToggle.classList.add('active');
-  regularToggle.classList.remove('active');
-  satelliteToggle.setAttribute('aria-pressed', 'true');
-  regularToggle.setAttribute('aria-pressed', 'false');
-};
-
-const switchToRegular = () => {
-  map.setLayoutProperty('sat-layer', 'visibility', 'none');
-  regularToggle.classList.add('active');
-  satelliteToggle.classList.remove('active');
-  regularToggle.setAttribute('aria-pressed', 'true');
-  satelliteToggle.setAttribute('aria-pressed', 'false');
-};
-
-// Dark mode toggle
-darkToggle.addEventListener('click', () => {
-  document.body.classList.toggle('dark-mode');
-  const isDark = document.body.classList.contains('dark-mode');
-  darkToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-});
-
-// Add layers on map load
-map.on('load', () => {
-  addSatelliteLayer();
-  switchToRegular();
-});
-
-// Layers buttons
-satelliteToggle.onclick = switchToSatellite;
-regularToggle.onclick = switchToRegular;
-
-// Directions panel toggle
-directionsToggleBtn.addEventListener('click', () => {
-  const isVisible = directionsForm.style.display === 'flex';
-  if (isVisible) {
-    directionsForm.style.display = 'none';
-    directionsToggleBtn.setAttribute('aria-pressed', 'false');
-  } else {
-    directionsForm.style.display = 'flex';
-    directionsToggleBtn.setAttribute('aria-pressed', 'true');
   }
 });
 
-// Helper for Photon search with loading indicator and debounce
-const photonUrl = "https://photon.komoot.io/api/?q=";
-const debounce = (fn, delay) => {
-  let timeoutId;
-  return (...args) => {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
-  };
-};
+// Handle search bar with Photon API
+const searchInput = document.getElementById('search');
+const suggestionsContainer = document.getElementById('suggestions');
+let timeout = null;
 
-async function photonSearch(query) {
-  if (!query) return [];
-  try {
-    const res = await fetch(`${photonUrl}${encodeURIComponent(query)}&limit=5`);
-    if (!res.ok) throw new Error("Photon request failed");
-    const data = await res.json();
-    return data.features || [];
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
-}
+searchInput.addEventListener('input', function () {
+  const query = searchInput.value.trim();
 
-// Show loading or clear suggestions
-function showLoading(container) {
-  container.innerHTML = '<div class="loading">Loading…</div>';
-}
-function clearSuggestions(container) {
-  container.innerHTML = '';
-}
-function renderSuggestions(container, results) {
-  clearSuggestions(container);
-  if (!results.length) return;
-  results.forEach((feature, i) => {
-    const div = document.createElement('div');
-    div.className = 'suggestion';
-    div.textContent = feature.properties.name + (feature.properties.state ? ', ' + feature.properties.state : '') + (feature.properties.country ? ', ' + feature.properties.country : '');
-    div.tabIndex = 0;
-    div.dataset.lon = feature.geometry.coordinates[0];
-    div.dataset.lat = feature.geometry.coordinates[1];
-    div.dataset.idx = i;
-    container.appendChild(div);
-  });
-}
-
-// Setup search inputs
-const mainSearchInput = document.getElementById('search');
-const mainSuggestions = document.getElementById('suggestions');
-
-const originInput = document.getElementById('origin');
-const originSuggestions = document.getElementById('origin-suggestions');
-
-const destinationInput = document.getElementById('destination');
-const destinationSuggestions = document.getElementById('destination-suggestions');
-
-// Search input handler with debounce and loading indicator
-function setupSearch(inputEl, suggestionsEl) {
-  const debouncedSearch = debounce(async (query) => {
-    if (!query) {
-      clearSuggestions(suggestionsEl);
-      return;
-    }
-    showLoading(suggestionsEl);
-    const results = await photonSearch(query);
-    renderSuggestions(suggestionsEl, results);
-  }, 250);
-
-  inputEl.addEventListener('input', e => {
-    const q = e.target.value.trim();
-    debouncedSearch(q);
-  });
-
-  // Click handler for selecting a suggestion
-  suggestionsEl.addEventListener('click', e => {
-    if (!e.target.classList.contains('suggestion')) return;
-    const lon = parseFloat(e.target.dataset.lon);
-    const lat = parseFloat(e.target.dataset.lat);
-    const text = e.target.textContent;
-    inputEl.value = text;
-    inputEl.dataset.lon = lon;
-    inputEl.dataset.lat = lat;
-    clearSuggestions(suggestionsEl);
-
-    // If main search input, fly to location immediately
-    if (inputEl === mainSearchInput) {
-      map.flyTo({ center: [lon, lat], zoom: 14 });
-    }
-  });
-
-  // Keyboard support (enter key)
-  suggestionsEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && e.target.classList.contains('suggestion')) {
-      e.preventDefault();
-      e.target.click();
-      inputEl.focus();
-    }
-  });
-
-  // Close suggestions on outside click
-  document.addEventListener('click', e => {
-    if (!inputEl.contains(e.target) && !suggestionsEl.contains(e.target)) {
-      clearSuggestions(suggestionsEl);
-    }
-  });
-}
-
-setupSearch(mainSearchInput, mainSuggestions);
-setupSearch(originInput, originSuggestions);
-setupSearch(destinationInput, destinationSuggestions);
-
-// Routing
-const getRouteBtn = document.getElementById('get-route');
-const clearRouteBtn = document.getElementById('clear-route');
-
-let currentRouteId = null;
-
-// OpenRouteService API-free route (Using openrouteservice with demo key or fallback to OSRM public server, but since you want no key — let's use OSRM public demo server)
-const routeServiceUrl = "https://router.project-osrm.org/route/v1/driving/";
-
-// Draw route on map
-function drawRoute(routeGeoJSON) {
-  if (map.getSource('route')) {
-    map.getSource('route').setData(routeGeoJSON);
-  } else {
-    map.addSource('route', {
-      type: 'geojson',
-      data: routeGeoJSON
-    });
-    map.addLayer({
-      id: 'route',
-      type: 'line',
-      source: 'route',
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round'
-      },
-      paint: {
-        'line-color': '#6750a4',
-        'line-width': 6,
-        'line-opacity': 0.8
-      }
-    });
-  }
-}
-
-function clearRoute() {
-  if (map.getLayer('route')) {
-    map.removeLayer('route');
-  }
-  if (map.getSource('route')) {
-    map.removeSource('route');
-  }
-  routeInfoDiv.textContent = '';
-}
-
-getRouteBtn.addEventListener('click', async () => {
-  const originLon = originInput.dataset.lon;
-  const originLat = originInput.dataset.lat;
-  const destinationLon = destinationInput.dataset.lon;
-  const destinationLat = destinationInput.dataset.lat;
-
-  if (!originLon || !originLat || !destinationLon || !destinationLat) {
-    alert("Please select both origin and destination from suggestions.");
+  if (query.length < 3) {
+    suggestionsContainer.innerHTML = ''; // Clear suggestions if input is too short
     return;
   }
 
-  clearRoute();
+  // Show loading indicator
+  suggestionsContainer.innerHTML = '<div>Loading...</div>';
 
-  const coords = `${originLon},${originLat};${destinationLon},${destinationLat}`;
-  const url = `${routeServiceUrl}${coords}?overview=full&geometries=geojson&steps=true`;
+  // Clear any previous timeout before making a new request
+  clearTimeout(timeout);
 
-  routeInfoDiv.textContent = 'Routing…';
+  timeout = setTimeout(() => {
+    // Fetch suggestions from Photon API
+    fetch(`https://photon.komoot.io/api/?q=${query}`)
+      .then(response => response.json())
+      .then(data => {
+        suggestionsContainer.innerHTML = ''; // Clear loading message
 
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Routing request failed");
-    const data = await res.json();
-    if (!data.routes || !data.routes.length) throw new Error("No route found");
+        if (data && data.features) {
+          data.features.forEach(feature => {
+            const suggestionItem = document.createElement('div');
+            suggestionItem.className = 'suggestion-item';
+            suggestionItem.innerText = feature.properties.name;
 
-    const route = data.routes[0];
-    drawRoute({
-      type: 'Feature',
-      geometry: route.geometry
-    });
+            suggestionItem.addEventListener('click', () => {
+              // Fill the search bar with the selected suggestion
+              searchInput.value = feature.properties.name;
+              suggestionsContainer.innerHTML = ''; // Clear suggestions
 
-    // Zoom to route bounds
-    const coordsArr = route.geometry.coordinates;
-    const bounds = coordsArr.reduce(function(bounds, coord) {
-      return bounds.extend(coord);
-    }, new maplibregl.LngLatBounds(coordsArr[0], coordsArr[0]));
-    map.fitBounds(bounds, { padding: 80 });
+              // Center map on the selected place
+              map.flyTo({
+                center: [feature.geometry.coordinates[0], feature.geometry.coordinates[1]],
+                zoom: 12,
+                speed: 1.6,
+                essential: true
+              });
+            });
 
-    // Display summary and steps
-    const distanceKm = (route.distance / 1000).toFixed(2);
-    const durationMin = Math.round(route.duration / 60);
-    routeInfoDiv.innerHTML = `
-      Distance: ${distanceKm} km<br/>
-      Duration: ${durationMin} min<br/><br/>
-      <strong>Steps:</strong><br/>
-      <ol style="padding-left: 18px; margin: 0; max-height: 160px; overflow-y: auto;">
-        ${route.legs[0].steps.map(step => `<li>${step.maneuver.instruction}</li>`).join('')}
-      </ol>
-    `;
-
-  } catch (err) {
-    console.error(err);
-    routeInfoDiv.textContent = 'Failed to get route. Please try again.';
-  }
+            suggestionsContainer.appendChild(suggestionItem);
+          });
+        }
+      })
+      .catch(error => {
+        suggestionsContainer.innerHTML = '<div>Error loading suggestions</div>';
+      });
+  }, 300); // Delay to avoid excessive API calls
 });
 
-clearRouteBtn.addEventListener('click', () => {
-  clearRoute();
-  originInput.value = '';
-  destinationInput.value = '';
-  originInput.removeAttribute('data-lon');
-  originInput.removeAttribute('data-lat');
-  destinationInput.removeAttribute('data-lon');
-  destinationInput.removeAttribute('data-lat');
-});
+// Handle origin and destination search bars
+const originInput = document.getElementById('origin');
+const destinationInput = document.getElementById('destination');
+const originSuggestionsContainer = document.getElementById('origin-suggestions');
+const destinationSuggestionsContainer = document.getElementById('destination-suggestions');
 
-// Optional: Follow user location with GPS (basic example)
-if ("geolocation" in navigator) {
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    map.setCenter([longitude, latitude]);
-    map.setZoom(14);
+// Function to handle both origin and destination search
+function handleSearch(inputElement, suggestionsContainer) {
+  let searchTimeout = null;
 
-    // Optionally add user location marker
-    const userMarker = new maplibregl.Marker({ color: '#ff6347' })
-      .setLngLat([longitude, latitude])
-      .addTo(map);
+  inputElement.addEventListener('input', function () {
+    const query = inputElement.value.trim();
 
-    // Follow user location continuously (simple watch)
-    navigator.geolocation.watchPosition(pos => {
-      const { latitude, longitude } = pos.coords;
-      userMarker.setLngLat([longitude, latitude]);
-      // Optionally update map center or bearing here for navigation
-    }, err => {
-      console.warn('Geolocation watch failed:', err);
-    }, { enableHighAccuracy: true });
+    if (query.length < 3) {
+      suggestionsContainer.innerHTML = ''; // Clear suggestions if input is too short
+      return;
+    }
+
+    suggestionsContainer.innerHTML = '<div>Loading...</div>'; // Show loading indicator
+
+    clearTimeout(searchTimeout);
+
+    searchTimeout = setTimeout(() => {
+      fetch(`https://photon.komoot.io/api/?q=${query}`)
+        .then(response => response.json())
+        .then(data => {
+          suggestionsContainer.innerHTML = ''; // Clear loading message
+
+          if (data && data.features) {
+            data.features.forEach(feature => {
+              const suggestionItem = document.createElement('div');
+              suggestionItem.className = 'suggestion-item';
+              suggestionItem.innerText = feature.properties.name;
+
+              suggestionItem.addEventListener('click', () => {
+                inputElement.value = feature.properties.name;
+                suggestionsContainer.innerHTML = ''; // Clear suggestions
+
+                // Center map on the selected place
+                map.flyTo({
+                  center: [feature.geometry.coordinates[0], feature.geometry.coordinates[1]],
+                  zoom: 12,
+                  speed: 1.6,
+                  essential: true
+                });
+              });
+
+              suggestionsContainer.appendChild(suggestionItem);
+            });
+          }
+        })
+        .catch(error => {
+          suggestionsContainer.innerHTML = '<div>Error loading suggestions</div>';
+        });
+    }, 300); // Delay to avoid excessive API calls
   });
 }
+
+// Initialize origin and destination search functionality
+handleSearch(originInput, originSuggestionsContainer);
+handleSearch(destinationInput, destinationSuggestionsContainer);
+
+// Handle the directions toggle button
+const directionsToggleButton = document.getElementById('directions-toggle');
+const directionsForm = document.getElementById('directions-form');
+const sidebar = document.getElementById('sidebar');
+
+directionsToggleButton.addEventListener('click', () => {
+  sidebar.classList.toggle('open');
+});
+
+// Handle the Get Directions button
+const getRouteButton = document.getElementById('get-route');
+getRouteButton.addEventListener('click', () => {
+  const origin = originInput.value.trim();
+  const destination = destinationInput.value.trim();
+
+  if (!origin || !destination) {
+    alert('Please select both origin and destination');
+    return;
+  }
+
+  // Get directions (for simplicity, we're using an API that supports directions)
+  fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=YOUR_API_KEY&start=${origin}&end=${destination}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data && data.features) {
+        const route = data.features[0].geometry.coordinates;
+
+        // Draw the route on the map
+        const routeLine = new maplibregl.GeoJSONSource({
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: route
+            }
+          }
+        });
+
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: routeLine,
+          paint: {
+            'line-color': '#888',
+            'line-width': 8
+          }
+        });
+
+        // Update the route information in the UI
+        const routeSummary = document.getElementById('route-summary');
+        routeSummary.innerText = `Route: ${origin} → ${destination}`;
+      }
+    })
+    .catch(error => {
+      alert('Error fetching directions');
+    });
+});
+
+// Handle the Clear button
+const clearRouteButton = document.getElementById('clear-route');
+clearRouteButton.addEventListener('click', () => {
+  map.getSource('route') && map.removeLayer('route'); // Remove the route layer
+  map.getSource('route') && map.removeSource('route'); // Remove the route source
+  originInput.value = '';
+  destinationInput.value = '';
+  document.getElementById('route-summary').innerText = '';
+});
+
