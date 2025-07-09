@@ -7,81 +7,202 @@
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+    
+    /* Body and layout setup */
     html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
       font-family: 'Roboto', sans-serif;
-      background: #f2f2f2; color: #202124;
+      background: #f2f2f2;
+      color: #202124;
+      display: flex;
+      flex-direction: column;
     }
+    
+    /* Map area */
     #map {
-      position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
       z-index: 0;
     }
-    /* Search bar */
+
+    /* Search bar centered */
     .search-bar {
-      position: absolute; top: 20px; left: 20px;
-      width: 320px; background: #fff;
-      border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 12px 20px; z-index: 10000;
-      display: flex; flex-direction: column; gap: 8px;
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      background: #fff;
+      border-radius: 50px;
+      padding: 10px 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.3s ease;
     }
+
+    /* Input in search bar */
     .search-bar input {
-      font-size: 16px; padding: 10px 16px;
-      border: none; border-radius: 20px;
-      background: #e7e0ec; color: #1c1b1f;
-      box-shadow: inset 0 1px 3px #fff8, inset 0 -1px 2px #bab7c3;
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      font-size: 16px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 20px;
+      background: #e7e0ec;
+      color: #1c1b1f;
+      outline-offset: 4px;
+      width: 100%;
     }
-    .search-bar input::placeholder {
-      color: #8f8da4;
+
+    /* Suggestions container */
+    #suggestions {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 15px;
+      z-index: 1001;
+      padding: 4px 0;
+      position: absolute;
+      top: 60px;
+      left: 0;
+      right: 0;
     }
-    .search-bar input:focus {
-      background: #f5f3f7; box-shadow: inset 0 1px 4px #d1cde6, 0 0 0 3px #6750a4;
-      color: #1c1b1f; outline: none;
+
+    .suggestion {
+      padding: 10px 20px;
+      cursor: pointer;
+      color: #1c1b1f;
+      border-radius: 12px;
+      user-select: none;
+      transition: background-color 0.25s ease;
     }
+
+    .suggestion:hover, .suggestion:focus {
+      background-color: #ede7f6;
+      outline: none;
+    }
+
+    /* Floating buttons (location and compass) */
+    .floating-buttons {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 1000;
+    }
+
+    .floating-buttons button {
+      background-color: #4a90e2;
+      border-radius: 50%;
+      padding: 15px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: none;
+    }
+
+    .floating-buttons button:hover {
+      background-color: #357ab7;
+    }
+
+    .floating-buttons .compass {
+      background: #f0a500;
+    }
+
+    .floating-buttons .compass:hover {
+      background: #e07f00;
+    }
+
     /* Sidebar panel */
     #sidebar {
-      position: fixed; top: 0; bottom: 0; left: 0;
-      width: 320px; background: #fff;
-      box-shadow: 2px 0 14px rgba(0,0,0,0.16); transform: translateX(-100%);
-      transition: transform 0.3s ease-in-out; z-index: 10002;
-      display: flex; flex-direction: column; padding: 24px 20px;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 320px;
+      background: #fff;
+      box-shadow: 2px 0 14px rgba(0, 0, 0, 0.16);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+      z-index: 1002;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px;
       overflow-y: auto;
     }
-    #sidebar.open { transform: translateX(0); }
-    #sidebar-close { align-self: flex-end; background: transparent;
-      border: none; font-size: 32px; cursor: pointer;
-      color: #625b71; padding: 0; user-select: none;
-      margin-bottom: 12px; transition: color 0.25s ease;
+
+    #sidebar.open {
+      transform: translateX(0);
     }
-    #sidebar-close:hover { color: #1e1a29; }
-    #place-info { font-size: 18px; font-weight: 500; margin-bottom: 20px; color: #202124; }
-    /* Controls in bottom-right */
-    .map-controls {
-      position: absolute; bottom: 20px; right: 20px; z-index: 10000;
-      display: flex; flex-direction: column; gap: 12px;
+
+    #sidebar-close {
+      align-self: flex-end;
+      background: transparent;
+      border: none;
+      font-size: 32px;
+      cursor: pointer;
+      color: #625b71;
+      padding: 0;
+      user-select: none;
+      margin-bottom: 12px;
     }
-    .map-controls button {
-      background: #fff; padding: 12px; border-radius: 50%;
-      border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+
+    #sidebar-close:hover {
+      color: #1e1a29;
     }
-    .map-controls button:hover { background-color: #d6cfff; }
-    /* Dark mode */
-    body.dark-mode { background: #121212; color: #ddd; }
-    body.dark-mode .search-bar, body.dark-mode .map-controls {
-      background: #222; color: #ddd;
+
+    #place-info {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      color: #202124;
     }
-    body.dark-mode .search-bar input, body.dark-mode button {
-      background: #333; color: #ddd; border-color: #555;
+
+    /* Dark mode styles */
+    body.dark-mode {
+      background: #121212;
+      color: #ddd;
     }
-    body.dark-mode .search-bar input:focus {
-      box-shadow: 0 0 6px #4a90e2aa;
+
+    body.dark-mode .search-bar {
+      background: #333;
+      color: #ddd;
+    }
+
+    body.dark-mode .search-bar input {
+      background: #555;
+      color: #ddd;
+    }
+    
+    body.dark-mode .layer-toggle {
+      background: #333;
+      color: #ddd;
+    }
+
+    /* Responsive adjustments for mobile view */
+    @media (max-width: 767px) {
+      .search-bar {
+        width: calc(100% - 40px);
+      }
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
+
   <div class="search-bar" role="search">
-    <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
+    <input id="search" type="text" placeholder="Find a place" autocomplete="off" spellcheck="false" aria-label="Search for destination" />
     <div id="suggestions" role="listbox" tabindex="-1"></div>
   </div>
 
@@ -95,22 +216,21 @@
       <input id="destination" type="text" placeholder="Destination" aria-label="Destination" autocomplete="off" spellcheck="false" />
       <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
       <button id="get-route">Get Directions</button>
-      <button id="clear-route" style="background:#b3261e; color:#fff; border:none; border-radius:20px; padding: 10px 0;">Clear</button>
+      <button id="clear-route" style="margin-top: 8px; background:#b3261e; color:#fff; border:none; border-radius:20px; padding: 10px 0; font-weight:600; cursor:pointer;">Clear</button>
     </div>
   </div>
 
-  <div class="map-controls">
-    <button id="location-btn" aria-label="Find your location">
-      <img src="location-icon.svg" alt="Location" style="width: 24px; height: 24px;" />
+  <div class="floating-buttons">
+    <!-- Location button -->
+    <button id="location-btn">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Google_Maps_pin.svg" alt="location" style="width: 24px; height: 24px;"/>
     </button>
-    <button id="regular-toggle" class="active" aria-pressed="true">Regular</button>
-    <button id="satellite-toggle" aria-pressed="false">Satellite</button>
-    <button id="dark-toggle" aria-pressed="false">Dark Mode</button>
+    <!-- Compass button -->
+    <button class="compass" id="compass-btn">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Compass_rose_%28North%29.svg/1200px-Compass_rose_%28North%29.svg.png" alt="compass" style="width: 24px; height: 24px;"/>
+    </button>
   </div>
 
-  <div id="route-info" role="region" aria-live="polite" aria-atomic="true" aria-label="Route information">
-    <p id="route-summary"></p>
-  </div>
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
