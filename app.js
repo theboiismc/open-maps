@@ -1,362 +1,408 @@
 // Initialize MapLibre
 const map = new maplibregl.Map({
-  container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/liberty',
-  center: [0, 0],
-  zoom: 2,
-  pitch: 0,
-  bearing: 0,
-  dragRotate: true,
-  touchZoomRotate: true,
-  scrollZoom: true,
-  maxZoom: 18,
-  minZoom: 1
+    container: 'map',
+    style: 'https://tiles.openfreemap.org/styles/liberty',
+    center: [0, 0],
+    zoom: 2,
+    pitch: 0,
+    bearing: 0,
+    dragRotate: true,
+    touchZoomRotate: true,
+    scrollZoom: true,
+    maxZoom: 18,
+    minZoom: 1
 });
 
-// --------------------
-// Photon Search Setup
-// --------------------
+// Regular and Satellite Layer Setup
+let satelliteLayerAdded = false;
+const satelliteToggle = document.getElementById('satellite-toggle');
+const regularToggle = document.getElementById('regular-toggle');
 
-function photonSearch(query) {
-  if (!query) return Promise.resolve([]);
-  return fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`)
-    .then(res => res.json())
-    .then(data => data.features || []);
-}
+// Add Satellite Layer
+const addSatelliteLayer = () => {
+    if (!satelliteLayerAdded) {
+        map.addSource('satellite', {
+            type: 'raster',
+            tiles: [
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256
+        });
+        map.addLayer({
+            id: 'sat-layer',
+            type: 'raster',
+            source: 'satellite',
+            layout: { visibility: 'none' },
+            paint: { 'raster-opacity': 0.8 }
+        });
+        satelliteLayerAdded = true;
+    }
+};
 
-function clearSuggestions(container) {
-  container.innerHTML = '';
-  container.style.display = 'none';
-}
+const switchToSatellite = () => {
+    map.setLayoutProperty('sat-layer', 'visibility', 'visible');
+    satelliteToggle.classList.add('active');
+    satelliteToggle.setAttribute('aria-pressed', 'true');
+    regularToggle.classList.remove('active');
+    regularToggle.setAttribute('aria-pressed', 'false');
+};
 
-function renderSuggestions(features, container, inputEl) {
-  clearSuggestions(container);
-  if (!features.length) return;
-  container.style.display = 'block';
-  features.forEach(feature => {
-    const div = document.createElement('div');
-    div.className = 'suggestion';
-    div.tabIndex = 0;
-    div.setAttribute('role', 'option');
-    div.textContent = feature.properties.name + (feature.properties.city ? ', ' + feature.properties.city : '');
-    div.addEventListener('click', () => {
-      inputEl.value = div.textContent;
-      inputEl.dataset.lat = feature.geometry.coordinates[1];
-      inputEl.dataset.lon = feature.geometry.coordinates[0];
-      clearSuggestions(container);
-    });
-    div.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        div.click();
-      }
-    });
-    container.appendChild(div);
-  });
-}
+const switchToRegular = () => {
+    map.setLayoutProperty('sat-layer', 'visibility', 'none');
+    regularToggle.classList.add('active');
+    regularToggle.setAttribute('aria-pressed', 'true');
+    satelliteToggle.classList.remove('active');
+    satelliteToggle.setAttribute('aria-pressed', 'false');
+};
 
-// Main Search Bar
+map.on('load', () => {
+    addSatelliteLayer();
+    switchToRegular();
+});
+
+satelliteToggle.onclick = () => { switchToSatellite(); };
+regularToggle.onclick = () => { switchToRegular(); };
+
+// Search Inputs and Suggestions
 const searchInput = document.getElementById('search');
-const searchSuggestions = document.getElementById('suggestions');
-let mainMarker = null;
-
-searchInput.addEventListener('input', async () => {
-  if (!searchInput.value.trim()) {
-    clearSuggestions(searchSuggestions);
-    return;
-  }
-  const results = await photonSearch(searchInput.value.trim());
-  renderSuggestions(results, searchSuggestions, searchInput);
-});
-
-searchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && searchInput.dataset.lat && searchInput.dataset.lon) {
-    const lat = parseFloat(searchInput.dataset.lat);
-    const lon = parseFloat(searchInput.dataset.lon);
-    setMainMarker([lon, lat]);
-    map.flyTo({ center: [lon, lat], zoom: 14, speed: 1.2 });
-    clearSuggestions(searchSuggestions);
-    searchInput.blur();
-  }
-});
-
-function setMainMarker(coords) {
-  if (mainMarker) mainMarker.remove();
-  mainMarker = new maplibregl.Marker({ color: '#6750a4' })
-    .setLngLat(coords)
-    .addTo(map);
-}
-
-// --------------------
-// Directions Panel & Routing
-// --------------------
-
-const directionsToggleBtn = document.getElementById('directions-toggle');
-const directionsPanel = document.getElementById('directions-panel');
+const suggestionsBox = document.getElementById('suggestions');
 
 const originInput = document.getElementById('origin');
 const originSuggestions = document.getElementById('origin-suggestions');
+
 const destinationInput = document.getElementById('destination');
 const destinationSuggestions = document.getElementById('destination-suggestions');
+
+// Directions controls
+const directionsToggle = document.getElementById('directions-toggle');
+const directionsForm = document.getElementById('directions-form');
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
 
-const currentStepText = document.getElementById('current-step');
-const stepsList = document.getElementById('steps-list');
+directionsToggle.addEventListener('click', () => {
+    directionsForm.classList.toggle('hidden');
+});
 
+// Debounce helper
+function debounce(func, delay) {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func(...args), delay);
+    };
+}
+
+// Clear suggestions helper
+function clearSuggestions(container) {
+    container.innerHTML = '';
+    container.style.display = 'none';
+}
+
+// Show loading message in suggestions container
+function showLoading(container) {
+    container.innerHTML = '<div class="loading">Loading...</div>';
+    container.style.display = 'block';
+}
+
+// Show error message in suggestions container
+function showError(container, message = 'No results found') {
+    container.innerHTML = `<div class="error">${message}</div>`;
+    container.style.display = 'block';
+}
+
+// Render suggestions in container
+function renderSuggestions(results, container, inputElement) {
+    clearSuggestions(container);
+    if (results.length === 0) {
+        showError(container, 'No results found');
+        return;
+    }
+    results.forEach((feature, i) => {
+        const div = document.createElement('div');
+        div.className = 'suggestion';
+        const placeName = feature.properties.name || feature.properties.street || 'Unknown place';
+        const city = feature.properties.city || feature.properties.town || '';
+        const state = feature.properties.state || '';
+        const country = feature.properties.country || '';
+        // Compose a friendly display name
+        const displayName = [placeName, city, state, country].filter(Boolean).join(', ');
+        div.textContent = displayName;
+        div.tabIndex = 0;
+        // Store coordinates as floats
+        div.dataset.lon = feature.geometry.coordinates[0];
+        div.dataset.lat = feature.geometry.coordinates[1];
+        div.dataset.idx = i;
+        container.appendChild(div);
+
+        // Keyboard accessibility: allow Enter key to select suggestion
+        div.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                div.click();
+            }
+        });
+
+        // Click handler sets input value and recenters map if main search
+        div.addEventListener('click', () => {
+            inputElement.value = displayName;
+            clearSuggestions(container);
+
+            // If main search input, fly map to location
+            if (inputElement === searchInput) {
+                map.flyTo({ center: [parseFloat(div.dataset.lon), parseFloat(div.dataset.lat)], zoom: 14 });
+            }
+        });
+    });
+    container.style.display = 'block';
+}
+
+// Photon search function
+async function photonSearch(query) {
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Network response not ok');
+    const json = await res.json();
+    return json.features || [];
+}
+
+// Debounced handlers for each search input with loading and error handling
+const handleMainSearch = debounce(async (e) => {
+    const query = e.target.value.trim();
+    if (!query) {
+        clearSuggestions(suggestionsBox);
+        return;
+    }
+    showLoading(suggestionsBox);
+    try {
+        const results = await photonSearch(query);
+        renderSuggestions(results, suggestionsBox, searchInput);
+    } catch (err) {
+        showError(suggestionsBox, 'Search failed. Try again.');
+        console.error(err);
+    }
+}, 300);
+
+const handleOriginSearch = debounce(async (e) => {
+    const query = e.target.value.trim();
+    if (!query) {
+        clearSuggestions(originSuggestions);
+        return;
+    }
+    showLoading(originSuggestions);
+    try {
+        const results = await photonSearch(query);
+        renderSuggestions(results, originSuggestions, originInput);
+    } catch (err) {
+        showError(originSuggestions, 'Search failed. Try again.');
+        console.error(err);
+    }
+}, 300);
+
+const handleDestinationSearch = debounce(async (e) => {
+    const query = e.target.value.trim();
+    if (!query) {
+        clearSuggestions(destinationSuggestions);
+        return;
+    }
+    showLoading(destinationSuggestions);
+    try {
+        const results = await photonSearch(query);
+        renderSuggestions(results, destinationSuggestions, destinationInput);
+    } catch (err) {
+        showError(destinationSuggestions, 'Search failed. Try again.');
+        console.error(err);
+    }
+}, 300);
+
+// Attach input listeners
+searchInput.addEventListener('input', handleMainSearch);
+originInput.addEventListener('input', handleOriginSearch);
+destinationInput.addEventListener('input', handleDestinationSearch);
+
+// Hide suggestions when clicking outside
+document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+        clearSuggestions(suggestionsBox);
+    }
+    if (!originInput.contains(e.target) && !originSuggestions.contains(e.target)) {
+        clearSuggestions(originSuggestions);
+    }
+    if (!destinationInput.contains(e.target) && !destinationSuggestions.contains(e.target)) {
+        clearSuggestions(destinationSuggestions);
+    }
+});
+
+// ROUTING
+
+// Variables to hold selected coords
 let originCoords = null;
 let destinationCoords = null;
 
-directionsToggleBtn.addEventListener('click', () => {
-  const expanded = directionsPanel.classList.toggle('active');
-  directionsToggleBtn.setAttribute('aria-pressed', expanded);
-});
-
-originInput.addEventListener('input', async () => {
-  if (!originInput.value.trim()) {
-    clearSuggestions(originSuggestions);
-    return;
-  }
-  const results = await photonSearch(originInput.value.trim());
-  renderSuggestions(results, originSuggestions, originInput);
-});
-originInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && originInput.dataset.lat && originInput.dataset.lon) {
-    originCoords = [+originInput.dataset.lon, +originInput.dataset.lat];
-    clearSuggestions(originSuggestions);
-    originInput.blur();
-  }
-});
-originSuggestions.addEventListener('click', () => {
-  originCoords = [+originInput.dataset.lon, +originInput.dataset.lat];
-});
-
-destinationInput.addEventListener('input', async () => {
-  if (!destinationInput.value.trim()) {
-    clearSuggestions(destinationSuggestions);
-    return;
-  }
-  const results = await photonSearch(destinationInput.value.trim());
-  renderSuggestions(results, destinationSuggestions, destinationInput);
-});
-destinationInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && destinationInput.dataset.lat && destinationInput.dataset.lon) {
-    destinationCoords = [+destinationInput.dataset.lon, +destinationInput.dataset.lat];
-    clearSuggestions(destinationSuggestions);
-    destinationInput.blur();
-  }
-});
-destinationSuggestions.addEventListener('click', () => {
-  destinationCoords = [+destinationInput.dataset.lon, +destinationInput.dataset.lat];
-});
-
-let routeGeoJSON = null;
-let routeLine = null;
-let steps = [];
-let currentStepIndex = 0;
-let watchId = null;
-let navigating = false;
-
-// Clean up old route layers
-function clearRoute() {
-  if (routeLine) {
-    map.removeLayer('route');
-    map.removeSource('route');
-    routeLine = null;
-  }
-  steps = [];
-  currentStepIndex = 0;
-  currentStepText.textContent = '';
-  stepsList.innerHTML = '';
-  originCoords = null;
-  destinationCoords = null;
-  navigating = false;
-  if (watchId !== null) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-  }
+// Helper to parse selected suggestion coords
+function selectCoordsFromSuggestion(inputElem, suggestionsContainer) {
+    let coords = null;
+    // Find first suggestion whose text matches input value exactly
+    for (const child of suggestionsContainer.children) {
+        if (child.textContent === inputElem.value.trim()) {
+            const lon = parseFloat(child.dataset.lon);
+            const lat = parseFloat(child.dataset.lat);
+            if (!isNaN(lon) && !isNaN(lat)) {
+                coords = [lon, lat];
+                break;
+            }
+        }
+    }
+    return coords;
 }
 
-clearRouteBtn.addEventListener('click', () => {
-  clearRoute();
-  originInput.value = '';
-  destinationInput.value = '';
+// Handle clicks on origin/destination suggestions to set coords
+originSuggestions.addEventListener('click', (e) => {
+    if (!e.target.dataset.lon || !e.target.dataset.lat) return;
+    originCoords = [parseFloat(e.target.dataset.lon), parseFloat(e.target.dataset.lat)];
+    originInput.value = e.target.textContent;
+    clearSuggestions(originSuggestions);
 });
 
+destinationSuggestions.addEventListener('click', (e) => {
+    if (!e.target.dataset.lon || !e.target.dataset.lat) return;
+    destinationCoords = [parseFloat(e.target.dataset.lon), parseFloat(e.target.dataset.lat)];
+    destinationInput.value = e.target.textContent;
+    clearSuggestions(destinationSuggestions);
+});
+
+// Also set coords when user manually changes input and presses Enter on suggestion
+originInput.addEventListener('blur', () => {
+    const coords = selectCoordsFromSuggestion(originInput, originSuggestions);
+    if (coords) originCoords = coords;
+    else originCoords = null;
+});
+
+destinationInput.addEventListener('blur', () => {
+    const coords = selectCoordsFromSuggestion(destinationInput, destinationSuggestions);
+    if (coords) destinationCoords = coords;
+    else destinationCoords = null;
+});
+
+// Clear route and markers/layers
+function clearRoute() {
+    originInput.value = '';
+    destinationInput.value = '';
+    originCoords = null;
+    destinationCoords = null;
+    clearSuggestions(originSuggestions);
+    clearSuggestions(destinationSuggestions);
+    removeRouteLayer();
+}
+
+// Remove route layer and source if exists
+function removeRouteLayer() {
+    if (map.getLayer('route')) {
+        map.removeLayer('route');
+    }
+    if (map.getSource('route')) {
+        map.removeSource('route');
+    }
+    // Clear step markers and UI if you implement those (optional)
+    clearStepsUI();
+}
+
+// Get route and draw on map
 async function getRoute() {
-  if (!originCoords || !destinationCoords) {
-    alert('Please select both origin and destination from suggestions.');
-    return;
-  }
-
-  clearRoute();
-
-  const url = `https://router.project-osrm.org/route/v1/driving/${originCoords[0]},${originCoords[1]};${destinationCoords[0]},${destinationCoords[1]}?overview=full&geometries=geojson&steps=true`;
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch route');
-    const json = await res.json();
-
-    if (json.code !== "Ok" || !json.routes.length) {
-      alert('No route found.');
-      return;
+    if (!originCoords || !destinationCoords) {
+        alert('Please select both origin and destination from suggestions.');
+        return;
     }
 
-    const route = json.routes[0];
-    routeGeoJSON = {
-      type: 'Feature',
-      geometry: route.geometry
-    };
+    const [oLon, oLat] = originCoords;
+    const [dLon, dLat] = destinationCoords;
+
+    const url = `https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${dLon},${dLat}?overview=full&geometries=geojson&steps=true`;
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Routing API error');
+        const json = await res.json();
+
+        if (json.routes.length === 0) {
+            alert('No route found.');
+            return;
+        }
+
+        const route = json.routes[0];
+        drawRoute(route.geometry);
+        displaySteps(route.legs[0].steps);
+        // Fit map to route bounds
+        fitMapToRoute(route.geometry);
+    } catch (err) {
+        console.error(err);
+        alert('Failed to get route. Try again.');
+    }
+}
+
+// Draw route on map
+function drawRoute(geojson) {
+    removeRouteLayer();
 
     map.addSource('route', {
-      type: 'geojson',
-      data: routeGeoJSON
+        type: 'geojson',
+        data: {
+            type: 'Feature',
+            geometry: geojson
+        }
     });
 
     map.addLayer({
-      id: 'route',
-      type: 'line',
-      source: 'route',
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round'
-      },
-      paint: {
-        'line-color': '#6750a4',
-        'line-width': 6,
-        'line-opacity': 0.8
-      }
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        paint: {
+            'line-color': '#4287f5',
+            'line-width': 6
+        }
     });
-    routeLine = true;
-
-    steps = route.legs[0].steps;
-    currentStepIndex = 0;
-
-    showStep(currentStepIndex);
-    populateStepsList();
-
-    // Start navigation mode
-    startNavigation();
-  } catch (err) {
-    alert('Error fetching route: ' + err.message);
-  }
 }
 
-getRouteBtn.addEventListener('click', getRoute);
-
-// Display current step instruction and speak it
-function showStep(index) {
-  if (index >= steps.length) {
-    currentStepText.textContent = 'You have arrived at your destination.';
-    speak('You have arrived at your destination.');
-    navigating = false;
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-      watchId = null;
-    }
-    return;
-  }
-  const step = steps[index];
-  currentStepText.textContent = step.maneuver.instruction;
-  speak(step.maneuver.instruction);
-  highlightStep(index);
+// Fit map viewport to route geometry
+function fitMapToRoute(geojson) {
+    const coords = geojson.coordinates;
+    const bounds = coords.reduce((b, coord) => b.extend(coord), new maplibregl.LngLatBounds(coords[0], coords[0]));
+    map.fitBounds(bounds, { padding: 40 });
 }
 
-// Fill the steps list UI
-function populateStepsList() {
-  stepsList.innerHTML = '';
-  steps.forEach((step, idx) => {
-    const li = document.createElement('li');
-    li.textContent = step.maneuver.instruction;
-    if (idx === currentStepIndex) li.style.fontWeight = '700';
-    stepsList.appendChild(li);
-  });
+// Display steps in UI (you'll want to implement this with clean UI)
+const stepsContainer = document.getElementById('steps');
+
+function clearStepsUI() {
+    if (stepsContainer) stepsContainer.innerHTML = '';
 }
 
-// Highlight current step in the list
-function highlightStep(index) {
-  Array.from(stepsList.children).forEach((li, idx) => {
-    li.style.fontWeight = idx === index ? '700' : '400';
-    li.style.color = idx === index ? '#6750a4' : '#202124';
-  });
+function displaySteps(steps) {
+    if (!stepsContainer) return;
+
+    clearStepsUI();
+
+    steps.forEach((step, i) => {
+        const div = document.createElement('div');
+        div.className = 'step';
+        div.textContent = `${i + 1}. ${step.maneuver.instruction}`;
+        stepsContainer.appendChild(div);
+    });
 }
 
-// Calculate distance between two [lon, lat] points in meters
-function distanceBetween([lon1, lat1], [lon2, lat2]) {
-  const toRad = deg => deg * Math.PI / 180;
-  const R = 6371e3; // meters
-  const φ1 = toRad(lat1);
-  const φ2 = toRad(lat2);
-  const Δφ = toRad(lat2 - lat1);
-  const Δλ = toRad(lon2 - lon1);
+// Button handlers
+getRouteBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    getRoute();
+});
 
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
+clearRouteBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    clearRoute();
+});
 
-// Find closest step maneuver to current position
-function closestStepIndex(coords) {
-  let minDist = Infinity;
-  let minIndex = 0;
-  for(let i = 0; i < steps.length; i++) {
-    const m = steps[i].maneuver.location; // [lon, lat]
-    const dist = distanceBetween([coords.longitude, coords.latitude], m);
-    if(dist < minDist) {
-      minDist = dist;
-      minIndex = i;
-    }
-  }
-  return minIndex;
-}
-
-// Start watching user position and advance steps accordingly
-function startNavigation() {
-  if (!navigator.geolocation) {
-    alert('Geolocation is not supported by your browser.');
-    return;
-  }
-  navigating = true;
-  watchId = navigator.geolocation.watchPosition(position => {
-    const coords = position.coords;
-
-    // Center map on user
-    map.flyTo({ center: [coords.longitude, coords.latitude], zoom: 16, speed: 0.5, curve: 1 });
-
-    // Advance step if user is close enough (<25m)
-    const nextStepIdx = currentStepIndex + 1;
-    if (nextStepIdx < steps.length) {
-      const nextStep = steps[nextStepIdx];
-      const distToNext = distanceBetween([coords.longitude, coords.latitude], nextStep.maneuver.location);
-      if (distToNext < 25) {
-        currentStepIndex = nextStepIdx;
-        showStep(currentStepIndex);
-      }
-    }
-
-    // Also check if current step is behind user (>50m), jump ahead if needed
-    const currentStep = steps[currentStepIndex];
-    const distToCurrent = distanceBetween([coords.longitude, coords.latitude], currentStep.maneuver.location);
-    if (distToCurrent > 50 && currentStepIndex < steps.length - 1) {
-      currentStepIndex++;
-      showStep(currentStepIndex);
-    }
-
-    highlightStep(currentStepIndex);
-
-  }, err => {
-    console.error(err);
-  }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
-}
-
-// Speak text using Web Speech API
-function speak(text) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US';
-  window.speechSynthesis.speak(utterance);
-}
+// Initialize empty steps UI
+clearStepsUI();
