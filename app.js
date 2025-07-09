@@ -13,7 +13,7 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Controls
+// Controls elements
 const satelliteToggle = document.getElementById('satellite-toggle');
 const regularToggle = document.getElementById('regular-toggle');
 const darkToggle = document.getElementById('dark-toggle');
@@ -22,7 +22,7 @@ const directionsForm = document.getElementById('directions-form');
 const closeDirectionsBtn = document.getElementById('close-directions');
 const routeInfoDiv = document.getElementById('route-info');
 
-// Add satellite layer
+// Satellite layer flag
 let satelliteLayerAdded = false;
 const addSatelliteLayer = () => {
   if (!satelliteLayerAdded) {
@@ -60,14 +60,14 @@ const switchToRegular = () => {
   satelliteToggle.setAttribute('aria-pressed', 'false');
 };
 
-// Dark mode
+// Dark mode toggle
 darkToggle.addEventListener('click', () => {
   document.body.classList.toggle('dark-mode');
   const isDark = document.body.classList.contains('dark-mode');
   darkToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
 });
 
-// On map load
+// On map load setup
 map.on('load', () => {
   addSatelliteLayer();
   switchToRegular();
@@ -76,7 +76,7 @@ map.on('load', () => {
 satelliteToggle.onclick = switchToSatellite;
 regularToggle.onclick = switchToRegular;
 
-// Directions panel slide toggle
+// Directions panel slide toggle helpers
 function openDirectionsPanel() {
   directionsForm.classList.add('open');
   document.querySelector('.search-bar').style.display = 'none';
@@ -89,16 +89,26 @@ function closeDirectionsPanel() {
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
 }
 
+// Toggle directions panel button
 directionsToggleBtn.addEventListener('click', () => {
-  const isOpen = directionsForm.classList.contains('open');
-  isOpen ? closeDirectionsPanel() : openDirectionsPanel();
+  if (directionsForm.classList.contains('open')) {
+    closeDirectionsPanel();
+  } else {
+    openDirectionsPanel();
+  }
 });
+
+// Close button inside directions panel
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
+// Close on ESC key
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeDirectionsPanel();
+  if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
+    closeDirectionsPanel();
+  }
 });
 
+// Close on click outside directions panel
 document.addEventListener('click', e => {
   if (
     directionsForm.classList.contains('open') &&
@@ -109,7 +119,7 @@ document.addEventListener('click', e => {
   }
 });
 
-// Swipe to dismiss (mobile)
+// Swipe to dismiss directions panel on mobile
 let startX = 0, currentX = 0, isSwiping = false;
 directionsForm.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) return;
@@ -129,7 +139,7 @@ directionsForm.addEventListener('touchend', () => {
   isSwiping = false;
 });
 
-// Photon search
+// Photon search setup
 const photonUrl = "https://photon.komoot.io/api/?q=";
 const debounce = (fn, delay) => {
   let timeoutId;
@@ -161,7 +171,7 @@ function clearSuggestions(container) {
 function renderSuggestions(container, results) {
   clearSuggestions(container);
   if (!results.length) return;
-  results.forEach((feature, i) => {
+  results.forEach(feature => {
     const div = document.createElement('div');
     div.className = 'suggestion';
     div.textContent = feature.properties.name + 
@@ -226,9 +236,6 @@ setupSearch(document.getElementById('destination'), document.getElementById('des
 // Routing with OSRM
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
-let currentRouteId = null;
-
-const routeServiceUrl = "https://router.project-osrm.org/route/v1/driving/";
 
 function drawRoute(routeGeoJSON) {
   if (map.getSource('route')) {
@@ -275,58 +282,64 @@ getRouteBtn.addEventListener('click', async () => {
   clearRoute();
 
   const coords = `${originLon},${originLat};${destinationLon},${destinationLat}`;
-  const url = `${routeServiceUrl}${coords}?overview=full&geometries=geojson&steps=true`;
+  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=true`;
 
-  routeInfoDiv.textContent = 'Routing…';
+  routeInfoDiv.textContent = 'Routing...';
 
   try {
     const res = await fetch(url);
+    if (!res.ok) throw new Error('Routing request failed');
     const data = await res.json();
+    if (data.code !== 'Ok' || !data.routes.length) throw new Error('No route found');
+
     const route = data.routes[0];
-    drawRoute({ type: 'Feature', geometry: route.geometry });
+    drawRoute({
+      type: 'Feature',
+      geometry: route.geometry
+    });
 
-    const coordsArr = route.geometry.coordinates;
-    const bounds = coordsArr.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coordsArr[0], coordsArr[0]));
-    map.fitBounds(bounds, { padding: 80 });
+    map.fitBounds([
+      [originLon, originLat],
+      [destinationLon, destinationLat]
+    ], { padding: 60 });
 
-    const distanceKm = (route.distance / 1000).toFixed(2);
-    const durationMin = Math.round(route.duration / 60);
-    routeInfoDiv.innerHTML = `
-      Distance: ${distanceKm} km<br/>
-      Duration: ${durationMin} min<br/><br/>
-      <strong>Steps:</strong><br/>
-      <ol style="padding-left: 18px; margin: 0; max-height: 160px; overflow-y: auto;">
-        ${route.legs[0].steps.map(step => `<li>${step.maneuver.instruction}</li>`).join('')}
-      </ol>
-    `;
-  } catch (err) {
-    console.error(err);
-    routeInfoDiv.textContent = 'Failed to get route. Please try again.';
+    routeInfoDiv.textContent = `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
+
+  } catch (e) {
+    routeInfoDiv.textContent = 'Failed to get route.';
+    console.error(e);
   }
 });
 
 clearRouteBtn.addEventListener('click', () => {
   clearRoute();
-  ['origin', 'destination'].forEach(id => {
-    const el = document.getElementById(id);
-    el.value = '';
-    el.removeAttribute('data-lon');
-    el.removeAttribute('data-lat');
+  document.getElementById('origin').value = '';
+  document.getElementById('destination').value = '';
+  document.getElementById('origin').dataset.lon = '';
+  document.getElementById('origin').dataset.lat = '';
+  document.getElementById('destination').dataset.lon = '';
+  document.getElementById('destination').dataset.lat = '';
+  routeInfoDiv.textContent = '';
+});
+
+// BONUS: Add location button on map controls (optional)
+const locationBtn = document.createElement('button');
+locationBtn.id = 'location-btn';
+locationBtn.title = 'Find My Location';
+locationBtn.innerHTML = '📍';
+locationBtn.style.fontSize = '20px';
+
+locationBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    alert('Geolocation is not supported by your browser.');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const coords = [pos.coords.longitude, pos.coords.latitude];
+    map.flyTo({ center: coords, zoom: 15 });
+  }, err => {
+    alert('Unable to retrieve your location.');
   });
 });
 
-// Geolocation
-if ("geolocation" in navigator) {
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    map.setCenter([longitude, latitude]);
-    map.setZoom(14);
-    const userMarker = new maplibregl.Marker({ color: '#ff6347' })
-      .setLngLat([longitude, latitude])
-      .addTo(map);
-
-    navigator.geolocation.watchPosition(pos => {
-      userMarker.setLngLat([pos.coords.longitude, pos.coords.latitude]);
-    }, err => console.warn('Geolocation watch failed:', err), { enableHighAccuracy: true });
-  });
-}
+document.querySelector('.map-controls').appendChild(locationBtn);
