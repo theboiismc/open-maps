@@ -1,69 +1,107 @@
+// Initialize MapLibre map
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
   center: [0, 0],
-  zoom: 2
+  zoom: 2,
+  pitch: 0,
+  bearing: 0,
+  dragRotate: true,
+  touchZoomRotate: true,
+  scrollZoom: true,
+  maxZoom: 18,
+  minZoom: 1
 });
 
-// Add satellite layer
-let satelliteLayerAdded = false;
-function addSatelliteLayer() {
-  if (satelliteLayerAdded) return;
-  map.addSource('satellite', {
-    type: 'raster',
-    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-    tileSize: 256
-  });
-  map.addLayer({
-    id: 'sat-layer',
-    type: 'raster',
-    source: 'satellite',
-    layout: { visibility: 'none' },
-    paint: { 'raster-opacity': 0.8 }
-  });
-  satelliteLayerAdded = true;
-}
+// Map style toggle images (Flaticon CDN)
+const regularThumbnail = 'https://cdn-icons-png.flaticon.com/512/684/684908.png';  // map icon
+const satelliteThumbnail = 'https://cdn-icons-png.flaticon.com/512/138/138281.png'; // satellite icon
 
-// Handle map style toggle
-const styleToggle = document.getElementById('style-toggle');
+// Elements
+const styleToggleBtn = document.getElementById('style-toggle');
 const styleImage = document.getElementById('style-image');
 const styleLabel = document.getElementById('style-label');
 
-let isSatellite = false;
-const satelliteThumbnail = 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Satellite_image_example.jpg/240px-Satellite_image_example.jpg';
-const regularThumbnail = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/OpenStreetMap_project_logo.svg/240px-OpenStreetMap_project_logo.svg.png';
-
-function updateStyleToggleUI() {
-  styleImage.src = isSatellite ? satelliteThumbnail : regularThumbnail;
-  styleLabel.textContent = isSatellite ? 'Satellite' : 'Regular';
-  styleToggle.setAttribute('aria-label', isSatellite ? 'Switch to Regular map' : 'Switch to Satellite map');
-}
-
-styleToggle.addEventListener('click', () => {
-  isSatellite = !isSatellite;
-  map.setLayoutProperty('sat-layer', 'visibility', isSatellite ? 'visible' : 'none');
-  updateStyleToggleUI();
-});
-
-// Directions menu logic
 const directionsToggleBtn = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
 const closeDirectionsBtn = document.getElementById('close-directions');
 
+const routeInfoDiv = document.getElementById('route-info');
+
+let satelliteLayerAdded = false;
+let currentStyle = 'regular';
+
+function addSatelliteLayer() {
+  if (!satelliteLayerAdded) {
+    map.addSource('satellite', {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      ],
+      tileSize: 256
+    });
+    map.addLayer({
+      id: 'sat-layer',
+      type: 'raster',
+      source: 'satellite',
+      layout: { visibility: 'none' },
+      paint: { 'raster-opacity': 0.8 }
+    });
+    satelliteLayerAdded = true;
+  }
+}
+
+function switchToRegular() {
+  if (satelliteLayerAdded) {
+    map.setLayoutProperty('sat-layer', 'visibility', 'none');
+  }
+  styleImage.src = regularThumbnail;
+  styleLabel.textContent = 'Regular';
+  currentStyle = 'regular';
+}
+
+function switchToSatellite() {
+  if (satelliteLayerAdded) {
+    map.setLayoutProperty('sat-layer', 'visibility', 'visible');
+  }
+  styleImage.src = satelliteThumbnail;
+  styleLabel.textContent = 'Satellite';
+  currentStyle = 'satellite';
+}
+
+// Toggle map style on button click
+styleToggleBtn.addEventListener('click', () => {
+  if (!satelliteLayerAdded) addSatelliteLayer();
+  if (currentStyle === 'regular') {
+    switchToSatellite();
+  } else {
+    switchToRegular();
+  }
+});
+
+// On map load init
+map.on('load', () => {
+  addSatelliteLayer();
+  switchToRegular();
+});
+
+// Directions panel slide toggle helpers (but no slide, just show/hide)
 function openDirectionsPanel() {
   directionsForm.classList.add('open');
   document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
-  styleToggle.classList.add('shifted');
+  // Shift style toggle right so it's visible and usable
+  styleToggleBtn.classList.add('shifted');
 }
 
 function closeDirectionsPanel() {
   directionsForm.classList.remove('open');
   document.querySelector('.search-bar').style.display = 'block';
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
-  styleToggle.classList.remove('shifted');
+  styleToggleBtn.classList.remove('shifted');
 }
 
+// Toggle directions panel button
 directionsToggleBtn.addEventListener('click', () => {
   if (directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
@@ -72,13 +110,18 @@ directionsToggleBtn.addEventListener('click', () => {
   }
 });
 
+// Close button inside directions panel
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
-document.addEventListener('keydown', (e) => {
+// Close on ESC key
+document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   }
 });
+
+// Prevent directions panel from closing on suggestion clicks or input clicks
+// We only close on close button or ESC now
 
 // Photon search setup
 const photonUrl = "https://photon.komoot.io/api/?q=";
@@ -103,18 +146,20 @@ async function photonSearch(query) {
   }
 }
 
+function showLoading(container) {
+  container.innerHTML = '<div class="loading">Loading…</div>';
+}
 function clearSuggestions(container) {
   container.innerHTML = '';
 }
-
-function renderSuggestions(container, results, inputEl) {
+function renderSuggestions(container, results) {
   clearSuggestions(container);
   if (!results.length) return;
   results.forEach(feature => {
     const div = document.createElement('div');
     div.className = 'suggestion';
-    div.textContent = feature.properties.name +
-      (feature.properties.state ? ', ' + feature.properties.state : '') +
+    div.textContent = feature.properties.name + 
+      (feature.properties.state ? ', ' + feature.properties.state : '') + 
       (feature.properties.country ? ', ' + feature.properties.country : '');
     div.tabIndex = 0;
     div.dataset.lon = feature.geometry.coordinates[0];
@@ -123,14 +168,25 @@ function renderSuggestions(container, results, inputEl) {
   });
 }
 
-function setupSearch(inputEl, suggestionsEl) {
+// Setup search inputs with suggestions
+function setupSearch(inputEl) {
+  // Create suggestions container
+  let suggestionsEl = document.createElement('div');
+  suggestionsEl.className = 'suggestions';
+  suggestionsEl.style.position = 'absolute';
+  suggestionsEl.style.top = (inputEl.getBoundingClientRect().bottom + window.scrollY) + 'px';
+  suggestionsEl.style.left = (inputEl.getBoundingClientRect().left + window.scrollX) + 'px';
+  suggestionsEl.style.width = inputEl.offsetWidth + 'px';
+  document.body.appendChild(suggestionsEl);
+
   const debouncedSearch = debounce(async (query) => {
     if (!query) {
       clearSuggestions(suggestionsEl);
       return;
     }
+    showLoading(suggestionsEl);
     const results = await photonSearch(query);
-    renderSuggestions(suggestionsEl, results, inputEl);
+    renderSuggestions(suggestionsEl, results);
   }, 250);
 
   inputEl.addEventListener('input', e => {
@@ -166,22 +222,13 @@ function setupSearch(inputEl, suggestionsEl) {
   });
 }
 
-setupSearch(document.getElementById('search'), createSuggestionsBox('search'));
-setupSearch(document.getElementById('origin'), createSuggestionsBox('origin'));
-setupSearch(document.getElementById('destination'), createSuggestionsBox('destination'));
+setupSearch(document.getElementById('search'));
+setupSearch(document.getElementById('origin'));
+setupSearch(document.getElementById('destination'));
 
-function createSuggestionsBox(baseId) {
-  const input = document.getElementById(baseId);
-  const box = document.createElement('div');
-  box.className = 'suggestions';
-  input.insertAdjacentElement('afterend', box);
-  return box;
-}
-
-// Routing
+// Routing with OSRM
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
-const routeInfoDiv = document.getElementById('route-info');
 
 function drawRoute(routeGeoJSON) {
   if (map.getSource('route')) {
@@ -250,6 +297,7 @@ getRouteBtn.addEventListener('click', async () => {
     ], { padding: 60 });
 
     routeInfoDiv.textContent = `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
+
   } catch (e) {
     routeInfoDiv.textContent = 'Failed to get route.';
     console.error(e);
@@ -258,15 +306,18 @@ getRouteBtn.addEventListener('click', async () => {
 
 clearRouteBtn.addEventListener('click', () => {
   clearRoute();
-  ['origin', 'destination'].forEach(id => {
-    const el = document.getElementById(id);
-    el.value = '';
-    el.dataset.lat = '';
-    el.dataset.lon = '';
-  });
+  const originInput = document.getElementById('origin');
+  const destinationInput = document.getElementById('destination');
+  originInput.value = '';
+  destinationInput.value = '';
+  originInput.dataset.lon = '';
+  originInput.dataset.lat = '';
+  destinationInput.dataset.lon = '';
+  destinationInput.dataset.lat = '';
+  routeInfoDiv.textContent = '';
 });
 
-// Add location button
+// Location button in map controls
 const locationBtn = document.createElement('button');
 locationBtn.id = 'location-btn';
 locationBtn.title = 'Find My Location';
