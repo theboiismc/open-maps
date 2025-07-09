@@ -13,7 +13,7 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Controls elements
+// Controls
 const satelliteToggle = document.getElementById('satellite-toggle');
 const regularToggle = document.getElementById('regular-toggle');
 const directionsToggleBtn = document.getElementById('directions-toggle');
@@ -21,7 +21,7 @@ const directionsForm = document.getElementById('directions-form');
 const closeDirectionsBtn = document.getElementById('close-directions');
 const routeInfoDiv = document.getElementById('route-info');
 
-// Satellite layer flag
+// Satellite layer setup
 let satelliteLayerAdded = false;
 const addSatelliteLayer = () => {
   if (!satelliteLayerAdded) {
@@ -59,7 +59,6 @@ const switchToRegular = () => {
   satelliteToggle.setAttribute('aria-pressed', 'false');
 };
 
-// On map load setup
 map.on('load', () => {
   addSatelliteLayer();
   switchToRegular();
@@ -68,20 +67,18 @@ map.on('load', () => {
 satelliteToggle.onclick = switchToSatellite;
 regularToggle.onclick = switchToRegular;
 
-// Directions panel toggle helpers
+// Panel controls
 function openDirectionsPanel() {
   directionsForm.classList.add('open');
   document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
 }
-
 function closeDirectionsPanel() {
   directionsForm.classList.remove('open');
   document.querySelector('.search-bar').style.display = 'flex';
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
 }
 
-// Toggle directions panel button
 directionsToggleBtn.addEventListener('click', () => {
   if (directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
@@ -89,31 +86,16 @@ directionsToggleBtn.addEventListener('click', () => {
     openDirectionsPanel();
   }
 });
-
-// Close button inside directions panel
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
-// Close on ESC key
+// Only close panel on ESC key
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   }
 });
 
-// Close on click outside directions panel — ignore clicks inside suggestion containers
-document.addEventListener('click', e => {
-  if (
-    directionsForm.classList.contains('open') &&
-    !directionsForm.contains(e.target) &&
-    !directionsToggleBtn.contains(e.target) &&
-    !document.getElementById('origin-suggestions').contains(e.target) &&
-    !document.getElementById('destination-suggestions').contains(e.target)
-  ) {
-    closeDirectionsPanel();
-  }
-});
-
-// Swipe to dismiss directions panel on mobile
+// Swipe to dismiss panel on mobile
 let startX = 0, currentX = 0, isSwiping = false;
 directionsForm.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) return;
@@ -133,7 +115,7 @@ directionsForm.addEventListener('touchend', () => {
   isSwiping = false;
 });
 
-// Photon search setup
+// Photon search
 const photonUrl = "https://photon.komoot.io/api/?q=";
 const debounce = (fn, delay) => {
   let timeoutId;
@@ -196,6 +178,7 @@ function setupSearch(inputEl, suggestionsEl) {
 
   suggestionsEl.addEventListener('click', e => {
     if (!e.target.classList.contains('suggestion')) return;
+    e.stopPropagation(); // ⛔ prevent panel from closing
     const lon = parseFloat(e.target.dataset.lon);
     const lat = parseFloat(e.target.dataset.lat);
     const text = e.target.textContent;
