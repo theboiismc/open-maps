@@ -1,7 +1,7 @@
-// Initialize the map
+// Initialize the map with Liberty style
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://demotiles.maplibre.org/style.json',
+  style: 'https://tiles.openfreemap.org/styles/liberty', // Liberty Style URL
   center: [0, 0],
   zoom: 2,
   attributionControl: false // Disable default attribution control
