@@ -69,21 +69,39 @@ regularToggle.onclick = () => {
   switchToRegular();   // Switch to Regular view
 };
 
-// Main Search Bar (for general location search)
-const mainSearchInput = document.getElementById('search');
-const mainSuggestionsBox = document.getElementById('suggestions');
+// Remove Geolocation Control (Location button)
+map.on('load', () => {
+  // Just comment out or remove this line to prevent the location button from showing
+  // map.addControl(new maplibregl.GeolocateControl({
+  //   positionOptions: { enableHighAccuracy: true },
+  //   trackUserLocation: true,
+  //   showUserHeading: true
+  // }), 'bottom-right');
+});
 
-// Function to handle Nominatim search (for main search bar)
+// Search Bar DOM references
+const searchInput = document.getElementById('search');
+const suggestionsBox = document.getElementById('suggestions');
+const sidebar = document.getElementById('sidebar');
+const sidebarCloseBtn = document.getElementById('sidebar-close');
+
+// Helper for Nominatim search
 async function nominatimSearch(query) {
   if (!query) return [];
+  // Return empty array if query is empty
   const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
   return res.json();
 }
 
+// Clear the suggestion box
+function clearSuggestions(container) {
+  container.innerHTML = ''; // Clear all suggestions
+}
+
 // Render suggestions in the box
 function renderSuggestions(container, results) {
-  container.innerHTML = ''; // Clear previous suggestions
-  if (results.length === 0) return;
+  clearSuggestions(container);
+  if (results.length === 0) return; // Don't show anything if no results
 
   results.forEach((place, i) => {
     const div = document.createElement('div');
@@ -97,142 +115,74 @@ function renderSuggestions(container, results) {
   });
 }
 
-// Event listener for the main search bar input
-mainSearchInput.addEventListener('input', async (e) => {
-  const query = e.target.value.trim();
-  if (!query) {
-    mainSuggestionsBox.innerHTML = ''; // Clear suggestions if empty
+// Listen for user input in the search field
+searchInput.addEventListener('input', async e => {
+  const q = e.target.value.trim(); // Trim the input for clean data
+  if (!q) {
+    clearSuggestions(suggestionsBox); // Clear suggestions if input is empty
     return;
   }
-  const results = await nominatimSearch(query);
-  renderSuggestions(mainSuggestionsBox, results);
+  const results = await nominatimSearch(q); // Get suggestions from Nominatim API
+  renderSuggestions(suggestionsBox, results); // Render the suggestions
 });
 
-// Handle click on suggestions (for the main search bar)
-mainSuggestionsBox.addEventListener('click', (e) => {
+// Handle click event on suggestions
+suggestionsBox.addEventListener('click', e => {
   const idx = e.target.dataset.idx;
-  if (idx == null) return;
+  if (idx == null) return; // If no suggestion clicked, do nothing
 
   const selectedPlace = e.target.textContent;
   const selectedLatLon = [parseFloat(e.target.dataset.lon), parseFloat(e.target.dataset.lat)];
+  searchInput.value = selectedPlace; // Set the selected place to the search input
+  map.flyTo({ center: selectedLatLon, zoom: 14 }); // Fly to the selected place on the map
 
-  mainSearchInput.value = selectedPlace;
-  map.flyTo({ center: selectedLatLon, zoom: 14 });
-  mainSuggestionsBox.innerHTML = ''; // Clear suggestions after selecting
+  // Optionally, show sidebar with place info (you can modify as needed)
+  sidebar.classList.add('open');
+  sidebar.hidden = false;
+  // Set place info or handle as per your app structure
 });
 
-// Directions Panel Elements
+// Close suggestions when clicking outside of them
+document.addEventListener('click', e => {
+  if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+    clearSuggestions(suggestionsBox);
+  }
+});
+
+// Close sidebar when clicking the close button
+sidebarCloseBtn.addEventListener('click', () => {
+  sidebar.classList.remove('open');
+});
+
+// Directions Panel Toggle
+const directionsToggle = document.getElementById('directions-toggle');
+const directionsForm = document.getElementById('directions-form');
+
+// Toggle Directions Form visibility
+directionsToggle.addEventListener('click', () => {
+  directionsForm.classList.toggle('hidden');
+});
+
+// Directions Handling (Placeholders for route generation)
 const originInput = document.getElementById('origin');
 const destinationInput = document.getElementById('destination');
-const originSuggestionsBox = document.getElementById('origin-suggestions');
-const destinationSuggestionsBox = document.getElementById('destination-suggestions');
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
 
-// Event listener for the origin search input (directions panel)
-originInput.addEventListener('input', async (e) => {
-  const query = e.target.value.trim();
-  if (!query) {
-    originSuggestionsBox.innerHTML = ''; // Clear suggestions if empty
-    return;
-  }
-  const results = await nominatimSearch(query);
-  renderSuggestions(originSuggestionsBox, results);
-});
-
-// Event listener for the destination search input (directions panel)
-destinationInput.addEventListener('input', async (e) => {
-  const query = e.target.value.trim();
-  if (!query) {
-    destinationSuggestionsBox.innerHTML = ''; // Clear suggestions if empty
-    return;
-  }
-  const results = await nominatimSearch(query);
-  renderSuggestions(destinationSuggestionsBox, results);
-});
-
-// Handle click on origin suggestions (directions panel)
-originSuggestionsBox.addEventListener('click', (e) => {
-  const selectedLatLon = handleSuggestionClick(e, originInput, originSuggestionsBox);
-  if (selectedLatLon) originLatLon = selectedLatLon;
-});
-
-// Handle click on destination suggestions (directions panel)
-destinationSuggestionsBox.addEventListener('click', (e) => {
-  const selectedLatLon = handleSuggestionClick(e, destinationInput, destinationSuggestionsBox);
-  if (selectedLatLon) destinationLatLon = selectedLatLon;
-});
-
-// Function to handle click on suggestion
-function handleSuggestionClick(e, inputField, suggestionsBox) {
-  const idx = e.target.dataset.idx;
-  if (idx == null) return;
-
-  const selectedPlace = e.target.textContent;
-  const selectedLatLon = [parseFloat(e.target.dataset.lon), parseFloat(e.target.dataset.lat)];
-
-  inputField.value = selectedPlace;
-  map.flyTo({ center: selectedLatLon, zoom: 14 });
-  suggestionsBox.innerHTML = ''; // Clear suggestions after selecting
-
-  return selectedLatLon;
-}
-
-// Route API Call (Using GraphHopper as an example)
-async function getRoute(originLatLon, destinationLatLon) {
-  const [originLng, originLat] = originLatLon;
-  const [destinationLng, destinationLat] = destinationLatLon;
-
-  const url = `https://graphhopper.com/api/1/route?point=${originLat},${originLng}&point=${destinationLat},${destinationLng}&type=json&locale=en&vehicle=car&weighting=fastest&calc_points=true`;
-
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.paths[0].points.coordinates;
-}
-
 // Handle "Get Route" button click
-getRouteBtn.addEventListener('click', async () => {
-  const originLatLon = window.originLatLon; // Stored in global after selection
-  const destinationLatLon = window.destinationLatLon; // Stored in global after selection
-
-  if (originLatLon && destinationLatLon) {
-    const route = await getRoute(originLatLon, destinationLatLon);
-    // Add route to map
-    const routeGeoJSON = {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: route
-      }
-    };
-
-    if (map.getSource('route')) {
-      map.getSource('route').setData(routeGeoJSON);
-    } else {
-      map.addSource('route', {
-        type: 'geojson',
-        data: routeGeoJSON
-      });
-      map.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#6750a4',
-          'line-width': 6
-        }
-      });
-    }
+getRouteBtn.addEventListener('click', () => {
+  const origin = originInput.value;
+  const destination = destinationInput.value;
+  if (origin && destination) {
+    // Here, you'd implement the logic to fetch directions and plot them
+    console.log(`Get route from ${origin} to ${destination}`);
   }
 });
 
-// Handle "Clear Route" button click
+// Clear route information
 clearRouteBtn.addEventListener('click', () => {
-  // Clear the route from the map
-  map.removeLayer('route');
-  map.removeSource('route');
+  originInput.value = '';
+  destinationInput.value = '';
+  // Optionally clear the route from the map
+  console.log('Route cleared');
 });
