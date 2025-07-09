@@ -14,18 +14,17 @@ const map = new maplibregl.Map({
 });
 
 // Satellite Layer Toggle
-let satVisible = false;
 const satelliteToggle = document.getElementById('satellite-toggle');
 const regularToggle = document.getElementById('regular-toggle');
 
 // Function to switch map style
-const switchMapStyle = (style) => {
-  map.setStyle(style);
+const switchMapStyle = (styleUrl) => {
+  map.setStyle(styleUrl);
 };
 
 // Satellite button functionality
 satelliteToggle.onclick = () => {
-  // Set the satellite layer style
+  // Switch to satellite map style
   switchMapStyle('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
   satelliteToggle.classList.add('active');
   regularToggle.classList.remove('active'); // Ensure regular button is deactivated
@@ -33,7 +32,7 @@ satelliteToggle.onclick = () => {
 
 // Regular button functionality
 regularToggle.onclick = () => {
-  // Set the regular map style
+  // Switch to regular map style
   switchMapStyle('https://tiles.openfreemap.org/styles/liberty');
   regularToggle.classList.add('active');
   satelliteToggle.classList.remove('active'); // Ensure satellite button is deactivated
