@@ -1,127 +1,247 @@
 // Initialize MapLibre
 const map = new maplibregl.Map({
-    container: 'map',
-    style: 'https://tiles.openfreemap.org/styles/liberty',
-    center: [0, 0],
-    zoom: 2,
-    pitch: 0,
-    bearing: 0,
-    dragRotate: true,
-    touchZoomRotate: true,
-    scrollZoom: true,
-    maxZoom: 18,
-    minZoom: 1
+  container: 'map',
+  style: 'https://tiles.openfreemap.org/styles/liberty', // Default regular style
+  center: [0, 0],
+  zoom: 2,
+  pitch: 0,
+  bearing: 0,
+  dragRotate: true,
+  touchZoomRotate: true,
+  scrollZoom: true,
+  maxZoom: 18,
+  minZoom: 1
 });
 
-// Geolocation Control
-map.addControl(new maplibregl.GeolocateControl({
-    positionOptions: { enableHighAccuracy: true },
-    trackUserLocation: true,
-    showUserHeading: true
-}), 'bottom-right');
+// Regular and Satellite Layer Setup
+let satelliteLayerAdded = false;  // Track if satellite layer is added
 
-// Satellite Layer Toggle
-let satVisible = false;
-map.on('load', () => {
+const satelliteToggle = document.getElementById('satellite-toggle');
+const regularToggle = document.getElementById('regular-toggle');
+
+// Function to add Satellite Layer
+const addSatelliteLayer = () => {
+  if (!satelliteLayerAdded) {
     map.addSource('satellite', {
-        type: 'raster',
-        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-        tileSize: 256
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      ],
+      tileSize: 256
     });
     map.addLayer({
-        id: 'sat-layer',
-        type: 'raster',
-        source: 'satellite',
-        layout: { visibility: 'none' },
-        paint: { 'raster-opacity': 0.8 }
+      id: 'sat-layer',
+      type: 'raster',
+      source: 'satellite',
+      layout: { visibility: 'none' },
+      paint: { 'raster-opacity': 0.8 }
     });
+    satelliteLayerAdded = true;
+  }
+};
+
+// Switch map to Satellite View
+const switchToSatellite = () => {
+  map.setLayoutProperty('sat-layer', 'visibility', 'visible');
+  satelliteToggle.classList.add('active');
+  regularToggle.classList.remove('active');
+};
+
+// Switch map to Regular View
+const switchToRegular = () => {
+  map.setLayoutProperty('sat-layer', 'visibility', 'none');
+  regularToggle.classList.add('active');
+  satelliteToggle.classList.remove('active');
+};
+
+// Add Satellite Layer when map loads
+map.on('load', () => {
+  addSatelliteLayer(); // Ensure satellite layer is available
+  switchToRegular();   // Default to Regular view on load
 });
 
-// Handle layer toggle for Satellite view
-const satelliteToggle = document.getElementById('satellite-toggle');
+// Handle Regular and Satellite button clicks
 satelliteToggle.onclick = () => {
-    satVisible = !satVisible;
-    map.setLayoutProperty('sat-layer', 'visibility', satVisible ? 'visible' : 'none');
-    satelliteToggle.classList.toggle('active', satVisible);
+  switchToSatellite(); // Switch to Satellite view
 };
 
-// Regular Layer Toggle
-const regularToggle = document.getElementById('regular-toggle');
 regularToggle.onclick = () => {
-    map.setStyle('https://tiles.openfreemap.org/styles/liberty');
-    regularToggle.classList.add('active');
-    satelliteToggle.classList.remove('active');
+  switchToRegular();   // Switch to Regular view
 };
 
-// Dark Mode Toggle
-const darkToggle = document.getElementById('dark-toggle');
-darkToggle.onclick = () => {
-    document.body.classList.toggle('dark-mode');
-};
+// Main Search Bar (for general location search)
+const mainSearchInput = document.getElementById('search');
+const mainSuggestionsBox = document.getElementById('suggestions');
 
-// Search functionality for main search bar
-const searchInput = document.getElementById('search');
-const suggestionsBox = document.getElementById('suggestions');
-const sidebar = document.getElementById('sidebar');
-
-// Helper for Nominatim search
+// Function to handle Nominatim search (for main search bar)
 async function nominatimSearch(query) {
-    if (!query) return [];
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
-    return res.json();
+  if (!query) return [];
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+  return res.json();
 }
 
-// Clear suggestions
-function clearSuggestions(container) {
-    container.innerHTML = '';
-}
-
-// Render suggestions
+// Render suggestions in the box
 function renderSuggestions(container, results) {
-    clearSuggestions(container);
-    if (results.length === 0) return;
+  container.innerHTML = ''; // Clear previous suggestions
+  if (results.length === 0) return;
 
-    container.style.display = 'block'; // Ensure suggestions box is visible
-
-    results.forEach((place, i) => {
-        const div = document.createElement('div');
-        div.className = 'suggestion';
-        div.textContent = place.display_name;
-        div.tabIndex = 0;
-        div.dataset.lon = place.lon;
-        div.dataset.lat = place.lat;
-        div.dataset.idx = i;
-        container.appendChild(div);
-    });
+  results.forEach((place, i) => {
+    const div = document.createElement('div');
+    div.className = 'suggestion';
+    div.textContent = place.display_name;
+    div.tabIndex = 0; // Make it focusable
+    div.dataset.lon = place.lon; // Store longitude
+    div.dataset.lat = place.lat; // Store latitude
+    div.dataset.idx = i; // Store index for identification
+    container.appendChild(div);
+  });
 }
 
-// Handle user input in the search field
-searchInput.addEventListener('input', async e => {
-    const q = e.target.value.trim();
-    if (!q) {
-        clearSuggestions(suggestionsBox);
-        return;
-    }
-    const results = await nominatimSearch(q);
-    renderSuggestions(suggestionsBox, results);
+// Event listener for the main search bar input
+mainSearchInput.addEventListener('input', async (e) => {
+  const query = e.target.value.trim();
+  if (!query) {
+    mainSuggestionsBox.innerHTML = ''; // Clear suggestions if empty
+    return;
+  }
+  const results = await nominatimSearch(query);
+  renderSuggestions(mainSuggestionsBox, results);
 });
 
-// Handle click event on suggestion
-suggestionsBox.addEventListener('click', e => {
-    const idx = e.target.dataset.idx;
-    if (idx == null) return;
+// Handle click on suggestions (for the main search bar)
+mainSuggestionsBox.addEventListener('click', (e) => {
+  const idx = e.target.dataset.idx;
+  if (idx == null) return;
 
-    const selectedPlace = e.target.textContent;
-    const selectedLatLon = [parseFloat(e.target.dataset.lon), parseFloat(e.target.dataset.lat)];
-    searchInput.value = selectedPlace;
-    map.flyTo({ center: selectedLatLon, zoom: 14 });
-    sidebar.classList.add('open');
-    sidebar.hidden = false;
+  const selectedPlace = e.target.textContent;
+  const selectedLatLon = [parseFloat(e.target.dataset.lon), parseFloat(e.target.dataset.lat)];
+
+  mainSearchInput.value = selectedPlace;
+  map.flyTo({ center: selectedLatLon, zoom: 14 });
+  mainSuggestionsBox.innerHTML = ''; // Clear suggestions after selecting
+
+  // Open the sidebar and populate it with the selected place info
+  const sidebar = document.getElementById('sidebar');
+  const placeInfo = document.getElementById('place-info');
+  placeInfo.textContent = selectedPlace; // Update place info with the selected place
+
+  // Show the sidebar
+  sidebar.classList.add('open');
+  sidebar.hidden = false;
 });
 
-// Close suggestions when clicking outside
-document.addEventListener('click', e => {
-    if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        clearSuggestions(suggestionsBox);
+// Directions Panel Elements
+const originInput = document.getElementById('origin');
+const destinationInput = document.getElementById('destination');
+const originSuggestionsBox = document.getElementById('origin-suggestions');
+const destinationSuggestionsBox = document.getElementById('destination-suggestions');
+const getRouteBtn = document.getElementById('get-route');
+const clearRouteBtn = document.getElementById('clear-route');
+
+// Event listener for the origin search input (directions panel)
+originInput.addEventListener('input', async (e) => {
+  const query = e.target.value.trim();
+  if (!query) {
+    originSuggestionsBox.innerHTML = ''; // Clear suggestions if empty
+    return;
+  }
+  const results = await nominatimSearch(query);
+  renderSuggestions(originSuggestionsBox, results);
+});
+
+// Event listener for the destination search input (directions panel)
+destinationInput.addEventListener('input', async (e) => {
+  const query = e.target.value.trim();
+  if (!query) {
+    destinationSuggestionsBox.innerHTML = ''; // Clear suggestions if empty
+    return;
+  }
+  const results = await nominatimSearch(query);
+  renderSuggestions(destinationSuggestionsBox, results);
+});
+
+// Handle click on origin suggestions (directions panel)
+originSuggestionsBox.addEventListener('click', (e) => {
+  const selectedLatLon = handleSuggestionClick(e, originInput, originSuggestionsBox);
+  if (selectedLatLon) originLatLon = selectedLatLon;
+});
+
+// Handle click on destination suggestions (directions panel)
+destinationSuggestionsBox.addEventListener('click', (e) => {
+  const selectedLatLon = handleSuggestionClick(e, destinationInput, destinationSuggestionsBox);
+  if (selectedLatLon) destinationLatLon = selectedLatLon;
+});
+
+// Function to handle click on suggestion
+function handleSuggestionClick(e, inputField, suggestionsBox) {
+  const idx = e.target.dataset.idx;
+  if (idx == null) return;
+
+  const selectedPlace = e.target.textContent;
+  const selectedLatLon = [parseFloat(e.target.dataset.lon), parseFloat(e.target.dataset.lat)];
+
+  inputField.value = selectedPlace;
+  map.flyTo({ center: selectedLatLon, zoom: 14 });
+  suggestionsBox.innerHTML = ''; // Clear suggestions after selecting
+
+  return selectedLatLon;
+}
+
+// Route API Call (Using GraphHopper as an example)
+async function getRoute(originLatLon, destinationLatLon) {
+  const [originLng, originLat] = originLatLon;
+  const [destinationLng, destinationLat] = destinationLatLon;
+
+  const url = `https://graphhopper.com/api/1/route?point=${originLat},${originLng}&point=${destinationLat},${destinationLng}&type=json&locale=en&vehicle=car&weighting=fastest&calc_points=true`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+  return data.paths[0].points.coordinates;
+}
+
+// Handle "Get Route" button click
+getRouteBtn.addEventListener('click', async () => {
+  const originLatLon = window.originLatLon; // Stored in global after selection
+  const destinationLatLon = window.destinationLatLon; // Stored in global after selection
+
+  if (originLatLon && destinationLatLon) {
+    const route = await getRoute(originLatLon, destinationLatLon);
+    // Add route to map
+    const routeGeoJSON = {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: route
+      }
+    };
+
+    if (map.getSource('route')) {
+      map.getSource('route').setData(routeGeoJSON);
+    } else {
+      map.addSource('route', {
+        type: 'geojson',
+        data: routeGeoJSON
+      });
+      map.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#6750a4',
+          'line-width': 6
+        }
+      });
     }
+  }
+});
+
+// Handle "Clear Route" button click
+clearRouteBtn.addEventListener('click', () => {
+  // Clear the route from the map
+  map.removeLayer('route');
+  map.removeSource('route');
 });
