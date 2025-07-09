@@ -16,7 +16,6 @@ const map = new maplibregl.Map({
 // Controls elements
 const satelliteToggle = document.getElementById('satellite-toggle');
 const regularToggle = document.getElementById('regular-toggle');
-const darkToggle = document.getElementById('dark-toggle');
 const directionsToggleBtn = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
 const closeDirectionsBtn = document.getElementById('close-directions');
@@ -60,13 +59,6 @@ const switchToRegular = () => {
   satelliteToggle.setAttribute('aria-pressed', 'false');
 };
 
-// Dark mode toggle
-darkToggle.addEventListener('click', () => {
-  document.body.classList.toggle('dark-mode');
-  const isDark = document.body.classList.contains('dark-mode');
-  darkToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-});
-
 // On map load setup
 map.on('load', () => {
   addSatelliteLayer();
@@ -108,7 +100,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Close on click outside directions panel — fixed to ignore clicks inside suggestion containers
+// Close on click outside directions panel — ignore clicks inside suggestion containers
 document.addEventListener('click', e => {
   if (
     directionsForm.classList.contains('open') &&
@@ -290,29 +282,26 @@ getRouteBtn.addEventListener('click', async () => {
 
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error("Routing request failed");
+    if (!res.ok) throw new Error('Routing request failed');
     const data = await res.json();
-
-    if (data.routes.length === 0) {
-      routeInfoDiv.textContent = 'No route found';
-      return;
-    }
+    if (data.code !== 'Ok' || !data.routes.length) throw new Error('No route found');
 
     const route = data.routes[0];
-    const geojson = {
-      type: "Feature",
+    drawRoute({
+      type: 'Feature',
       geometry: route.geometry
-    };
+    });
 
-    drawRoute(geojson);
+    map.fitBounds([
+      [originLon, originLat],
+      [destinationLon, destinationLat]
+    ], { padding: 60 });
 
-    const durationMin = Math.round(route.duration / 60);
-    const distanceKm = (route.distance / 1000).toFixed(1);
+    routeInfoDiv.textContent = `Distance: ${(route.distance / 1000).toFixed(1)} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
 
-    routeInfoDiv.textContent = `Distance: ${distanceKm} km, Duration: ${durationMin} min`;
   } catch (e) {
+    routeInfoDiv.textContent = 'Failed to get route.';
     console.error(e);
-    routeInfoDiv.textContent = "Error fetching route";
   }
 });
 
@@ -320,14 +309,14 @@ clearRouteBtn.addEventListener('click', () => {
   clearRoute();
   document.getElementById('origin').value = '';
   document.getElementById('destination').value = '';
-  delete document.getElementById('origin').dataset.lon;
-  delete document.getElementById('origin').dataset.lat;
-  delete document.getElementById('destination').dataset.lon;
-  delete document.getElementById('destination').dataset.lat;
+  document.getElementById('origin').dataset.lon = '';
+  document.getElementById('origin').dataset.lat = '';
+  document.getElementById('destination').dataset.lon = '';
+  document.getElementById('destination').dataset.lat = '';
   routeInfoDiv.textContent = '';
 });
 
-// BONUS: Add location button on map controls (optional)
+// Location button
 const locationBtn = document.createElement('button');
 locationBtn.id = 'location-btn';
 locationBtn.title = 'Find My Location';
