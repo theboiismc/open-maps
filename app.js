@@ -81,6 +81,8 @@ function renderSuggestions(container, results) {
     clearSuggestions(container);
     if (results.length === 0) return;
 
+    container.style.display = 'block'; // Ensure suggestions box is visible
+
     results.forEach((place, i) => {
         const div = document.createElement('div');
         div.className = 'suggestion';
