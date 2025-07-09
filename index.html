@@ -7,85 +7,62 @@
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
-    
-    /* General setup */
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
+      margin: 0; padding: 0; height: 100%; width: 100%;
       font-family: 'Roboto', sans-serif;
-      background: #fff;
+      background: #f2f2f2;
       color: #202124;
-      display: flex;
-      flex-direction: column;
     }
-
-    /* Map container */
     #map {
       position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      top: 0; bottom: 0; left: 0; right: 0;
       z-index: 0;
     }
-
-    /* Search bar styling */
+    /* Search bar top-left */
     .search-bar {
       position: absolute;
       top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 90%;
-      max-width: 420px;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 50px;
+      left: 20px;
+      width: 320px;
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       padding: 12px 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      z-index: 1000;
+      z-index: 10000;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 8px;
     }
-
-    /* Input field in search bar */
     .search-bar input {
       font-size: 16px;
       padding: 10px 16px;
       border: none;
       border-radius: 20px;
-      background: transparent;
-      color: #202124;
-      outline: none;
-      width: 100%;
+      background: #e7e0ec;
+      color: #1c1b1f;
+      outline-offset: 4px;
+      box-shadow: inset 0 1px 3px #fff8, inset 0 -1px 2px #bab7c3;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
     }
-
     .search-bar input::placeholder {
       color: #8f8da4;
     }
-
     .search-bar input:focus {
       background: #f5f3f7;
-      box-shadow: 0 0 6px rgba(103, 80, 164, 0.5);
+      box-shadow: inset 0 1px 4px #d1cde6, 0 0 0 3px #6750a4;
+      color: #1c1b1f;
+      outline: none;
     }
-
-    /* Suggestions box */
     #suggestions {
       background: #fff;
       border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
       max-height: 200px;
       overflow-y: auto;
       font-size: 15px;
-      z-index: 1001;
+      z-index: 10001;
       padding: 4px 0;
-      position: absolute;
-      top: 60px;
-      left: 0;
-      right: 0;
     }
-
     .suggestion {
       padding: 10px 20px;
       cursor: pointer;
@@ -94,95 +71,209 @@
       user-select: none;
       transition: background-color 0.25s ease;
     }
-
     .suggestion:hover, .suggestion:focus {
       background-color: #ede7f6;
       outline: none;
     }
-
-    /* Floating buttons (Location and Directions) */
-    .floating-buttons {
+    /* Sidebar panel */
+    #sidebar {
+      position: fixed;
+      top: 0; bottom: 0; left: 0;
+      width: 320px;
+      background: #fff;
+      box-shadow: 2px 0 14px rgba(0,0,0,0.16);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+      z-index: 10002;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px;
+      overflow-y: auto;
+    }
+    #sidebar.open {
+      transform: translateX(0);
+    }
+    #sidebar-close {
+      align-self: flex-end;
+      background: transparent;
+      border: none;
+      font-size: 32px;
+      cursor: pointer;
+      color: #625b71;
+      padding: 0;
+      user-select: none;
+      margin-bottom: 12px;
+      transition: color 0.25s ease;
+    }
+    #sidebar-close:hover {
+      color: #1e1a29;
+    }
+    #place-info {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      color: #202124;
+    }
+    #directions-toggle {
+      padding: 12px 0;
+      font-weight: 600;
+      font-size: 16px;
+      background: #6750a4;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(103, 80, 164, 0.6);
+      user-select: none;
+      transition: background-color 0.3s ease;
+    }
+    #directions-toggle:hover {
+      background-color: #5b3eae;
+    }
+    #directions-form {
+      margin-top: 20px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    #directions-form input {
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 20px;
+      border: none;
+      font-size: 16px;
+      background: #e7e0ec;
+      color: #1c1b1f;
+      box-shadow: inset 0 1px 3px #fff8, inset 0 -1px 2px #bab7c3;
+      outline-offset: 4px;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    #directions-form input:focus {
+      background: #f5f3f7;
+      box-shadow: inset 0 1px 4px #d1cde6, 0 0 0 3px #6750a4;
+      outline: none;
+      color: #1c1b1f;
+    }
+    #get-route {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.8);
+      user-select: none;
+      transition: background-color 0.3s ease;
+    }
+    #get-route:hover {
+      background-color: #2563eb;
+    }
+    /* Route info panel */
+    #route-info {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.18);
+      padding: 20px 28px 28px;
+      font-size: 16px;
+      z-index: 10003;
+      display: none;
+    }
+    #route-info.visible {
+      display: block;
+    }
+    #route-summary {
+      margin: 0;
+    }
+    /* Layer toggle buttons */
+    .layer-toggle {
       position: absolute;
       bottom: 20px;
       right: 20px;
+      z-index: 10000;
+      background: #fff;
+      border-radius: 24px;
+      padding: 8px 12px;
       display: flex;
-      flex-direction: column;
       gap: 12px;
-      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
-
-    .floating-buttons button {
-      background-color: #4a90e2;
-      border-radius: 30px;
-      padding: 12px 20px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      cursor: pointer;
-      transition: all 0.3s ease;
+    .layer-toggle button {
       border: none;
+      background: #ede7f6;
+      border-radius: 9999px;
+      padding: 10px 20px;
+      cursor: pointer;
       font-size: 14px;
       font-weight: 600;
+      color: #625b71;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      user-select: none;
+      box-shadow: 0 0 0 0 transparent;
+    }
+    .layer-toggle button:hover {
+      background-color: #d6cfff;
+      color: #3f3d56;
+    }
+    .layer-toggle button.active {
+      background-color: #6750a4;
       color: white;
-      width: 100%;
+      box-shadow: 0 4px 16px rgba(103, 80, 164, 0.48);
     }
-
-    /* Location button */
-    .floating-buttons .location {
-      background-color: #4a90e2;
+    #dark-toggle {
+      background: #1e1a29;
+      color: #ccc;
     }
-
-    .floating-buttons .location:hover {
-      background-color: #357ab7;
+    #dark-toggle:hover {
+      background: #3a3353;
+      color: white;
     }
-
-    /* Directions button */
-    .floating-buttons .directions {
-      background-color: #f0a500;
-    }
-
-    .floating-buttons .directions:hover {
-      background-color: #e07f00;
-    }
-
-    /* Footer styling */
-    #footer {
-      position: fixed;
-      bottom: 20px;
-      left: 0;
-      right: 0;
-      font-size: 12px;
-      color: #8f8da4;
-      text-align: center;
-      z-index: 999;
-    }
-
-    /* Dark mode styles */
+    /* Dark mode */
     body.dark-mode {
       background: #121212;
       color: #ddd;
     }
-
-    body.dark-mode .search-bar {
+    body.dark-mode #route-info {
+      background: #222;
+      box-shadow: 0 0 15px rgba(255,255,255,0.15);
+      color: #ddd;
+    }
+    body.dark-mode .search-bar,
+    body.dark-mode .layer-toggle {
+      background: #222;
+      color: #ddd;
+      box-shadow: 0 0 12px rgba(255,255,255,0.1);
+    }
+    body.dark-mode .search-bar input,
+    body.dark-mode button {
       background: #333;
       color: #ddd;
+      border-color: #555;
     }
-
-    body.dark-mode .search-bar input {
-      background: #555;
-      color: #ddd;
+    body.dark-mode .search-bar input:focus {
+      box-shadow: 0 0 6px #4a90e2aa;
     }
-
-    body.dark-mode .floating-buttons button {
-      background-color: #444;
+    body.dark-mode .layer-toggle button.active {
+      background: #4a90e2;
+      color: white;
     }
-
-    body.dark-mode .floating-buttons button:hover {
-      background-color: #666;
-    }
-
-    /* Mobile responsive adjustments */
+    /* Responsive */
     @media (max-width: 767px) {
       .search-bar {
         width: calc(100% - 40px);
+      }
+      #sidebar {
+        width: 90vw;
+      }
+      .layer-toggle {
+        bottom: 16px;
+        right: 50%;
+        transform: translateX(50%);
+        gap: 16px;
+        padding: 8px 16px;
       }
     }
   </style>
@@ -190,13 +281,11 @@
 <body>
   <div id="map"></div>
 
-  <!-- Search Bar -->
   <div class="search-bar" role="search">
-    <input id="search" type="text" placeholder="Find a place" autocomplete="off" spellcheck="false" aria-label="Search for destination" />
+    <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
     <div id="suggestions" role="listbox" tabindex="-1"></div>
   </div>
 
-  <!-- Sidebar -->
   <div id="sidebar" role="region" aria-label="Place details and directions panel" hidden>
     <button id="sidebar-close" aria-label="Close sidebar">&times;</button>
     <div id="place-info">Loading...</div>
@@ -211,17 +300,14 @@
     </div>
   </div>
 
-  <!-- Floating Buttons (Location and Directions) -->
-  <div class="floating-buttons">
-    <!-- Location button -->
-    <button id="location-btn" class="location">Location</button>
-    <!-- Directions button -->
-    <button id="directions-btn" class="directions">Directions</button>
+  <div class="layer-toggle" role="region" aria-label="Map layer toggles">
+    <button id="regular-toggle" class="active" aria-pressed="true">Regular</button>
+    <button id="satellite-toggle" aria-pressed="false">Satellite</button>
+    <button id="dark-toggle" aria-pressed="false">Dark Mode</button>
   </div>
 
-  <!-- Footer Attribution -->
-  <div id="footer">
-    OpenFreeMap © OpenMapTiles Data from OpenStreetMap
+  <div id="route-info" role="region" aria-live="polite" aria-atomic="true" aria-label="Route information">
+    <p id="route-summary"></p>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
