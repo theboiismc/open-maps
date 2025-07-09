@@ -13,34 +13,21 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Add built-in controls: zoom and geolocate, bottom right
-const navControl = new maplibregl.NavigationControl({ showCompass: false });
-map.addControl(navControl, 'bottom-right');
-const geoControl = new maplibregl.GeolocateControl({
-  positionOptions: { enableHighAccuracy: true },
-  trackUserLocation: true,
-  showUserHeading: true,
-});
-map.addControl(geoControl, 'bottom-right');
-
-// Elements
+// Controls
 const directionsToggleBtn = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
 const closeDirectionsBtn = document.getElementById('close-directions');
 const routeInfoDiv = document.getElementById('route-info');
-const searchInput = document.getElementById('search');
-const suggestionsDiv = document.getElementById('suggestions');
-const originInput = document.getElementById('origin');
-const originSuggestions = document.getElementById('origin-suggestions');
-const destinationInput = document.getElementById('destination');
-const destinationSuggestions = document.getElementById('destination-suggestions');
-const getRouteBtn = document.getElementById('get-route');
-const clearRouteBtn = document.getElementById('clear-route');
 
-// Satellite layer setup (optional) - remove if you dropped those buttons
-let satelliteLayerAdded = false;
+const mapStyleToggleBtn = document.getElementById('map-style-toggle');
+const mapStyleImg = document.getElementById('map-style-img');
+const mapStyleLabel = document.getElementById('map-style-label');
+
+let isSatellite = false;
+
+// Add satellite layer once map loads
 function addSatelliteLayer() {
-  if (!satelliteLayerAdded) {
+  if (!map.getSource('satellite')) {
     map.addSource('satellite', {
       type: 'raster',
       tiles: [
@@ -55,24 +42,54 @@ function addSatelliteLayer() {
       layout: { visibility: 'none' },
       paint: { 'raster-opacity': 0.8 }
     });
-    satelliteLayerAdded = true;
   }
 }
 
-// Directions panel toggle functions
+function updateMapStyleUI() {
+  if (isSatellite) {
+    map.setLayoutProperty('sat-layer', 'visibility', 'visible');
+    mapStyleImg.src = 'satellite_style.png';
+    mapStyleLabel.textContent = 'Satellite';
+    mapStyleToggleBtn.setAttribute('aria-pressed', 'true');
+  } else {
+    map.setLayoutProperty('sat-layer', 'visibility', 'none');
+    mapStyleImg.src = 'default_style.png';
+    mapStyleLabel.textContent = 'Regular';
+    mapStyleToggleBtn.setAttribute('aria-pressed', 'false');
+  }
+}
+
+// Toggle map style on button click
+mapStyleToggleBtn.addEventListener('click', () => {
+  isSatellite = !isSatellite;
+  updateMapStyleUI();
+});
+
+// Move style toggle button right when directions panel opens
+function setToggleMovedRight(moved) {
+  if (moved) {
+    mapStyleToggleBtn.classList.add('moved-right');
+  } else {
+    mapStyleToggleBtn.classList.remove('moved-right');
+  }
+}
+
+// Directions panel toggle open/close functions
 function openDirectionsPanel() {
   directionsForm.classList.add('open');
   document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
+  setToggleMovedRight(true);
 }
 
 function closeDirectionsPanel() {
   directionsForm.classList.remove('open');
   document.querySelector('.search-bar').style.display = 'flex';
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
+  setToggleMovedRight(false);
 }
 
-// Toggle directions panel button
+// Event listeners for directions panel toggle and close buttons
 directionsToggleBtn.addEventListener('click', () => {
   if (directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
@@ -81,40 +98,46 @@ directionsToggleBtn.addEventListener('click', () => {
   }
 });
 
-// Close directions panel button inside form
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
-// Close directions panel on ESC key
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   }
 });
 
-// Prevent closing panel on clicks inside directions form or suggestions
-directionsForm.addEventListener('click', e => e.stopPropagation());
-originSuggestions.addEventListener('click', e => e.stopPropagation());
-destinationSuggestions.addEventListener('click', e => e.stopPropagation());
-suggestionsDiv.addEventListener('click', e => e.stopPropagation());
-
-// Click outside closes directions panel (only on clicking outside toggle btn and directions panel)
+// Prevent directions panel from closing when clicking inside it or toggle button
 document.addEventListener('click', e => {
-  if (!directionsForm.contains(e.target) && e.target !== directionsToggleBtn) {
-    if (directionsForm.classList.contains('open')) closeDirectionsPanel();
-  }
-  // Clear suggestions if clicking outside inputs & suggestions
-  if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
-    suggestionsDiv.innerHTML = '';
-  }
-  if (!originInput.contains(e.target) && !originSuggestions.contains(e.target)) {
-    originSuggestions.innerHTML = '';
-  }
-  if (!destinationInput.contains(e.target) && !destinationSuggestions.contains(e.target)) {
-    destinationSuggestions.innerHTML = '';
+  if (
+    directionsForm.classList.contains('open') &&
+    !directionsForm.contains(e.target) &&
+    !directionsToggleBtn.contains(e.target)
+  ) {
+    closeDirectionsPanel();
   }
 });
 
-// Photon search API
+// Swipe to dismiss directions panel on mobile
+let startX = 0, currentX = 0, isSwiping = false;
+directionsForm.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) return;
+  startX = e.touches[0].clientX;
+  isSwiping = true;
+});
+directionsForm.addEventListener('touchmove', e => {
+  if (!isSwiping) return;
+  currentX = e.touches[0].clientX;
+  const deltaX = currentX - startX;
+  if (deltaX < 0) directionsForm.style.transform = `translateX(${deltaX}px)`;
+});
+directionsForm.addEventListener('touchend', () => {
+  const deltaX = currentX - startX;
+  if (deltaX < -100) closeDirectionsPanel();
+  directionsForm.style.transform = '';
+  isSwiping = false;
+});
+
+// Photon search setup
 const photonUrl = "https://photon.komoot.io/api/?q=";
 const debounce = (fn, delay) => {
   let timeoutId;
@@ -149,8 +172,8 @@ function renderSuggestions(container, results) {
   results.forEach(feature => {
     const div = document.createElement('div');
     div.className = 'suggestion';
-    div.textContent = feature.properties.name +
-      (feature.properties.state ? ', ' + feature.properties.state : '') +
+    div.textContent = feature.properties.name + 
+      (feature.properties.state ? ', ' + feature.properties.state : '') + 
       (feature.properties.country ? ', ' + feature.properties.country : '');
     div.tabIndex = 0;
     div.dataset.lon = feature.geometry.coordinates[0];
@@ -159,8 +182,7 @@ function renderSuggestions(container, results) {
   });
 }
 
-// Setup search with photon for input + suggestions container
-function setupSearch(inputEl, suggestionsEl, onSelect) {
+function setupSearch(inputEl, suggestionsEl) {
   const debouncedSearch = debounce(async (query) => {
     if (!query) {
       clearSuggestions(suggestionsEl);
@@ -179,33 +201,27 @@ function setupSearch(inputEl, suggestionsEl, onSelect) {
     if (!e.target.classList.contains('suggestion')) return;
     const lon = parseFloat(e.target.dataset.lon);
     const lat = parseFloat(e.target.dataset.lat);
-    const text = e.target.textContent;
-    inputEl.value = text;
+    inputEl.value = e.target.textContent;
     inputEl.dataset.lon = lon;
     inputEl.dataset.lat = lat;
     clearSuggestions(suggestionsEl);
-    if (onSelect) onSelect(lon, lat);
   });
 
-  suggestionsEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && e.target.classList.contains('suggestion')) {
-      e.preventDefault();
-      e.target.click();
-      inputEl.focus();
+  document.addEventListener('click', e => {
+    if (!inputEl.contains(e.target) && !suggestionsEl.contains(e.target)) {
+      clearSuggestions(suggestionsEl);
     }
   });
 }
 
-// Main search: fly to selected location
-setupSearch(searchInput, suggestionsDiv, (lon, lat) => {
-  map.flyTo({ center: [lon, lat], zoom: 14 });
-});
-
-// Origin and destination inputs, no fly, just set data for routing
-setupSearch(originInput, originSuggestions);
-setupSearch(destinationInput, destinationSuggestions);
+setupSearch(document.getElementById('search'), document.getElementById('suggestions'));
+setupSearch(document.getElementById('origin'), document.getElementById('origin-suggestions'));
+setupSearch(document.getElementById('destination'), document.getElementById('destination-suggestions'));
 
 // Routing with OSRM
+const getRouteBtn = document.getElementById('get-route');
+const clearRouteBtn = document.getElementById('clear-route');
+
 function drawRoute(routeGeoJSON) {
   if (map.getSource('route')) {
     map.getSource('route').setData(routeGeoJSON);
@@ -234,68 +250,72 @@ function clearRoute() {
   routeInfoDiv.textContent = '';
 }
 
-async function fetchRoute(start, end) {
-  const coords = `${start[0]},${start[1]};${end[0]},${end[1]}`;
-  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=true`;
+getRouteBtn.addEventListener('click', async () => {
+  const originInput = document.getElementById('origin');
+  const destinationInput = document.getElementById('destination');
+
+  const oLon = parseFloat(originInput.dataset.lon);
+  const oLat = parseFloat(originInput.dataset.lat);
+  const dLon = parseFloat(destinationInput.dataset.lon);
+  const dLat = parseFloat(destinationInput.dataset.lat);
+
+  if (
+    isNaN(oLon) || isNaN(oLat) ||
+    isNaN(dLon) || isNaN(dLat)
+  ) {
+    alert('Please select valid origin and destination from suggestions.');
+    return;
+  }
+
+  const url = `https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${dLon},${dLat}?overview=full&geometries=geojson&steps=true`;
 
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error('Routing request failed');
     const data = await res.json();
-    if (data.code !== 'Ok' || !data.routes.length) throw new Error('No route found');
-    return data.routes[0];
+    if (!data.routes || data.routes.length === 0) {
+      alert('No route found for the selected locations.');
+      return;
+    }
+    const route = data.routes[0];
+    drawRoute(route.geometry);
+
+    // Zoom and center to route bounds
+    const coordinates = route.geometry.coordinates;
+    const bounds = coordinates.reduce((b, coord) => b.extend(coord), new maplibregl.LngLatBounds(coordinates[0], coordinates[0]));
+    map.fitBounds(bounds, { padding: 80 });
+
+    // Show route info (distance, duration)
+    const distKm = (route.distance / 1000).toFixed(1);
+    const durMin = Math.round(route.duration / 60);
+    routeInfoDiv.textContent = `Distance: ${distKm} km | Duration: ${durMin} min`;
+
   } catch (e) {
+    alert('Error getting route. Try again.');
     console.error(e);
-    return null;
   }
-}
-
-getRouteBtn.addEventListener('click', async () => {
-  const start = [
-    parseFloat(originInput.dataset.lon),
-    parseFloat(originInput.dataset.lat)
-  ];
-  const end = [
-    parseFloat(destinationInput.dataset.lon),
-    parseFloat(destinationInput.dataset.lat)
-  ];
-
-  if (!start.every(coord => !isNaN(coord)) || !end.every(coord => !isNaN(coord))) {
-    alert("Please select valid origin and destination from suggestions.");
-    return;
-  }
-
-  clearRoute();
-  const route = await fetchRoute(start, end);
-  if (!route) {
-    alert("Route not found.");
-    return;
-  }
-
-  drawRoute({
-    type: "Feature",
-    geometry: route.geometry
-  });
-
-  // Zoom map to fit route bounds
-  const coords = route.geometry.coordinates;
-  const bounds = coords.reduce((b, coord) => b.extend(coord), new maplibregl.LngLatBounds(coords[0], coords[0]));
-  map.fitBounds(bounds, { padding: 80 });
-
-  // Show summary info
-  const distKm = (route.distance / 1000).toFixed(1);
-  const durationMin = Math.round(route.duration / 60);
-  routeInfoDiv.textContent = `Distance: ${distKm} km | Duration: ${durationMin} min`;
 });
 
-// Clear route button handler
 clearRouteBtn.addEventListener('click', () => {
   clearRoute();
-  originInput.value = '';
-  originInput.removeAttribute('data-lon');
-  originInput.removeAttribute('data-lat');
-  destinationInput.value = '';
-  destinationInput.removeAttribute('data-lon');
-  destinationInput.removeAttribute('data-lat');
-  routeInfoDiv.textContent = '';
+  document.getElementById('origin').value = '';
+  document.getElementById('origin').dataset.lon = '';
+  document.getElementById('origin').dataset.lat = '';
+  document.getElementById('destination').value = '';
+  document.getElementById('destination').dataset.lon = '';
+  document.getElementById('destination').dataset.lat = '';
+});
+
+// On map load
+map.on('load', () => {
+  addSatelliteLayer();
+  updateMapStyleUI();
+
+  // Add default navigation controls bottom right
+  const nav = new maplibregl.NavigationControl({
+    showCompass: true,
+    showZoom: true,
+    visualizePitch: false
+  });
+  map.addControl(nav, 'bottom-right');
 });
