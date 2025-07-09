@@ -229,3 +229,13 @@ clearRouteButton.addEventListener('click', () => {
   document.getElementById('route-summary').innerText = '';
 });
 
+// Directions button to open directions menu
+const directionsButton = document.createElement('button');
+directionsButton.id = 'directions-button';
+directionsButton.innerHTML = 'Get Directions';
+directionsButton.className = 'directions-btn';
+directionsButton.addEventListener('click', () => {
+  sidebar.classList.toggle('open'); // Toggle directions sidebar
+});
+
+document.body.appendChild(directionsButton); // Append the button to the body
