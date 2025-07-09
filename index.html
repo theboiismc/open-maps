@@ -162,14 +162,16 @@
     color: #4a3d87;
   }
 
+  /* Map controls container */
   .map-controls {
     position: absolute;
     bottom: 20px;
     right: 20px;
     z-index: 10000;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 12px;
+    align-items: center;
   }
 
   #directions-toggle {
@@ -179,6 +181,14 @@
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    min-width: 48px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    user-select: none;
   }
 
   #directions-toggle.active,
@@ -244,7 +254,7 @@
   </div>
 
   <div class="map-controls">
-    <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel">Directions</button>
+    <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel">DIR</button>
   </div>
 
   <button id="map-style-toggle" aria-pressed="false" aria-label="Toggle map style">
