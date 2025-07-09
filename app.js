@@ -13,33 +13,37 @@ const map = new maplibregl.Map({
   minZoom: 1
 });
 
-// Add MapLibre default controls (zoom + rotation + geolocate) bottom right
-map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
-map.addControl(new maplibregl.GeolocateControl({
+// Add built-in controls: zoom and geolocate, bottom right
+const navControl = new maplibregl.NavigationControl({ showCompass: false });
+map.addControl(navControl, 'bottom-right');
+const geoControl = new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
   trackUserLocation: true,
   showUserHeading: true,
-}), 'bottom-right');
+});
+map.addControl(geoControl, 'bottom-right');
 
 // Elements
-const styleToggleBtn = document.getElementById('style-toggle');
-const styleLabel = document.getElementById('style-label');
-const styleToggleImg = styleToggleBtn.querySelector('img');
-
 const directionsToggleBtn = document.getElementById('directions-toggle');
 const directionsForm = document.getElementById('directions-form');
 const closeDirectionsBtn = document.getElementById('close-directions');
 const routeInfoDiv = document.getElementById('route-info');
+const searchInput = document.getElementById('search');
+const suggestionsDiv = document.getElementById('suggestions');
+const originInput = document.getElementById('origin');
+const originSuggestions = document.getElementById('origin-suggestions');
+const destinationInput = document.getElementById('destination');
+const destinationSuggestions = document.getElementById('destination-suggestions');
+const getRouteBtn = document.getElementById('get-route');
+const clearRouteBtn = document.getElementById('clear-route');
 
-// Satellite layer flag
+// Satellite layer setup (optional) - remove if you dropped those buttons
 let satelliteLayerAdded = false;
-const addSatelliteLayer = () => {
+function addSatelliteLayer() {
   if (!satelliteLayerAdded) {
     map.addSource('satellite', {
       type: 'raster',
       tiles: [
-        // Your local satellite tiles or fallback here if you want
-        // For now blank so we rely on ArcGIS server
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
       ],
       tileSize: 256
@@ -53,57 +57,22 @@ const addSatelliteLayer = () => {
     });
     satelliteLayerAdded = true;
   }
-};
+}
 
-const switchToSatellite = () => {
-  map.setLayoutProperty('sat-layer', 'visibility', 'visible');
-  styleToggleBtn.setAttribute('aria-pressed', 'true');
-  styleLabel.textContent = 'Satellite';
-  styleToggleImg.src = 'satellite_style.png';
-  styleToggleImg.alt = 'Satellite style';
-};
-
-const switchToRegular = () => {
-  map.setLayoutProperty('sat-layer', 'visibility', 'none');
-  styleToggleBtn.setAttribute('aria-pressed', 'false');
-  styleLabel.textContent = 'Regular';
-  styleToggleImg.src = 'default_style.png';
-  styleToggleImg.alt = 'Regular style';
-};
-
-// Setup initial map style on load
-map.on('load', () => {
-  addSatelliteLayer();
-  switchToRegular();
-});
-
-// Toggle map style on styleToggleBtn click
-styleToggleBtn.addEventListener('click', () => {
-  const isSatellite = map.getLayoutProperty('sat-layer', 'visibility') === 'visible';
-  if (isSatellite) {
-    switchToRegular();
-  } else {
-    switchToSatellite();
-  }
-});
-
-// Directions panel open/close helpers
+// Directions panel toggle functions
 function openDirectionsPanel() {
   directionsForm.classList.add('open');
   document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
-  // Move directions toggle button left to avoid overlap with controls
-  directionsToggleBtn.style.right = '310px'; // 320 width + 10px margin
 }
 
 function closeDirectionsPanel() {
   directionsForm.classList.remove('open');
   document.querySelector('.search-bar').style.display = 'flex';
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
-  directionsToggleBtn.style.right = '20px';
 }
 
-// Directions toggle button event
+// Toggle directions panel button
 directionsToggleBtn.addEventListener('click', () => {
   if (directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
@@ -112,33 +81,40 @@ directionsToggleBtn.addEventListener('click', () => {
   }
 });
 
-// Close directions panel on close button click
+// Close directions panel button inside form
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
-// Close on ESC key
+// Close directions panel on ESC key
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
     closeDirectionsPanel();
   }
 });
 
-// Prevent directions panel from closing on suggestion clicks or form clicks
-directionsForm.addEventListener('click', e => {
-  e.stopPropagation();
-});
+// Prevent closing panel on clicks inside directions form or suggestions
+directionsForm.addEventListener('click', e => e.stopPropagation());
+originSuggestions.addEventListener('click', e => e.stopPropagation());
+destinationSuggestions.addEventListener('click', e => e.stopPropagation());
+suggestionsDiv.addEventListener('click', e => e.stopPropagation());
 
-// Prevent outside clicks from closing directions panel
+// Click outside closes directions panel (only on clicking outside toggle btn and directions panel)
 document.addEventListener('click', e => {
-  if (
-    directionsForm.classList.contains('open') &&
-    !directionsForm.contains(e.target) &&
-    e.target !== directionsToggleBtn
-  ) {
-    closeDirectionsPanel();
+  if (!directionsForm.contains(e.target) && e.target !== directionsToggleBtn) {
+    if (directionsForm.classList.contains('open')) closeDirectionsPanel();
+  }
+  // Clear suggestions if clicking outside inputs & suggestions
+  if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+    suggestionsDiv.innerHTML = '';
+  }
+  if (!originInput.contains(e.target) && !originSuggestions.contains(e.target)) {
+    originSuggestions.innerHTML = '';
+  }
+  if (!destinationInput.contains(e.target) && !destinationSuggestions.contains(e.target)) {
+    destinationSuggestions.innerHTML = '';
   }
 });
 
-// Photon search setup
+// Photon search API
 const photonUrl = "https://photon.komoot.io/api/?q=";
 const debounce = (fn, delay) => {
   let timeoutId;
@@ -173,8 +149,8 @@ function renderSuggestions(container, results) {
   results.forEach(feature => {
     const div = document.createElement('div');
     div.className = 'suggestion';
-    div.textContent = feature.properties.name + 
-      (feature.properties.state ? ', ' + feature.properties.state : '') + 
+    div.textContent = feature.properties.name +
+      (feature.properties.state ? ', ' + feature.properties.state : '') +
       (feature.properties.country ? ', ' + feature.properties.country : '');
     div.tabIndex = 0;
     div.dataset.lon = feature.geometry.coordinates[0];
@@ -183,8 +159,8 @@ function renderSuggestions(container, results) {
   });
 }
 
-// Setup search inputs
-function setupSearch(inputEl, suggestionsEl) {
+// Setup search with photon for input + suggestions container
+function setupSearch(inputEl, suggestionsEl, onSelect) {
   const debouncedSearch = debounce(async (query) => {
     if (!query) {
       clearSuggestions(suggestionsEl);
@@ -208,9 +184,7 @@ function setupSearch(inputEl, suggestionsEl) {
     inputEl.dataset.lon = lon;
     inputEl.dataset.lat = lat;
     clearSuggestions(suggestionsEl);
-    if (inputEl.id === 'search') {
-      map.flyTo({ center: [lon, lat], zoom: 14 });
-    }
+    if (onSelect) onSelect(lon, lat);
   });
 
   suggestionsEl.addEventListener('keydown', e => {
@@ -220,22 +194,18 @@ function setupSearch(inputEl, suggestionsEl) {
       inputEl.focus();
     }
   });
-
-  document.addEventListener('click', e => {
-    if (!inputEl.contains(e.target) && !suggestionsEl.contains(e.target)) {
-      clearSuggestions(suggestionsEl);
-    }
-  });
 }
 
-setupSearch(document.getElementById('search'), document.getElementById('suggestions'));
-setupSearch(document.getElementById('origin'), document.getElementById('origin-suggestions'));
-setupSearch(document.getElementById('destination'), document.getElementById('destination-suggestions'));
+// Main search: fly to selected location
+setupSearch(searchInput, suggestionsDiv, (lon, lat) => {
+  map.flyTo({ center: [lon, lat], zoom: 14 });
+});
+
+// Origin and destination inputs, no fly, just set data for routing
+setupSearch(originInput, originSuggestions);
+setupSearch(destinationInput, destinationSuggestions);
 
 // Routing with OSRM
-const getRouteBtn = document.getElementById('get-route');
-const clearRouteBtn = document.getElementById('clear-route');
-
 function drawRoute(routeGeoJSON) {
   if (map.getSource('route')) {
     map.getSource('route').setData(routeGeoJSON);
@@ -265,13 +235,15 @@ function clearRoute() {
 }
 
 async function fetchRoute(start, end) {
-  const url = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
+  const coords = `${start[0]},${start[1]};${end[0]},${end[1]}`;
+  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=true`;
+
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error("OSRM request failed");
+    if (!res.ok) throw new Error('Routing request failed');
     const data = await res.json();
-    if (data.routes && data.routes.length) return data.routes[0];
-    throw new Error("No routes found");
+    if (data.code !== 'Ok' || !data.routes.length) throw new Error('No route found');
+    return data.routes[0];
   } catch (e) {
     console.error(e);
     return null;
@@ -279,10 +251,14 @@ async function fetchRoute(start, end) {
 }
 
 getRouteBtn.addEventListener('click', async () => {
-  const originInput = document.getElementById('origin');
-  const destInput = document.getElementById('destination');
-  const start = [parseFloat(originInput.dataset.lon), parseFloat(originInput.dataset.lat)];
-  const end = [parseFloat(destInput.dataset.lon), parseFloat(destInput.dataset.lat)];
+  const start = [
+    parseFloat(originInput.dataset.lon),
+    parseFloat(originInput.dataset.lat)
+  ];
+  const end = [
+    parseFloat(destinationInput.dataset.lon),
+    parseFloat(destinationInput.dataset.lat)
+  ];
 
   if (!start.every(coord => !isNaN(coord)) || !end.every(coord => !isNaN(coord))) {
     alert("Please select valid origin and destination from suggestions.");
@@ -296,12 +272,10 @@ getRouteBtn.addEventListener('click', async () => {
     return;
   }
 
-  const routeGeoJSON = {
+  drawRoute({
     type: "Feature",
     geometry: route.geometry
-  };
-
-  drawRoute(routeGeoJSON);
+  });
 
   // Zoom map to fit route bounds
   const coords = route.geometry.coordinates;
@@ -317,55 +291,11 @@ getRouteBtn.addEventListener('click', async () => {
 // Clear route button handler
 clearRouteBtn.addEventListener('click', () => {
   clearRoute();
-  document.getElementById('origin').value = '';
-  document.getElementById('origin').removeAttribute('data-lon');
-  document.getElementById('origin').removeAttribute('data-lat');
-  document.getElementById('destination').value = '';
-  document.getElementById('destination').removeAttribute('data-lon');
-  document.getElementById('destination').removeAttribute('data-lat');
+  originInput.value = '';
+  originInput.removeAttribute('data-lon');
+  originInput.removeAttribute('data-lat');
+  destinationInput.value = '';
+  destinationInput.removeAttribute('data-lon');
+  destinationInput.removeAttribute('data-lat');
   routeInfoDiv.textContent = '';
-});
-
-// Prevent closing directions panel on clicks inside it
-directionsForm.addEventListener('click', e => e.stopPropagation());
-
-// Prevent closing directions panel on suggestion click inside origin/dest
-document.getElementById('origin-suggestions').addEventListener('click', e => e.stopPropagation());
-document.getElementById('destination-suggestions').addEventListener('click', e => e.stopPropagation());
-
-// Prevent clicks inside main search suggestions from closing it
-document.getElementById('suggestions').addEventListener('click', e => e.stopPropagation());
-
-// Clicking outside closes main search suggestions or directions panel if open
-document.addEventListener('click', e => {
-  if (!directionsForm.contains(e.target) && e.target !== directionsToggleBtn) {
-    if (directionsForm.classList.contains('open')) closeDirectionsPanel();
-  }
-  // Clear suggestions if click outside inputs
-  if (!document.getElementById('search').contains(e.target) &&
-      !document.getElementById('suggestions').contains(e.target)) {
-    document.getElementById('suggestions').innerHTML = '';
-  }
-  if (!document.getElementById('origin').contains(e.target) &&
-      !document.getElementById('origin-suggestions').contains(e.target)) {
-    document.getElementById('origin-suggestions').innerHTML = '';
-  }
-  if (!document.getElementById('destination').contains(e.target) &&
-      !document.getElementById('destination-suggestions').contains(e.target)) {
-    document.getElementById('destination-suggestions').innerHTML = '';
-  }
-});
-
-// Main search input: fly to location on select
-document.getElementById('suggestions').addEventListener('click', e => {
-  if (!e.target.classList.contains('suggestion')) return;
-  const lon = parseFloat(e.target.dataset.lon);
-  const lat = parseFloat(e.target.dataset.lat);
-  const text = e.target.textContent;
-  const input = document.getElementById('search');
-  input.value = text;
-  input.dataset.lon = lon;
-  input.dataset.lat = lat;
-  document.getElementById('suggestions').innerHTML = '';
-  map.flyTo({ center: [lon, lat], zoom: 14 });
 });
