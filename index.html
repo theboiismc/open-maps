@@ -188,6 +188,25 @@
             color: #202124;
         }
 
+        /* Location Button */
+        .location-btn {
+            background-color: #6750a4;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 10px;
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .location-btn:hover {
+            background-color: #5b439b;
+        }
+
         /* Keep old buttons for functionality, but hide them initially */
         #get-route, #clear-route {
              background-color: #6750a4;
@@ -286,18 +305,20 @@
             <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
             <button id="search-icon" aria-label="Search"><span>🔍</span></button>
         </div>
-        <div id="suggestions" role="listbox" tabindex="-1"></div>
+        <div id="suggestions"></div>
     </div>
 
-    <div id="directions-form" aria-label="Directions form" role="region">
+    <button id="directions-toggle">Directions</button>
+
+    <div id="directions-form">
         <div class="directions-header">
-            <button id="close-directions" aria-label="Close directions panel">☰</button>
+            <button id="close-directions">☰</button>
             <div class="travel-modes">
-                <button class="travel-mode active" aria-label="Driving">🚗</button>
-                <button class="travel-mode" aria-label="Transit">🚌</button>
-                <button class="travel-mode" aria-label="Walking">🚶</button>
-                <button class="travel-mode" aria-label="Biking">🚲</button>
-                <button class="travel-mode" aria-label="Flying">✈️</button>
+                <button class="travel-mode active">🚗</button>
+                <button class="travel-mode">🚌</button>
+                <button class="travel-mode">🚶</button>
+                <button class="travel-mode">🚲</button>
+                <button class="travel-mode">✈️</button>
             </div>
         </div>
 
@@ -305,27 +326,22 @@
             <div class="input-row">
                 <span class="input-icon">○</span>
                 <input id="origin" type="text" placeholder="Choose starting point, or click on the map" aria-label="Origin" autocomplete="off" spellcheck="false" />
+                <button id="origin-location" class="location-btn" style="display:none;" aria-label="Use My Location">My Location</button>
             </div>
-            <div id="origin-suggestions" role="listbox" tabindex="-1"></div>
 
             <div class="input-row">
                 <span class="input-icon">📍</span>
                 <input id="destination" type="text" placeholder="Choose destination..." aria-label="Destination" autocomplete="off" spellcheck="false" />
+                <button id="destination-location" class="location-btn" style="display:none;" aria-label="Use My Location">My Location</button>
             </div>
-            <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
-            <button id="swap-locations" aria-label="Swap origin and destination">↕️</button>
+
+            <button id="swap-locations">↕️</button>
         </div>
-        
+
         <div id="route-actions">
             <button id="get-route">Get Directions</button>
             <button id="clear-route">Clear</button>
             <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
-        </div>
-
-        <div class="delays-info">
-            <p><strong>Delays</strong></p>
-            <p>Light traffic in this area</p>
-            <p>No known road disruptions. Traffic incidents will show up here.</p>
         </div>
 
         <div id="navigation-ui" style="display:none;">
@@ -335,14 +351,9 @@
         </div>
     </div>
 
-    <div id="style-toggle" aria-label="Toggle map style" role="button" tabindex="0" aria-pressed="false">
-        <img id="style-icon" src="default_style.png" alt="Map style icon" />
-        <span id="style-label">Regular</span>
-    </div>
-
-    <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel">Directions</button>
-
     <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-    <script src="app.js"></script>
+    <script>
+        // JavaScript handling goes here (app.js below)
+    </script>
 </body>
 </html>
