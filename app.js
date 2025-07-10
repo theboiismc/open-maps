@@ -1,140 +1,120 @@
-// Initialize MapLibre map
 const map = new maplibregl.Map({
-    container: 'map',
-    style: 'https://tiles.openfreemap.org/styles/liberty',
-    center: [0, 0],
-    zoom: 2,
-    pitch: 0,
-    bearing: 0,
-    dragRotate: true,
-    touchZoomRotate: true,
-    scrollZoom: true,
-    maxZoom: 18,
-    minZoom: 1
+  container: 'map',
+  style: 'https://tiles.openfreemap.org/styles/liberty',
+  center: [-95, 39],
+  zoom: 4
 });
 
-// Add navigation controls (zoom + rotation + geolocate) bottom right
-const navControl = new maplibregl.NavigationControl({
-    showCompass: true,
-    showZoom: true,
-    visualizePitch: true,
-});
-map.addControl(navControl, 'bottom-right');
+map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), 'bottom-right');
 
-const geolocateControl = new maplibregl.GeolocateControl({
-    positionOptions: { enableHighAccuracy: true },
-    trackUserLocation: true,
-    showAccuracyCircle: false,
-});
-map.addControl(geolocateControl, 'bottom-right');
+const $ = id => document.getElementById(id);
+const search = $('search');
+const suggestions = $('suggestions');
+const searchIcon = $('search-icon');
+const directionsIcon = $('directions-icon');
+const sidePanel = $('side-panel');
+const closePanel = $('close-side-panel');
+const placeName = $('place-name');
+const placeDescription = $('place-description');
+const placeWeather = $('place-weather');
+const directionsBtn = $('directions-btn');
+const directionsForm = $('directions-form');
+const origin = $('origin');
+const destination = $('destination');
+const swapBtn = $('swap-locations');
+const getRoute = $('get-route');
 
-// Elements
-const searchInput = document.getElementById('search');
-const searchIcon = document.getElementById('search-icon');
-const directionsIcon = document.getElementById('directions-icon');
-const directionsForm = document.getElementById('directions-form');
-const closeDirectionsBtn = document.getElementById('close-directions');
-const styleToggle = document.getElementById('style-toggle');
-const styleIcon = document.getElementById('style-icon');
-const styleLabel = document.getElementById('style-label');
-
-// Directions toggle
-function openDirectionsPanel() {
-    directionsForm.classList.add('open');
-    styleToggle.style.left = '370px'; // Adjust position based on panel width
+function showPanel() {
+  sidePanel.classList.add('open');
 }
 
-function closeDirectionsPanel() {
-    directionsForm.classList.remove('open');
-    styleToggle.style.left = '20px';
+function hidePanel() {
+  sidePanel.classList.remove('open');
+  directionsForm.style.display = 'none';
+  $('place-info').style.display = 'block';
 }
 
-// Search functionality
-async function photonSearch(query) {
-    if (!query) return [];
-    const photonUrl = "https://photon.komoot.io/api/?q=";
-    try {
-        const res = await fetch(`${photonUrl}${encodeURIComponent(query)}&limit=5`);
-        if (!res.ok) throw new Error("Photon request failed");
-        const data = await res.json();
-        return data.features || [];
-    } catch (e) {
-        console.error(e);
-        return [];
-    }
-}
+closePanel.addEventListener('click', hidePanel);
 
-function renderSuggestions(container, results) {
-    container.innerHTML = ''; // clear previous suggestions
-    if (!results.length) return;
-    results.forEach(feature => {
-        const div = document.createElement('div');
-        div.className = 'suggestion';
-        div.textContent = feature.properties.name +
-            (feature.properties.state ? ', ' + feature.properties.state : '') +
-            (feature.properties.country ? ', ' + feature.properties.country : '');
-        div.tabIndex = 0;
-        div.dataset.lon = feature.geometry.coordinates[0];
-        div.dataset.lat = feature.geometry.coordinates[1];
-        div.addEventListener('click', () => {
-            searchInput.value = div.textContent;
-            searchInput.dataset.lon = div.dataset.lon;
-            searchInput.dataset.lat = div.dataset.lat;
-            map.flyTo({ center: [parseFloat(div.dataset.lon), parseFloat(div.dataset.lat)], zoom: 14 });
-            openDirectionsPanel();
-        });
-        container.appendChild(div);
+search.addEventListener('input', debounce(async () => {
+  const q = search.value.trim();
+  if (!q) return suggestions.innerHTML = '';
+  const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5`);
+  const json = await res.json();
+  suggestions.innerHTML = '';
+  json.features.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'suggestion';
+    div.textContent = `${f.properties.name}, ${f.properties.state || ''}, ${f.properties.country || ''}`;
+    div.addEventListener('click', async () => {
+      search.value = div.textContent;
+      suggestions.innerHTML = '';
+      const [lon, lat] = f.geometry.coordinates;
+      map.flyTo({ center: [lon, lat], zoom: 13 });
+      await loadPlaceInfo(f.properties.name, lat, lon);
     });
-}
+    suggestions.appendChild(div);
+  });
+}, 300));
 
-searchInput.addEventListener('input', async () => {
-    const query = searchInput.value.trim();
-    const results = await photonSearch(query);
-    renderSuggestions(document.getElementById('suggestions'), results);
+search.addEventListener('blur', () => setTimeout(() => suggestions.innerHTML = '', 200));
+
+searchIcon.addEventListener('click', () => {
+  search.dispatchEvent(new Event('input'));
 });
 
-// Open directions panel
 directionsIcon.addEventListener('click', () => {
-    openDirectionsPanel();
+  showPanel();
+  directionsForm.style.display = 'flex';
+  $('place-info').style.display = 'none';
 });
 
-// Close directions panel
-closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
+directionsBtn.addEventListener('click', () => {
+  directionsForm.style.display = 'flex';
+  $('place-info').style.display = 'none';
+});
 
-// Map style toggle
-let isSatellite = false;
+swapBtn.addEventListener('click', () => {
+  const o = origin.value;
+  origin.value = destination.value;
+  destination.value = o;
+});
 
-function switchToSatellite() {
-    map.setStyle('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
-    styleIcon.src = 'satelite_style.png';
-    styleLabel.textContent = 'Satellite';
-    isSatellite = true;
-    styleToggle.setAttribute('aria-pressed', 'true');
+getRoute.addEventListener('click', async () => {
+  const o = origin.value;
+  const d = destination.value;
+  const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${encodeURIComponent(o)};${encodeURIComponent(d)}?overview=full&geometries=geojson`);
+  const json = await res.json();
+  const route = json.routes[0].geometry;
+  if (map.getSource('route')) map.removeLayer('route'), map.removeSource('route');
+  map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route } });
+  map.addLayer({ id: 'route', type: 'line', source: 'route', paint: { 'line-color': '#6750a4', 'line-width': 6 } });
+});
+
+async function loadPlaceInfo(name, lat, lon) {
+  placeName.textContent = name;
+  try {
+    const wiki = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
+    const w = await wiki.json();
+    placeDescription.textContent = w.extract || 'No description.';
+  } catch {
+    placeDescription.textContent = 'Description unavailable.';
+  }
+
+  try {
+    const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+    const data = await weather.json();
+    const w = data.current_weather;
+    placeWeather.textContent = `Weather: ${w.temperature}°C, wind ${w.windspeed} km/h`;
+  } catch {
+    placeWeather.textContent = 'Weather unavailable.';
+  }
+
+  showPanel();
 }
-
-function switchToRegular() {
-    map.setStyle('https://tiles.openfreemap.org/styles/liberty');
-    styleIcon.src = 'default_style.png';
-    styleLabel.textContent = 'Regular';
-    isSatellite = false;
-    styleToggle.setAttribute('aria-pressed', 'false');
+function debounce(fn, delay) {
+  let t; return (...args) => {
+    clearTimeout(t); t = setTimeout(() => fn(...args), delay);
+  };
 }
-
-styleToggle.addEventListener('click', () => {
-    if (isSatellite) switchToRegular();
-    else switchToSatellite();
-});
-
-// Optional: click on map to set origin if empty
-map.on('click', (e) => {
-    if (!searchInput.value) {
-        searchInput.value = `${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)}`;
-        searchInput.dataset.lon = e.lngLat.lng;
-        searchInput.dataset.lat = e.lngLat.lat;
-    }
-});
-
-// Add default style layer on map load
-map.on('load', () => {
-    switchToRegular();
-});
