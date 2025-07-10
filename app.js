@@ -22,9 +22,7 @@ const navControl = new maplibregl.NavigationControl({
 map.addControl(navControl, 'bottom-right');
 
 const geolocateControl = new maplibregl.GeolocateControl({
-  positionOptions: {
-    enableHighAccuracy: true
-  },
+  positionOptions: { enableHighAccuracy: true },
   trackUserLocation: true,
   showAccuracyCircle: false,
 });
@@ -52,21 +50,11 @@ const destinationSuggestions = document.getElementById('destination-suggestions'
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
 
-const navigationPanel = document.createElement('div');
-navigationPanel.id = 'navigation-panel';
-navigationPanel.style.position = 'fixed';
-navigationPanel.style.bottom = '130px';
-navigationPanel.style.right = '20px';
-navigationPanel.style.width = '320px';
-navigationPanel.style.maxHeight = '400px';
-navigationPanel.style.overflowY = 'auto';
-navigationPanel.style.background = 'white';
-navigationPanel.style.borderRadius = '12px';
-navigationPanel.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-navigationPanel.style.padding = '12px';
-navigationPanel.style.zIndex = 10003;
-navigationPanel.style.display = 'none';
-document.body.appendChild(navigationPanel);
+const directionsInputsDiv = document.getElementById('directions-inputs');
+const navigationUIDiv = document.getElementById('navigation-ui');
+const navigationStepsDiv = document.getElementById('navigation-steps');
+const startNavBtn = document.getElementById('start-navigation');
+const stopNavBtn = document.getElementById('stop-navigation');
 
 // Satellite layer flag
 let satelliteLayerAdded = false;
@@ -114,20 +102,16 @@ map.on('load', () => {
 });
 
 styleToggle.addEventListener('click', () => {
-  if (isSatellite) {
-    switchToRegular();
-  } else {
-    switchToSatellite();
-  }
+  if (isSatellite) switchToRegular();
+  else switchToSatellite();
 });
 
-// Directions panel toggle funcs
+// Directions panel toggle
 function openDirectionsPanel() {
   directionsForm.classList.add('open');
   document.querySelector('.search-bar').style.display = 'none';
   directionsToggleBtn.setAttribute('aria-pressed', 'true');
   styleToggle.style.left = '100px';
-  navigationPanel.style.display = 'none'; // hide nav panel if open
 }
 
 function closeDirectionsPanel() {
@@ -135,15 +119,16 @@ function closeDirectionsPanel() {
   document.querySelector('.search-bar').style.display = 'block';
   directionsToggleBtn.setAttribute('aria-pressed', 'false');
   styleToggle.style.left = '20px';
-  navigationPanel.style.display = 'none';
+
+  if (isNavigating) stopNavigation();
+  navigationUIDiv.style.display = 'none';
+  directionsInputsDiv.style.display = 'block';
+  routeInfoDiv.textContent = '';
 }
 
 directionsToggleBtn.addEventListener('click', () => {
-  if (directionsForm.classList.contains('open')) {
-    closeDirectionsPanel();
-  } else {
-    openDirectionsPanel();
-  }
+  if (directionsForm.classList.contains('open')) closeDirectionsPanel();
+  else openDirectionsPanel();
 });
 
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
@@ -154,13 +139,14 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// Prevent panel closing on clicks inside or suggestions
 document.addEventListener('click', e => {
   if (
     directionsForm.classList.contains('open') &&
     !directionsForm.contains(e.target) &&
     !directionsToggleBtn.contains(e.target)
   ) {
-    // ignore outside clicks to keep panel open
+    // Ignore clicks outside panel & toggle button (no close)
   }
 });
 
@@ -213,71 +199,9 @@ function showLoading(container) {
 function clearSuggestions(container) {
   container.innerHTML = '';
 }
-
 function renderSuggestions(container, results, inputEl) {
   clearSuggestions(container);
-
-  // Show "📍 Current Location" option first for all inputs
-  if (!inputEl.dataset.preventCurrent && inputEl.value.trim() === '') {
-    const currentDiv = document.createElement('div');
-    currentDiv.className = 'suggestion current-location-option';
-    currentDiv.textContent = '📍 Current Location';
-    currentDiv.tabIndex = 0;
-    currentDiv.addEventListener('click', () => {
-      navigator.geolocation.getCurrentPosition(pos => {
-        const lon = pos.coords.longitude;
-        const lat = pos.coords.latitude;
-        inputEl.value = 'Current Location';
-        inputEl.dataset.current = 'true';
-        inputEl.dataset.lon = lon;
-        inputEl.dataset.lat = lat;
-        clearSuggestions(container);
-
-        if (inputEl.id === 'search') {
-          map.flyTo({ center: [lon, lat], zoom: 14 });
-          saveRecentSearch('Current Location', lon, lat);
-        }
-      }, () => {
-        alert('Unable to access your location.');
-      });
-    });
-    container.appendChild(currentDiv);
-  }
-
-  // Recent searches for main search bar
-  if (inputEl.id === 'search') {
-    const recents = getRecentSearches();
-    if (recents.length) {
-      const label = document.createElement('div');
-      label.className = 'suggestion label';
-      label.textContent = 'Recent Searches';
-      container.appendChild(label);
-
-      recents.forEach(({ text, lon, lat }) => {
-        const div = document.createElement('div');
-        div.className = 'suggestion';
-        div.textContent = text;
-        div.dataset.lon = lon;
-        div.dataset.lat = lat;
-        div.addEventListener('click', () => {
-          inputEl.value = text;
-          inputEl.dataset.lon = lon;
-          inputEl.dataset.lat = lat;
-          clearSuggestions(container);
-          map.flyTo({ center: [parseFloat(lon), parseFloat(lat)], zoom: 14 });
-        });
-        container.appendChild(div);
-      });
-
-      const sep = document.createElement('div');
-      sep.style.borderTop = '1px solid #ccc';
-      sep.style.margin = '4px 0';
-      container.appendChild(sep);
-    }
-  }
-
   if (!results.length) return;
-
   results.forEach(feature => {
     const div = document.createElement('div');
     div.className = 'suggestion';
@@ -294,7 +218,6 @@ function renderSuggestions(container, results, inputEl) {
       clearSuggestions(container);
       if (inputEl.id === 'search') {
         map.flyTo({ center: [parseFloat(div.dataset.lon), parseFloat(div.dataset.lat)], zoom: 14 });
-        saveRecentSearch(div.textContent, div.dataset.lon, div.dataset.lat);
       }
     });
     div.addEventListener('keydown', e => {
@@ -308,60 +231,11 @@ function renderSuggestions(container, results, inputEl) {
   });
 }
 
-function setupSearch(inputEl, suggestionsEl) {
-  const debouncedSearch = debounce(async (query) => {
-    if (!query) {
-      clearSuggestions(suggestionsEl);
-      return;
-    }
-    showLoading(suggestionsEl);
-    const results = await photonSearch(query);
-    renderSuggestions(suggestionsEl, results, inputEl);
-  }, 250);
-
-  inputEl.addEventListener('input', e => {
-    debouncedSearch(e.target.value.trim());
-  });
-
-  // Close suggestions if clicking outside input or suggestions
-  document.addEventListener('click', e => {
-    if (!inputEl.contains(e.target) && !suggestionsEl.contains(e.target)) {
-      clearSuggestions(suggestionsEl);
-    }
-  });
-}
-
 setupSearch(searchInput, searchSuggestions);
 setupSearch(originInput, originSuggestions);
 setupSearch(destinationInput, destinationSuggestions);
 
-// LocalStorage Recent Searches
-const RECENT_SEARCHES_KEY = 'tbm_recent_searches';
-function getRecentSearches() {
-  try {
-    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (!stored) return [];
-    return JSON.parse(stored);
-  } catch {
-    return [];
-  }
-}
-function saveRecentSearch(text, lon, lat) {
-  if (text === 'Current Location') return; // don't store
-  let recents = getRecentSearches();
-  recents = recents.filter(r => r.text !== text);
-  recents.unshift({ text, lon, lat });
-  if (recents.length > 5) recents.pop();
-  localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recents));
-}
-
-// Routing with OSRM & Navigation UI
-let currentRoute = null;
-let currentStepIndex = 0;
-let navigationStarted = false;
-let watchId = null;
-let speechSynthesisUtterance = null;
-
+// Routing with OSRM
 function drawRoute(routeGeoJSON) {
   if (map.getSource('route')) {
     map.getSource('route').setData(routeGeoJSON);
@@ -388,258 +262,205 @@ function clearRoute() {
   if (map.getLayer('route')) map.removeLayer('route');
   if (map.getSource('route')) map.removeSource('route');
   routeInfoDiv.textContent = '';
-  currentRoute = null;
-  currentStepIndex = 0;
-  stopNavigation();
 }
 
-function showDirectionsPanel() {
-  directionsForm.style.display = 'flex';
-  navigationPanel.style.display = 'none';
+let navSteps = [];
+let navStepIndex = 0;
+let isNavigating = false;
+let voiceUtterance = null;
+let currentRoute = null;
+let watchId = null;
+
+// Helper: calculate distance between lat/lon in meters (Haversine)
+function getDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // Earth radius in meters
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat/2)**2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 }
 
-function showNavigationPanel() {
-  directionsForm.style.display = 'none';
-  navigationPanel.style.display = 'block';
-}
-
-function buildStepsUI(steps) {
-  navigationPanel.innerHTML = '';
-
-  const header = document.createElement('div');
-  header.style.fontWeight = '700';
-  header.style.fontSize = '18px';
-  header.style.marginBottom = '8px';
-  header.textContent = 'Navigation';
-
-  const stepsList = document.createElement('ol');
-  stepsList.style.paddingLeft = '20px';
-  stepsList.style.maxHeight = '320px';
-  stepsList.style.overflowY = 'auto';
-
-  steps.forEach((step, idx) => {
-    const li = document.createElement('li');
-    li.style.marginBottom = '8px';
-    li.style.fontWeight = idx === currentStepIndex ? '700' : '400';
-    li.style.color = idx === currentStepIndex ? '#6750a4' : '#333';
-    li.textContent = step.maneuver.instruction;
-    stepsList.appendChild(li);
-  });
-
-  navigationPanel.appendChild(header);
-  navigationPanel.appendChild(stepsList);
-
-  const btnContainer = document.createElement('div');
-  btnContainer.style.marginTop = '12px';
-  btnContainer.style.textAlign = 'right';
-
-  const stopBtn = document.createElement('button');
-  stopBtn.textContent = 'Stop Navigation';
-  stopBtn.style.background = '#b3261e';
-  stopBtn.style.color = 'white';
-  stopBtn.style.border = 'none';
-  stopBtn.style.padding = '8px 16px';
-  stopBtn.style.borderRadius = '20px';
-  stopBtn.style.cursor = 'pointer';
-  stopBtn.addEventListener('click', () => {
-    stopNavigation();
-    showDirectionsPanel();
-  });
-
-  btnContainer.appendChild(stopBtn);
-  navigationPanel.appendChild(btnContainer);
-}
-
+// Speech synthesis helper
 function speak(text) {
-  if ('speechSynthesis' in window) {
-    if (speechSynthesisUtterance) {
-      window.speechSynthesis.cancel();
-    }
-    speechSynthesisUtterance = new SpeechSynthesisUtterance(text);
-    speechSynthesisUtterance.lang = 'en-US';
-    window.speechSynthesis.speak(speechSynthesisUtterance);
+  if (!window.speechSynthesis) return;
+  if (voiceUtterance) {
+    window.speechSynthesis.cancel();
   }
+  voiceUtterance = new SpeechSynthesisUtterance(text);
+  voiceUtterance.lang = 'en-US';
+  voiceUtterance.rate = 1;
+  window.speechSynthesis.speak(voiceUtterance);
+}
+
+// Render navigation steps list dynamically
+function renderNavSteps() {
+  navigationStepsDiv.innerHTML = '';
+  navSteps.forEach((step, i) => {
+    const div = document.createElement('div');
+    div.className = 'nav-step' + (i === navStepIndex ? ' current-step' : '');
+    div.textContent = step.maneuver.instruction || step.name || 'Continue';
+    navigationStepsDiv.appendChild(div);
+  });
+}
+
+function updateNavStep() {
+  if (navStepIndex >= navSteps.length) {
+    speak("You have arrived at your destination.");
+    stopNavigation();
+    return;
+  }
+  renderNavSteps();
+  const step = navSteps[navStepIndex];
+  speak(step.maneuver.instruction || step.name || 'Continue');
 }
 
 function startNavigation() {
   if (!currentRoute) return;
-  navigationStarted = true;
-  showNavigationPanel();
-  updateStep();
-  startWatchingPosition();
+  isNavigating = true;
+  startNavBtn.style.display = 'none';
+  stopNavBtn.style.display = 'inline-block';
+  navStepIndex = 0;
+  updateNavStep();
+
+  // Start watching position
+  if (navigator.geolocation) {
+    watchId = navigator.geolocation.watchPosition(position => {
+      const { latitude, longitude } = position.coords;
+      map.flyTo({ center: [longitude, latitude], zoom: 16 });
+
+      // Check distance to next step
+      const nextStep = navSteps[navStepIndex];
+      if (!nextStep) return;
+      const [stepLon, stepLat] = nextStep.maneuver.location || [0, 0];
+      const dist = getDistanceMeters(latitude, longitude, stepLat, stepLon);
+      if (dist < 30) { // close enough to next step
+        navStepIndex++;
+        if (navStepIndex < navSteps.length) {
+          updateNavStep();
+        } else {
+          speak("You have arrived at your destination.");
+          stopNavigation();
+        }
+      }
+    }, err => {
+      console.warn('Geolocation error', err);
+    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 });
+  } else {
+    alert("Geolocation is not supported by your browser.");
+  }
 }
 
 function stopNavigation() {
-  navigationStarted = false;
-  currentStepIndex = 0;
+  isNavigating = false;
+  startNavBtn.style.display = 'inline-block';
+  stopNavBtn.style.display = 'none';
+  if (voiceUtterance) {
+    window.speechSynthesis.cancel();
+    voiceUtterance = null;
+  }
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
-  if (speechSynthesisUtterance) {
-    window.speechSynthesis.cancel();
-  }
-  navigationPanel.style.display = 'none';
 }
 
-function updateStep() {
-  if (!currentRoute) return;
-  const steps = currentRoute.legs[0].steps;
-  if (currentStepIndex >= steps.length) {
-    speak('You have arrived at your destination');
-    stopNavigation();
-    return;
-  }
-  buildStepsUI(steps);
+// Clear route handler
+clearRouteBtn.addEventListener('click', () => {
+  clearRoute();
+  stopNavigation();
+  navigationUIDiv.style.display = 'none';
+  directionsInputsDiv.style.display = 'block';
+  routeInfoDiv.textContent = '';
+});
 
-  const step = steps[currentStepIndex];
-  speak(step.maneuver.instruction);
-
-  // Zoom/fly to maneuver location
-  map.flyTo({ center: step.maneuver.location, zoom: 17 });
-}
-
-function startWatchingPosition() {
-  if (!('geolocation' in navigator)) return;
-
-  watchId = navigator.geolocation.watchPosition(position => {
-    const pos = [position.coords.longitude, position.coords.latitude];
-    if (!currentRoute) return;
-    const steps = currentRoute.legs[0].steps;
-
-    // Check distance to next maneuver location
-    const nextStep = steps[currentStepIndex];
-    const dist = distanceBetweenCoords(pos, nextStep.maneuver.location);
-    if (dist < 20) { // 20 meters threshold to advance step
-      currentStepIndex++;
-      updateStep();
+// Get route from OSRM
+async function fetchRoute(originLon, originLat, destLon, destLat) {
+  const url = `https://router.project-osrm.org/route/v1/driving/${originLon},${originLat};${destLon},${destLat}?overview=full&geometries=geojson&steps=true`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Routing failed");
+    const json = await res.json();
+    if (json.code !== 'Ok' || !json.routes.length) {
+      alert("No route found.");
+      return null;
     }
-  }, error => {
-    console.error('Geolocation watch error:', error);
-  }, {
-    enableHighAccuracy: true,
-    maximumAge: 1000,
-    timeout: 10000
-  });
+    return json.routes[0];
+  } catch (e) {
+    console.error(e);
+    alert("Failed to get route.");
+    return null;
+  }
 }
 
-function distanceBetweenCoords(a, b) {
-  const toRad = x => x * Math.PI / 180;
-  const R = 6371e3; // Earth radius meters
-  const lat1 = toRad(a[1]);
-  const lat2 = toRad(b[1]);
-  const dLat = toRad(b[1] - a[1]);
-  const dLon = toRad(b[0] - a[0]);
-
-  const sinDLat = Math.sin(dLat / 2);
-  const sinDLon = Math.sin(dLon / 2);
-
-  const c = 2 * Math.atan2(
-    Math.sqrt(sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon),
-    Math.sqrt(1 - (sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon))
-  );
-
-  return R * c;
-}
-
-// Get route and show directions + enable navigation UI
 getRouteBtn.addEventListener('click', async () => {
   const originLon = parseFloat(originInput.dataset.lon);
   const originLat = parseFloat(originInput.dataset.lat);
-  const destinationLon = parseFloat(destinationInput.dataset.lon);
-  const destinationLat = parseFloat(destinationInput.dataset.lat);
+  const destLon = parseFloat(destinationInput.dataset.lon);
+  const destLat = parseFloat(destinationInput.dataset.lat);
 
   if (
     isNaN(originLon) || isNaN(originLat) ||
-    isNaN(destinationLon) || isNaN(destinationLat)
+    isNaN(destLon) || isNaN(destLat)
   ) {
-    alert('Please select valid origin and destination from suggestions or current location.');
+    alert("Please select valid origin and destination from suggestions.");
     return;
   }
 
-  if (
-    originInput.value === destinationInput.value ||
-    originInput.value.trim() === '' ||
-    destinationInput.value.trim() === ''
-  ) {
-    alert('Origin and destination must be different and non-empty.');
-    return;
-  }
+  const route = await fetchRoute(originLon, originLat, destLon, destLat);
+  if (!route) return;
 
-  const originIsCurrent = originInput.dataset.current === 'true';
-  const destinationIsCurrent = destinationInput.dataset.current === 'true';
+  currentRoute = route;
+  navSteps = route.legs[0].steps;
+  navStepIndex = 0;
 
-  // Use OSRM route service
-  const url = `https://router.project-osrm.org/route/v1/driving/${originLon},${originLat};${destinationLon},${destinationLat}?overview=full&steps=true`;
+  const routeGeoJSON = {
+    type: 'Feature',
+    geometry: route.geometry
+  };
+  drawRoute(routeGeoJSON);
 
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Routing failed');
-    const data = await res.json();
+  // Show route info
+  routeInfoDiv.textContent = `Distance: ${(route.distance/1000).toFixed(2)} km, Duration: ${(route.duration/60).toFixed(0)} min`;
 
-    if (data.routes.length === 0) {
-      alert('No routes found.');
+  // Swap UI to navigation mode UI
+  directionsInputsDiv.style.display = 'none';
+  navigationUIDiv.style.display = 'block';
+
+  startNavBtn.style.display = 'inline-block';
+  stopNavBtn.style.display = 'none';
+
+  // Fly to origin
+  map.flyTo({ center: [originLon, originLat], zoom: 14 });
+});
+
+// Navigation buttons handlers
+startNavBtn.addEventListener('click', () => {
+  startNavigation();
+});
+
+stopNavBtn.addEventListener('click', () => {
+  stopNavigation();
+  navigationUIDiv.style.display = 'none';
+  directionsInputsDiv.style.display = 'block';
+  routeInfoDiv.textContent = '';
+  clearRoute();
+});
+
+// Search input debounce and setup
+function setupSearch(inputEl, suggestionsEl) {
+  inputEl.addEventListener('input', debounce(async () => {
+    const query = inputEl.value.trim();
+    if (!query) {
+      clearSuggestions(suggestionsEl);
       return;
     }
-
-    currentRoute = data.routes[0];
-    const geojson = {
-      type: 'Feature',
-      geometry: currentRoute.geometry
-    };
-
-    drawRoute(geojson);
-
-    // Show steps or start navigation UI depending on if origin is current location
-    if (originIsCurrent && !destinationIsCurrent) {
-      // Full nav with voice guidance and pan/zoom following user location
-      currentStepIndex = 0;
-      openDirectionsPanel();
-      directionsForm.style.display = 'none';
-      startNavigation();
-    } else {
-      // Just show steps, no navigation, no voice, no pan/zoom
-      navigationStarted = false;
-      navigationPanel.style.display = 'block';
-      directionsForm.style.display = 'none';
-
-      const steps = currentRoute.legs[0].steps;
-      navigationPanel.innerHTML = '<h3>Route Steps</h3><ol>' +
-        steps.map(s => `<li>${s.maneuver.instruction}</li>`).join('') +
-        '</ol><button id="stop-btn">Clear Route</button>';
-      document.getElementById('stop-btn').addEventListener('click', () => {
-        clearRoute();
-        navigationPanel.style.display = 'none';
-        openDirectionsPanel();
-      });
-    }
-
-  } catch (e) {
-    alert('Routing error: ' + e.message);
-  }
-});
-
-clearRouteBtn.addEventListener('click', () => {
-  clearRoute();
-  openDirectionsPanel();
-});
-
-
-// Search inputs: clear current location flags on manual input
-[searchInput, originInput, destinationInput].forEach(input => {
-  input.addEventListener('input', () => {
-    delete input.dataset.current;
-    delete input.dataset.lon;
-    delete input.dataset.lat;
-  });
-});
-
-// Move directions button up to avoid overlapping controls
-directionsToggleBtn.style.position = 'fixed';
-directionsToggleBtn.style.bottom = '90px';
-directionsToggleBtn.style.right = '20px';
-directionsToggleBtn.style.zIndex = '10002';
-
-// Make sure map controls remain visible
-// The controls are already bottom-right with some offset
+    const results = await photonSearch(query);
+    renderSuggestions(suggestionsEl, results, inputEl);
+  }, 300));
+}
 
