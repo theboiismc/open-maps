@@ -15,7 +15,7 @@ const searchIcon = $('search-icon');
 const directionsIcon = $('directions-icon');
 const sidePanel = $('side-panel');
 const closePanel = $('close-side-panel');
-const directionsPanel = $('directions-panel'); // Directions panel
+const directionsPanel = $('directions-panel');
 const closeDirectionsPanel = $('close-directions-panel');
 const placeName = $('place-name');
 const placeDescription = $('place-description');
@@ -44,7 +44,6 @@ closeDirectionsPanel.addEventListener('click', () => {
   directionsPanel.classList.remove('open');
 });
 
-// Show directions panel when clicking the directions button in the search bar
 directionsIcon.addEventListener('click', () => {
   directionsPanel.classList.add('open');
   sidePanel.classList.remove('open');
@@ -121,8 +120,9 @@ startNavigation.addEventListener('click', () => {
 async function loadPlaceInfo(name, lat, lon) {
   placeName.textContent = name;
 
+  // Fetch Image
   try {
-    const imageRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
+    const imageRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
     const imageData = await imageRes.json();
     const pages = imageData.query.pages;
     const pageId = Object.keys(pages)[0];
@@ -138,6 +138,7 @@ async function loadPlaceInfo(name, lat, lon) {
     document.getElementById('place-image').src = 'default.jpg';
   }
 
+  // Fetch Weather info
   try {
     const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
     const data = await weather.json();
@@ -148,6 +149,7 @@ async function loadPlaceInfo(name, lat, lon) {
     placeWeather.textContent = 'Weather unavailable.';
   }
 
+  // Fetch Quick Facts (Wikipedia)
   try {
     const wiki = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
     const w = await wiki.json();
@@ -155,6 +157,10 @@ async function loadPlaceInfo(name, lat, lon) {
   } catch {
     placeDescription.textContent = 'Description unavailable.';
   }
+
+  // Adjust layout for place name and weather
+  const weatherText = `${name}          ${placeWeather.textContent}`;
+  placeName.textContent = weatherText;
 
   showPanel();
 }
