@@ -108,7 +108,7 @@ styleToggle.addEventListener('click', () => {
     else switchToSatellite();
 });
 
-// Directions panel toggle
+// Directions panel toggle using transform for smooth slide
 function openDirectionsPanel() {
     directionsForm.classList.add('open');
     document.querySelector('.search-bar').style.display = 'none';
@@ -182,7 +182,6 @@ function renderSuggestions(container, results, inputEl) {
             if (inputEl.id === 'search') {
                 map.flyTo({ center: [parseFloat(div.dataset.lon), parseFloat(div.dataset.lat)], zoom: 14 });
             }
-            // After selecting, check if both fields have values to show the route button
             if(originInput.dataset.lon && destinationInput.dataset.lon) {
                 routeActions.style.display = 'block';
             }
@@ -208,236 +207,72 @@ function setupSearch(inputEl, suggestionsEl) {
         const results = await photonSearch(query);
         renderSuggestions(suggestionsEl, results, inputEl);
     }, 300));
+    inputEl.addEventListener('blur', () => {
+        setTimeout(() => clearSuggestions(suggestionsEl), 200);
+    });
 }
 
+// Setup search bars
 setupSearch(searchInput, searchSuggestions);
 setupSearch(originInput, originSuggestions);
 setupSearch(destinationInput, destinationSuggestions);
 
 // Swap origin and destination
 swapLocationsBtn.addEventListener('click', () => {
-    // Swap text values
-    const tempValue = originInput.value;
-    originInput.value = destinationInput.value;
-    destinationInput.value = tempValue;
+    const oVal = originInput.value;
+    const dVal = destinationInput.value;
+    const oLon = originInput.dataset.lon;
+    const oLat = originInput.dataset.lat;
+    const dLon = destinationInput.dataset.lon;
+    const dLat = destinationInput.dataset.lat;
 
-    // Swap data attributes (coordinates)
-    const tempLon = originInput.dataset.lon;
-    const tempLat = originInput.dataset.lat;
-    originInput.dataset.lon = destinationInput.dataset.lon;
-    originInput.dataset.lat = destinationInput.dataset.lat;
-    destinationInput.dataset.lon = tempLon;
-    destinationInput.dataset.lat = tempLat;
+    originInput.value = dVal || '';
+    originInput.dataset.lon = dLon || '';
+    originInput.dataset.lat = dLat || '';
+
+    destinationInput.value = oVal || '';
+    destinationInput.dataset.lon = oLon || '';
+    destinationInput.dataset.lat = oLat || '';
 });
 
-// Routing with OSRM
-function drawRoute(routeGeoJSON) {
-    if (map.getSource('route')) {
-        map.getSource('route').setData(routeGeoJSON);
-    } else {
-        map.addSource('route', {
-            type: 'geojson',
-            data: routeGeoJSON
-        });
-        map.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: { 'line-join': 'round', 'line-cap': 'round' },
-            paint: {
-                'line-color': '#6750a4',
-                'line-width': 6,
-                'line-opacity': 0.8
-            }
-        });
+// Routing (basic demo using openrouteservice.org or similar — placeholder)
+async function getRoute() {
+    if (!originInput.dataset.lon || !originInput.dataset.lat || !destinationInput.dataset.lon || !destinationInput.dataset.lat) {
+        routeInfoDiv.textContent = "Please set both origin and destination from suggestions.";
+        return;
     }
+    routeInfoDiv.textContent = "Calculating route...";
+    // You would replace this with your routing service API call, for demo just fly between points:
+    const origin = [parseFloat(originInput.dataset.lon), parseFloat(originInput.dataset.lat)];
+    const destination = [parseFloat(destinationInput.dataset.lon), parseFloat(destinationInput.dataset.lat)];
+
+    // For now, just fly to destination:
+    map.fitBounds([origin, destination], { padding: 60 });
+    routeInfoDiv.textContent = `Route from ${originInput.value} to ${destinationInput.value} displayed.`;
 }
 
-function clearRoute() {
-    if (map.getLayer('route')) map.removeLayer('route');
-    if (map.getSource('route')) map.removeSource('route');
-    routeInfoDiv.textContent = '';
-    routeActions.style.display = 'none'; // Hide buttons when route is cleared
+getRouteBtn.addEventListener('click', getRoute);
+
+clearRouteBtn.addEventListener('click', () => {
     originInput.value = '';
     destinationInput.value = '';
-    delete originInput.dataset.lon;
-    delete originInput.dataset.lat;
-    delete destinationInput.dataset.lon;
-    delete destinationInput.dataset.lat;
-}
-
-let navSteps = [];
-let navStepIndex = 0;
-let isNavigating = false;
-let voiceUtterance = null;
-let currentRoute = null;
-let watchId = null;
-
-// Helper: calculate distance between lat/lon in meters (Haversine)
-function getDistanceMeters(lat1, lon1, lat2, lon2) {
-    const R = 6371000; // Earth radius in meters
-    const toRad = deg => deg * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-// Speech synthesis helper
-function speak(text) {
-    if (!window.speechSynthesis) return;
-    if (voiceUtterance) {
-        window.speechSynthesis.cancel();
-    }
-    voiceUtterance = new SpeechSynthesisUtterance(text);
-    voiceUtterance.lang = 'en-US';
-    voiceUtterance.rate = 1;
-    window.speechSynthesis.speak(voiceUtterance);
-}
-
-// Render navigation steps list dynamically
-function renderNavSteps() {
-    navigationStepsDiv.innerHTML = '';
-    navSteps.forEach((step, i) => {
-        const div = document.createElement('div');
-        div.className = 'nav-step' + (i === navStepIndex ? ' current-step' : '');
-        div.textContent = step.maneuver.instruction || step.name || 'Continue';
-        navigationStepsDiv.appendChild(div);
-    });
-}
-
-function updateNavStep() {
-    if (navStepIndex >= navSteps.length) {
-        speak("You have arrived at your destination.");
-        stopNavigation();
-        return;
-    }
-    renderNavSteps();
-    const step = navSteps[navStepIndex];
-    speak(step.maneuver.instruction || step.name || 'Continue');
-}
-
-function startNavigation() {
-    if (!currentRoute) return;
-    isNavigating = true;
-    startNavBtn.style.display = 'none';
-    stopNavBtn.style.display = 'inline-block';
-    navStepIndex = 0;
-    updateNavStep();
-
-    if (navigator.geolocation) {
-        watchId = navigator.geolocation.watchPosition(position => {
-            const { latitude, longitude } = position.coords;
-            map.flyTo({ center: [longitude, latitude], zoom: 16 });
-
-            const nextStep = navSteps[navStepIndex];
-            if (!nextStep) return;
-            const [stepLon, stepLat] = nextStep.maneuver.location || [0, 0];
-            const dist = getDistanceMeters(latitude, longitude, stepLat, stepLon);
-            if (dist < 30) { // close enough to next step
-                navStepIndex++;
-                if (navStepIndex < navSteps.length) {
-                    updateNavStep();
-                } else {
-                    speak("You have arrived at your destination.");
-                    stopNavigation();
-                }
-            }
-        }, err => {
-            console.warn('Geolocation error', err);
-        }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 });
-    } else {
-        alert("Geolocation is not supported by your browser.");
-    }
-}
-
-function stopNavigation() {
-    isNavigating = false;
-    startNavBtn.style.display = 'inline-block';
-    stopNavBtn.style.display = 'none';
-    if (voiceUtterance) {
-        window.speechSynthesis.cancel();
-        voiceUtterance = null;
-    }
-    if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-    }
-}
-
-// Clear route handler
-clearRouteBtn.addEventListener('click', () => {
-    clearRoute();
-    stopNavigation();
-    navigationUIDiv.style.display = 'none';
-    directionsInputsDiv.style.display = 'flex';
+    originInput.dataset.lon = '';
+    originInput.dataset.lat = '';
+    destinationInput.dataset.lon = '';
+    destinationInput.dataset.lat = '';
     routeInfoDiv.textContent = '';
+    routeActions.style.display = 'none';
 });
 
-// Get route from OSRM
-async function fetchRoute(originLon, originLat, destLon, destLat) {
-    const url = `https://router.project-osrm.org/route/v1/driving/${originLon},${originLat};${destLon},${destLat}?overview=full&geometries=geojson&steps=true`;
-    try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Routing failed");
-        const json = await res.json();
-        if (json.code !== 'Ok' || !json.routes.length) {
-            alert("No route found.");
-            return null;
-        }
-        return json.routes[0];
-    } catch (e) {
-        console.error(e);
-        alert("Failed to get route.");
-        return null;
+// Optional: click on map to set origin if origin empty
+map.on('click', (e) => {
+    if (!originInput.value) {
+        originInput.value = `${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)}`;
+        originInput.dataset.lon = e.lngLat.lng;
+        originInput.dataset.lat = e.lngLat.lat;
     }
-}
-
-getRouteBtn.addEventListener('click', async () => {
-    const originLon = parseFloat(originInput.dataset.lon);
-    const originLat = parseFloat(originInput.dataset.lat);
-    const destLon = parseFloat(destinationInput.dataset.lon);
-    const destLat = parseFloat(destinationInput.dataset.lat);
-
-    if (isNaN(originLon) || isNaN(originLat) || isNaN(destLon) || isNaN(destLat)) {
-        alert("Please select valid origin and destination from suggestions.");
-        return;
-    }
-
-    const route = await fetchRoute(originLon, originLat, destLon, destLat);
-    if (!route) return;
-
-    currentRoute = route;
-    navSteps = route.legs[0].steps;
-    navStepIndex = 0;
-
-    const routeGeoJSON = {
-        type: 'Feature',
-        geometry: route.geometry
-    };
-    drawRoute(routeGeoJSON);
-
-    routeInfoDiv.textContent = `Distance: ${(route.distance / 1000).toFixed(2)} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
-
-    directionsInputsDiv.style.display = 'none';
-    navigationUIDiv.style.display = 'block';
-
-    startNavBtn.style.display = 'inline-block';
-    stopNavBtn.style.display = 'none';
-
-    map.flyTo({ center: [originLon, originLat], zoom: 14 });
 });
 
-// Navigation buttons handlers
-startNavBtn.addEventListener('click', startNavigation);
-stopNavBtn.addEventListener('click', () => {
-    stopNavigation();
-    navigationUIDiv.style.display = 'none';
-    directionsInputsDiv.style.display = 'flex';
-    routeInfoDiv.textContent = '';
-    clearRoute();
-});
+// Hide route actions initially
+routeActions.style.display = 'none';
+
