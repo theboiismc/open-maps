@@ -1,340 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TheBoiisMC Map</title>
-    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TheBoiisMC Map</title>
+<link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
 
-        html, body {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            font-family: 'Roboto', sans-serif;
-            background: #f2f2f2; color: #202124;
-            overflow-x: hidden; /* prevent horizontal scroll */
-        }
+  html, body {
+    margin: 0; padding: 0; height: 100%; width: 100%;
+    font-family: 'Roboto', sans-serif;
+    background: #f2f2f2; color: #202124;
+    overflow-x: hidden;
+  }
 
-        #map {
-            position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 0;
-        }
+  #map {
+    position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 0;
+  }
 
-        .search-bar {
-            position: absolute;
-            top: 20px; left: 20px;
-            width: 320px;
-            background: #fff;
-            border-radius: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            z-index: 10001;
-        }
+  .search-bar {
+    position: absolute;
+    top: 20px; left: 20px;
+    width: 360px;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 10001;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+  }
 
-        .search-wrapper {
-            position: relative;
-            width: 100%;
-        }
+  .search-bar input[type="text"] {
+    font-size: 16px;
+    padding: 10px 12px;
+    flex-grow: 1;
+    border: none;
+    border-radius: 20px;
+    background: #e7e0ec;
+    color: #1c1b1f;
+  }
 
-        .search-wrapper input {
-            font-size: 16px;
-            padding: 10px 16px;
-            padding-right: 44px;
-            width: 280px;
-            border: none;
-            border-radius: 20px;
-            background: #e7e0ec;
-            color: #1c1b1f;
-        }
+  #search-icons {
+    display: flex;
+    gap: 8px;
+    margin-left: 8px;
+  }
 
-        #search-icon {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: #333;
-        }
+  #search-icons button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+  }
 
-        #directions-icon {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: #333;
-        }
+  #search-icons button:hover {
+    background-color: #d6cfff;
+  }
 
-        #suggestions {
-            max-height: 240px;
-            overflow-y: auto;
-        }
+  #suggestions {
+    position: absolute;
+    top: 60px;
+    left: 20px;
+    width: 360px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 10002;
+  }
 
-        .suggestion {
-            padding: 8px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
+  .suggestion {
+    padding: 10px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+  }
 
-        .suggestion:hover, .suggestion:focus {
-            background-color: #d6cfff;
-            outline: none;
-        }
+  .suggestion:hover, .suggestion:focus {
+    background-color: #d6cfff;
+    outline: none;
+  }
 
-        /* Directions / Navigation panel */
-        #directions-form {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 350px;
-            background: #fff;
-            box-shadow: 2px 0 12px rgba(0,0,0,0.15);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            z-index: 10002;
+  #side-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 380px;
+    height: 100%;
+    background: white;
+    box-shadow: -3px 0 12px rgba(0,0,0,0.15);
+    overflow-y: auto;
+    z-index: 10010;
+    transition: transform 0.3s ease;
+    transform: translateX(100%);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+  }
 
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-        }
+  #side-panel.open {
+    transform: translateX(0);
+  }
 
-        #directions-form.open {
-            transform: translateX(0);
-        }
+  #close-side-panel {
+    align-self: flex-end;
+    font-size: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #333;
+  }
 
-        .directions-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
+  #place-info, #directions-form {
+    margin-top: 8px;
+    flex-grow: 1;
+    display: none;
+    overflow-y: auto;
+  }
 
-        #close-directions {
-            font-size: 24px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #333;
-            padding: 0;
-        }
+  #place-info h2 {
+    margin: 0 0 12px 0;
+    font-weight: 600;
+  }
 
-        .travel-modes {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            background-color: #f2f2f2;
-            border-radius: 20px;
-            padding: 4px;
-        }
+  #place-info p {
+    margin: 8px 0;
+  }
 
-        .travel-mode {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 8px 12px;
-            border-radius: 16px;
-            transition: background-color 0.2s;
-        }
+  #directions-btn {
+    margin-top: 16px;
+    padding: 12px;
+    background-color: #6750a4;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+  }
 
-        .travel-mode.active {
-            background-color: #e0e0e0;
-        }
+  #directions-btn:hover {
+    background-color: #4a3d87;
+  }
 
-        #directions-inputs {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+  #directions-form input {
+    width: calc(100% - 48px);
+    padding: 12px 14px;
+    font-size: 16px;
+    border-radius: 16px;
+    border: 1px solid #ccc;
+    margin-bottom: 12px;
+    outline: none;
+  }
 
-        .input-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #f2f2f2;
-            border-radius: 8px;
-            padding: 0 12px;
-        }
+  #swap-locations {
+    position: absolute;
+    right: 24px;
+    top: 130px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #5f6368;
+  }
 
-        .input-row .input-icon {
-            font-size: 18px;
-            color: #5f6368;
-        }
+  #get-route {
+    padding: 14px;
+    width: 100%;
+    border-radius: 20px;
+    background-color: #6750a4;
+    border: none;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+  }
 
-        #directions-form input {
-            width: 100%;
-            padding: 12px 0;
-            font-size: 16px;
-            border: none;
-            background: transparent;
-            outline: none;
-        }
+  #get-route:hover {
+    background-color: #4a3d87;
+  }
 
-        #swap-locations {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: #5f6368;
-        }
-
-        /* Keep old buttons for functionality, but hide them initially */
-        #get-route, #clear-route {
-             background-color: #6750a4;
-             color: white;
-             padding: 12px 20px;
-             border-radius: 20px;
-             border: none;
-             cursor: pointer;
-             font-weight: 500;
-             margin-top: 8px;
-        }
-        #clear-route { background-color: #b3261e; }
-        #clear-route:hover { background-color: #9b1d14; }
-        #get-route:hover { background-color: #4a3d87; }
-
-        #route-info {
-            margin-top: 8px;
-            font-weight: 500;
-        }
-
-        /* Style toggle button - bottom left */
-        #style-toggle {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            width: 72px;
-            height: 72px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            color: #333;
-            z-index: 10000;
-            user-select: none;
-            transition: left 0.3s ease-in-out;
-        }
-
-        #style-toggle img {
-            width: 40px;
-            height: 40px;
-            margin-bottom: 4px;
-            object-fit: contain;
-        }
-
-        /* Directions toggle button - bottom right */
-        #directions-toggle {
-            position: fixed;
-            bottom: 140px;
-            right: 20px;
-            background-color: #6750a4;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 12px 20px;
-            cursor: pointer;
-            font-weight: 600;
-            z-index: 10001;
-            user-select: none;
-        }
-
-        /* Nav steps UI inside directions panel */
-        #navigation-ui {
-            margin-top: 12px;
-        }
-
-        #navigation-steps {
-            font-size: 14px;
-            color: #202124;
-            max-height: 220px;
-            overflow-y: auto;
-            margin-bottom: 8px;
-        }
-
-        .nav-step {
-            padding: 6px 8px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .nav-step.current-step {
-            background-color: #d6cfff;
-            font-weight: 600;
-        }
-    </style>
+</style>
 </head>
 <body>
-    <div id="map"></div>
 
-    <div class="search-bar" role="search" aria-label="Main search">
-        <div class="search-wrapper">
-            <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
-            <button id="search-icon" aria-label="Search"><span>🔍</span></button>
-            <button id="directions-icon" aria-label="Directions" title="Directions">➡️</button>
-        </div>
-        <div id="suggestions" role="listbox" tabindex="-1"></div>
-    </div>
+<div id="map"></div>
 
-    <div id="directions-form" aria-label="Directions form" role="region">
-        <div class="directions-header">
-            <button id="close-directions" aria-label="Close directions panel">☰</button>
-            <div class="travel-modes">
-                <button class="travel-mode active" aria-label="Driving">🚗</button>
-                <button class="travel-mode" aria-label="Transit">🚌</button>
-                <button class="travel-mode" aria-label="Walking">🚶</button>
-                <button class="travel-mode" aria-label="Biking">🚲</button>
-                <button class="travel-mode" aria-label="Flying">✈️</button>
-            </div>
-        </div>
+<div class="search-bar" role="search" aria-label="Main search">
+  <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
+  <div id="search-icons">
+    <button id="search-icon" aria-label="Search"><span>🔍</span></button>
+    <button id="directions-icon" aria-label="Directions" title="Directions">➡️</button>
+  </div>
+</div>
 
-        <div id="directions-inputs">
-            <div class="input-row">
-                <span class="input-icon">○</span>
-                <input id="origin" type="text" placeholder="Choose starting point, or click on the map" aria-label="Origin" autocomplete="off" spellcheck="false" />
-            </div>
-            <div id="origin-suggestions" role="listbox" tabindex="-1"></div>
+<div id="suggestions" role="listbox" tabindex="-1" aria-label="Search suggestions" ></div>
 
-            <div class="input-row">
-                <span class="input-icon">📍</span>
-                <input id="destination" type="text" placeholder="Choose destination..." aria-label="Destination" autocomplete="off" spellcheck="false" />
-            </div>
-            <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
-            <button id="swap-locations" aria-label="Swap origin and destination">↕️</button>
-        </div>
-        
-        <div id="route-actions">
-            <button id="get-route">Get Directions</button>
-            <button id="clear-route">Clear</button>
-            <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
-        </div>
+<div id="side-panel" aria-label="Side panel" role="region">
+  <button id="close-side-panel" aria-label="Close side panel">×</button>
 
-        <div id="navigation-ui" style="display:none;">
-            <div id="navigation-steps"></div>
-            <button id="start-navigation">Start Navigation</button>
-            <button id="stop-navigation" style="display:none; background:#b3261e;">Stop Navigation</button>
-        </div>
-    </div>
+  <div id="place-info" tabindex="0">
+    <h2 id="place-name"></h2>
+    <p id="place-description"></p>
+    <p id="place-weather"></p>
+    <button id="directions-btn" aria-label="Get directions">Directions</button>
+  </div>
 
-    <div id="style-toggle" aria-label="Toggle map style" role="button" tabindex="0" aria-pressed="false">
-        <img id="style-icon" src="default_style.png" alt="Map style icon" />
-        <span id="style-label">Regular</span>
-    </div>
+  <div id="directions-form" tabindex="0" style="position:relative;">
+    <input id="origin" type="text" placeholder="Starting point" autocomplete="off" spellcheck="false" aria-label="Origin" />
+    <input id="destination" type="text" placeholder="Destination" autocomplete="off" spellcheck="false" aria-label="Destination" />
+    <button id="swap-locations" aria-label="Swap origin and destination">↕️</button>
+    <button id="get-route" aria-label="Get route">Get Route</button>
+  </div>
+</div>
 
-    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-    <script src="app.js"></script>
+<script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
+
 </body>
 </html>
