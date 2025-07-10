@@ -76,7 +76,7 @@
         #directions-form {
             position: fixed;
             top: 0;
-            left: -360px; /* Start off-screen */
+            left: -360px;
             height: 100%;
             width: 350px;
             background: #fff;
@@ -90,7 +90,7 @@
         }
 
         #directions-form.open {
-            left: 0; /* Slide in */
+            left: 0;
         }
 
         .directions-header {
@@ -99,7 +99,7 @@
             gap: 16px;
         }
 
-        #close-directions { 
+        #close-directions {
             font-size: 24px;
             background: none;
             border: none;
@@ -188,7 +188,6 @@
         #clear-route:hover { background-color: #9b1d14; }
         #get-route:hover { background-color: #4a3d87; }
 
-
         #route-info {
             margin-top: 8px;
             font-weight: 500;
@@ -238,6 +237,29 @@
             z-index: 10001;
             user-select: none;
         }
+
+        /* Nav steps UI inside directions panel */
+        #navigation-ui {
+            margin-top: 12px;
+        }
+
+        #navigation-steps {
+            font-size: 14px;
+            color: #202124;
+            max-height: 220px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+        }
+
+        .nav-step {
+            padding: 6px 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .nav-step.current-step {
+            background-color: #d6cfff;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -282,6 +304,12 @@
             <button id="get-route">Get Directions</button>
             <button id="clear-route">Clear</button>
             <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
+        </div>
+
+        <div id="navigation-ui" style="display:none;">
+            <div id="navigation-steps"></div>
+            <button id="start-navigation">Start Navigation</button>
+            <button id="stop-navigation" style="display:none; background:#b3261e;">Stop Navigation</button>
         </div>
     </div>
 
