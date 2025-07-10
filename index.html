@@ -18,7 +18,7 @@
       position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 0;
     }
 
-    /* Search bar - same width */
+    /* Search bar */
     .search-bar {
       position: absolute;
       top: 20px;
@@ -35,9 +35,8 @@
       width: 100%;
     }
 
-    /* Search input now full width of container */
     #search {
-      width: 280px; /* matches container width */
+      width: 280px;
       padding: 10px 16px;
       padding-right: 44px;
       border: none;
@@ -185,11 +184,11 @@
       object-fit: contain;
     }
 
-    /* Directions toggle button - moved to the left */
+    /* Directions toggle button - bottom right above controls */
     #directions-toggle {
       position: fixed;
-      bottom: 70px;
-      left: 20px;
+      bottom: 110px; /* stacked above the map controls */
+      right: 20px;
       background-color: #6750a4;
       color: white;
       border: none;
