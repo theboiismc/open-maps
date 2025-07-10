@@ -11,6 +11,8 @@
       font-family: sans-serif;
     }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    
+    /* Search Bar */
     .search-bar {
       position: absolute;
       top: 20px;
@@ -39,6 +41,8 @@
       cursor: pointer;
       margin-left: 6px;
     }
+
+    /* Suggestions */
     #suggestions {
       position: absolute;
       top: 60px;
@@ -58,6 +62,8 @@
     .suggestion:hover {
       background: #eee;
     }
+
+    /* Side Panel */
     #side-panel {
       position: fixed;
       top: 0;
@@ -67,43 +73,78 @@
       background: white;
       box-shadow: 2px 0 10px rgba(0,0,0,0.2);
       transform: translateX(-100%);
-      transition: transform 0.3s;
+      transition: transform 0.3s ease-out;
       padding: 16px;
       z-index: 15;
+      overflow-y: auto;
     }
     #side-panel.open {
       transform: translateX(0);
     }
-    #close-side-panel {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
+
+    /* Place Image */
+    #place-image-container {
+      width: 100%;
+      height: 25%;
+      overflow: hidden;
     }
-    #directions-form {
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 20px;
+    #place-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
-    input[type=\"text\"] {
-      padding: 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+
+    /* Place Name and Weather */
+    #place-name-weather {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      font-size: 18px;
+      font-weight: bold;
     }
-    button {
-      padding: 8px;
-      border-radius: 6px;
-      border: none;
-      background: #6750a4;
+    #place-weather {
+      font-size: 16px;
+      font-style: italic;
+    }
+
+    /* Directions Button */
+    #directions-btn-container {
+      text-align: center;
+      margin-top: 12px;
+    }
+    #directions-btn {
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      background-color: #6750a4;
       color: white;
+      border: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
+      transition: background-color 0.3s;
     }
-    #swap-locations {
-      background: #999;
+    #directions-btn:hover {
+      background-color: #5c6bc0;
+    }
+
+    /* Quick Facts */
+    #quick-facts {
+      margin-top: 12px;
+      font-size: 14px;
+    }
+    #quick-facts h3 {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    /* Divider */
+    hr {
+      margin: 12px 0;
+      border: 0;
+      border-top: 1px solid #ddd;
     }
   </style>
 </head>
@@ -119,18 +160,33 @@
 
   <div id="side-panel">
     <button id="close-side-panel">×</button>
-    <div id="place-info">
-      <h2 id="place-name"></h2>
+
+    <div id="place-image-container">
+      <img id="place-image" src="" alt="Place Image">
+    </div>
+
+    <hr>
+
+    <div id="place-name-weather">
+      <span id="place-name"></span>
+      <span id="place-weather"></span>
+    </div>
+
+    <hr>
+
+    <div id="directions-btn-container">
+      <button id="directions-btn">
+        <span>Directions</span>
+      </button>
+    </div>
+
+    <hr>
+
+    <div id="quick-facts">
+      <h3>Quick Facts</h3>
       <p id="place-description"></p>
-      <p id="place-weather"></p>
-      <button id="directions-btn">Get Directions</button>
     </div>
-    <div id="directions-form">
-      <input id="origin" placeholder="Start" />
-      <input id="destination" placeholder="Destination" />
-      <button id="swap-locations">↕️ Swap</button>
-      <button id="get-route">Get Route</button>
-    </div>
+
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
