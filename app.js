@@ -95,11 +95,14 @@ getRoute.addEventListener('click', async () => {
 async function loadPlaceInfo(name, lat, lon) {
   placeName.textContent = name;
 
-  // Fetch an image for the place (Unsplash API)
+  // Fetch an image for the place (Wikimedia API)
   try {
-    const imageRes = await fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(name)}&client_id=YOUR_UNSPLASH_API_KEY`);
+    const imageRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
     const imageData = await imageRes.json();
-    const imageUrl = imageData[0]?.urls?.regular;
+    const pages = imageData.query.pages;
+    const pageId = Object.keys(pages)[0];
+    const imageUrl = pages[pageId]?.imageinfo?.[0]?.url;
+
     if (imageUrl) {
       const img = document.getElementById('place-image');
       img.src = imageUrl;
