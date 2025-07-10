@@ -20,45 +20,61 @@
         }
 
         .search-bar {
-            position: relative;
+            position: absolute;
+            top: 20px; left: 20px;
             width: 320px;
+            height: 40px;
             background: #fff;
             border-radius: 24px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 10001;
             display: flex;
             align-items: center;
-            padding: 8px 16px;
-            z-index: 10001;
+            padding-left: 16px;
+            padding-right: 16px;
         }
 
-        #search {
-            flex: 1;
+        .search-wrapper {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            position: relative;
+        }
+
+        .search-wrapper input {
             font-size: 16px;
-            padding: 10px 16px;
+            width: 100%;
+            padding: 10px;
             border: none;
             border-radius: 20px;
             background: #e7e0ec;
             color: #1c1b1f;
-            outline: none;
-            box-sizing: border-box;
         }
 
-        .icon-button {
+        #search-icon, #directions-icon {
+            position: absolute;
+            right: 12px;
             background: none;
             border: none;
+            font-size: 18px;
             cursor: pointer;
-            font-size: 20px;
             color: #333;
-            padding: 8px;
-            user-select: none;
         }
 
-        #search-icon {
-            margin-left: 8px; /* Space between search input and icon */
+        #suggestions {
+            max-height: 240px;
+            overflow-y: auto;
         }
 
-        #directions-icon {
-            margin-left: 8px; /* Space between search input and icon */
+        .suggestion {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .suggestion:hover, .suggestion:focus {
+            background-color: #d6cfff;
+            outline: none;
         }
 
         /* Directions / Navigation panel */
@@ -82,26 +98,6 @@
 
         #directions-form.open {
             transform: translateX(0);
-        }
-
-        .directions-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        #close-directions {
-            font-size: 24px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #333;
-            padding: 0;
-        }
-
-        #route-info {
-            margin-top: 8px;
-            font-weight: 500;
         }
 
         /* Style toggle button - bottom left */
@@ -154,16 +150,42 @@
     <div id="map"></div>
 
     <div class="search-bar" role="search" aria-label="Main search">
-        <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
-        <button id="search-icon" class="icon-button" aria-label="Search"><span>🔍</span></button>
-        <button id="directions-icon" class="icon-button" aria-label="Directions" title="Directions">➡️</button>
+        <div class="search-wrapper">
+            <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
+            <button id="search-icon" aria-label="Search"><span>🔍</span></button>
+            <button id="directions-icon" aria-label="Directions" title="Directions">➡️</button>
+        </div>
+        <div id="suggestions" role="listbox" tabindex="-1"></div>
     </div>
 
     <div id="directions-form" aria-label="Directions form" role="region">
         <div class="directions-header">
             <button id="close-directions" aria-label="Close directions panel">☰</button>
         </div>
-        <div id="route-info"></div>
+
+        <div id="directions-inputs">
+            <div class="input-row">
+                <span class="input-icon">○</span>
+                <input id="origin" type="text" placeholder="Choose starting point, or click on the map" aria-label="Origin" autocomplete="off" spellcheck="false" />
+            </div>
+
+            <div class="input-row">
+                <span class="input-icon">📍</span>
+                <input id="destination" type="text" placeholder="Choose destination..." aria-label="Destination" autocomplete="off" spellcheck="false" />
+            </div>
+            <button id="swap-locations" aria-label="Swap origin and destination">↕️</button>
+        </div>
+
+        <div id="route-actions">
+            <button id="get-route">Get Directions</button>
+            <button id="clear-route">Clear</button>
+        </div>
+
+        <div id="navigation-ui" style="display:none;">
+            <div id="navigation-steps"></div>
+            <button id="start-navigation">Start Navigation</button>
+            <button id="stop-navigation" style="display:none; background:#b3261e;">Stop Navigation</button>
+        </div>
     </div>
 
     <div id="style-toggle" aria-label="Toggle map style" role="button" tabindex="0" aria-pressed="false">
