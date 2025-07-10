@@ -72,7 +72,7 @@
       width: 350px;
       background: white;
       box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-      transform: translateX(-100%);  /* Initially hidden off-screen */
+      transform: translateX(-100%);
       transition: transform 0.3s ease-out;
       padding: 24px;
       z-index: 20;
@@ -80,7 +80,7 @@
     }
 
     #side-panel.open, #directions-panel.open {
-      transform: translateX(0);  /* Slide-in effect */
+      transform: translateX(0);
     }
 
     /* Close Button */
@@ -164,16 +164,12 @@
 </head>
 <body>
   <div id="map"></div>
-  
-  <!-- Main Search Bar -->
   <div class="search-bar">
     <input id="search" placeholder="Search a place..." autocomplete="off" />
     <button id="search-icon">🔍</button>
     <button id="directions-icon">➡️</button>
   </div>
   <div id="suggestions"></div>
-
-  <!-- Side Panel (Info) -->
   <div id="side-panel">
     <button id="close-side-panel">×</button>
     <h2>Place Info</h2>
@@ -195,8 +191,6 @@
       <p id="place-description">Loading...</p>
     </div>
   </div>
-
-  <!-- Directions Panel -->
   <div id="directions-panel">
     <button id="close-directions-panel">×</button>
     <h2>Get Directions</h2>
@@ -207,13 +201,7 @@
       <button id="get-route">Get Route</button>
       <button id="start-navigation">Start Navigation</button>
     </div>
-    <div id="directions-quickfacts-divider"></div>
-    <div id="quick-facts">
-      <h3>Quick Facts</h3>
-      <p id="place-description">Loading...</p>
-    </div>
   </div>
-
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
