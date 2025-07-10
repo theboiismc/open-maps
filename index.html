@@ -11,7 +11,7 @@
       font-family: sans-serif;
     }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-    
+
     /* Search Bar (Initially) */
     .search-bar {
       position: absolute;
@@ -63,8 +63,8 @@
       background: #eee;
     }
 
-    /* Side Panel */
-    #side-panel {
+    /* Panels (Both Info and Directions) */
+    #side-panel, #directions-panel {
       position: fixed;
       top: 0;
       left: 0;
@@ -72,84 +72,57 @@
       width: 350px;
       background: white;
       box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-      transform: translateX(-100%);
+      transform: translateX(-100%);  /* Initially hidden off-screen */
       transition: transform 0.3s ease-out;
-      padding: 16px;
-      z-index: 15;
+      padding: 24px;
+      z-index: 20;
       overflow-y: auto;
     }
-    #side-panel.open {
-      transform: translateX(0);
+
+    #side-panel.open, #directions-panel.open {
+      transform: translateX(0);  /* Slide-in effect */
     }
 
-    /* Place Image */
-    #place-image-container {
-      width: 100%;
-      height: 25%;
-      overflow: hidden;
-    }
-    #place-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    /* Close Button */
+    #close-side-panel, #close-directions-panel {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #333;
     }
 
-    /* Place Name and Weather */
-    #place-name-weather {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 12px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    #place-weather {
+    /* Buttons and Input Styling */
+    #directions-btn, #swap-locations, #get-route, #start-navigation {
+      padding: 12px 20px;
       font-size: 16px;
-      font-style: italic;
+      background-color: #6750a4;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
     }
 
-    /* Divider for Weather and Quick Facts */
-    #weather-directions-divider {
-      margin: 12px 0;
-      border: 0;
-      border-top: 1px solid #ddd;
+    #swap-locations:hover, #get-route:hover, #start-navigation:hover {
+      background-color: #543e8d;
     }
 
-    /* Quick Facts */
-    #quick-facts {
-      margin-top: 12px;
-      font-size: 14px;
-    }
+    /* Quick Facts Section */
     #quick-facts h3 {
       font-size: 18px;
       font-weight: bold;
+      color: #333;
     }
-
-    /* Directions Panel */
-    #directions-panel {
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 350px;
-      background: white;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-      transform: translateX(-100%);
-      transition: transform 0.3s ease-out;
-      padding: 16px;
-      z-index: 15;
-      overflow-y: auto;
-    }
-
-    #directions-panel.open {
-      transform: translateX(0);
-    }
-
   </style>
 </head>
 <body>
   <div id="map"></div>
-
-  <!-- The search bar is initially in the main view -->
+  
+  <!-- Main Search Bar -->
   <div class="search-bar">
     <input id="search" placeholder="Search a place..." autocomplete="off" />
     <button id="search-icon">🔍</button>
@@ -157,50 +130,44 @@
   </div>
   <div id="suggestions"></div>
 
+  <!-- Side Panel (Info) -->
   <div id="side-panel">
     <button id="close-side-panel">×</button>
-
-    <!-- The search bar moves into the info panel when a place is selected -->
-    <div class="search-bar">
-      <input id="search" placeholder="Search a place..." autocomplete="off" />
-      <button id="search-icon">🔍</button>
-      <button id="directions-icon">➡️</button>
-    </div>
-
+    <h2>Place Info</h2>
     <div id="place-image-container">
       <img id="place-image" src="default.jpg" alt="Place Image">
     </div>
-
     <div id="place-name-weather">
       <span id="place-name"></span>
       <span id="place-weather"></span>
     </div>
-
-    <div id="weather-directions-divider"></div> <!-- Line between Weather and Directions -->
-
+    <div id="weather-directions-divider"></div>
     <div id="directions-btn-container">
       <button id="directions-btn">
         <span>Directions</span>
       </button>
     </div>
-
-    <div id="directions-quickfacts-divider"></div> <!-- Line between Directions and Quick Facts -->
-
     <div id="quick-facts">
       <h3>Quick Facts</h3>
-      <p id="place-description"></p>
+      <p id="place-description">Loading...</p>
     </div>
-
   </div>
 
+  <!-- Directions Panel -->
   <div id="directions-panel">
     <button id="close-directions-panel">×</button>
+    <h2>Get Directions</h2>
     <div id="directions-form">
-      <input id="origin" placeholder="Start" />
-      <input id="destination" placeholder="Destination" />
+      <input id="origin" placeholder="Start Location" />
+      <input id="destination" placeholder="End Location" />
       <button id="swap-locations">↕️ Swap</button>
       <button id="get-route">Get Route</button>
       <button id="start-navigation">Start Navigation</button>
+    </div>
+    <div id="directions-quickfacts-divider"></div>
+    <div id="quick-facts">
+      <h3>Quick Facts</h3>
+      <p id="place-description">Loading...</p>
     </div>
   </div>
 
