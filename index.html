@@ -21,7 +21,7 @@
   .search-bar {
     position: absolute;
     top: 20px; left: 20px;
-    width: 280px;
+    width: 320px;
     background: #fff;
     border-radius: 24px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -37,7 +37,7 @@
     font-size: 16px;
     padding: 10px 16px;
     padding-right: 44px;
-    width: 100%;
+    width: 280px; /* Your updated width */
     border: none;
     border-radius: 20px;
     background: #e7e0ec;
@@ -46,7 +46,7 @@
 
   #search-icon {
     position: absolute;
-    right: 8px;
+    right: 8px; /* Moved icon far right but inside search bar */
     top: 50%;
     transform: translateY(-50%);
     background: none;
@@ -72,7 +72,7 @@
     outline: none;
   }
 
-  /* Directions panel */
+  /* Directions / Navigation panel */
   #directions-form {
     position: fixed;
     top: 0;
@@ -120,13 +120,6 @@
 
   #clear-route {
     background-color: #b3261e;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 20px;
-    border: none;
-    cursor: pointer;
-    font-weight: 500;
-    margin-top: 8px;
   }
 
   #clear-route:hover {
@@ -184,7 +177,7 @@
   /* Directions toggle button - bottom right */
   #directions-toggle {
     position: fixed;
-    bottom: 110px; /* moved up so no overlap with controls */
+    bottom: 140px; /* bumped up to avoid overlapping map controls */
     right: 20px;
     background-color: #6750a4;
     color: white;
@@ -197,64 +190,28 @@
     user-select: none;
   }
 
-  /* Navigation UI panel - slides in from bottom on start nav */
-  #navigation-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
-    padding: 12px 20px;
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-    font-weight: 600;
-    z-index: 11000;
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    max-height: 180px;
-  }
-  #navigation-panel.open {
-    display: flex;
-  }
-  #navigation-steps {
-    max-height: 90px;
-    overflow-y: auto;
-    font-weight: 400;
-    font-size: 14px;
-    color: #333;
-  }
-  #navigation-steps div {
-    margin-bottom: 6px;
-  }
-  #navigation-controls {
-    display: flex;
-    justify-content: space-between;
-  }
-  #start-nav-btn, #stop-nav-btn {
-    flex: 1;
-    margin: 0 4px;
-    padding: 10px 0;
-    border-radius: 20px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    color: white;
-  }
-  #start-nav-btn {
-    background-color: #4caf50;
-  }
-  #start-nav-btn:hover {
-    background-color: #3a9d40;
-  }
-  #stop-nav-btn {
-    background-color: #b3261e;
-  }
-  #stop-nav-btn:hover {
-    background-color: #9b1d14;
+  /* Nav steps UI inside directions panel */
+  #navigation-ui {
+    margin-top: 12px;
   }
 
+  #navigation-steps {
+    font-size: 14px;
+    color: #202124;
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+  }
+
+  .nav-step {
+    padding: 6px 8px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .nav-step.current-step {
+    background-color: #d6cfff;
+    font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -270,13 +227,24 @@
 
   <div id="directions-form" aria-label="Directions form" role="region" aria-live="polite" aria-atomic="true">
     <button id="close-directions" aria-label="Close directions panel">×</button>
-    <input id="origin" type="text" placeholder="Start" aria-label="Origin" autocomplete="off" spellcheck="false" />
-    <div id="origin-suggestions" role="listbox" tabindex="-1"></div>
-    <input id="destination" type="text" placeholder="Destination" aria-label="Destination" autocomplete="off" spellcheck="false" />
-    <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
-    <button id="get-route">Get Directions</button>
-    <button id="clear-route">Clear</button>
-    <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="directions-inputs">
+      <input id="origin" type="text" placeholder="Start" aria-label="Origin" autocomplete="off" spellcheck="false" />
+      <div id="origin-suggestions" role="listbox" tabindex="-1"></div>
+
+      <input id="destination" type="text" placeholder="Destination" aria-label="Destination" autocomplete="off" spellcheck="false" />
+      <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
+
+      <button id="get-route">Get Directions</button>
+      <button id="clear-route">Clear</button>
+      <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
+    </div>
+
+    <div id="navigation-ui" style="display:none;">
+      <div id="navigation-steps"></div>
+      <button id="start-navigation">Start Navigation</button>
+      <button id="stop-navigation" style="display:none; background:#b3261e;">Stop Navigation</button>
+    </div>
   </div>
 
   <div id="style-toggle" aria-label="Toggle map style" role="button" tabindex="0" aria-pressed="false">
@@ -285,14 +253,6 @@
   </div>
 
   <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel">Directions</button>
-
-  <div id="navigation-panel" role="region" aria-live="polite" aria-atomic="true" aria-label="Navigation panel">
-    <div id="navigation-steps" tabindex="0"></div>
-    <div id="navigation-controls">
-      <button id="start-nav-btn">Start Navigation</button>
-      <button id="stop-nav-btn" style="display:none;">Stop Navigation</button>
-    </div>
-  </div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
