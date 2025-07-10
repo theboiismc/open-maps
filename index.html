@@ -12,6 +12,7 @@
             margin: 0; padding: 0; height: 100%; width: 100%;
             font-family: 'Roboto', sans-serif;
             background: #f2f2f2; color: #202124;
+            overflow-x: hidden; /* prevent horizontal scroll */
         }
 
         #map {
@@ -88,7 +89,7 @@
         #directions-form {
             position: fixed;
             top: 0;
-            left: -360px;
+            left: 0;
             height: 100%;
             width: 350px;
             background: #fff;
@@ -98,11 +99,13 @@
             flex-direction: column;
             gap: 16px;
             z-index: 10002;
-            transition: left 0.3s ease-in-out;
+
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
         }
 
         #directions-form.open {
-            left: 0;
+            transform: translateX(0);
         }
 
         .directions-header {
