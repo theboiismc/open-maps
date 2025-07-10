@@ -15,6 +15,7 @@ const searchIcon = $('search-icon');
 const directionsIcon = $('directions-icon');
 const sidePanel = $('side-panel');
 const closePanel = $('close-side-panel');
+const directionsPanel = $('directions-panel'); // Directions panel
 const placeName = $('place-name');
 const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
@@ -37,6 +38,14 @@ function hidePanel() {
 
 closePanel.addEventListener('click', hidePanel);
 
+// Show directions panel when clicking the directions button in the search bar
+directionsIcon.addEventListener('click', () => {
+  directionsPanel.classList.add('open');  // Open the directions panel
+  sidePanel.classList.remove('open');    // Close the side panel (info panel)
+  directionsForm.style.display = 'flex'; // Show the directions form
+  $('place-info').style.display = 'none'; // Hide place info
+});
+
 search.addEventListener('input', debounce(async () => {
   const q = search.value.trim();
   if (!q) return suggestions.innerHTML = '';
@@ -53,6 +62,8 @@ search.addEventListener('input', debounce(async () => {
       const [lon, lat] = f.geometry.coordinates;
       map.flyTo({ center: [lon, lat], zoom: 13 });
       await loadPlaceInfo(f.properties.name, lat, lon);
+      sidePanel.classList.add('open');  // Open the info panel when a place is selected
+      directionsPanel.classList.remove('open'); // Close directions panel if it's open
     });
     suggestions.appendChild(div);
   });
@@ -64,12 +75,7 @@ searchIcon.addEventListener('click', () => {
   search.dispatchEvent(new Event('input'));
 });
 
-directionsIcon.addEventListener('click', () => {
-  showPanel();
-  directionsForm.style.display = 'flex';
-  $('place-info').style.display = 'none';
-});
-
+// Add your directions button event listener
 directionsBtn.addEventListener('click', () => {
   directionsForm.style.display = 'flex';
   $('place-info').style.display = 'none';
