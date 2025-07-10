@@ -1,206 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>maps.theboiismc.com</title>
-<link rel="stylesheet" href="style.css" />
-<style>
-  /* minimal inline styles for layout stability */
-  body, html { margin: 0; height: 100%; font-family: Arial, sans-serif; }
-  #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-  .search-bar {
-    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-    width: 280px;
-    display: flex;
-    background: white;
-    border-radius: 6px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    z-index: 1000;
-  }
-  .search-bar input[type=text] {
-    flex: 1;
-    border: none;
-    padding: 8px 12px;
-    font-size: 16px;
-    border-radius: 6px 0 0 6px;
-    outline: none;
-  }
-  .search-bar .search-icon {
-    width: 24px;
-    height: 24px;
-    margin: 0 10px 0 auto; /* Push to right inside bar */
-    cursor: pointer;
-    align-self: center;
-  }
-  #directions-toggle {
-    position: absolute;
-    bottom: 90px;
-    right: 20px;
-    background: #6750a4;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 48px; height: 48px;
-    cursor: pointer;
-    font-size: 24px;
-    z-index: 1100;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  }
-  #style-toggle {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    background: white;
-    border-radius: 6px;
-    padding: 6px 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    z-index: 1100;
-  }
-  #style-toggle img {
-    width: 24px; height: 24px;
-    margin-right: 8px;
-  }
-  #directions-form {
-    position: absolute;
-    top: 60px; left: 20px;
-    width: 320px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
-    padding: 12px;
-    display: none;
-    flex-direction: column;
-    z-index: 1200;
-  }
-  #directions-form.open {
-    display: flex;
-  }
-  #directions-form label {
-    font-weight: bold;
-    margin-top: 8px;
-  }
-  #directions-form input[type=text] {
-    width: 100%;
-    padding: 6px 8px;
-    margin-top: 4px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-  }
-  #origin-suggestions, #destination-suggestions {
-    max-height: 120px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-    margin-top: 2px;
-  }
-  .suggestion {
-    padding: 6px 8px;
-    cursor: pointer;
-  }
-  .suggestion:hover, .suggestion:focus {
-    background-color: #f0f0f0;
-    outline: none;
-  }
-  .current-location-option {
-    font-weight: bold;
-    color: #2a6af7;
-  }
-  #route-info {
-    margin-top: 10px;
-    font-weight: 600;
-  }
-  #get-route, #clear-route {
-    margin-top: 12px;
-    padding: 8px 12px;
-    background: #6750a4;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  #navigation-panel {
-    position: absolute;
-    top: 60px;
-    left: 20px;
-    width: 320px;
-    max-height: 400px;
-    overflow-y: auto;
-    background: white;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-    border-radius: 8px;
-    padding: 12px;
-    display: none;
-    z-index: 1300;
-  }
-  .nav-step {
-    padding: 8px;
-    border-bottom: 1px solid #ddd;
-  }
-  .nav-step.active {
-    background: #6750a4;
-    color: white;
-    font-weight: bold;
-  }
-  #start-navigation, #stop-navigation {
-    margin-top: 12px;
-    width: 100%;
-    padding: 10px;
-    font-size: 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  #start-navigation {
-    background: #2a6af7;
-    color: white;
-  }
-  #stop-navigation {
-    background: #d32f2f;
-    color: white;
-  }
-</style>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>maps.theboiismc.com</title>
+  <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <style>
+    body, html { margin:0; height:100%; width:100%; font-family:Roboto, sans-serif; }
+    #map { position:absolute; inset:0; }
+    .search-bar {
+      position:absolute; top:20px; left:20px;
+      width:320px; background:#fff; border-radius:24px; box-shadow:0 4px 12px rgba(0,0,0,0.1);
+      z-index:10001;
+    }
+    .search-bar .search-wrapper { position:relative; }
+    .search-bar input {
+      width:280px; /* adjusted width */
+      padding:10px 16px; padding-right:44px;
+      font-size:16px; border:none; border-radius:20px;
+      background:#e7e0ec; color:#1c1b1f;
+    }
+    .search-bar button {
+      position:absolute; right:8px; top:50%;
+      transform:translateY(-50%);
+      border:none; background:none; font-size:18px; cursor:pointer; color:#333;
+    }
+    .suggestions-container {
+      max-height:240px; overflow-y:auto;
+    }
+    .suggestion {
+      padding:8px 16px; cursor:pointer; border-bottom:1px solid #eee;
+    }
+    .suggestion:hover, .suggestion:focus {
+      background:#d6cfff; outline:none;
+    }
+    .current-location-option {
+      font-weight:bold; color:#2a6af7;
+    }
+    #directions-toggle {
+      position:absolute;
+      bottom:120px; /* bumped up to avoid overlap */
+      right:20px;
+      background:#6750a4; color:white;
+      border:none; border-radius:50%;
+      width:48px; height:48px;
+      font-size:24px; cursor:pointer;
+      z-index:10001;
+      box-shadow:0 2px 6px rgba(0,0,0,0.3);
+    }
+    #style-toggle {
+      position:absolute;
+      bottom:20px; left:20px;
+      background:#fff; border-radius:12px;
+      padding:6px 12px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.3);
+      cursor:pointer; display:flex; align-items:center;
+      z-index:10001;
+    }
+    #style-toggle img { width:24px; height:24px; margin-right:8px; }
+    #directions-form {
+      position:absolute; top:60px; left:20px;
+      width:320px; background:#fff;
+      border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.25);
+      padding:12px; display:none; flex-direction:column;
+      z-index:10002;
+    }
+    #directions-form.open { display:flex; }
+    #directions-form input, #directions-form button {
+      font-size:16px; padding:8px; margin-top:8px;
+      width:100%; border-radius:6px; border:1px solid #ccc;
+    }
+    #navigation-panel {
+      position:absolute; top:60px; left:20px;
+      width:320px; max-height:400px;
+      overflow-y:auto;
+      background:#fff; border-radius:8px;
+      box-shadow:0 2px 12px rgba(0,0,0,0.3);
+      z-index:10003; display:none;
+    }
+    .nav-step {
+      padding:8px; border-bottom:1px solid #ddd;
+    }
+    .nav-step.active {
+      background:#6750a4; color:white; font-weight:bold;
+    }
+    #start-navigation, #stop-navigation {
+      margin:12px; padding:10px;
+      border:none; border-radius:6px; font-size:16px; cursor:pointer;
+      width:calc(100% - 24px);
+    }
+    #start-navigation { background:#2a6af7; color:white; }
+    #stop-navigation { background:#d32f2f; color:white; }
+  </style>
 </head>
 <body>
-<div id="map"></div>
+  <div id="map"></div>
 
-<div class="search-bar">
-  <input type="text" id="search" placeholder="Search anywhere..." autocomplete="off" />
-  <img src="search_icon.svg" alt="Search" class="search-icon" />
-  <div id="suggestions" class="suggestions-container"></div>
-</div>
+  <div class="search-bar" role="search">
+    <div class="search-wrapper">
+      <input id="search" placeholder="Search anywhere…" autocomplete="off" />
+      <button id="search-icon" aria-label="Search">🔍</button>
+    </div>
+    <div id="suggestions" class="suggestions-container"></div>
+  </div>
 
-<button id="directions-toggle" aria-pressed="false" title="Toggle directions panel">🛣️</button>
+  <button id="directions-toggle" title="Directions">🛣️</button>
 
-<button id="style-toggle" aria-pressed="false" title="Toggle map style">
-  <img id="style-icon" src="default_style.png" alt="Map Style" />
-  <span id="style-label">Regular</span>
-</button>
+  <button id="style-toggle">
+    <img id="style-icon" src="default_style.png" alt="Style" />
+    <span id="style-label">Regular</span>
+  </button>
 
-<form id="directions-form" role="region" aria-label="Directions form">
-  <label for="origin">Origin</label>
-  <input type="text" id="origin" placeholder="Start point" autocomplete="off" aria-autocomplete="list" aria-controls="origin-suggestions" />
-  <div id="origin-suggestions" class="suggestions-container"></div>
+  <div id="directions-form" role="region" aria-label="Directions form">
+    <input id="origin" placeholder="Origin" autocomplete="off" />
+    <div id="origin-suggestions" class="suggestions-container"></div>
+    <input id="destination" placeholder="Destination" autocomplete="off" />
+    <div id="destination-suggestions" class="suggestions-container"></div>
+    <button id="get-route">Get Directions</button>
+    <button id="clear-route">Clear Route</button>
+  </div>
 
-  <label for="destination">Destination</label>
-  <input type="text" id="destination" placeholder="End point" autocomplete="off" aria-autocomplete="list" aria-controls="destination-suggestions" />
-  <div id="destination-suggestions" class="suggestions-container"></div>
+  <div id="navigation-panel" role="region" aria-label="Navigation steps">
+    <div id="navigation-steps"></div>
+    <button id="start-navigation">Start Navigation</button>
+    <button id="stop-navigation">Stop Navigation</button>
+  </div>
 
-  <button type="button" id="get-route">Get Directions</button>
-  <button type="button" id="clear-route">Clear Route</button>
-  <button type="button" id="close-directions" aria-label="Close directions panel" style="margin-top: 12px; background: #aaa; color: white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Close ×</button>
-  <div id="route-info" role="alert" aria-live="polite"></div>
-</form>
-
-<div id="navigation-panel" role="region" aria-label="Navigation steps">
-  <div id="navigation-steps"></div>
-  <button id="start-navigation">Start Navigation</button>
-  <button id="stop-navigation">Stop Navigation</button>
-</div>
-
-<script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-<script src="app.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
