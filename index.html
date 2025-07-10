@@ -37,7 +37,7 @@
             font-size: 16px;
             padding: 10px 16px;
             padding-right: 44px;
-            width: 280px; /* Your updated width */
+            width: 280px;
             border: none;
             border-radius: 20px;
             background: #e7e0ec;
@@ -46,7 +46,7 @@
 
         #search-icon {
             position: absolute;
-            right: 8px; /* Moved icon far right but inside search bar */
+            right: 8px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
@@ -86,7 +86,7 @@
             flex-direction: column;
             gap: 16px;
             z-index: 10002;
-            transition: left 0.3s ease-in-out; /* Smooth transition */
+            transition: left 0.3s ease-in-out;
         }
 
         #directions-form.open {
@@ -99,7 +99,7 @@
             gap: 16px;
         }
 
-        #close-directions { /* Now the hamburger menu icon */
+        #close-directions { 
             font-size: 24px;
             background: none;
             border: none;
@@ -173,21 +173,6 @@
             color: #5f6368;
         }
 
-        .delays-info {
-            border-top: 1px solid #e0e0e0;
-            padding-top: 16px;
-            font-size: 14px;
-            color: #5f6368;
-        }
-
-        .delays-info p {
-            margin: 4px 0;
-        }
-
-        .delays-info strong {
-            color: #202124;
-        }
-
         /* Keep old buttons for functionality, but hide them initially */
         #get-route, #clear-route {
              background-color: #6750a4;
@@ -241,7 +226,7 @@
         /* Directions toggle button - bottom right */
         #directions-toggle {
             position: fixed;
-            bottom: 140px; /* bumped up to avoid overlapping map controls */
+            bottom: 140px;
             right: 20px;
             background-color: #6750a4;
             color: white;
@@ -252,29 +237,6 @@
             font-weight: 600;
             z-index: 10001;
             user-select: none;
-        }
-
-        /* Nav steps UI inside directions panel */
-        #navigation-ui {
-            margin-top: 12px;
-        }
-
-        #navigation-steps {
-            font-size: 14px;
-            color: #202124;
-            max-height: 220px;
-            overflow-y: auto;
-            margin-bottom: 8px;
-        }
-
-        .nav-step {
-            padding: 6px 8px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .nav-step.current-step {
-            background-color: #d6cfff;
-            font-weight: 600;
         }
     </style>
 </head>
@@ -320,18 +282,6 @@
             <button id="get-route">Get Directions</button>
             <button id="clear-route">Clear</button>
             <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
-        </div>
-
-        <div class="delays-info">
-            <p><strong>Delays</strong></p>
-            <p>Light traffic in this area</p>
-            <p>No known road disruptions. Traffic incidents will show up here.</p>
-        </div>
-
-        <div id="navigation-ui" style="display:none;">
-            <div id="navigation-steps"></div>
-            <button id="start-navigation">Start Navigation</button>
-            <button id="stop-navigation" style="display:none; background:#b3261e;">Stop Navigation</button>
         </div>
     </div>
 
