@@ -1,199 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TheBoiisMC Map</title>
-    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
-
-        html, body {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            font-family: 'Roboto', sans-serif;
-            background: #f2f2f2; color: #202124;
-            overflow-x: hidden; /* prevent horizontal scroll */
-        }
-
-        #map {
-            position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 0;
-        }
-
-        .search-bar {
-            position: absolute;
-            top: 20px; left: 20px;
-            width: 320px;
-            height: 40px;
-            background: #fff;
-            border-radius: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            z-index: 10001;
-            display: flex;
-            align-items: center;
-            padding-left: 16px;
-            padding-right: 16px;
-        }
-
-        .search-wrapper {
-            display: flex;
-            width: 100%;
-            align-items: center;
-            position: relative;
-        }
-
-        .search-wrapper input {
-            font-size: 16px;
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 20px;
-            background: #e7e0ec;
-            color: #1c1b1f;
-        }
-
-        #search-icon, #directions-icon {
-            position: absolute;
-            right: 12px;
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: #333;
-        }
-
-        #suggestions {
-            max-height: 240px;
-            overflow-y: auto;
-        }
-
-        .suggestion {
-            padding: 8px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-
-        .suggestion:hover, .suggestion:focus {
-            background-color: #d6cfff;
-            outline: none;
-        }
-
-        /* Directions / Navigation panel */
-        #directions-form {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 350px;
-            background: #fff;
-            box-shadow: 2px 0 12px rgba(0,0,0,0.15);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            z-index: 10002;
-
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-        }
-
-        #directions-form.open {
-            transform: translateX(0);
-        }
-
-        /* Style toggle button - bottom left */
-        #style-toggle {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            width: 72px;
-            height: 72px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            color: #333;
-            z-index: 10000;
-            user-select: none;
-            transition: left 0.3s ease-in-out;
-        }
-
-        #style-toggle img {
-            width: 40px;
-            height: 40px;
-            margin-bottom: 4px;
-            object-fit: contain;
-        }
-
-        /* Directions toggle button - bottom right */
-        #directions-toggle {
-            position: fixed;
-            bottom: 140px;
-            right: 20px;
-            background-color: #6750a4;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 12px 20px;
-            cursor: pointer;
-            font-weight: 600;
-            z-index: 10001;
-            user-select: none;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TheBoiisMC Map</title>
+  <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%; width: 100%;
+      font-family: sans-serif;
+    }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .search-bar {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 10;
+      width: 360px;
+      padding: 6px 12px;
+    }
+    .search-bar input {
+      border: none;
+      outline: none;
+      flex-grow: 1;
+      padding: 10px;
+      font-size: 16px;
+    }
+    .search-bar button {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+    #suggestions {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border-radius: 8px;
+      width: 360px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 9;
+    }
+    .suggestion {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+    .suggestion:hover {
+      background: #eee;
+    }
+    #side-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 350px;
+      background: white;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+      transform: translateX(-100%);
+      transition: transform 0.3s;
+      padding: 16px;
+      z-index: 15;
+    }
+    #side-panel.open {
+      transform: translateX(0);
+    }
+    #close-side-panel {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    #directions-form {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    input[type=\"text\"] {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      background: #6750a4;
+      color: white;
+      cursor: pointer;
+    }
+    #swap-locations {
+      background: #999;
+    }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
+  <div id="map"></div>
 
-    <div class="search-bar" role="search" aria-label="Main search">
-        <div class="search-wrapper">
-            <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
-            <button id="search-icon" aria-label="Search"><span>🔍</span></button>
-            <button id="directions-icon" aria-label="Directions" title="Directions">➡️</button>
-        </div>
-        <div id="suggestions" role="listbox" tabindex="-1"></div>
+  <div class="search-bar">
+    <input id="search" placeholder="Search a place..." autocomplete="off" />
+    <button id="search-icon">🔍</button>
+    <button id="directions-icon">➡️</button>
+  </div>
+  <div id="suggestions"></div>
+
+  <div id="side-panel">
+    <button id="close-side-panel">×</button>
+    <div id="place-info">
+      <h2 id="place-name"></h2>
+      <p id="place-description"></p>
+      <p id="place-weather"></p>
+      <button id="directions-btn">Get Directions</button>
     </div>
-
-    <div id="directions-form" aria-label="Directions form" role="region">
-        <div class="directions-header">
-            <button id="close-directions" aria-label="Close directions panel">☰</button>
-        </div>
-
-        <div id="directions-inputs">
-            <div class="input-row">
-                <span class="input-icon">○</span>
-                <input id="origin" type="text" placeholder="Choose starting point, or click on the map" aria-label="Origin" autocomplete="off" spellcheck="false" />
-            </div>
-
-            <div class="input-row">
-                <span class="input-icon">📍</span>
-                <input id="destination" type="text" placeholder="Choose destination..." aria-label="Destination" autocomplete="off" spellcheck="false" />
-            </div>
-            <button id="swap-locations" aria-label="Swap origin and destination">↕️</button>
-        </div>
-
-        <div id="route-actions">
-            <button id="get-route">Get Directions</button>
-            <button id="clear-route">Clear</button>
-        </div>
-
-        <div id="navigation-ui" style="display:none;">
-            <div id="navigation-steps"></div>
-            <button id="start-navigation">Start Navigation</button>
-            <button id="stop-navigation" style="display:none; background:#b3261e;">Stop Navigation</button>
-        </div>
+    <div id="directions-form">
+      <input id="origin" placeholder="Start" />
+      <input id="destination" placeholder="Destination" />
+      <button id="swap-locations">↕️ Swap</button>
+      <button id="get-route">Get Route</button>
     </div>
+  </div>
 
-    <div id="style-toggle" aria-label="Toggle map style" role="button" tabindex="0" aria-pressed="false">
-        <img id="style-icon" src="default_style.png" alt="Map style icon" />
-        <span id="style-label">Regular</span>
-    </div>
-
-    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-    <script src="app.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
