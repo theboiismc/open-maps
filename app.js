@@ -108,9 +108,11 @@ async function loadPlaceInfo(name, lat, lon) {
       img.src = imageUrl;
     } else {
       console.log('No image found for this place.');
+      document.getElementById('place-image').src = 'default.jpg';  // Use default image
     }
   } catch (error) {
     console.log('Error fetching image:', error);
+    document.getElementById('place-image').src = 'default.jpg';  // Use default image
   }
 
   // Fetch weather info
