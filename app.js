@@ -16,10 +16,11 @@ const directionsIcon = $('directions-icon');
 const sidePanel = $('side-panel');
 const closePanel = $('close-side-panel');
 const directionsPanel = $('directions-panel'); // Directions panel
+const closeDirectionsPanel = $('close-directions-panel');
 const placeName = $('place-name');
 const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
-const directionsBtn = $('directions-btn'); // We won't need this anymore
+const directionsBtn = $('directions-btn');
 const directionsForm = $('directions-form');
 const origin = $('origin');
 const destination = $('destination');
@@ -39,12 +40,16 @@ function hidePanel() {
 
 closePanel.addEventListener('click', hidePanel);
 
+closeDirectionsPanel.addEventListener('click', () => {
+  directionsPanel.classList.remove('open');
+});
+
 // Show directions panel when clicking the directions button in the search bar
 directionsIcon.addEventListener('click', () => {
-  directionsPanel.classList.add('open');  // Open the directions panel
-  sidePanel.classList.remove('open');    // Close the side panel (info panel)
-  directionsForm.style.display = 'flex'; // Show the directions form
-  $('place-info').style.display = 'none'; // Hide place info
+  directionsPanel.classList.add('open');
+  sidePanel.classList.remove('open');
+  directionsForm.style.display = 'flex';
+  $('place-info').style.display = 'none';
 });
 
 search.addEventListener('input', debounce(async () => {
@@ -63,9 +68,9 @@ search.addEventListener('input', debounce(async () => {
       const [lon, lat] = f.geometry.coordinates;
       map.flyTo({ center: [lon, lat], zoom: 13 });
       await loadPlaceInfo(f.properties.name, lat, lon);
-      sidePanel.classList.add('open');  // Open the info panel when a place is selected
-      directionsPanel.classList.remove('open'); // Close directions panel if it's open
-      moveSearchBarToInfoPanel(); // Move the search bar into the info panel
+      sidePanel.classList.add('open');
+      directionsPanel.classList.remove('open');
+      moveSearchBarToInfoPanel();
     });
     suggestions.appendChild(div);
   });
@@ -77,7 +82,6 @@ searchIcon.addEventListener('click', () => {
   search.dispatchEvent(new Event('input'));
 });
 
-// Add your directions button event listener (not needed in the info panel anymore)
 directionsBtn.addEventListener('click', () => {
   directionsForm.style.display = 'flex';
   $('place-info').style.display = 'none';
@@ -93,7 +97,6 @@ getRoute.addEventListener('click', async () => {
   const o = origin.value;
   const d = destination.value;
 
-  // Get coordinates of the origin and destination
   const resO = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(o)}&limit=1`);
   const resD = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(d)}&limit=1`);
   const jsonO = await resO.json();
@@ -102,26 +105,22 @@ getRoute.addEventListener('click', async () => {
   const originCoords = jsonO.features[0].geometry.coordinates;
   const destinationCoords = jsonD.features[0].geometry.coordinates;
 
-  // Make sure to adjust for the actual routing API
   const routeRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${encodeURIComponent(originCoords.join(','))};${encodeURIComponent(destinationCoords.join(','))}?overview=full&geometries=geojson`);
   const routeJson = await routeRes.json();
   const route = routeJson.routes[0].geometry;
 
-  // Display the route on the map
   if (map.getSource('route')) map.removeLayer('route'), map.removeSource('route');
   map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route } });
   map.addLayer({ id: 'route', type: 'line', source: 'route', paint: { 'line-color': '#6750a4', 'line-width': 6 } });
 });
 
 startNavigation.addEventListener('click', () => {
-  // Implement your navigation functionality here, such as triggering turn-by-turn directions
   alert('Navigation started!');
 });
 
 async function loadPlaceInfo(name, lat, lon) {
   placeName.textContent = name;
 
-  // Fetch an image for the place (Wikimedia API)
   try {
     const imageRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
     const imageData = await imageRes.json();
@@ -133,15 +132,12 @@ async function loadPlaceInfo(name, lat, lon) {
       const img = document.getElementById('place-image');
       img.src = imageUrl;
     } else {
-      console.log('No image found for this place.');
-      document.getElementById('place-image').src = 'default.jpg';  // Use default image
+      document.getElementById('place-image').src = 'default.jpg';
     }
   } catch (error) {
-    console.log('Error fetching image:', error);
-    document.getElementById('place-image').src = 'default.jpg';  // Use default image
+    document.getElementById('place-image').src = 'default.jpg';
   }
 
-  // Fetch weather info
   try {
     const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
     const data = await weather.json();
@@ -152,7 +148,6 @@ async function loadPlaceInfo(name, lat, lon) {
     placeWeather.textContent = 'Weather unavailable.';
   }
 
-  // Fetch place description (Wikipedia)
   try {
     const wiki = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
     const w = await wiki.json();
@@ -170,7 +165,6 @@ function debounce(fn, delay) {
   };
 }
 
-// Move the search bar into the info panel
 function moveSearchBarToInfoPanel() {
   const searchContainer = document.createElement('div');
   searchContainer.className = 'search-bar';
@@ -181,5 +175,5 @@ function moveSearchBarToInfoPanel() {
   `;
   const sidePanelContent = document.getElementById('side-panel');
   sidePanelContent.insertBefore(searchContainer, sidePanelContent.firstChild);
-  search.style.display = 'none'; // Hide the original search bar in the main view
+  search.style.display = 'none';
 }
