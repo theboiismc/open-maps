@@ -21,7 +21,7 @@
   .search-bar {
     position: absolute;
     top: 20px; left: 20px;
-    width: 320px;
+    width: 280px;
     background: #fff;
     border-radius: 24px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -37,7 +37,7 @@
     font-size: 16px;
     padding: 10px 16px;
     padding-right: 44px;
-    width: 280px; /* updated per your request */
+    width: 100%;
     border: none;
     border-radius: 20px;
     background: #e7e0ec;
@@ -87,18 +87,10 @@
     flex-direction: column;
     gap: 8px;
     z-index: 10002;
-    transition: transform 0.3s ease;
-    will-change: transform;
   }
 
   #directions-form.open {
     display: flex;
-    transform: translateX(0);
-  }
-
-  /* Add transform for swipe */
-  #directions-form.swiping {
-    transition: none;
   }
 
   #directions-form input {
@@ -161,14 +153,6 @@
     font-weight: 500;
   }
 
-  /* ETA display */
-  #eta-info {
-    margin-top: 4px;
-    font-weight: 400;
-    color: #444;
-    font-size: 14px;
-  }
-
   /* Style toggle button - bottom left */
   #style-toggle {
     position: fixed;
@@ -200,7 +184,7 @@
   /* Directions toggle button - bottom right */
   #directions-toggle {
     position: fixed;
-    bottom: 190px; /* pushed up so no overlap */
+    bottom: 110px; /* moved up so no overlap with controls */
     right: 20px;
     background-color: #6750a4;
     color: white;
@@ -213,36 +197,64 @@
     user-select: none;
   }
 
-  /* Custom user location marker styles */
-  .user-location-marker {
-    width: 28px;
-    height: 28px;
-    border: 3px solid #6750a4;
-    border-radius: 50%;
-    background-color: rgba(103, 80, 164, 0.4);
-    box-shadow: 0 0 8px rgba(103, 80, 164, 0.7);
-  }
-
-  /* Follow mode toggle */
-  #follow-toggle {
+  /* Navigation UI panel - slides in from bottom on start nav */
+  #navigation-panel {
     position: fixed;
-    bottom: 110px;
-    right: 20px;
-    background-color: #444;
-    color: white;
-    border: none;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+    padding: 12px 20px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    font-weight: 600;
+    z-index: 11000;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    max-height: 180px;
+  }
+  #navigation-panel.open {
+    display: flex;
+  }
+  #navigation-steps {
+    max-height: 90px;
+    overflow-y: auto;
+    font-weight: 400;
+    font-size: 14px;
+    color: #333;
+  }
+  #navigation-steps div {
+    margin-bottom: 6px;
+  }
+  #navigation-controls {
+    display: flex;
+    justify-content: space-between;
+  }
+  #start-nav-btn, #stop-nav-btn {
+    flex: 1;
+    margin: 0 4px;
+    padding: 10px 0;
     border-radius: 20px;
-    padding: 10px 16px;
+    border: none;
     cursor: pointer;
     font-weight: 600;
-    z-index: 10001;
-    user-select: none;
-    font-size: 14px;
+    color: white;
+  }
+  #start-nav-btn {
+    background-color: #4caf50;
+  }
+  #start-nav-btn:hover {
+    background-color: #3a9d40;
+  }
+  #stop-nav-btn {
+    background-color: #b3261e;
+  }
+  #stop-nav-btn:hover {
+    background-color: #9b1d14;
   }
 
-  #follow-toggle.active {
-    background-color: #6750a4;
-  }
 </style>
 </head>
 <body>
@@ -265,7 +277,6 @@
     <button id="get-route">Get Directions</button>
     <button id="clear-route">Clear</button>
     <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
-    <div id="eta-info" role="region" aria-live="polite" aria-atomic="true"></div> <!-- ETA display -->
   </div>
 
   <div id="style-toggle" aria-label="Toggle map style" role="button" tabindex="0" aria-pressed="false">
@@ -273,12 +284,17 @@
     <span id="style-label">Regular</span>
   </div>
 
-  <button id="follow-toggle" aria-pressed="false" aria-label="Toggle follow mode">Follow Me</button>
-
   <button id="directions-toggle" aria-pressed="false" aria-label="Toggle directions panel">Directions</button>
 
+  <div id="navigation-panel" role="region" aria-live="polite" aria-atomic="true" aria-label="Navigation panel">
+    <div id="navigation-steps" tabindex="0"></div>
+    <div id="navigation-controls">
+      <button id="start-nav-btn">Start Navigation</button>
+      <button id="stop-nav-btn" style="display:none;">Stop Navigation</button>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2/dist/fuse.min.js"></script> <!-- Fuse.js for fuzzy search -->
   <script src="app.js"></script>
 </body>
 </html>
