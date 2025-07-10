@@ -25,6 +25,7 @@ const origin = $('origin');
 const destination = $('destination');
 const swapBtn = $('swap-locations');
 const getRoute = $('get-route');
+const startNavigation = $('start-navigation');
 
 function showPanel() {
   sidePanel.classList.add('open');
@@ -90,12 +91,30 @@ swapBtn.addEventListener('click', () => {
 getRoute.addEventListener('click', async () => {
   const o = origin.value;
   const d = destination.value;
-  const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${encodeURIComponent(o)};${encodeURIComponent(d)}?overview=full&geometries=geojson`);
-  const json = await res.json();
-  const route = json.routes[0].geometry;
+
+  // Get coordinates of the origin and destination
+  const resO = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(o)}&limit=1`);
+  const resD = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(d)}&limit=1`);
+  const jsonO = await resO.json();
+  const jsonD = await resD.json();
+
+  const originCoords = jsonO.features[0].geometry.coordinates;
+  const destinationCoords = jsonD.features[0].geometry.coordinates;
+
+  // Make sure to adjust for the actual routing API
+  const routeRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${encodeURIComponent(originCoords.join(','))};${encodeURIComponent(destinationCoords.join(','))}?overview=full&geometries=geojson`);
+  const routeJson = await routeRes.json();
+  const route = routeJson.routes[0].geometry;
+
+  // Display the route on the map
   if (map.getSource('route')) map.removeLayer('route'), map.removeSource('route');
   map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route } });
   map.addLayer({ id: 'route', type: 'line', source: 'route', paint: { 'line-color': '#6750a4', 'line-width': 6 } });
+});
+
+startNavigation.addEventListener('click', () => {
+  // Implement your navigation functionality here, such as triggering turn-by-turn directions
+  alert('Navigation started!');
 });
 
 async function loadPlaceInfo(name, lat, lon) {
