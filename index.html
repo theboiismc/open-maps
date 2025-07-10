@@ -153,6 +153,26 @@
       font-size: 18px;
       font-weight: bold;
     }
+
+    /* Directions Panel */
+    #directions-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 350px;
+      background: white;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-out;
+      padding: 16px;
+      z-index: 15;
+      overflow-y: auto;
+    }
+
+    #directions-panel.open {
+      transform: translateX(0);
+    }
   </style>
 </head>
 <body>
@@ -201,6 +221,7 @@
       <input id="destination" placeholder="Destination" />
       <button id="swap-locations">↕️ Swap</button>
       <button id="get-route">Get Route</button>
+      <button id="start-navigation">Start Navigation</button>
     </div>
   </div>
 
