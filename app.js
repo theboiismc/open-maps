@@ -122,7 +122,7 @@ async function loadPlaceInfo(name, lat, lon) {
 
   // Fetch Image
   try {
-    const imageRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
+    const imageRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
     const imageData = await imageRes.json();
     const pages = imageData.query.pages;
     const pageId = Object.keys(pages)[0];
