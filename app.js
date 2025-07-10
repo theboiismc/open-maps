@@ -471,3 +471,14 @@ stopNavBtn.addEventListener('click', () => {
     routeInfoDiv.textContent = '';
     clearRoute();
 });
+
+// New Directions Icon functionality
+const directionsIcon = document.getElementById('directions-icon');
+
+directionsIcon.addEventListener('click', () => {
+    if (directionsForm.classList.contains('open')) {
+        closeDirectionsPanel();
+    } else {
+        openDirectionsPanel();
+    }
+});
