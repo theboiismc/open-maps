@@ -19,7 +19,7 @@ const directionsPanel = $('directions-panel'); // Directions panel
 const placeName = $('place-name');
 const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
-const directionsBtn = $('directions-btn');
+const directionsBtn = $('directions-btn'); // We won't need this anymore
 const directionsForm = $('directions-form');
 const origin = $('origin');
 const destination = $('destination');
@@ -65,6 +65,7 @@ search.addEventListener('input', debounce(async () => {
       await loadPlaceInfo(f.properties.name, lat, lon);
       sidePanel.classList.add('open');  // Open the info panel when a place is selected
       directionsPanel.classList.remove('open'); // Close directions panel if it's open
+      moveSearchBarToInfoPanel(); // Move the search bar into the info panel
     });
     suggestions.appendChild(div);
   });
@@ -76,7 +77,7 @@ searchIcon.addEventListener('click', () => {
   search.dispatchEvent(new Event('input'));
 });
 
-// Add your directions button event listener
+// Add your directions button event listener (not needed in the info panel anymore)
 directionsBtn.addEventListener('click', () => {
   directionsForm.style.display = 'flex';
   $('place-info').style.display = 'none';
@@ -167,4 +168,18 @@ function debounce(fn, delay) {
   let t; return (...args) => {
     clearTimeout(t); t = setTimeout(() => fn(...args), delay);
   };
+}
+
+// Move the search bar into the info panel
+function moveSearchBarToInfoPanel() {
+  const searchContainer = document.createElement('div');
+  searchContainer.className = 'search-bar';
+  searchContainer.innerHTML = `
+    <input id="search" placeholder="Search a place..." autocomplete="off" />
+    <button id="search-icon">🔍</button>
+    <button id="directions-icon">➡️</button>
+  `;
+  const sidePanelContent = document.getElementById('side-panel');
+  sidePanelContent.insertBefore(searchContainer, sidePanelContent.firstChild);
+  search.style.display = 'none'; // Hide the search bar in the main view
 }
