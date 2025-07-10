@@ -1,452 +1,204 @@
-// Initialize MapLibre map with OSM Liberty style
+// map init
 const map = new maplibregl.Map({
   container: 'map',
   style: 'https://tiles.openfreemap.org/styles/liberty',
-  center: [-95.7129, 37.0902], // USA center as default
-  zoom: 4,
-  pitch: 0,
-  bearing: 0,
-  dragRotate: true,
-  touchZoomRotate: true,
-  scrollZoom: true,
-  maxZoom: 18,
-  minZoom: 1,
+  center: [-95.7129,37.0902],
+  zoom:4
 });
 
-// Controls on bottom-left
-const navControl = new maplibregl.NavigationControl({ showCompass: true, showZoom: true });
-const geolocateControl = new maplibregl.GeolocateControl({
-  positionOptions: { enableHighAccuracy: true },
-  trackUserLocation: true,
-  showAccuracyCircle: false,
-});
-map.addControl(navControl, 'bottom-left');
-map.addControl(geolocateControl, 'bottom-left');
+// controls bottom-right
+map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+map.addControl(new maplibregl.GeolocateControl({
+  positionOptions:{enableHighAccuracy:true},
+  trackUserLocation:true,
+  showAccuracyCircle:false
+}), 'bottom-right');
 
-// DOM elements
-const searchInput = document.getElementById('search');
-const suggestionsDiv = document.getElementById('suggestions');
-const searchIcon = document.getElementById('search-icon');
-const directionsIcon = document.getElementById('directions-icon');
+// DOM refs
+const $ = id => document.getElementById(id);
 
-const sidePanel = document.getElementById('side-panel');
-const closeSidePanelBtn = document.getElementById('close-side-panel');
+const search = $('search'),
+      suggestions = $('suggestions'),
+      searchIcon = $('search-icon'),
+      directionsIcon = $('directions-icon'),
+      sidePanel = $('side-panel'),
+      closeSidePanel = $('close-side-panel'),
+      placeInfo = $('place-info'),
+      placeName = $('place-name'),
+      placeDescription = $('place-description'),
+      placeWeather = $('place-weather'),
+      directionsBtn = $('directions-btn'),
+      directionsForm = $('directions-form'),
+      origin = $('origin'),
+      destination = $('destination'),
+      swapBtn = $('swap-locations'),
+      getRoute = $('get-route');
 
-const placeInfoDiv = document.getElementById('place-info');
-const placeName = document.getElementById('place-name');
-const placeDescription = document.getElementById('place-description');
-const placeWeather = document.getElementById('place-weather');
-const directionsBtn = document.getElementById('directions-btn');
+let currentPlace = null;
 
-const directionsFormDiv = document.getElementById('directions-form');
-const originInput = document.getElementById('origin');
-const destinationInput = document.getElementById('destination');
-const swapLocationsBtn = document.getElementById('swap-locations');
-const getRouteBtn = document.getElementById('get-route');
+// debounce
+const debounce = (fn, d) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),d); }; };
 
-let currentPlace = null; // Store last selected place for directions
+// hide suggestions
+const clearSug = () => { suggestions.textContent=''; suggestions.style.display='none'; };
 
-// Debounce helper
-function debounce(fn, delay) {
-  let timeoutId;
-  return (...args) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
-  };
-}
-
-// Clear suggestions
-function clearSuggestions() {
-  suggestionsDiv.innerHTML = '';
-  suggestionsDiv.style.display = 'none';
-}
-
-// Photon search API call
-async function photonSearch(query) {
-  if (!query) return [];
+// Photon API
+async function photonSearch(q){
+  if(!q) return [];
   try {
-    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Photon search failed');
-    const data = await res.json();
-    return data.features || [];
-  } catch (e) {
-    console.error(e);
-    return [];
-  }
+    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5`);
+    if(!res.ok) return [];
+    const d = await res.json();
+    return d.features || [];
+  } catch {return [];}
 }
 
-// Wikipedia description fetch
-async function fetchPlaceDescription(name) {
+// wiki summary
+async function fetchDesc(n){
   try {
-    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.extract || null;
-  } catch {
-    return null;
-  }
+    const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(n)}`);
+    if(!res.ok) return null;
+    const d = await res.json();
+    return d.extract || null;
+  } catch {return null;}
 }
 
-// OpenWeatherMap current weather (you need your own API key here)
-async function fetchWeather(lat, lon) {
+// weather
+async function fetchWeather(lat,lon){
+  const key='YOUR_OPENWEATHERMAP_API_KEY';
   try {
-    const apiKey = 'YOUR_OPENWEATHERMAP_API_KEY'; // Replace with your OpenWeatherMap API key
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const desc = data.weather?.[0]?.description || '';
-    const temp = data.main?.temp || '';
-    return `Weather: ${desc}, Temp: ${temp}°C`;
-  } catch {
-    return null;
-  }
+    const res=await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${key}`);
+    if(!res.ok) return null;
+    const d=await res.json();
+    return `Weather: ${d.weather?.[0]?.description||''}, Temp: ${d.main?.temp||''}°C`;
+  } catch {return null;}
 }
 
-// Render suggestions dropdown
-function renderSuggestions(features) {
-  clearSuggestions();
-  if (!features.length) return;
-  for (const feature of features) {
-    const div = document.createElement('div');
-    div.className = 'suggestion';
-    const name = feature.properties.name || '';
-    const state = feature.properties.state || '';
-    const country = feature.properties.country || '';
-    div.textContent = `${name}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
-    div.tabIndex = 0;
-    div.dataset.lon = feature.geometry.coordinates[0];
-    div.dataset.lat = feature.geometry.coordinates[1];
-
-    div.addEventListener('click', async () => {
-      searchInput.value = div.textContent;
-      searchInput.dataset.lon = div.dataset.lon;
-      searchInput.dataset.lat = div.dataset.lat;
-
-      clearSuggestions();
-      await openPlaceInfo(feature);
-      flyToLocation(parseFloat(div.dataset.lon), parseFloat(div.dataset.lat));
-    });
-
-    div.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        div.click();
-      }
-    });
-
-    suggestionsDiv.appendChild(div);
-  }
-  suggestionsDiv.style.display = 'block';
+// render suggestions
+async function renderSug(q){
+  const feats = await photonSearch(q);
+  clearSug();
+  if(!feats.length) return;
+  feats.forEach(f=>{
+    const d = document.createElement('div');
+    d.textContent = `${f.properties.name}${f.properties.state?`,${f.properties.state}:''}${f.properties.country?`, ${f.properties.country}:''}`;
+    d.className='suggestion';
+    d.tabIndex=0;
+    const [lon,lat]=f.geometry.coordinates;
+    d.onclick=async ()=>{
+      search.value=d.textContent;
+      search.dataset.lon=lon;
+      search.dataset.lat=lat;
+      clearSug();
+      currentPlace=f;
+      await showPlaceInfo(f);
+      flyTo(lon,lat);
+    };
+    d.onkeydown=e=>{ if(e.key==='Enter'){d.click();}};
+    suggestions.appendChild(d);
+  });
+  suggestions.style.display='block';
 }
 
-// Fly map to coords
-function flyToLocation(lon, lat) {
-  map.flyTo({ center: [lon, lat], zoom: 14 });
-}
+// fly map
+const flyTo=(lon,lat)=> map.flyTo({center:[lon,lat],zoom:14});
 
-// Show side panel with place info
-async function openPlaceInfo(feature) {
-  currentPlace = feature;
-
-  placeInfoDiv.style.display = 'block';
-  directionsFormDiv.style.display = 'none';
+// show info panel
+async function showPlaceInfo(f){
+  currentPlace=f;
+  placeInfo.style.display='block';
+  directionsForm.style.display='none';
   sidePanel.classList.add('open');
-
-  const name = feature.properties.name || 'Unknown Place';
-  placeName.textContent = name;
-
-  const desc = await fetchPlaceDescription(name);
-  placeDescription.textContent = desc || 'No description available.';
-
-  const [lon, lat] = feature.geometry.coordinates;
-  const weather = await fetchWeather(lat, lon);
-  placeWeather.textContent = weather || 'Weather data unavailable.';
+  placeName.textContent=f.properties.name;
+  placeDescription.textContent=await fetchDesc(f.properties.name) || 'No description found.';
+  const [lon,lat]=f.geometry.coordinates;
+  placeWeather.textContent = await fetchWeather(lat,lon) || 'Weather unavailable.';
 }
 
-// Show directions form inside side panel
-function openDirectionsForm() {
-  placeInfoDiv.style.display = 'none';
-  directionsFormDiv.style.display = 'block';
-
-  if (currentPlace) {
-    destinationInput.value = currentPlace.properties.name || '';
-    destinationInput.dataset.lon = currentPlace.geometry.coordinates[0];
-    destinationInput.dataset.lat = currentPlace.geometry.coordinates[1];
+// toggle directions form
+function showDirForm(){
+  placeInfo.style.display='none';
+  directionsForm.style.display='block';
+  if(currentPlace){
+    destination.value=currentPlace.properties.name;
+    const [lon,lat]=currentPlace.geometry.coordinates;
+    destination.dataset.lon=lon;
+    destination.dataset.lat=lat;
   }
 }
 
-// Close side panel completely
-closeSidePanelBtn.addEventListener('click', () => {
-  sidePanel.classList.remove('open');
-});
+// close panel
+closeSidePanel.onclick = () => sidePanel.classList.remove('open');
 
-// Clicking search icon flys to place if selected
-searchIcon.addEventListener('click', () => {
-  const lon = parseFloat(searchInput.dataset.lon);
-  const lat = parseFloat(searchInput.dataset.lat);
-  if (!lon || !lat) return alert('Please select a valid place from suggestions first.');
-  flyToLocation(lon, lat);
-  if (currentPlace) openPlaceInfo(currentPlace);
-});
+// search icon click
+searchIcon.onclick = () => {
+  const lon=parseFloat(search.dataset.lon),
+        lat=parseFloat(search.dataset.lat);
+  if(!lon||!lat) return alert('Select a place first.');
+  flyTo(lon,lat);
+  if(currentPlace) showPlaceInfo(currentPlace);
+};
 
-// Clicking directions icon opens directions form side panel
-directionsIcon.addEventListener('click', () => {
-  if (!currentPlace) return alert('Select a place first from the search bar.');
+// directions icon click
+directionsIcon.onclick = () => {
+  if(!currentPlace) return alert('Select a place first.');
   sidePanel.classList.add('open');
-  openDirectionsForm();
-});
+  showDirForm();
+};
 
-// Directions button inside place info panel switches to directions form
-directionsBtn.addEventListener('click', () => {
-  openDirectionsForm();
-});
+// btns
+directionsBtn.onclick = showDirForm;
 
-// Swap origin and destination inputs
-swapLocationsBtn.addEventListener('click', () => {
-  const oVal = originInput.value;
-  const dVal = destinationInput.value;
+swapBtn.onclick = ()=>{
+  const ov=origin.value, dv=destination.value;
+  const ol=origin.dataset.lon, ot=origin.dataset.lat;
+  const dl=destination.dataset.lon, dt=destination.dataset.lat;
+  origin.value=dv;
+  origin.dataset.lon=dl;
+  origin.dataset.lat=dt;
+  destination.value=ov;
+  destination.dataset.lon=ol;
+  destination.dataset.lat=ot;
+};
 
-  const oLon = originInput.dataset.lon;
-  const oLat = originInput.dataset.lat;
-  const dLon = destinationInput.dataset.lon;
-  const dLat = destinationInput.dataset.lat;
-
-  originInput.value = dVal;
-  originInput.dataset.lon = dLon;
-  originInput.dataset.lat = dLat;
-
-  destinationInput.value = oVal;
-  destinationInput.dataset.lon = oLon;
-  destinationInput.dataset.lat = oLat;
-});
-
-// Get route from OSRM and draw on map
-async function fetchRoute(originLon, originLat, destLon, destLat) {
-  const url = `https://router.project-osrm.org/route/v1/driving/${originLon},${originLat};${destLon},${destLat}?overview=full&geometries=geojson`;
+// routing
+async function fetchRoute(oLon,oLat,dLon,dLat){
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Routing failed');
-    const json = await res.json();
-    if (json.code !== 'Ok' || !json.routes.length) {
-      alert('No route found.');
-      return null;
-    }
-    return json.routes[0];
-  } catch (e) {
-    console.error(e);
-    alert('Failed to get route.');
+    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${dLon},${dLat}?overview=full&geometries=geojson`);
+    if(!r.ok) throw 0;
+    const j = await r.json();
+    if(j.code!=='Ok'||!j.routes.length) return null;
+    return j.routes[0];
+  } catch{
+    alert('No route found.');
     return null;
   }
 }
-
-// Draw route on map
-function drawRoute(routeGeoJSON) {
-  if (map.getSource('route')) {
-    map.getSource('route').setData(routeGeoJSON);
+function draw(r){
+  const gj={type:'Feature',geometry:r.geometry};
+  if(map.getSource('route')){
+    map.getSource('route').setData(gj);
   } else {
-    map.addSource('route', {
-      type: 'geojson',
-      data: routeGeoJSON,
-    });
+    map.addSource('route',{type:'geojson',data:gj});
     map.addLayer({
-      id: 'route',
-      type: 'line',
-      source: 'route',
-      layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': '#6750a4',
-        'line-width': 6,
-        'line-opacity': 0.8,
-      },
+      id:'route', type:'line', source:'route',
+      layout:{'line-join':'round','line-cap':'round'},
+      paint:{'line-color':'#6750a4','line-width':6,'line-opacity':0.8}
     });
   }
 }
-
-// Clear route from map
-function clearRoute() {
-  if (map.getLayer('route')) map.removeLayer('route');
-  if (map.getSource('route')) map.removeSource('route');
-}
-
-// Handle get route button click
-getRouteBtn.addEventListener('click', async () => {
-  const originLon = parseFloat(originInput.dataset.lon);
-  const originLat = parseFloat(originInput.dataset.lat);
-  const destLon = parseFloat(destinationInput.dataset.lon);
-  const destLat = parseFloat(destinationInput.dataset.lat);
-
-  if (isNaN(originLon) || isNaN(originLat) || isNaN(destLon) || isNaN(destLat)) {
-    alert('Please select valid origin and destination from suggestions.');
-    return;
+getRoute.onclick = async ()=>{
+  const oLon=parseFloat(origin.dataset.lon),
+        oLat=parseFloat(origin.dataset.lat),
+        dLon=parseFloat(destination.dataset.lon),
+        dLat=parseFloat(destination.dataset.lat);
+  if(isNaN(oLon)||isNaN(oLat)||isNaN(dLon)||isNaN(dLat)){
+    return alert('Select valid origin and destination.');
   }
+  const route = await fetchRoute(oLon,oLat,dLon,dLat);
+  if(route) draw(route), flyTo(oLon,oLat);
+};
 
-  const route = await fetchRoute(originLon, originLat, destLon, destLat);
-  if (!route) return;
-
-  const routeGeoJSON = {
-    type: 'Feature',
-    geometry: route.geometry,
-  };
-  drawRoute(routeGeoJSON);
-
-  flyToLocation(originLon, originLat);
-});
-
-// Setup search input event with debounce
-searchInput.addEventListener('input', debounce(async () => {
-  const query = searchInput.value.trim();
-  if (!query) {
-    clearSuggestions();
-    return;
-  }
-  const results = await photonSearch(query);
-  renderSuggestions(results);
-}, 300));
-
-// Close suggestions dropdown on blur, but allow clicks
-searchInput.addEventListener('blur', () => {
-  setTimeout(clearSuggestions, 200);
-});
-
-// Setup origin input search autocomplete same as main search
-originInput.addEventListener('input', debounce(async () => {
-  const query = originInput.value.trim();
-  if (!query) {
-    clearOriginSuggestions();
-    return;
-  }
-  const results = await photonSearch(query);
-  renderOriginSuggestions(results);
-}, 300));
-
-originInput.addEventListener('blur', () => {
-  setTimeout(clearOriginSuggestions, 200);
-});
-
-const originSuggestionsDiv = document.createElement('div');
-originSuggestionsDiv.id = 'origin-suggestions';
-originSuggestionsDiv.style.cssText = `
-  position: absolute;
-  top: 72px;
-  left: 16px;
-  right: 16px;
-  background: #fff;
-  max-height: 160px;
-  overflow-y: auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 10020;
-  display: none;
-`;
-directionsFormDiv.appendChild(originSuggestionsDiv);
-
-function clearOriginSuggestions() {
-  originSuggestionsDiv.innerHTML = '';
-  originSuggestionsDiv.style.display = 'none';
-}
-
-function renderOriginSuggestions(features) {
-  clearOriginSuggestions();
-  if (!features.length) return;
-  for (const feature of features) {
-    const div = document.createElement('div');
-    div.className = 'suggestion';
-    const name = feature.properties.name || '';
-    const state = feature.properties.state || '';
-    const country = feature.properties.country || '';
-    div.textContent = `${name}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
-    div.tabIndex = 0;
-    div.dataset.lon = feature.geometry.coordinates[0];
-    div.dataset.lat = feature.geometry.coordinates[1];
-
-    div.addEventListener('click', () => {
-      originInput.value = div.textContent;
-      originInput.dataset.lon = div.dataset.lon;
-      originInput.dataset.lat = div.dataset.lat;
-      clearOriginSuggestions();
-    });
-
-    div.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        div.click();
-      }
-    });
-
-    originSuggestionsDiv.appendChild(div);
-  }
-  originSuggestionsDiv.style.display = 'block';
-}
-
-// Setup destination input search autocomplete same as origin
-destinationInput.addEventListener('input', debounce(async () => {
-  const query = destinationInput.value.trim();
-  if (!query) {
-    clearDestinationSuggestions();
-    return;
-  }
-  const results = await photonSearch(query);
-  renderDestinationSuggestions(results);
-}, 300));
-
-destinationInput.addEventListener('blur', () => {
-  setTimeout(clearDestinationSuggestions, 200);
-});
-
-const destinationSuggestionsDiv = document.createElement('div');
-destinationSuggestionsDiv.id = 'destination-suggestions';
-destinationSuggestionsDiv.style.cssText = `
-  position: absolute;
-  top: 136px;
-  left: 16px;
-  right: 16px;
-  background: #fff;
-  max-height: 160px;
-  overflow-y: auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 10020;
-  display: none;
-`;
-directionsFormDiv.appendChild(destinationSuggestionsDiv);
-
-function clearDestinationSuggestions() {
-  destinationSuggestionsDiv.innerHTML = '';
-  destinationSuggestionsDiv.style.display = 'none';
-}
-
-function renderDestinationSuggestions(features) {
-  clearDestinationSuggestions();
-  if (!features.length) return;
-  for (const feature of features) {
-    const div = document.createElement('div');
-    div.className = 'suggestion';
-    const name = feature.properties.name || '';
-    const state = feature.properties.state || '';
-    const country = feature.properties.country || '';
-    div.textContent = `${name}${state ? ', ' + state : ''}${country ? ', ' + country : ''}`;
-    div.tabIndex = 0;
-    div.dataset.lon = feature.geometry.coordinates[0];
-    div.dataset.lat = feature.geometry.coordinates[1];
-
-    div.addEventListener('click', () => {
-      destinationInput.value = div.textContent;
-      destinationInput.dataset.lon = div.dataset.lon;
-      destinationInput.dataset.lat = div.dataset.lat;
-      clearDestinationSuggestions();
-    });
-
-    div.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        div.click();
-      }
-    });
-
-    destinationSuggestionsDiv.appendChild(div);
-  }
-  destinationSuggestionsDiv.style.display = 'block';
-}
+// search events
+search.oninput = debounce(e=>renderSug(e.target.value.trim()),300);
+search.onblur = ()=>setTimeout(clearSug,200);
