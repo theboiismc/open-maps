@@ -50,27 +50,23 @@ const destinationSuggestions = document.getElementById('destination-suggestions'
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
 
-const navigationPanel = document.getElementById('navigation-panel');
+const directionsInputsDiv = document.getElementById('directions-inputs');
+const navigationUIDiv = document.getElementById('navigation-ui');
 const navigationStepsDiv = document.getElementById('navigation-steps');
-const startNavBtn = document.getElementById('start-nav-btn');
-const stopNavBtn = document.getElementById('stop-nav-btn');
+const startNavBtn = document.getElementById('start-navigation');
+const stopNavBtn = document.getElementById('stop-navigation');
 
-const photonUrl = "https://photon.komoot.io/api/?q=";
+// Satellite layer flag
 let satelliteLayerAdded = false;
 let isSatellite = false;
 
-let currentRoute = null;
-let isNavigating = false;
-let navSteps = [];
-let navStepIndex = 0;
-let voiceUtterance = null;
-
-// ========== SATELLITE LAYER ========== //
 const addSatelliteLayer = () => {
   if (!satelliteLayerAdded) {
     map.addSource('satellite', {
       type: 'raster',
-      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      ],
       tileSize: 256
     });
     map.addLayer({
@@ -105,13 +101,77 @@ map.on('load', () => {
   switchToRegular();
 });
 
-// ========== STYLE TOGGLE ========== //
 styleToggle.addEventListener('click', () => {
   if (isSatellite) switchToRegular();
   else switchToSatellite();
 });
 
-// ========== SEARCH (Photon) ========== //
+// Directions panel toggle
+function openDirectionsPanel() {
+  directionsForm.classList.add('open');
+  document.querySelector('.search-bar').style.display = 'none';
+  directionsToggleBtn.setAttribute('aria-pressed', 'true');
+  styleToggle.style.left = '100px';
+}
+
+function closeDirectionsPanel() {
+  directionsForm.classList.remove('open');
+  document.querySelector('.search-bar').style.display = 'block';
+  directionsToggleBtn.setAttribute('aria-pressed', 'false');
+  styleToggle.style.left = '20px';
+
+  if (isNavigating) stopNavigation();
+  navigationUIDiv.style.display = 'none';
+  directionsInputsDiv.style.display = 'block';
+  routeInfoDiv.textContent = '';
+}
+
+directionsToggleBtn.addEventListener('click', () => {
+  if (directionsForm.classList.contains('open')) closeDirectionsPanel();
+  else openDirectionsPanel();
+});
+
+closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
+    closeDirectionsPanel();
+  }
+});
+
+// Prevent panel closing on clicks inside or suggestions
+document.addEventListener('click', e => {
+  if (
+    directionsForm.classList.contains('open') &&
+    !directionsForm.contains(e.target) &&
+    !directionsToggleBtn.contains(e.target)
+  ) {
+    // Ignore clicks outside panel & toggle button (no close)
+  }
+});
+
+// Swipe to dismiss on mobile
+let startX = 0, currentX = 0, isSwiping = false;
+directionsForm.addEventListener('touchstart', e => {
+  if (e.touches.length !== 1) return;
+  startX = e.touches[0].clientX;
+  isSwiping = true;
+});
+directionsForm.addEventListener('touchmove', e => {
+  if (!isSwiping) return;
+  currentX = e.touches[0].clientX;
+  const deltaX = currentX - startX;
+  if (deltaX < 0) directionsForm.style.transform = `translateX(${deltaX}px)`;
+});
+directionsForm.addEventListener('touchend', () => {
+  const deltaX = currentX - startX;
+  if (deltaX < -100) closeDirectionsPanel();
+  directionsForm.style.transform = '';
+  isSwiping = false;
+});
+
+// Photon search setup
+const photonUrl = "https://photon.komoot.io/api/?q=";
 const debounce = (fn, delay) => {
   let timeoutId;
   return (...args) => {
@@ -136,20 +196,19 @@ async function photonSearch(query) {
 function showLoading(container) {
   container.innerHTML = '<div class="loading">Loading…</div>';
 }
-
 function clearSuggestions(container) {
   container.innerHTML = '';
 }
-
 function renderSuggestions(container, results, inputEl) {
   clearSuggestions(container);
   if (!results.length) return;
   results.forEach(feature => {
     const div = document.createElement('div');
     div.className = 'suggestion';
+    div.textContent = feature.properties.name +
+      (feature.properties.state ? ', ' + feature.properties.state : '') +
+      (feature.properties.country ? ', ' + feature.properties.country : '');
     div.tabIndex = 0;
-    const p = feature.properties;
-    div.textContent = `${p.name || ''}${p.state ? ', ' + p.state : ''}${p.country ? ', ' + p.country : ''}`;
     div.dataset.lon = feature.geometry.coordinates[0];
     div.dataset.lat = feature.geometry.coordinates[1];
     div.addEventListener('click', () => {
@@ -172,302 +231,236 @@ function renderSuggestions(container, results, inputEl) {
   });
 }
 
-function setupSearch(inputEl, suggestionsEl) {
-  const debouncedSearch = debounce(async (query) => {
-    if (!query) {
-      clearSuggestions(suggestionsEl);
-      return;
-    }
-    showLoading(suggestionsEl);
-    const results = await photonSearch(query);
-    renderSuggestions(suggestionsEl, results, inputEl);
-  }, 250);
-
-  inputEl.addEventListener('input', e => {
-    debouncedSearch(e.target.value.trim());
-  });
-
-  document.addEventListener('click', e => {
-    if (!inputEl.contains(e.target) && !suggestionsEl.contains(e.target)) {
-      clearSuggestions(suggestionsEl);
-    }
-  });
-}
-
 setupSearch(searchInput, searchSuggestions);
 setupSearch(originInput, originSuggestions);
 setupSearch(destinationInput, destinationSuggestions);
 
-// ========== DIRECTIONS PANEL TOGGLE ========== //
-function openDirectionsPanel() {
-  directionsForm.classList.add('open');
-  document.querySelector('.search-bar').style.display = 'none';
-  directionsToggleBtn.setAttribute('aria-pressed', 'true');
-}
-
-function closeDirectionsPanel() {
-  directionsForm.classList.remove('open');
-  document.querySelector('.search-bar').style.display = 'block';
-  directionsToggleBtn.setAttribute('aria-pressed', 'false');
-  hideNavigationPanel();
-}
-
-directionsToggleBtn.addEventListener('click', () => {
-  if (directionsForm.classList.contains('open')) closeDirectionsPanel();
-  else openDirectionsPanel();
-});
-
-closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && directionsForm.classList.contains('open')) closeDirectionsPanel();
-});
-
-// Prevent directions panel closing on click inside or on toggle btn
-document.addEventListener('click', e => {
-  if (
-    directionsForm.classList.contains('open') &&
-    !directionsForm.contains(e.target) &&
-    !directionsToggleBtn.contains(e.target)
-  ) {
-    // ignore clicks outside to keep panel open
+// Routing with OSRM
+function drawRoute(routeGeoJSON) {
+  if (map.getSource('route')) {
+    map.getSource('route').setData(routeGeoJSON);
+  } else {
+    map.addSource('route', {
+      type: 'geojson',
+      data: routeGeoJSON
+    });
+    map.addLayer({
+      id: 'route',
+      type: 'line',
+      source: 'route',
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': '#6750a4',
+        'line-width': 6,
+        'line-opacity': 0.8
+      }
+    });
   }
-});
-
-// ========== ROUTING WITH OSRM ========== //
-async function fetchRoute(start, end) {
-  const url = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Routing request failed');
-  const data = await res.json();
-  if (data.code !== 'Ok' || !data.routes.length) throw new Error('No route found');
-  return data.routes[0];
 }
 
-// Clear any existing route from map
 function clearRoute() {
-  if (map.getLayer('route')) {
-    map.removeLayer('route');
-  }
-  if (map.getSource('route')) {
-    map.removeSource('route');
-  }
-  currentRoute = null;
+  if (map.getLayer('route')) map.removeLayer('route');
+  if (map.getSource('route')) map.removeSource('route');
   routeInfoDiv.textContent = '';
-  originInput.value = '';
-  destinationInput.value = '';
-  originInput.dataset.lat = '';
-  originInput.dataset.lon = '';
-  destinationInput.dataset.lat = '';
-  destinationInput.dataset.lon = '';
-  clearSuggestions(originSuggestions);
-  clearSuggestions(destinationSuggestions);
-  hideNavigationPanel();
-  stopNavigation();
 }
 
-clearRouteBtn.addEventListener('click', clearRoute);
+let navSteps = [];
+let navStepIndex = 0;
+let isNavigating = false;
+let voiceUtterance = null;
+let currentRoute = null;
+let watchId = null;
 
-// Display route on map
-function drawRoute(route) {
-  if (map.getLayer('route')) {
-    map.removeLayer('route');
-  }
-  if (map.getSource('route')) {
-    map.removeSource('route');
-  }
-  map.addSource('route', {
-    type: 'geojson',
-    data: {
-      type: 'Feature',
-      geometry: route.geometry
-    }
-  });
-  map.addLayer({
-    id: 'route',
-    type: 'line',
-    source: 'route',
-    layout: {
-      'line-join': 'round',
-      'line-cap': 'round'
-    },
-    paint: {
-      'line-color': '#4caf50',
-      'line-width': 6
-    }
-  });
+// Helper: calculate distance between lat/lon in meters (Haversine)
+function getDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // Earth radius in meters
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat/2)**2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 }
 
-// On get directions btn click
-getRouteBtn.addEventListener('click', async () => {
-  const originLat = parseFloat(originInput.dataset.lat);
-  const originLon = parseFloat(originInput.dataset.lon);
-  const destLat = parseFloat(destinationInput.dataset.lat);
-  const destLon = parseFloat(destinationInput.dataset.lon);
-  if (!originLat || !originLon || !destLat || !destLon) {
-    alert('Please select both origin and destination from suggestions.');
-    return;
+// Speech synthesis helper
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  if (voiceUtterance) {
+    window.speechSynthesis.cancel();
   }
-  try {
-    const route = await fetchRoute([originLon, originLat], [destLon, destLat]);
-    currentRoute = route;
-    drawRoute(route);
-    routeInfoDiv.textContent = `Distance: ${(route.distance/1000).toFixed(2)} km, Duration: ${(route.duration/60).toFixed(0)} mins`;
-    openNavigationPanel(route);
-  } catch (e) {
-    alert('Error fetching route: ' + e.message);
-  }
-});
-
-// ========== NAVIGATION UI ========== //
-
-function openNavigationPanel(route) {
-  navSteps = route.legs[0].steps;
-  navStepIndex = 0;
-  renderNavSteps();
-  navigationPanel.classList.add('open');
-  startNavBtn.style.display = 'inline-block';
-  stopNavBtn.style.display = 'none';
+  voiceUtterance = new SpeechSynthesisUtterance(text);
+  voiceUtterance.lang = 'en-US';
+  voiceUtterance.rate = 1;
+  window.speechSynthesis.speak(voiceUtterance);
 }
 
-function hideNavigationPanel() {
-  navigationPanel.classList.remove('open');
-  stopNavigation();
-}
-
-// Render navigation steps list (only upcoming steps)
+// Render navigation steps list dynamically
 function renderNavSteps() {
   navigationStepsDiv.innerHTML = '';
-  navSteps.slice(navStepIndex).forEach((step, idx) => {
+  navSteps.forEach((step, i) => {
     const div = document.createElement('div');
-    div.textContent = step.maneuver.instruction;
-    if (idx === 0) div.style.fontWeight = 'bold';
+    div.className = 'nav-step' + (i === navStepIndex ? ' current-step' : '');
+    div.textContent = step.maneuver.instruction || step.name || 'Continue';
     navigationStepsDiv.appendChild(div);
   });
 }
 
-// Voice guidance helper
-function speak(text) {
-  if ('speechSynthesis' in window) {
-    if (voiceUtterance) {
-      window.speechSynthesis.cancel();
-    }
-    voiceUtterance = new SpeechSynthesisUtterance(text);
-    voiceUtterance.lang = 'en-US';
-    window.speechSynthesis.speak(voiceUtterance);
+function updateNavStep() {
+  if (navStepIndex >= navSteps.length) {
+    speak("You have arrived at your destination.");
+    stopNavigation();
+    return;
   }
+  renderNavSteps();
+  const step = navSteps[navStepIndex];
+  speak(step.maneuver.instruction || step.name || 'Continue');
 }
 
-let watchId = null;
-let lastPosition = null;
-
-// Start navigation logic
 function startNavigation() {
   if (!currentRoute) return;
   isNavigating = true;
   startNavBtn.style.display = 'none';
   stopNavBtn.style.display = 'inline-block';
+  navStepIndex = 0;
+  updateNavStep();
 
-  // Zoom to user location or route start
-  geolocateControl.trigger();
+  // Start watching position
+  if (navigator.geolocation) {
+    watchId = navigator.geolocation.watchPosition(position => {
+      const { latitude, longitude } = position.coords;
+      map.flyTo({ center: [longitude, latitude], zoom: 16 });
 
-  watchId = navigator.geolocation.watchPosition(onPositionUpdate, onPositionError, {
-    enableHighAccuracy: true,
-    maximumAge: 1000,
-    timeout: 5000
-  });
-
-  // Announce first step
-  if (navSteps.length) {
-    speak(navSteps[navStepIndex].maneuver.instruction);
+      // Check distance to next step
+      const nextStep = navSteps[navStepIndex];
+      if (!nextStep) return;
+      const [stepLon, stepLat] = nextStep.maneuver.location || [0, 0];
+      const dist = getDistanceMeters(latitude, longitude, stepLat, stepLon);
+      if (dist < 30) { // close enough to next step
+        navStepIndex++;
+        if (navStepIndex < navSteps.length) {
+          updateNavStep();
+        } else {
+          speak("You have arrived at your destination.");
+          stopNavigation();
+        }
+      }
+    }, err => {
+      console.warn('Geolocation error', err);
+    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 });
+  } else {
+    alert("Geolocation is not supported by your browser.");
   }
 }
 
-// Stop navigation
 function stopNavigation() {
   isNavigating = false;
   startNavBtn.style.display = 'inline-block';
   stopNavBtn.style.display = 'none';
-  if (watchId !== null) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-  }
   if (voiceUtterance) {
     window.speechSynthesis.cancel();
     voiceUtterance = null;
   }
-  navStepIndex = 0;
-  renderNavSteps();
-}
-
-// Handle position updates during nav
-function onPositionUpdate(position) {
-  if (!isNavigating) return;
-
-  const { latitude, longitude } = position.coords;
-
-  // Follow user location on map
-  map.flyTo({ center: [longitude, latitude], zoom: 16, speed: 0.8, curve: 1 });
-
-  // Check distance to next step maneuver
-  const step = navSteps[navStepIndex];
-  if (!step) return;
-
-  const maneuverLoc = step.maneuver.location; // [lon, lat]
-  const distToStep = getDistanceMeters(latitude, longitude, maneuverLoc[1], maneuverLoc[0]);
-
-  if (distToStep < 20) { // 20 meters threshold to move to next step
-    navStepIndex++;
-    if (navStepIndex < navSteps.length) {
-      speak(navSteps[navStepIndex].maneuver.instruction);
-      renderNavSteps();
-    } else {
-      speak("You have arrived at your destination.");
-      alert("Navigation complete!");
-      stopNavigation();
-    }
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
   }
 }
 
-function onPositionError(err) {
-  console.warn("Geolocation error:", err);
+// Clear route handler
+clearRouteBtn.addEventListener('click', () => {
+  clearRoute();
+  stopNavigation();
+  navigationUIDiv.style.display = 'none';
+  directionsInputsDiv.style.display = 'block';
+  routeInfoDiv.textContent = '';
+});
+
+// Get route from OSRM
+async function fetchRoute(originLon, originLat, destLon, destLat) {
+  const url = `https://router.project-osrm.org/route/v1/driving/${originLon},${originLat};${destLon},${destLat}?overview=full&geometries=geojson&steps=true`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Routing failed");
+    const json = await res.json();
+    if (json.code !== 'Ok' || !json.routes.length) {
+      alert("No route found.");
+      return null;
+    }
+    return json.routes[0];
+  } catch (e) {
+    console.error(e);
+    alert("Failed to get route.");
+    return null;
+  }
 }
 
-// Haversine distance helper (meters)
-function getDistanceMeters(lat1, lon1, lat2, lon2) {
-  function toRad(x) { return x * Math.PI / 180; }
-  const R = 6371e3; // Earth radius in meters
-  const φ1 = toRad(lat1);
-  const φ2 = toRad(lat2);
-  const Δφ = toRad(lat2 - lat1);
-  const Δλ = toRad(lon2 - lon1);
+getRouteBtn.addEventListener('click', async () => {
+  const originLon = parseFloat(originInput.dataset.lon);
+  const originLat = parseFloat(originInput.dataset.lat);
+  const destLon = parseFloat(destinationInput.dataset.lon);
+  const destLat = parseFloat(destinationInput.dataset.lat);
 
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  if (
+    isNaN(originLon) || isNaN(originLat) ||
+    isNaN(destLon) || isNaN(destLat)
+  ) {
+    alert("Please select valid origin and destination from suggestions.");
+    return;
+  }
 
-  return R * c;
-}
+  const route = await fetchRoute(originLon, originLat, destLon, destLat);
+  if (!route) return;
 
-// Navigation panel button listeners
-startNavBtn.addEventListener('click', startNavigation);
+  currentRoute = route;
+  navSteps = route.legs[0].steps;
+  navStepIndex = 0;
+
+  const routeGeoJSON = {
+    type: 'Feature',
+    geometry: route.geometry
+  };
+  drawRoute(routeGeoJSON);
+
+  // Show route info
+  routeInfoDiv.textContent = `Distance: ${(route.distance/1000).toFixed(2)} km, Duration: ${(route.duration/60).toFixed(0)} min`;
+
+  // Swap UI to navigation mode UI
+  directionsInputsDiv.style.display = 'none';
+  navigationUIDiv.style.display = 'block';
+
+  startNavBtn.style.display = 'inline-block';
+  stopNavBtn.style.display = 'none';
+
+  // Fly to origin
+  map.flyTo({ center: [originLon, originLat], zoom: 14 });
+});
+
+// Navigation buttons handlers
+startNavBtn.addEventListener('click', () => {
+  startNavigation();
+});
+
 stopNavBtn.addEventListener('click', () => {
   stopNavigation();
-  alert("Navigation stopped.");
+  navigationUIDiv.style.display = 'none';
+  directionsInputsDiv.style.display = 'block';
+  routeInfoDiv.textContent = '';
+  clearRoute();
 });
 
-// ========== INITIAL CENTERING ========= //
-geolocateControl.on('geolocate', (e) => {
-  const { latitude, longitude } = e.coords;
-  map.flyTo({ center: [longitude, latitude], zoom: 14 });
-});
-
-// Optional: Automatically zoom when map loads to last known location
-if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    map.setCenter([longitude, latitude]);
-    map.setZoom(14);
-  });
+// Search input debounce and setup
+function setupSearch(inputEl, suggestionsEl) {
+  inputEl.addEventListener('input', debounce(async () => {
+    const query = inputEl.value.trim();
+    if (!query) {
+      clearSuggestions(suggestionsEl);
+      return;
+    }
+    const results = await photonSearch(query);
+    renderSuggestions(suggestionsEl, results, inputEl);
+  }, 300));
 }
+
