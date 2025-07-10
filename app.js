@@ -1,5 +1,5 @@
 // Initialize MapLibre map
-const map = new maplibregl.Map({
+const map = new maplibre.gl.Map({
     container: 'map', // Container id
     style: 'https://tiles.openfreemap.org/styles/liberty', // Default regular style
     center: [0, 0], // Center coordinates
@@ -91,42 +91,97 @@ directionsToggleBtn.addEventListener('click', () => {
 // Close directions panel via close button
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
 
-// Handle search functionality
+// Photon search setup for suggestions
+const photonUrl = "https://photon.komoot.io/api/?q=";
+
+async function photonSearch(query) {
+    if (!query) return [];
+    try {
+        const res = await fetch(`${photonUrl}${encodeURIComponent(query)}&limit=5`);
+        if (!res.ok) throw new Error("Photon request failed");
+        const data = await res.json();
+        return data.features || [];
+    } catch (e) {
+        console.error(e);
+        return [];
+    }
+}
+
+// Helper function to render suggestions
+function clearSuggestions(container) {
+    container.innerHTML = '';
+}
+
+function renderSuggestions(container, results, inputEl) {
+    clearSuggestions(container);
+    if (!results.length) return;
+    results.forEach(feature => {
+        const div = document.createElement('div');
+        div.className = 'suggestion';
+        div.textContent = feature.properties.name +
+            (feature.properties.state ? ', ' + feature.properties.state : '') +
+            (feature.properties.country ? ', ' + feature.properties.country : '');
+        div.tabIndex = 0;
+        div.dataset.lon = feature.geometry.coordinates[0];
+        div.dataset.lat = feature.geometry.coordinates[1];
+        div.addEventListener('click', () => {
+            inputEl.value = div.textContent;
+            inputEl.dataset.lon = div.dataset.lon;
+            inputEl.dataset.lat = div.dataset.lat;
+            clearSuggestions(container);
+            if (inputEl.id === 'search') {
+                map.flyTo({ center: [parseFloat(div.dataset.lon), parseFloat(div.dataset.lat)], zoom: 14 });
+            }
+            // After selecting, check if both fields have values to show the route button
+            if(originInput.dataset.lon && destinationInput.dataset.lon) {
+                routeActions.style.display = 'block';
+            }
+        });
+        div.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                div.click();
+                inputEl.focus();
+            }
+        });
+        container.appendChild(div);
+    });
+}
+
+// Debounce for search input to limit API calls
+const debounce = (fn, delay) => {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), delay);
+    };
+};
+
+// Setup search input for suggestions
+function setupSearch(inputEl, suggestionsEl) {
+    inputEl.addEventListener('input', debounce(async () => {
+        const query = inputEl.value.trim();
+        if (!query) {
+            clearSuggestions(suggestionsEl);
+            return;
+        }
+        const results = await photonSearch(query);
+        renderSuggestions(suggestionsEl, results, inputEl);
+    }, 300));
+}
+
+// Elements for search bars
 const searchInput = document.getElementById('search');
-const suggestionsDiv = document.getElementById('suggestions');
-const searchIcon = document.getElementById('search-icon');
+const searchSuggestions = document.getElementById('suggestions');
+const originInput = document.getElementById('origin');
+const originSuggestions = document.getElementById('origin-suggestions');
+const destinationInput = document.getElementById('destination');
+const destinationSuggestions = document.getElementById('destination-suggestions');
 
-searchInput.addEventListener('input', function() {
-    const query = searchInput.value;
-
-    if (query) {
-        // Implement search API (e.g., Nominatim, Photon) here for suggestions
-        fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json`)
-            .then(response => response.json())
-            .then(data => {
-                suggestionsDiv.innerHTML = data.map(place => 
-                    `<div class="suggestion" data-lat="${place.lat}" data-lon="${place.lon}">${place.display_name}</div>`
-                ).join('');
-                suggestionsDiv.style.display = 'block';
-            });
-    } else {
-        suggestionsDiv.innerHTML = '';
-        suggestionsDiv.style.display = 'none';
-    }
-});
-
-// Handle suggestion click
-suggestionsDiv.addEventListener('click', function(event) {
-    const suggestion = event.target;
-    if (suggestion.classList.contains('suggestion')) {
-        const lat = suggestion.dataset.lat;
-        const lon = suggestion.dataset.lon;
-        map.flyTo({ center: [lon, lat], zoom: 14 });
-        searchInput.value = suggestion.textContent;
-        suggestionsDiv.innerHTML = '';
-        suggestionsDiv.style.display = 'none';
-    }
-});
+// Initialize search for all input fields
+setupSearch(searchInput, searchSuggestions);
+setupSearch(originInput, originSuggestions);
+setupSearch(destinationInput, destinationSuggestions);
 
 // Handle location button
 const locationBtn = document.getElementById('location-btn');
@@ -138,8 +193,6 @@ locationBtn.addEventListener('click', function() {
 });
 
 // Directions form
-const originInput = document.getElementById('origin');
-const destinationInput = document.getElementById('destination');
 const swapLocationsBtn = document.getElementById('swap-locations');
 const getRouteBtn = document.getElementById('get-route');
 const clearRouteBtn = document.getElementById('clear-route');
@@ -153,11 +206,18 @@ swapLocationsBtn.addEventListener('click', () => {
 
 // Get route
 getRouteBtn.addEventListener('click', () => {
-    const origin = originInput.value;
-    const destination = destinationInput.value;
+    const originLon = parseFloat(originInput.dataset.lon);
+    const originLat = parseFloat(originInput.dataset.lat);
+    const destLon = parseFloat(destinationInput.dataset.lon);
+    const destLat = parseFloat(destinationInput.dataset.lat);
+
+    if (isNaN(originLon) || isNaN(originLat) || isNaN(destLon) || isNaN(destLat)) {
+        alert("Please select valid origin and destination from suggestions.");
+        return;
+    }
 
     // Call routing API (e.g., OpenRouteService or OSRM)
-    fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=YOUR_API_KEY&start=${origin}&end=${destination}`)
+    fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=YOUR_API_KEY&start=${originLon},${originLat}&end=${destLon},${destLat}`)
         .then(response => response.json())
         .then(data => {
             const route = data.features[0].geometry.coordinates;
