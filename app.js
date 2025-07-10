@@ -94,25 +94,42 @@ getRoute.addEventListener('click', async () => {
 
 async function loadPlaceInfo(name, lat, lon) {
   placeName.textContent = name;
+
+  // Fetch an image for the place
   try {
-    const wiki = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
-    const w = await wiki.json();
-    placeDescription.textContent = w.extract || 'No description.';
-  } catch {
-    placeDescription.textContent = 'Description unavailable.';
+    const imageRes = await fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(name)}&client_id=YOUR_UNSPLASH_API_KEY`);
+    const imageData = await imageRes.json();
+    const imageUrl = imageData[0]?.urls?.regular;
+    if (imageUrl) {
+      const img = document.getElementById('place-image');
+      img.src = imageUrl;
+    }
+  } catch (error) {
+    console.log('No image found for this place.');
   }
 
+  // Fetch weather info
   try {
     const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
     const data = await weather.json();
     const w = data.current_weather;
-    placeWeather.textContent = `Weather: ${w.temperature}°C, wind ${w.windspeed} km/h`;
+    placeWeather.textContent = `${w.weathercode == 1 ? 'Clear' : w.weathercode == 2 ? 'Cloudy' : 'Rainy'} - ${w.temperature}°F`;
   } catch {
     placeWeather.textContent = 'Weather unavailable.';
   }
 
+  // Fetch place description (Wikipedia)
+  try {
+    const wiki = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
+    const w = await wiki.json();
+    placeDescription.textContent = w.extract || 'No description available.';
+  } catch {
+    placeDescription.textContent = 'Description unavailable.';
+  }
+
   showPanel();
 }
+
 function debounce(fn, delay) {
   let t; return (...args) => {
     clearTimeout(t); t = setTimeout(() => fn(...args), delay);
