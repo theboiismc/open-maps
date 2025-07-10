@@ -12,7 +12,7 @@
     }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
     
-    /* Search Bar */
+    /* Search Bar (Initially) */
     .search-bar {
       position: absolute;
       top: 20px;
@@ -107,38 +107,8 @@
       font-style: italic;
     }
 
-    /* Divider for Weather and Directions */
+    /* Divider for Weather and Quick Facts */
     #weather-directions-divider {
-      margin: 12px 0;
-      border: 0;
-      border-top: 1px solid #ddd;
-    }
-
-    /* Directions Button */
-    #directions-btn-container {
-      text-align: center;
-      margin-top: 12px;
-    }
-    #directions-btn {
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      background-color: #6750a4;
-      color: white;
-      border: none;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    #directions-btn:hover {
-      background-color: #5c6bc0;
-    }
-
-    /* Divider for Directions and Quick Facts */
-    #directions-quickfacts-divider {
       margin: 12px 0;
       border: 0;
       border-top: 1px solid #ddd;
@@ -173,6 +143,7 @@
     #directions-panel.open {
       transform: translateX(0);
     }
+
   </style>
 </head>
 <body>
@@ -187,6 +158,13 @@
 
   <div id="side-panel">
     <button id="close-side-panel">×</button>
+
+    <!-- The search bar now moves into the info panel when a place is clicked -->
+    <div class="search-bar">
+      <input id="search" placeholder="Search a place..." autocomplete="off" />
+      <button id="search-icon">🔍</button>
+      <button id="directions-icon">➡️</button>
+    </div>
 
     <div id="place-image-container">
       <img id="place-image" src="default.jpg" alt="Place Image">
