@@ -1,7 +1,7 @@
 // Initialize MapLibre map with OSM Liberty style
 const map = new maplibregl.Map({
   container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/liberty/style.json',
+  style: 'https://tiles.openfreemap.org/styles/liberty,
   center: [-95.7129, 37.0902], // USA center as default
   zoom: 4,
   pitch: 0,
