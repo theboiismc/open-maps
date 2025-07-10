@@ -1,7 +1,7 @@
 // Initialize MapLibre map
 const map = new maplibregl.Map({
     container: 'map',
-    style: 'https://tiles.openfreemap.org/styles/liberty', // Default style
+    style: 'https://tiles.openfreemap.org/styles/liberty',
     center: [0, 0],
     zoom: 2,
     pitch: 0,
@@ -29,7 +29,7 @@ const geolocateControl = new maplibregl.GeolocateControl({
 map.addControl(geolocateControl, 'bottom-right');
 
 // Elements
-const directionsToggleBtn = document.getElementById('directions-toggle');
+const directionsIcon = document.getElementById('directions-icon');
 const directionsForm = document.getElementById('directions-form');
 const closeDirectionsBtn = document.getElementById('close-directions');
 const routeInfoDiv = document.getElementById('route-info');
@@ -85,7 +85,7 @@ const addSatelliteLayer = () => {
 const switchToSatellite = () => {
     map.setLayoutProperty('sat-layer', 'visibility', 'visible');
     isSatellite = true;
-    styleIcon.src = 'satelite_style.png'; // Ensure your satellite icon path is correct
+    styleIcon.src = 'satelite_style.png';
     styleLabel.textContent = 'Satellite';
     styleToggle.setAttribute('aria-pressed', 'true');
 };
@@ -93,7 +93,7 @@ const switchToSatellite = () => {
 const switchToRegular = () => {
     map.setLayoutProperty('sat-layer', 'visibility', 'none');
     isSatellite = false;
-    styleIcon.src = 'default_style.png'; // Ensure your regular icon path is correct
+    styleIcon.src = 'default_style.png';
     styleLabel.textContent = 'Regular';
     styleToggle.setAttribute('aria-pressed', 'false');
 };
@@ -104,36 +104,27 @@ map.on('load', () => {
 });
 
 styleToggle.addEventListener('click', () => {
-    if (isSatellite) {
-        switchToRegular();
-    } else {
-        switchToSatellite();
-    }
+    if (isSatellite) switchToRegular();
+    else switchToSatellite();
 });
 
 // Directions panel toggle
 function openDirectionsPanel() {
     directionsForm.classList.add('open');
     document.querySelector('.search-bar').style.display = 'none';
-    directionsToggleBtn.setAttribute('aria-pressed', 'true');
     styleToggle.style.left = '370px'; // Adjust position based on new panel width
 }
 
 function closeDirectionsPanel() {
     directionsForm.classList.remove('open');
     document.querySelector('.search-bar').style.display = 'block';
-    directionsToggleBtn.setAttribute('aria-pressed', 'false');
     styleToggle.style.left = '20px';
-
-    if (isNavigating) stopNavigation();
-    navigationUIDiv.style.display = 'none';
     directionsInputsDiv.style.display = 'flex';
     routeInfoDiv.textContent = '';
 }
 
-directionsToggleBtn.addEventListener('click', () => {
-    if (directionsForm.classList.contains('open')) closeDirectionsPanel();
-    else openDirectionsPanel();
+directionsIcon.addEventListener('click', () => {
+    openDirectionsPanel();
 });
 
 closeDirectionsBtn.addEventListener('click', closeDirectionsPanel);
@@ -142,30 +133,6 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && directionsForm.classList.contains('open')) {
         closeDirectionsPanel();
     }
-});
-
-// Swipe to dismiss on mobile
-let startX = 0, currentX = 0, isSwiping = false;
-directionsForm.addEventListener('touchstart', e => {
-    if (e.touches.length !== 1) return;
-    startX = e.touches[0].clientX;
-    isSwiping = true;
-});
-directionsForm.addEventListener('touchmove', e => {
-    if (!isSwiping) return;
-    currentX = e.touches[0].clientX;
-    const deltaX = currentX - startX;
-    if (deltaX < 0) directionsForm.style.transform = `translateX(${deltaX}px)`;
-});
-directionsForm.addEventListener('touchend', () => {
-    const deltaX = currentX - startX;
-    if (isSwiping && deltaX < -100) {
-        closeDirectionsPanel();
-    }
-    directionsForm.style.transform = '';
-    isSwiping = false;
-    startX = 0;
-    currentX = 0;
 });
 
 // Photon search setup
