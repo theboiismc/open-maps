@@ -18,12 +18,12 @@
       position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 0;
     }
 
-    /* Search bar - slightly smaller and icon moved to the farthest right */
+    /* Search bar - same width */
     .search-bar {
       position: absolute;
       top: 20px;
       left: 20px;
-      width: 280px; /* Reduced width for a smaller bar */
+      width: 280px;
       background: #fff;
       border-radius: 24px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -35,20 +35,22 @@
       width: 100%;
     }
 
-    .search-wrapper input {
-      font-size: 16px;
+    /* Search input smaller inside container */
+    #search {
+      width: 260px; /* smaller than container */
       padding: 10px 16px;
       padding-right: 44px;
-      width: 100%;
       border: none;
       border-radius: 20px;
       background: #e7e0ec;
       color: #1c1b1f;
+      font-size: 16px;
+      box-sizing: border-box;
     }
 
     #search-icon {
       position: absolute;
-      right: 12px; /* Move to the farthest right */
+      right: 12px;
       top: 50%;
       transform: translateY(-50%);
       background: none;
@@ -186,8 +188,8 @@
     /* Directions toggle button - moved to the left */
     #directions-toggle {
       position: fixed;
-      bottom: 70px; /* Adjusted for better placement */
-      left: 20px; /* Moved to the left */
+      bottom: 70px;
+      left: 20px;
       background-color: #6750a4;
       color: white;
       border: none;
