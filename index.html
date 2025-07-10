@@ -107,6 +107,13 @@
       font-style: italic;
     }
 
+    /* Divider for Weather and Directions */
+    #weather-directions-divider {
+      margin: 12px 0;
+      border: 0;
+      border-top: 1px solid #ddd;
+    }
+
     /* Directions Button */
     #directions-btn-container {
       text-align: center;
@@ -130,6 +137,13 @@
       background-color: #5c6bc0;
     }
 
+    /* Divider for Directions and Quick Facts */
+    #directions-quickfacts-divider {
+      margin: 12px 0;
+      border: 0;
+      border-top: 1px solid #ddd;
+    }
+
     /* Quick Facts */
     #quick-facts {
       margin-top: 12px;
@@ -138,13 +152,6 @@
     #quick-facts h3 {
       font-size: 18px;
       font-weight: bold;
-    }
-
-    /* Divider */
-    hr {
-      margin: 12px 0;
-      border: 0;
-      border-top: 1px solid #ddd;
     }
   </style>
 </head>
@@ -170,11 +177,15 @@
       <span id="place-weather"></span>
     </div>
 
+    <div id="weather-directions-divider"></div> <!-- Line between Weather and Directions -->
+
     <div id="directions-btn-container">
       <button id="directions-btn">
         <span>Directions</span>
       </button>
     </div>
+
+    <div id="directions-quickfacts-divider"></div> <!-- Line between Directions and Quick Facts -->
 
     <div id="quick-facts">
       <h3>Quick Facts</h3>
