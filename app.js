@@ -95,7 +95,7 @@ getRoute.addEventListener('click', async () => {
 async function loadPlaceInfo(name, lat, lon) {
   placeName.textContent = name;
 
-  // Fetch an image for the place
+  // Fetch an image for the place (Unsplash API)
   try {
     const imageRes = await fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(name)}&client_id=YOUR_UNSPLASH_API_KEY`);
     const imageData = await imageRes.json();
@@ -103,9 +103,11 @@ async function loadPlaceInfo(name, lat, lon) {
     if (imageUrl) {
       const img = document.getElementById('place-image');
       img.src = imageUrl;
+    } else {
+      console.log('No image found for this place.');
     }
   } catch (error) {
-    console.log('No image found for this place.');
+    console.log('Error fetching image:', error);
   }
 
   // Fetch weather info
@@ -113,7 +115,8 @@ async function loadPlaceInfo(name, lat, lon) {
     const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
     const data = await weather.json();
     const w = data.current_weather;
-    placeWeather.textContent = `${w.weathercode == 1 ? 'Clear' : w.weathercode == 2 ? 'Cloudy' : 'Rainy'} - ${w.temperature}°F`;
+    const weatherCondition = w.weathercode === 1 ? 'Clear' : w.weathercode === 2 ? 'Cloudy' : 'Rainy';
+    placeWeather.textContent = `${weatherCondition} - ${w.temperature}°F`;
   } catch {
     placeWeather.textContent = 'Weather unavailable.';
   }
