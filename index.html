@@ -1,340 +1,279 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TheBoiisMC Map</title>
-    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TheBoiIsMC Map</title>
 
-        html, body {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            font-family: 'Roboto', sans-serif;
-            background: #f2f2f2; color: #202124;
-            overflow-x: hidden; /* prevent horizontal scroll */
-        }
+<!-- MapLibre GL CSS -->
+<link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
 
-        #map {
-            position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 0;
-        }
+<style>
+  body, html {
+    margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #121212; color: #e0e0e0;
+  }
+  #map {
+    position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+  }
 
-        .search-bar {
-            position: absolute;
-            top: 20px; left: 20px;
-            width: 320px;
-            background: #fff;
-            border-radius: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            z-index: 10001;
-        }
+  #directions-icon {
+    position: absolute;
+    top: 20px; left: 20px;
+    width: 36px; height: 36px;
+    background: #6750a4;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: background-color 0.3s;
+  }
+  #directions-icon:hover {
+    background: #836fff;
+  }
+  #directions-icon svg {
+    fill: #fff;
+    width: 22px;
+    height: 22px;
+  }
 
-        .search-wrapper {
-            position: relative;
-            width: 100%;
-        }
+  #directions-form {
+    position: absolute;
+    top: 0; left: 0;
+    width: 350px;
+    height: 100%;
+    background: #1e1e1e;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.7);
+    transform: translateX(-100%);
+    transition: transform 0.35s ease;
+    display: flex;
+    flex-direction: column;
+    z-index: 15;
+  }
+  #directions-form.open {
+    transform: translateX(0);
+  }
 
-        .search-wrapper input {
-            font-size: 16px;
-            padding: 10px 16px;
-            padding-right: 44px;
-            width: 280px;
-            border: none;
-            border-radius: 20px;
-            background: #e7e0ec;
-            color: #1c1b1f;
-        }
+  #close-directions {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 24px;
+    padding: 15px 20px;
+    cursor: pointer;
+    align-self: flex-end;
+  }
+  #close-directions:hover {
+    color: #fff;
+  }
 
-        #search-icon {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: #333;
-        }
+  #directions-inputs {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 12px;
+    flex-grow: 1;
+  }
 
-        #directions-icon {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: #333;
-        }
+  input[type="text"] {
+    background: #2c2c2c;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #eee;
+    font-size: 14px;
+    outline-offset: 2px;
+    outline-color: #6750a4;
+  }
+  input[type="text"]::placeholder {
+    color: #aaa;
+  }
 
-        #suggestions {
-            max-height: 240px;
-            overflow-y: auto;
-        }
+  .suggestions {
+    position: relative;
+  }
+  .suggestion {
+    background: #3a3a3a;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 0 0 6px 6px;
+  }
+  .suggestion:hover, .suggestion:focus {
+    background: #6750a4;
+    outline: none;
+  }
 
-        .suggestion {
-            padding: 8px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
+  #route-actions {
+    display: none;
+    padding: 0 20px 20px 20px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  #route-actions button {
+    background: #6750a4;
+    border: none;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  #route-actions button:hover {
+    background: #836fff;
+  }
 
-        .suggestion:hover, .suggestion:focus {
-            background-color: #d6cfff;
-            outline: none;
-        }
+  #route-info {
+    padding: 10px 20px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #ccc;
+  }
 
-        /* Directions / Navigation panel */
-        #directions-form {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 350px;
-            background: #fff;
-            box-shadow: 2px 0 12px rgba(0,0,0,0.15);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            z-index: 10002;
+  #navigation-ui {
+    display: none;
+    flex-direction: column;
+    padding: 15px 20px;
+    border-top: 1px solid #444;
+    background: #292929;
+  }
+  #navigation-steps {
+    max-height: 180px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+  }
+  .nav-step {
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #bbb;
+    margin-bottom: 6px;
+  }
+  .nav-step.current-step {
+    background: #6750a4;
+    color: #fff;
+    font-weight: 700;
+  }
+  #navigation-ui button {
+    background: #6750a4;
+    border: none;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  #navigation-ui button:hover {
+    background: #836fff;
+  }
+  #stop-navigation {
+    display: none;
+  }
 
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-        }
+  #style-toggle {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: #292929;
+    border-radius: 10px;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    z-index: 12;
+    width: 110px;
+    box-shadow: 0 0 10px rgba(103, 80, 164, 0.8);
+    transition: left 0.35s ease;
+  }
+  #style-toggle:focus {
+    outline: 2px solid #6750a4;
+    outline-offset: 2px;
+  }
+  #style-toggle img {
+    width: 24px;
+    height: 24px;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.7));
+  }
+  #style-label {
+    color: #ccc;
+    font-weight: 600;
+    font-size: 14px;
+  }
 
-        #directions-form.open {
-            transform: translateX(0);
-        }
-
-        .directions-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        #close-directions {
-            font-size: 24px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #333;
-            padding: 0;
-        }
-
-        .travel-modes {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            background-color: #f2f2f2;
-            border-radius: 20px;
-            padding: 4px;
-        }
-
-        .travel-mode {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 8px 12px;
-            border-radius: 16px;
-            transition: background-color 0.2s;
-        }
-
-        .travel-mode.active {
-            background-color: #e0e0e0;
-        }
-
-        #directions-inputs {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .input-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #f2f2f2;
-            border-radius: 8px;
-            padding: 0 12px;
-        }
-
-        .input-row .input-icon {
-            font-size: 18px;
-            color: #5f6368;
-        }
-
-        #directions-form input {
-            width: 100%;
-            padding: 12px 0;
-            font-size: 16px;
-            border: none;
-            background: transparent;
-            outline: none;
-        }
-
-        #swap-locations {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: #5f6368;
-        }
-
-        /* Keep old buttons for functionality, but hide them initially */
-        #get-route, #clear-route {
-             background-color: #6750a4;
-             color: white;
-             padding: 12px 20px;
-             border-radius: 20px;
-             border: none;
-             cursor: pointer;
-             font-weight: 500;
-             margin-top: 8px;
-        }
-        #clear-route { background-color: #b3261e; }
-        #clear-route:hover { background-color: #9b1d14; }
-        #get-route:hover { background-color: #4a3d87; }
-
-        #route-info {
-            margin-top: 8px;
-            font-weight: 500;
-        }
-
-        /* Style toggle button - bottom left */
-        #style-toggle {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            width: 72px;
-            height: 72px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            color: #333;
-            z-index: 10000;
-            user-select: none;
-            transition: left 0.3s ease-in-out;
-        }
-
-        #style-toggle img {
-            width: 40px;
-            height: 40px;
-            margin-bottom: 4px;
-            object-fit: contain;
-        }
-
-        /* Directions toggle button - bottom right */
-        #directions-toggle {
-            position: fixed;
-            bottom: 140px;
-            right: 20px;
-            background-color: #6750a4;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 12px 20px;
-            cursor: pointer;
-            font-weight: 600;
-            z-index: 10001;
-            user-select: none;
-        }
-
-        /* Nav steps UI inside directions panel */
-        #navigation-ui {
-            margin-top: 12px;
-        }
-
-        #navigation-steps {
-            font-size: 14px;
-            color: #202124;
-            max-height: 220px;
-            overflow-y: auto;
-            margin-bottom: 8px;
-        }
-
-        .nav-step {
-            padding: 6px 8px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .nav-step.current-step {
-            background-color: #d6cfff;
-            font-weight: 600;
-        }
-    </style>
+  .search-bar {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    z-index: 11;
+  }
+  #search {
+    background: #2c2c2c;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #eee;
+    font-size: 14px;
+    outline-offset: 2px;
+    outline-color: #6750a4;
+  }
+  #search::placeholder {
+    color: #aaa;
+  }
+</style>
 </head>
 <body>
-    <div id="map"></div>
 
-    <div class="search-bar" role="search" aria-label="Main search">
-        <div class="search-wrapper">
-            <input id="search" type="text" placeholder="Search city, state, place..." autocomplete="off" spellcheck="false" aria-label="Search for destination" />
-            <button id="search-icon" aria-label="Search"><span>🔍</span></button>
-            <button id="directions-icon" aria-label="Directions" title="Directions">➡️</button>
-        </div>
-        <div id="suggestions" role="listbox" tabindex="-1"></div>
+<div id="map"></div>
+
+<div class="search-bar">
+  <input type="text" id="search" placeholder="Search location..." autocomplete="off" />
+  <div id="suggestions" class="suggestions"></div>
+</div>
+
+<div id="directions-icon" title="Open Directions Panel" role="button" tabindex="0" aria-label="Open directions panel">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L3 7v8c0 4 3 7 7 7h4c4 0 7-3 7-7V7l-9-5zM7 15l5-5 5 5H7z"></path></svg>
+</div>
+
+<div id="directions-form" aria-label="Directions Panel" role="region" aria-hidden="true">
+  <button id="close-directions" aria-label="Close directions panel">&times;</button>
+
+  <div id="directions-inputs">
+    <div class="suggestions">
+      <input type="text" id="origin" placeholder="Start point" autocomplete="off" aria-autocomplete="list" aria-haspopup="true" />
+      <div id="origin-suggestions" class="suggestions"></div>
     </div>
-
-    <div id="directions-form" aria-label="Directions form" role="region">
-        <div class="directions-header">
-            <button id="close-directions" aria-label="Close directions panel">☰</button>
-            <div class="travel-modes">
-                <button class="travel-mode active" aria-label="Driving">🚗</button>
-                <button class="travel-mode" aria-label="Transit">🚌</button>
-                <button class="travel-mode" aria-label="Walking">🚶</button>
-                <button class="travel-mode" aria-label="Biking">🚲</button>
-                <button class="travel-mode" aria-label="Flying">✈️</button>
-            </div>
-        </div>
-
-        <div id="directions-inputs">
-            <div class="input-row">
-                <span class="input-icon">○</span>
-                <input id="origin" type="text" placeholder="Choose starting point, or click on the map" aria-label="Origin" autocomplete="off" spellcheck="false" />
-            </div>
-            <div id="origin-suggestions" role="listbox" tabindex="-1"></div>
-
-            <div class="input-row">
-                <span class="input-icon">📍</span>
-                <input id="destination" type="text" placeholder="Choose destination..." aria-label="Destination" autocomplete="off" spellcheck="false" />
-            </div>
-            <div id="destination-suggestions" role="listbox" tabindex="-1"></div>
-            <button id="swap-locations" aria-label="Swap origin and destination">↕️</button>
-        </div>
-        
-        <div id="route-actions">
-            <button id="get-route">Get Directions</button>
-            <button id="clear-route">Clear</button>
-            <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
-        </div>
-
-        <div id="navigation-ui" style="display:none;">
-            <div id="navigation-steps"></div>
-            <button id="start-navigation">Start Navigation</button>
-            <button id="stop-navigation" style="display:none; background:#b3261e;">Stop Navigation</button>
-        </div>
+    <div class="suggestions">
+      <input type="text" id="destination" placeholder="Destination" autocomplete="off" aria-autocomplete="list" aria-haspopup="true" />
+      <div id="destination-suggestions" class="suggestions"></div>
     </div>
+  </div>
 
-    <div id="style-toggle" aria-label="Toggle map style" role="button" tabindex="0" aria-pressed="false">
-        <img id="style-icon" src="default_style.png" alt="Map style icon" />
-        <span id="style-label">Regular</span>
-    </div>
+  <div id="route-actions">
+    <button id="get-route">Get Directions</button>
+    <button id="clear-route">Clear</button>
+    <div id="route-info" role="region" aria-live="polite" aria-atomic="true"></div>
+  </div>
 
-    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-    <script src="app.js"></script>
+  <div id="navigation-ui">
+    <div id="navigation-steps"></div>
+    <button id="start-navigation">Start Navigation</button>
+    <button id="stop-navigation">Stop Navigation</button>
+  </div>
+</div>
+
+<div id="style-toggle" aria-label="Toggle map style" role="button" tabindex="0" aria-pressed="false">
+  <img id="style-icon" src="default_style.png" alt="Map style icon" />
+  <span id="style-label">Regular</span>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
