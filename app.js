@@ -181,5 +181,5 @@ function moveSearchBarToInfoPanel() {
   `;
   const sidePanelContent = document.getElementById('side-panel');
   sidePanelContent.insertBefore(searchContainer, sidePanelContent.firstChild);
-  search.style.display = 'none'; // Hide the search bar in the main view
+  search.style.display = 'none'; // Hide the original search bar in the main view
 }
