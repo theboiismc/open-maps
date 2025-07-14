@@ -21,6 +21,7 @@
       top: 0;
       bottom: 0;
       width: 100%;
+      height: 100%; /* Ensure the map container fills the screen */
     }
 
     /* Info Panel (mobile slide-up from bottom) */
@@ -29,7 +30,7 @@
       bottom: -33%;  /* Start hidden off-screen */
       left: 0;
       right: 0;
-      height: 33%;  /* Start at one-third of the screen height */
+      height: 33%;  /* Mobile panel slides up a third of the screen */
       background: white;
       box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
       padding: 20px;
@@ -44,7 +45,7 @@
     }
 
     #side-panel.open {
-      bottom: 0; /* Slide up on mobile */
+      bottom: 0; /* Slide up to show the panel on mobile */
     }
 
     /* Info Panel (desktop slide-in from left) */
@@ -178,7 +179,7 @@
     /* Mobile-specific adjustments */
     @media (max-width: 768px) {
       #side-panel {
-        height: 33%; /* Mobile panel at one-third height */
+        height: 33%;  /* Mobile panel at one-third height */
         bottom: -33%; /* Initially off-screen */
         border-radius: 30px 30px 0 0;
       }
@@ -196,23 +197,4 @@
       }
 
       #place-description {
-        font-size: 14px;
-      }
-
-      #place-weather {
-        font-size: 12px;
-      }
-
-      .search-bar {
-        width: 90%;
-        top: 15px;
-      }
-
-      #suggestions {
-        width: 90%;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div id="map"></
+       
