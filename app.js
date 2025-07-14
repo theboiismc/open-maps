@@ -35,11 +35,10 @@ closeSidePanel.addEventListener('click', closePanel);
 search.addEventListener('input', debounce(async () => {
   const query = search.value.trim();
   if (!query) return suggestions.innerHTML = '';
-
   const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
   const json = await res.json();
   suggestions.innerHTML = '';
-  
+
   json.features.forEach(f => {
     const div = document.createElement('div');
     div.className = 'suggestion';
