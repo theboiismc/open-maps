@@ -5,6 +5,11 @@ const map = new maplibregl.Map({
   zoom: 4
 });
 
+// Ensure the map is initialized correctly
+map.on('load', () => {
+  console.log('Map loaded');
+});
+
 map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), 'bottom-right');
 
