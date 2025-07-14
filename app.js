@@ -5,11 +5,6 @@ const map = new maplibregl.Map({
   zoom: 4
 });
 
-// Ensure the map is initialized correctly
-map.on('load', () => {
-  console.log('Map loaded');
-});
-
 map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), 'bottom-right');
 
@@ -40,10 +35,11 @@ closeSidePanel.addEventListener('click', closePanel);
 search.addEventListener('input', debounce(async () => {
   const query = search.value.trim();
   if (!query) return suggestions.innerHTML = '';
+
   const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
   const json = await res.json();
   suggestions.innerHTML = '';
-
+  
   json.features.forEach(f => {
     const div = document.createElement('div');
     div.className = 'suggestion';
