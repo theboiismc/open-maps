@@ -23,7 +23,7 @@
       width: 100%;
     }
 
-    /* Info Panel (slide-up from bottom) */
+    /* Info Panel (mobile slide-up from bottom) */
     #side-panel {
       position: fixed;
       bottom: -100%;  /* Start hidden off-screen */
@@ -44,7 +44,31 @@
     }
 
     #side-panel.open {
-      bottom: 0; /* Slide up */
+      bottom: 0; /* Slide up on mobile */
+    }
+
+    /* Info Panel (desktop slide-in from left) */
+    @media (min-width: 769px) {
+      #side-panel {
+        position: fixed;
+        top: 0;
+        left: -100%;  /* Start hidden off-screen on the left */
+        width: 350px;
+        height: 100%;
+        background: white;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+        padding: 20px;
+        transition: left 0.3s ease-out;
+        z-index: 20;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #side-panel.open {
+        left: 0; /* Slide in from the left on desktop */
+      }
     }
 
     /* Close Button */
@@ -198,7 +222,7 @@
   </div>
   <div id="suggestions"></div>
 
-  <!-- Info Panel (sliding from bottom) -->
+  <!-- Info Panel (mobile slide-up from bottom, desktop slide-in from left) -->
   <div id="side-panel">
     <button id="close-side-panel">×</button>
     <h2 id="place-name"></h2>
