@@ -6,13 +6,97 @@
   <title>TheBoiisMC Map</title>
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
+    /* Basic Reset */
     html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
       font-family: sans-serif;
     }
-    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
-    /* Search Bar (Initially) */
+    /* Map container */
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    /* Info Panel (slide-up from bottom) */
+    #side-panel {
+      position: fixed;
+      bottom: -100%;  /* Start hidden off-screen */
+      left: 0;
+      right: 0;
+      height: 60%;
+      background: white;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      transition: bottom 0.3s ease-out;
+      z-index: 20;
+      overflow-y: auto;
+      border-radius: 20px 20px 0 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    #side-panel.open {
+      bottom: 0; /* Slide up */
+    }
+
+    /* Close Button */
+    #close-side-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #333;
+    }
+
+    /* Header in the Info Panel */
+    #place-name {
+      font-size: 20px;
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    /* Place Image */
+    #place-image-container {
+      width: 100%;
+      height: 50%;
+      overflow: hidden;
+    }
+
+    #place-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Description and Weather */
+    #place-description {
+      font-size: 16px;
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    #quick-facts h3 {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #place-weather {
+      font-size: 14px;
+      text-align: center;
+    }
+
+    /* Search Bar */
     .search-bar {
       position: absolute;
       top: 20px;
@@ -24,9 +108,10 @@
       align-items: center;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       z-index: 10;
-      width: 360px;
+      width: 80%;
       padding: 6px 12px;
     }
+
     .search-bar input {
       border: none;
       outline: none;
@@ -34,6 +119,7 @@
       padding: 10px;
       font-size: 16px;
     }
+
     .search-bar button {
       background: none;
       border: none;
@@ -50,116 +136,58 @@
       transform: translateX(-50%);
       background: white;
       border-radius: 8px;
-      width: 360px;
+      width: 80%;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       z-index: 9;
     }
+
     .suggestion {
       padding: 8px 12px;
       cursor: pointer;
       border-bottom: 1px solid #eee;
     }
+
     .suggestion:hover {
       background: #eee;
     }
 
-    /* Panels (Both Info and Directions) */
-    #side-panel, #directions-panel {
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 350px;
-      background: white;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-      transform: translateX(-100%);
-      transition: transform 0.3s ease-out;
-      padding: 24px;
-      z-index: 20;
-      overflow-y: auto;
-    }
+    /* Mobile-specific adjustments */
+    @media (max-width: 768px) {
+      #side-panel {
+        height: 80%;
+        bottom: -100%;  /* Keep hidden off-screen initially */
+        border-radius: 30px 30px 0 0; /* Round corners at the top */
+      }
+      
+      #side-panel.open {
+        bottom: 0;
+      }
+      
+      #place-name {
+        font-size: 18px;
+      }
+      
+      #place-image-container {
+        height: 40%;
+      }
+      
+      #place-description {
+        font-size: 14px;
+      }
+      
+      #place-weather {
+        font-size: 12px;
+      }
 
-    #side-panel.open, #directions-panel.open {
-      transform: translateX(0);
-    }
+      .search-bar {
+        width: 90%;
+        top: 15px;
+      }
 
-    /* Close Button */
-    #close-side-panel, #close-directions-panel {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: transparent;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #333;
+      #suggestions {
+        width: 90%;
+      }
     }
-
-    /* Buttons and Input Styling */
-    #directions-btn, #swap-locations, #get-route, #start-navigation {
-      padding: 12px 20px;
-      font-size: 16px;
-      background-color: #6750a4;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    #swap-locations:hover, #get-route:hover, #start-navigation:hover {
-      background-color: #543e8d;
-    }
-
-    /* Quick Facts Section */
-    #quick-facts h3 {
-      font-size: 18px;
-      font-weight: bold;
-      color: #333;
-    }
-
-    /* Place Image */
-    #place-image-container {
-      width: 100%;
-      height: 25%;
-      overflow: hidden;
-    }
-    #place-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    /* Place Name and Weather */
-    #place-name-weather {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 12px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    #place-weather {
-      font-size: 16px;
-      font-style: italic;
-    }
-
-    /* Divider for Weather and Quick Facts */
-    #weather-directions-divider {
-      margin: 12px 0;
-      border: 0;
-      border-top: 1px solid #ddd;
-    }
-
-    /* Quick Facts */
-    #quick-facts {
-      margin-top: 12px;
-      font-size: 14px;
-    }
-    #quick-facts h3 {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
   </style>
 </head>
 <body>
@@ -167,41 +195,23 @@
   <div class="search-bar">
     <input id="search" placeholder="Search a place..." autocomplete="off" />
     <button id="search-icon">🔍</button>
-    <button id="directions-icon">➡️</button>
   </div>
   <div id="suggestions"></div>
+
+  <!-- Info Panel (sliding from bottom) -->
   <div id="side-panel">
     <button id="close-side-panel">×</button>
-    <h2>Place Info</h2>
+    <h2 id="place-name"></h2>
     <div id="place-image-container">
-      <img id="place-image" src="default.jpg" alt="Place Image">
+      <img id="place-image" src="default.jpg" alt="Place Image" />
     </div>
-    <div id="place-name-weather">
-      <span id="place-name"></span>
-      <span id="place-weather"></span>
-    </div>
-    <div id="weather-directions-divider"></div>
-    <div id="directions-btn-container">
-      <button id="directions-btn">
-        <span>Directions</span>
-      </button>
-    </div>
+    <p id="place-description">Loading...</p>
     <div id="quick-facts">
       <h3>Quick Facts</h3>
-      <p id="place-description">Loading...</p>
+      <p id="place-weather">Loading weather...</p>
     </div>
   </div>
-  <div id="directions-panel">
-    <button id="close-directions-panel">×</button>
-    <h2>Get Directions</h2>
-    <div id="directions-form">
-      <input id="origin" placeholder="Start Location" />
-      <input id="destination" placeholder="End Location" />
-      <button id="swap-locations">↕️ Swap</button>
-      <button id="get-route">Get Route</button>
-      <button id="start-navigation">Start Navigation</button>
-    </div>
-  </div>
+
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
