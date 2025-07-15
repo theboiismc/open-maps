@@ -2,316 +2,435 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, user-scalable=no"
-  />
-  <title>Maps - TheBoiisMC</title>
-  <link
-    href="https://cdn.jsdelivr.net/npm/maplibre-gl@2.4.0/dist/maplibre-gl.css"
-    rel="stylesheet"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TheBoiisMC Maps</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
+
+  <!-- Open Graph / Twitter Cards -->
+  <meta property="og:title" content="TheBoiisMC Maps" />
+  <meta property="og:description" content="Explore the world with private, modern mapping." />
+  <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+  <meta property="og:url" content="https://maps.theboiismc.com" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TheBoiisMC Maps" />
+  <meta name="twitter:description" content="Explore the world with private, modern mapping." />
+  <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+
+  <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/fuse.js@6.6.2"></script>
+
   <style>
-    body,
-    html {
+    :root {
+      --primary: #1a73e8;
+      --bg: #f9faff;
+      --text: #222;
+      --panel-width: 360px;
+      --panel-mobile-height: 75vh;
+      --panel-mobile-peek: 40vh;
+      --tooltip-bg: rgba(0,0,0,0.8);
+      --tooltip-color: white;
+      --tooltip-padding: 5px 8px;
+      --tooltip-radius: 5px;
+      --tooltip-font-size: 12px;
+      --tooltip-zindex: 1000;
+    }
+    html,
+    body {
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: #f5f5f5;
+      width: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Segoe UI', sans-serif;
+      color: var(--text);
     }
-    #map {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-    #side-panel {
+    #top-banner {
       position: fixed;
       top: 0;
       left: 0;
-      width: 25vw;
-      max-width: 400px;
-      height: 100vh;
-      background: white;
-      box-shadow: 2px 0 6px rgba(0, 0, 0, 0.15);
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
-      z-index: 1000;
-      overflow-y: auto;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
+      right: 0;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 1.3rem;
+      text-align: center;
+      padding: 12px 0;
+      z-index: 50;
+      user-select: none;
     }
-    #side-panel.open {
-      transform: translateX(0);
-    }
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .panel-header button {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      font-size: 20px;
-      color: #333;
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
-    .panel-header button:hover,
-    .panel-header button:focus {
-      background: #ddd;
-      outline: none;
+    #map {
+      position: absolute;
+      top: 48px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
     }
     .search-bar {
-      position: relative;
-      margin-bottom: 10px;
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-radius: 25px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      width: 80%;
+      max-width: 450px;
+      z-index: 60;
     }
     .search-bar input {
-      width: 100%;
-      padding: 8px 12px;
-      font-size: 16px;
-      border: 1.5px solid #ccc;
-      border-radius: 6px;
-      transition: border-color 0.2s ease;
-    }
-    .search-bar input:focus {
-      border-color: #1a73e8;
+      flex: 1;
+      border: none;
       outline: none;
+      font-size: 16px;
+      padding: 8px 12px;
+      border-radius: 25px;
     }
-    #suggestions,
-    #recent-searches,
-    #from-suggestions,
-    #to-suggestions {
+    .search-bar button {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--primary);
+      position: relative;
+    }
+    .search-bar button[data-tooltip]::after {
+      content: attr(data-tooltip);
       position: absolute;
-      top: 38px;
-      left: 0;
-      width: 100%;
+      bottom: 130%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--tooltip-bg);
+      color: var(--tooltip-color);
+      padding: var(--tooltip-padding);
+      border-radius: var(--tooltip-radius);
+      font-size: var(--tooltip-font-size);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: var(--tooltip-zindex);
+    }
+    .search-bar button[data-tooltip]:hover::after {
+      opacity: 1;
+    }
+
+    #suggestions,
+    #recent-searches {
+      position: absolute;
+      top: 102px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 450px;
       background: white;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-      border-radius: 0 0 6px 6px;
-      max-height: 200px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      max-height: 240px;
       overflow-y: auto;
-      z-index: 1500;
       display: none;
+      z-index: 60;
     }
     .suggestion {
-      padding: 8px 12px;
+      padding: 10px 14px;
       cursor: pointer;
+      border-bottom: 1px solid #eee;
     }
     .suggestion:hover {
-      background: #1a73e8;
+      background: var(--primary);
       color: white;
     }
     .suggestion.recent {
       font-style: italic;
-      color: #666;
+      color: var(--primary);
+    }
+    #side-panel {
+      position: fixed;
+      top: 0;
+      left: calc(-1 * var(--panel-width));
+      width: var(--panel-width);
+      height: 100%;
+      background: white;
+      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+      padding: 20px;
+      transition: left 0.3s ease, bottom 0.3s ease;
+      z-index: 55;
+      border-radius: 0;
+    }
+    #side-panel.open {
+      left: 0;
+    }
+    #close-side-panel {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    #panel-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    #panel-arrow,
+    #panel-search-icon {
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--primary);
+      margin: 0 8px;
+      position: relative;
+    }
+    #panel-arrow[data-tooltip],
+    #panel-search-icon[data-tooltip] {
+      position: relative;
+    }
+    #panel-arrow[data-tooltip]::after,
+    #panel-search-icon[data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 130%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--tooltip-bg);
+      color: var(--tooltip-color);
+      padding: var(--tooltip-padding);
+      border-radius: var(--tooltip-radius);
+      font-size: var(--tooltip-font-size);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: var(--tooltip-zindex);
+      width: max-content;
+      max-width: 200px;
+    }
+    #panel-arrow[data-tooltip]:hover::after,
+    #panel-search-icon[data-tooltip]:hover::after {
+      opacity: 1;
     }
     #place-name {
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 6px;
+      flex: 1;
+      font-size: 20px;
+      font-weight: 600;
+      text-align: center;
+      user-select: none;
     }
-    #place-description {
-      font-size: 1rem;
-      color: #444;
-      margin-bottom: 10px;
+    #directions-btn {
+      display: flex;
+      align-items: center;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-bottom: 14px;
     }
-    #place-weather {
-      font-size: 0.9rem;
-      color: #666;
-      margin-bottom: 10px;
+    #directions-btn:hover {
+      background: darkblue;
     }
     #place-images {
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 15px;
+      gap: 10px;
+      overflow-x: auto;
+      margin-bottom: 14px;
     }
     #place-images img {
-      width: 60px;
-      height: 60px;
+      width: 100px;
+      height: 100px;
       object-fit: cover;
-      border-radius: 6px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
     }
-    #directions-btn {
-      background: #1a73e8;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      font-size: 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      width: 100%;
-      margin-bottom: 10px;
-      transition: background 0.3s ease;
+    #quick-facts h3 {
+      margin: 0 0 8px;
     }
-    #directions-btn:hover,
-    #directions-btn:focus {
-      background: #155ab6;
-      outline: none;
-    }
-    #directions-section,
-    #route-section {
+
+    /* Directions panel styles */
+    #directions-section {
       display: none;
     }
-    #directions-section.active,
-    #route-section.active {
+    #directions-section.active {
       display: block;
     }
-    #directions-form {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    #directions-section label {
+      display: block;
+      margin: 6px 0 2px;
+      font-weight: 600;
+    }
+    #directions-section input {
+      width: calc(100% - 90px);
+      padding: 6px 8px;
       margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+      vertical-align: middle;
     }
-    #directions-form .search-bar {
-      margin-bottom: 0;
-    }
-    #directions-form input[type="text"] {
-      width: 100%;
-      padding: 8px 12px;
-      font-size: 16px;
-      border: 1.5px solid #ccc;
-      border-radius: 6px;
-    }
-    #directions-form input[type="text"]:focus {
-      border-color: #1a73e8;
-      outline: none;
-    }
-    #directions-form button {
-      padding: 10px;
-      font-size: 1rem;
-      border-radius: 6px;
-      border: none;
-      background: #1a73e8;
+    #directions-section button[type="submit"],
+    #back-to-info-btn,
+    #from-my-location-btn,
+    #to-my-location-btn {
+      background: var(--primary);
       color: white;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-    #directions-form button:hover,
-    #directions-form button:focus {
-      background: #155ab6;
-      outline: none;
-    }
-    #back-to-info-btn {
-      background: transparent;
-      color: #1a73e8;
       border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 14px;
       cursor: pointer;
-      font-size: 0.9rem;
-      margin-bottom: 10px;
-      padding: 0;
-      text-align: left;
+      margin-right: 8px;
+      margin-bottom: 12px;
+      vertical-align: middle;
+      user-select: none;
     }
+    #directions-section button[type="submit"]:hover,
     #back-to-info-btn:hover,
-    #back-to-info-btn:focus {
-      text-decoration: underline;
-      outline: none;
+    #from-my-location-btn:hover,
+    #to-my-location-btn:hover {
+      background: darkblue;
+    }
+    #directions-result {
+      font-size: 14px;
+      color: #333;
+      white-space: pre-wrap;
+      margin-top: 8px;
+      min-height: 50px;
     }
     #route-steps {
-      list-style: decimal;
-      padding-left: 18px;
-      max-height: 200px;
+      font-size: 14px;
+      color: #333;
+      white-space: pre-wrap;
+      margin-top: 8px;
+      max-height: 350px;
       overflow-y: auto;
-      margin: 0;
     }
-    #error-message {
-      background: #ff4d4d;
-      color: white;
-      padding: 8px 12px;
-      margin-bottom: 10px;
-      border-radius: 6px;
-      font-weight: 600;
-      display: none;
+
+    @media (max-width: 768px) {
+      #side-panel {
+        top: auto;
+        bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+        width: 100%;
+        height: var(--panel-mobile-height);
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+        left: 0;
+        transition: bottom 0.3s ease;
+      }
+      #side-panel.open {
+        bottom: 0;
+        left: 0;
+      }
+      #directions-section input {
+        width: 100%;
+        margin-bottom: 6px;
+      }
+      #from-my-location-btn,
+      #to-my-location-btn {
+        width: 100%;
+        margin: 6px 0 12px 0;
+      }
     }
-    /* Tooltips styles handled inline in JS */
   </style>
 </head>
 <body>
+  <div id="top-banner">TheBoiisMC Maps</div>
+
   <div id="map"></div>
 
-  <div id="side-panel" aria-hidden="true" role="region" aria-label="Information panel">
-    <div class="panel-header">
-      <button id="close-side-panel" aria-label="Close side panel">✖</button>
-      <button id="panel-arrow" aria-label="Toggle side panel">⬅</button>
-      <button id="panel-search-icon" aria-label="Focus search input">🔍</button>
-    </div>
+  <div class="search-bar">
+    <input id="search" placeholder="Search a place..." autocomplete="off" />
+    <button id="search-icon" aria-label="Search" data-tooltip="Search places">🔍</button>
+  </div>
 
-    <div id="error-message"></div>
+  <div id="recent-searches" aria-label="Recent searches"></div>
+  <div id="suggestions" aria-label="Search suggestions"></div>
 
-    <div id="search-container" class="search-bar">
-      <input
-        type="search"
-        id="search"
-        placeholder="Search places..."
-        autocomplete="off"
-        aria-autocomplete="list"
-        aria-controls="suggestions recent-searches"
-        aria-expanded="false"
-      />
-      <div id="suggestions" role="listbox" tabindex="-1"></div>
-      <div id="recent-searches" role="listbox" tabindex="-1"></div>
+  <div id="side-panel" aria-label="Place info panel" aria-hidden="true">
+    <button id="close-side-panel" aria-label="Close panel" data-tooltip="Close panel">×</button>
+    <div id="panel-header">
+      <div id="panel-arrow" aria-expanded="false" aria-label="Toggle panel" data-tooltip="Toggle panel">⬇️</div>
+      <div id="place-name">Select a place</div>
+      <div id="panel-search-icon" aria-label="Focus search" data-tooltip="Focus search input">🔍</div>
     </div>
 
     <!-- Place info -->
-    <section id="place-info-section" tabindex="0">
-      <h2 id="place-name" tabindex="0"></h2>
-      <p id="place-description"></p>
-      <p id="place-weather"></p>
-      <div id="place-images"></div>
-      <button id="directions-btn" aria-label="Get directions to this place">Get Directions</button>
-    </section>
+    <div id="place-info-section">
+      <button id="directions-btn" aria-label="Show directions panel" data-tooltip="Get directions to this place">Directions</button>
+      <div id="place-images" aria-live="polite" aria-atomic="true"></div>
+      <div id="quick-facts">
+        <h3>Quick Facts</h3>
+        <p id="place-description"></p>
+        <p id="place-weather"></p>
+      </div>
+    </div>
 
-    <!-- Directions input -->
-    <section id="directions-section" tabindex="0">
-      <button id="back-to-info-btn" aria-label="Back to place info">← Back</button>
-      <form id="directions-form" autocomplete="off">
-        <div class="search-bar">
-          <input
-            type="text"
-            id="from-input"
-            placeholder="Start location"
-            autocomplete="off"
-            aria-autocomplete="list"
-            aria-controls="from-suggestions"
-            aria-expanded="false"
-          />
-          <button type="button" id="start-my-location-btn" aria-label="Use your location as start">📍 My Location</button>
-          <div id="from-suggestions" role="listbox" tabindex="-1"></div>
+    <!-- Directions panel -->
+    <div id="directions-section" hidden>
+      <form id="directions-form" aria-label="Directions form" autocomplete="off">
+        <label for="from-input">From</label>
+        <input
+          type="text"
+          id="from-input"
+          name="from"
+          required
+          autocomplete="off"
+          aria-describedby="from-my-location-btn"
+          placeholder="Starting point"
+        />
+        <button
+          type="button"
+          id="from-my-location-btn"
+          aria-label="Set start as my current location"
+          data-tooltip="Set 'From' to your current location"
+        >
+          My Location
+        </button>
+
+        <label for="to-input">To</label>
+        <input
+          type="text"
+          id="to-input"
+          name="to"
+          required
+          autocomplete="off"
+          aria-describedby="to-my-location-btn"
+          placeholder="Destination"
+        />
+        <button
+          type="button"
+          id="to-my-location-btn"
+          aria-label="Set destination as my current location"
+          data-tooltip="Set 'To' to your current location"
+        >
+          My Location
+        </button>
+
+        <div>
+          <button type="submit" aria-label="Get directions">Get Directions</button>
+          <button type="button" id="back-to-info-btn" aria-label="Back to place info">Back</button>
         </div>
-        <div class="search-bar">
-          <input
-            type="text"
-            id="to-input"
-            placeholder="Destination"
-            autocomplete="off"
-            aria-autocomplete="list"
-            aria-controls="to-suggestions"
-            aria-expanded="false"
-          />
-          <button type="button" id="dest-my-location-btn" aria-label="Use your location as destination">📍 My Location</button>
-          <div id="to-suggestions" role="listbox" tabindex="-1"></div>
-        </div>
-        <button type="submit">Get Directions</button>
       </form>
-      <div id="directions-result" aria-live="polite" aria-atomic="true"></div>
-    </section>
+      <pre id="directions-result" aria-live="polite"></pre>
+      <div id="route-steps" aria-live="polite"></div>
+    </div>
 
-    <!-- Route steps -->
-    <section id="route-section" tabindex="0">
-      <h3>Route Steps</h3>
-      <ul id="route-steps"></ul>
-    </section>
+    <!-- Route panel (for showing route steps & nav) -->
+    <div id="route-panel" hidden>
+      <button id="route-stop-btn" aria-label="Stop navigation" data-tooltip="Stop navigation and go back to place info">✕ Stop Navigation</button>
+      <div id="route-steps" aria-live="polite"></div>
+    </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
