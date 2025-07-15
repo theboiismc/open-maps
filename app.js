@@ -1,3 +1,4 @@
+// app.js
 const map = new maplibregl.Map({
   container: "map",
   style: "https://tiles.openfreemap.org/styles/liberty",
@@ -5,50 +6,53 @@ const map = new maplibregl.Map({
   zoom: 4,
 });
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-map.addControl(
-  new maplibregl.GeolocateControl({ trackUserLocation: true }),
-  "bottom-right"
-);
+map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), "bottom-right");
 
-const $ = (id) => document.getElementById(id);
-const searchInput = $("search");
-const suggestionsEl = $("suggestions");
-const recentEl = $("recent-searches");
-const panel = $("side-panel");
-const closeBtn = $("close-side-panel");
-const panelArrow = $("panel-arrow");
-const panelSearch = $("panel-search-icon");
-const placeName = $("place-name");
-const placeDesc = $("place-description");
-const placeWeather = $("place-weather");
-const placeImages = $("place-images");
-const directionsBtn = $("directions-btn");
-
-const placeInfoSection = $("place-info-section");
-const directionsSection = $("directions-section");
-const directionsForm = $("directions-form");
-const fromInput = $("from-input");
-const toInput = $("to-input");
-const directionsResult = $("directions-result");
-const backToInfoBtn = $("back-to-info-btn");
+const $ = id => document.getElementById(id);
+// Main search
+const searchInput = $("search"), suggestionsEl = $("suggestions"), recentEl = $("recent-searches");
+// Panel controls
+const panel = $("side-panel"), closeBtn = $("close-side-panel"), panelArrow = $("panel-arrow"), panelSearch = $("panel-search-icon");
+// Place info
+const placeName = $("place-name"), placeDesc = $("place-description"),
+      placeWeather = $("place-weather"), placeImages = $("place-images"),
+      directionsBtn = $("directions-btn");
+// Directions
+const placeInfoSection = $("place-info-section"), directionsSection = $("directions-section"),
+      directionsForm = $("directions-form"), fromInput = $("from-input"),
+      toInput = $("to-input"), fromSug = $("from-suggestions"),
+      toSug = $("to-suggestions"), directionsResult = $("directions-result"),
+      backToInfoBtn = $("back-to-info-btn");
+// Route panel
+const routeSection = $("route-section"), routeStepsEl = $("route-steps"),
+      exitRouteBtn = $("exit-route-btn");
 
 let currentPlace = null;
 let recentSearches = JSON.parse(localStorage.getItem("recentSearches") || "[]");
 let fuseRecent = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
+let fromCoords = null, toCoords = null;
 
+// Helpers
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+async function fetchNominatim(q) {
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`, {
+    headers: { "User-Agent":"TheBoiisMCMaps/1.0", Referer:"https://maps.theboiismc.com" }
+  });
+  const arr = await res.json();
+  return arr.map(r => ({ name: r.display_name, lat: +r.lat, lon: +r.lon }));
+}
 function saveRecent(p) {
-  recentSearches = recentSearches.filter((r) => r.name !== p.name);
+  recentSearches = recentSearches.filter(r => r.name !== p.name);
   recentSearches.unshift(p);
   if (recentSearches.length > 10) recentSearches.pop();
   localStorage.setItem("recentSearches", JSON.stringify(recentSearches));
   fuseRecent = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
 }
-
 function showRecent() {
   suggestionsEl.style.display = "none";
   if (!searchInput.value.trim() && recentSearches.length) {
     recentEl.innerHTML = "";
-    recentSearches.forEach((p) => {
+    recentSearches.forEach(p => {
       const d = document.createElement("div");
       d.className = "suggestion recent";
       d.textContent = p.name;
@@ -58,152 +62,102 @@ function showRecent() {
     recentEl.style.display = "block";
   }
 }
-
-function renderSuggestions(list) {
-  recentEl.style.display = "none";
-  suggestionsEl.innerHTML = "";
-  list.forEach((p) => {
+function renderSuggestions(list, container, setter) {
+  container.innerHTML = "";
+  list.forEach(p => {
     const d = document.createElement("div");
     d.className = "suggestion";
     d.textContent = p.name;
-    d.addEventListener("click", () => selectPlace(p));
-    suggestionsEl.appendChild(d);
+    d.addEventListener("click", () => setter(p));
+    container.appendChild(d);
   });
-  suggestionsEl.style.display = "block";
+  container.style.display = list.length ? "block" : "none";
 }
 
-async function fetchNominatim(q) {
-  // Nominatim expects user-agent & referer headers (mandatory for public instances)
-  return fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(
-      q
-    )}`,
-    {
-      headers: {
-        "User-Agent": "TheBoiisMCMaps/1.0 (https://theboiismc.com)",
-        Referer: "https://maps.theboiismc.com",
-      },
-    }
-  )
-    .then((r) => r.json())
-    .then((results) =>
-      results.map((r) => ({
-        name: r.display_name,
-        lat: parseFloat(r.lat),
-        lon: parseFloat(r.lon),
-      }))
-    );
-}
-
-const debounce = (fn, ms) => {
-  let t;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), ms);
-  };
-};
-
+// Main search wiring
 searchInput.addEventListener("focus", showRecent);
-searchInput.addEventListener(
-  "input",
-  debounce(async () => {
-    const q = searchInput.value.trim();
-    if (!q) {
-      showRecent();
-      return;
-    }
-    let list = [];
-    if (recentSearches.length) {
-      list = fuseRecent.search(q).map((r) => r.item);
-    }
-    if (list.length < 5) {
-      const extra = await fetchNominatim(q);
-      extra.forEach((e) => {
-        if (!list.find((r) => r.name === e.name)) list.push(e);
-      });
-    }
-    renderSuggestions(list);
-  }, 150)
-);
-
-document.addEventListener("click", (e) => {
-  if (
-    !e.target.closest(".search-bar") &&
-    !e.target.closest("#suggestions") &&
-    !e.target.closest("#recent-searches")
-  ) {
+searchInput.addEventListener("input", debounce(async () => {
+  const q = searchInput.value.trim();
+  if (!q) return showRecent();
+  let list = fuseRecent.search(q).map(r => r.item);
+  if (list.length < 5) {
+    (await fetchNominatim(q)).forEach(e => {
+      if (!list.find(r => r.name === e.name)) list.push(e);
+    });
+  }
+  renderSuggestions(list, suggestionsEl, selectPlace);
+}, 150));
+document.addEventListener("click", e => {
+  if (!e.target.closest(".search-bar") && !e.target.closest("#suggestions") && !e.target.closest("#recent-searches")) {
     suggestionsEl.style.display = recentEl.style.display = "none";
   }
 });
 
-function togglePanel(open) {
-  if (open) {
-    panel.classList.add("open");
-    panel.setAttribute("aria-hidden", "false");
-    panelArrow.setAttribute("aria-expanded", "true");
-  } else {
-    panel.classList.remove("open");
-    panel.setAttribute("aria-hidden", "true");
-    panelArrow.setAttribute("aria-expanded", "false");
+// Directions autocomplete
+fromInput.addEventListener("input", debounce(async () => {
+  const q = fromInput.value.trim(); if (!q) return fromSug.style.display = "none";
+  const list = await fetchNominatim(q);
+  renderSuggestions(list, fromSug, p => {
+    fromInput.value = p.name; fromCoords = [p.lon, p.lat];
+    fromSug.style.display = "none";
+  });
+}, 200));
+toInput.addEventListener("input", debounce(async () => {
+  const q = toInput.value.trim(); if (!q) return toSug.style.display = "none";
+  const list = await fetchNominatim(q);
+  renderSuggestions(list, toSug, p => {
+    toInput.value = p.name; toCoords = [p.lon, p.lat];
+    toSug.style.display = "none";
+  });
+}, 200));
+document.addEventListener("click", e => {
+  if (!e.target.closest("#directions-section")) {
+    fromSug.style.display = toSug.style.display = "none";
   }
+});
 
+// Panel toggles
+function togglePanel(open) {
+  panel.classList.toggle("open", open);
+  panel.setAttribute("aria-hidden", (!open).toString());
   map.resize();
 }
+closeBtn.onclick = () => togglePanel(false);
+panelArrow.onclick = () => togglePanel(!panel.classList.contains("open"));
+panelSearch.onclick = () => searchInput.focus();
 
-closeBtn.addEventListener("click", () => togglePanel(false));
-panelArrow.addEventListener("click", () =>
-  togglePanel(!panel.classList.contains("open"))
-);
-panelSearch.addEventListener("click", () => searchInput.focus());
-
+// Place selection
 async function selectPlace(p) {
-  currentPlace = p;
-  saveRecent(p);
+  currentPlace = p; saveRecent(p);
   searchInput.value = p.name;
-
-  const marker = window.placeMarker;
-  if (marker) marker.remove();
-  window.placeMarker = new maplibregl.Marker()
-    .setLngLat([p.lon, p.lat])
-    .addTo(map);
+  if (window.placeMarker) window.placeMarker.remove();
+  window.placeMarker = new maplibregl.Marker().setLngLat([p.lon, p.lat]).addTo(map);
   map.flyTo({ center: [p.lon, p.lat], zoom: 13 });
 
   await loadPlaceInfo(p);
 
-  // Show place info, hide directions panel
   placeInfoSection.hidden = false;
-  directionsSection.classList.remove("active");
   directionsSection.hidden = true;
-
+  routeSection.hidden = true;
   togglePanel(true);
 }
 
+// Load place info (wiki, images, weather)
 async function loadPlaceInfo(p) {
   placeName.textContent = p.name;
   placeDesc.textContent = "Loading...";
   placeWeather.textContent = "";
   placeImages.innerHTML = "";
 
-  // Wiki summary with brief limit (~3 sentences max, 300 chars max)
+  // Wiki summary
   try {
-    const res = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
-        p.name
-      )}`
-    );
+    const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(p.name)}`);
     const data = await res.json();
-
     if (data.extract) {
-      const sentences = data.extract.match(/[^\.!\?]+[\.!\?]+/g) || [data.extract];
-      let brief = sentences.slice(0, 3).join(" ").trim();
-
-      // Hard char limit fallback
-      const maxLen = 300;
-      if (brief.length > maxLen) {
-        brief = brief.slice(0, maxLen).trim();
-        if (!brief.endsWith(".") && !brief.endsWith("!") && !brief.endsWith("?")) {
-          brief += "…";
-        }
+      const sents = data.extract.match(/[^\.!\?]+[\.!\?]+/g) || [data.extract];
+      let brief = sents.slice(0,3).join(" ").trim();
+      if (brief.length > 300) {
+        brief = brief.slice(0,300).trim() + "…";
       }
       placeDesc.textContent = brief;
     } else {
@@ -213,146 +167,123 @@ async function loadPlaceInfo(p) {
     placeDesc.textContent = "No description available.";
   }
 
-  // Images (Wikipedia)
+  // Wiki images
   try {
-    const pg = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&prop=images&titles=${encodeURIComponent(
-        p.name
-      )}&format=json&origin=*`
-    );
+    const pg = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=images&titles=${encodeURIComponent(p.name)}&format=json&origin=*`);
     const j = await pg.json();
     const page = j.query.pages[Object.keys(j.query.pages)[0]];
-    const imgs = (page.images || []).slice(0, 5);
+    const imgs = (page.images||[]).slice(0,5);
     for (let img of imgs) {
       if (/\.(jpg|jpeg|png)$/i.test(img.title)) {
-        const info = await fetch(
-          `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(
-            img.title
-          )}&prop=imageinfo&iiprop=url&format=json&origin=*`
-        );
+        const info = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(img.title)}&prop=imageinfo&iiprop=url&format=json&origin=*`);
         const inf = await info.json();
-        const u = inf.query.pages[Object.keys(inf.query.pages)[0]].imageinfo[0].url;
-        const el = document.createElement("img");
-        el.src = u;
-        el.alt = p.name;
+        const url = inf.query.pages[Object.keys(inf.query.pages)[0]].imageinfo[0].url;
+        const el = document.createElement("img"); el.src = url; el.alt = p.name;
         placeImages.appendChild(el);
       }
     }
   } catch {}
 
-  // Weather (Open-Meteo)
+  // Weather
   try {
-    const wr = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current_weather=true`
-    );
+    const wr = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current_weather=true`);
     const wj = await wr.json();
     if (wj.current_weather) {
-      const cw = wj.current_weather;
-      placeWeather.textContent = `Temp: ${cw.temperature}°C, Wind: ${cw.windspeed} km/h`;
-    } else placeWeather.textContent = "No weather info.";
+      placeWeather.textContent = `Temp: ${wj.current_weather.temperature}°C, Wind: ${wj.current_weather.windspeed} km/h`;
+    } else {
+      placeWeather.textContent = "No weather info.";
+    }
   } catch {
     placeWeather.textContent = "No weather info.";
   }
 }
 
-// Directions panel logic
-directionsBtn.addEventListener("click", () => {
+// Show directions form
+directionsBtn.onclick = () => {
   placeInfoSection.hidden = true;
   directionsSection.hidden = false;
-  directionsSection.classList.add("active");
-
-  fromInput.value = "";
-  toInput.value = currentPlace ? currentPlace.name : "";
+  routeSection.hidden = true;
+  fromInput.value = ""; toInput.value = currentPlace.name;
+  fromCoords = null; toCoords = [currentPlace.lon, currentPlace.lat];
   directionsResult.textContent = "";
-});
+};
 
-backToInfoBtn.addEventListener("click", () => {
-  directionsSection.classList.remove("active");
+// Back & exit buttons
+backToInfoBtn.onclick = () => {
   directionsSection.hidden = true;
   placeInfoSection.hidden = false;
-  directionsResult.textContent = "";
-});
+};
+exitRouteBtn.onclick = () => {
+  routeSection.hidden = true;
+  placeInfoSection.hidden = false;
+  if (map.getSource("route")) {
+    map.removeLayer("route-line");
+    map.removeSource("route");
+  }
+};
 
-// Get directions from OpenRouteService (free, needs API key, but we want keyless?)
-// We'll use openrouteservice public API demo, no key needed, limited rate
-
-directionsForm.addEventListener("submit", async (e) => {
+// Get & draw route
+directionsForm.onsubmit = async e => {
   e.preventDefault();
-  directionsResult.textContent = "Loading directions...";
-
-  // Geocode from and to locations using Nominatim
+  directionsResult.textContent = "Routing…";
   try {
-    const fromQ = fromInput.value.trim();
-    const toQ = toInput.value.trim();
-    if (!fromQ || !toQ) throw new Error("Both fields required");
+    if (!fromCoords) throw new Error("Select a valid From");
+    if (!toCoords) throw new Error("Select a valid To");
+    const res = await fetch("https://api.openrouteservice.org/v2/directions/driving-car/geojson", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ coordinates: [fromCoords, toCoords] })
+    });
+    const geo = await res.json();
+    const steps = geo.features[0].properties.segments[0].steps;
 
-    const [fromCoords, toCoords] = await Promise.all([
-      fetchNominatim(fromQ),
-      fetchNominatim(toQ),
-    ]);
-
-    if (!fromCoords.length || !toCoords.length) {
-      throw new Error("Could not find one or both locations");
+    // draw on map
+    if (map.getSource("route")) {
+      map.removeLayer("route-line");
+      map.removeSource("route");
     }
+    map.addSource("route", { type: "geojson", data: geo });
+    map.addLayer({
+      id: "route-line",
+      type: "line",
+      source: "route",
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-width": 4, "line-color": "#1a73e8" }
+    });
 
-    const fromLoc = fromCoords[0];
-    const toLoc = toCoords[0];
+    // list steps
+    routeStepsEl.innerHTML = "";
+    steps.forEach(s => {
+      const li = document.createElement("li");
+      li.textContent = s.instruction;
+      routeStepsEl.appendChild(li);
+    });
 
-    // Fetch directions from openrouteservice (demo endpoint, keyless)
-    // API: https://openrouteservice.org/dev/#/api-docs/v2/directions/{profile}/post
-    // We'll do a simple fetch with "foot-walking" profile
-
-    const url = "https://api.openrouteservice.org/v2/directions/foot-walking/geojson";
-
-    // Since keyless demo is not officially supported, fallback to a simple routing from openstreetmap or skip directions if API limits
-
-    // Instead, let's just fake directions text (demo purpose)
-    directionsResult.textContent =
-      `Directions from "${fromLoc.name}" to "${toLoc.name}":\n` +
-      `- Start at lat: ${fromLoc.lat.toFixed(5)}, lon: ${fromLoc.lon.toFixed(5)}\n` +
-      `- End at lat: ${toLoc.lat.toFixed(5)}, lon: ${toLoc.lon.toFixed(5)}\n` +
-      `* Actual routing API integration needs a key, so here is just coords.`;
-
+    directionsSection.hidden = true;
+    routeSection.hidden = false;
   } catch (err) {
     directionsResult.textContent = "Error: " + err.message;
   }
-});
+};
 
-// On load panel hide/show based on screen size
+// Init panel state
 window.addEventListener("load", () => {
-  if (window.innerWidth > 768) {
-    // Desktop: panel hidden totally
-    togglePanel(false);
-  } else {
-    // Mobile: panel partially visible (peek)
-    panel.style.bottom = `calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)))`;
-    panel.classList.remove("open");
+  if (window.innerWidth > 768) togglePanel(false);
+  else {
+    panel.style.bottom = `calc(-1*(var(--panel-mobile-height)-var(--panel-mobile-peek)))`;
     panel.setAttribute("aria-hidden", "false");
-    panelArrow.setAttribute("aria-expanded", "false");
   }
 });
-
-// On resize keep consistent panel state
 window.addEventListener("resize", () => {
   if (window.innerWidth > 768 && !panel.classList.contains("open")) {
-    // Desktop closed panel hidden offscreen left
-    panel.style.bottom = "";
-    panel.style.left = `calc(-1 * var(--panel-width))`;
+    panel.style.left = `calc(-1*var(--panel-width))`;
     panel.setAttribute("aria-hidden", "true");
-    panelArrow.setAttribute("aria-expanded", "false");
   }
   if (window.innerWidth <= 768 && !panel.classList.contains("open")) {
-    // Mobile closed panel peek bottom
-    panel.style.bottom = `calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)))`;
-    panel.style.left = "";
+    panel.style.bottom = `calc(-1*(var(--panel-mobile-height)-var(--panel-mobile-peek)))`;
     panel.setAttribute("aria-hidden", "false");
-    panelArrow.setAttribute("aria-expanded", "false");
   }
 });
-
-// Accessibility: keyboard "Esc" closes panel if open
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && panel.classList.contains("open")) {
-    togglePanel(false);
-  }
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && panel.classList.contains("open")) togglePanel(false);
 });
