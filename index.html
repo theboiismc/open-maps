@@ -4,55 +4,43 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TheBoiisMC Maps</title>
-  <link
-    href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"
-    rel="stylesheet"
-  />
+  <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
-    /* Reset */
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: #f0f4ff;
-      color: #111;
+    /* THEBOIISMC BRAND COLORS */
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #155ab6;
+      --background: #f9faff;
+      --text-primary: #222;
+      --text-secondary: #555;
+      --accent: #ff6f61;
     }
-
-    /* TheBoiisMC top banner */
+    html, body {
+      margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--background); color: var(--text-primary);
+    }
     #top-banner {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 50px;
-      background: #1a73e8;
+      background: var(--primary);
       color: white;
-      font-weight: 700;
-      font-size: 1.3rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      letter-spacing: 1.2px;
+      font-weight: 900;
+      font-size: 1.4rem;
+      text-align: center;
+      padding: 12px 0;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 30;
       user-select: none;
-      box-shadow: 0 2px 5px rgba(26, 115, 232, 0.6);
+      box-shadow: 0 2px 10px rgb(26 115 232 / 0.4);
+      font-family: 'Poppins', sans-serif;
     }
-
-    /* Map container */
     #map {
       position: absolute;
-      top: 50px;
+      top: 48px;
       bottom: 0;
       width: 100%;
       z-index: 1;
     }
-
-    /* Search bar container */
     .search-bar {
-      position: fixed;
+      position: absolute;
       top: 60px;
       left: 50%;
       transform: translateX(-50%);
@@ -60,11 +48,12 @@
       border-radius: 30px;
       display: flex;
       align-items: center;
-      box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 40;
       width: 80%;
-      max-width: 500px;
-      padding: 8px 15px;
-      z-index: 1000;
+      max-width: 450px;
+      padding: 8px 16px;
+      font-size: 16px;
     }
     .search-bar input {
       border: none;
@@ -73,213 +62,179 @@
       font-size: 16px;
       padding: 10px 12px;
       border-radius: 30px;
-      font-weight: 600;
-      color: #1a73e8;
-      letter-spacing: 0.03em;
+      color: var(--text-primary);
     }
-    .search-bar input::placeholder {
-      color: #a5b1d8;
-    }
-
-    /* Suggestions container */
-    #suggestions,
-    #recent-searches {
-      position: fixed;
-      top: 110px;
+    #suggestions, #recent-searches {
+      position: absolute;
+      top: 102px;
       left: 50%;
       transform: translateX(-50%);
-      width: 80%;
-      max-width: 500px;
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(26, 115, 232, 0.25);
+      border-radius: 10px;
+      width: 80%;
+      max-width: 450px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      z-index: 39;
       max-height: 240px;
       overflow-y: auto;
-      z-index: 1000;
+      font-size: 15px;
       display: none;
-      user-select: none;
     }
     .suggestion {
-      padding: 12px 18px;
+      padding: 10px 14px;
       cursor: pointer;
+      border-bottom: 1px solid #eee;
+      color: var(--text-primary);
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .suggestion:hover {
+      background: var(--primary);
+      color: white;
+    }
+    .suggestion.recent {
+      font-style: italic;
       font-weight: 600;
-      color: #1a73e8;
-      border-bottom: 1px solid #e1eaff;
-      transition: background-color 0.2s ease;
+      color: var(--primary-dark);
     }
-    .suggestion:last-child {
-      border-bottom: none;
-    }
-    .suggestion:hover,
-    .suggestion:focus {
-      background: #d0e2ff;
-      outline: none;
-    }
-
-    /* Side panel */
     #side-panel {
       position: fixed;
-      bottom: -100%;
+      bottom: 0;
       left: 0;
       right: 0;
-      height: 40vh;
+      max-height: 75vh;
       background: white;
-      box-shadow: 0 -3px 15px rgba(26, 115, 232, 0.4);
-      border-radius: 20px 20px 0 0;
-      padding: 15px 25px;
-      transition: bottom 0.3s ease, height 0.3s ease;
-      overflow-y: auto;
-      z-index: 2000;
+      box-shadow: 0 -3px 18px rgba(0,0,0,0.12);
+      border-radius: 24px 24px 0 0;
+      padding: 20px 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      z-index: 45;
+      overflow-y: auto;
+      user-select: none;
     }
     #side-panel.open {
-      bottom: 0;
+      transform: translateY(0);
     }
-
-    @media (min-width: 769px) {
-      #side-panel {
-        top: 50px;
-        bottom: 0;
-        left: -350px;
-        right: auto;
-        width: 350px;
-        height: 100%;
-        border-radius: 0 20px 20px 0;
-        box-shadow: 3px 0 15px rgba(26, 115, 232, 0.3);
-        transition: left 0.3s ease;
-        padding: 30px 25px;
-        align-items: flex-start;
-      }
-      #side-panel.open {
-        left: 0;
-        bottom: 0;
-      }
+    #side-panel.expanded {
+      max-height: 90vh;
     }
-
-    /* Close button */
     #close-side-panel {
       position: absolute;
-      top: 15px;
-      right: 20px;
+      top: 14px;
+      right: 18px;
       background: transparent;
       border: none;
       font-size: 28px;
       cursor: pointer;
-      color: #1a73e8;
-      font-weight: 700;
-      line-height: 1;
+      color: var(--text-secondary);
       user-select: none;
+      transition: color 0.3s;
     }
     #close-side-panel:hover {
-      color: #174ea6;
+      color: var(--accent);
     }
 
-    /* Place name header row */
     #panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       width: 100%;
-      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
       user-select: none;
     }
-    #panel-arrow {
-      font-size: 22px;
-      color: #1a73e8;
+    #panel-arrow, #panel-search-icon {
+      font-size: 24px;
       cursor: pointer;
       user-select: none;
+      color: var(--primary);
+      transition: color 0.3s;
+    }
+    #panel-arrow:hover, #panel-search-icon:hover {
+      color: var(--accent);
     }
     #place-name {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1a73e8;
-      flex-grow: 1;
+      font-weight: 800;
+      font-size: 22px;
+      color: var(--primary-dark);
       text-align: center;
+      flex-grow: 1;
+      margin: 0 10px;
       user-select: text;
-      padding: 0 10px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
-    #panel-search-icon {
-      font-size: 20px;
-      color: #1a73e8;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    /* Place images container */
-    #place-images {
-      width: 100%;
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
-    }
-    #place-images img {
-      height: 100px;
-      border-radius: 10px;
-      object-fit: cover;
-      flex-shrink: 0;
-      box-shadow: 0 3px 7px rgba(26, 115, 232, 0.25);
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-    #place-images img:hover {
-      transform: scale(1.07);
-    }
-
-    /* Directions button */
     #directions-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #1a73e8;
+      margin: 0 auto 18px;
+      background: var(--primary);
+      border: none;
+      border-radius: 12px;
       color: white;
       font-weight: 700;
-      padding: 8px 16px;
-      border-radius: 14px;
       font-size: 16px;
+      padding: 8px 18px;
       cursor: pointer;
+      box-shadow: 0 4px 10px rgb(26 115 232 / 0.5);
+      display: flex;
+      align-items: center;
+      gap: 8px;
       user-select: none;
-      margin-bottom: 10px;
-      box-shadow: 0 4px 15px rgba(26, 115, 232, 0.5);
-      border: none;
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s;
     }
     #directions-btn:hover {
-      background: #1558b0;
+      background: var(--primary-dark);
     }
     #directions-btn svg {
-      margin-right: 8px;
+      width: 20px;
+      height: 20px;
       fill: white;
-      width: 18px;
-      height: 18px;
+      user-select: none;
     }
-
-    /* Quick facts */
+    #place-images {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      margin-bottom: 18px;
+      width: 100%;
+      user-select: none;
+      scrollbar-width: thin;
+      scrollbar-color: var(--primary) transparent;
+    }
+    #place-images img {
+      height: 110px;
+      border-radius: 14px;
+      object-fit: cover;
+      user-select: none;
+      box-shadow: 0 2px 8px rgba(26,115,232,0.25);
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    #place-images img:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(26,115,232,0.6);
+    }
     #quick-facts {
       width: 100%;
+      user-select: none;
     }
     #quick-facts h3 {
       font-weight: 700;
       font-size: 18px;
-      color: #1a73e8;
+      color: var(--primary);
       margin-bottom: 6px;
     }
     #place-description {
       font-size: 15px;
       line-height: 1.4;
       margin-bottom: 10px;
-      color: #222;
+      color: var(--text-primary);
     }
     #place-weather {
       font-size: 14px;
       font-weight: 600;
-      color: #3a6ede;
+      color: var(--primary);
     }
 
     /* Scrollbar for images */
@@ -287,9 +242,37 @@
       height: 8px;
     }
     #place-images::-webkit-scrollbar-thumb {
-      background-color: #1a73e8;
+      background-color: var(--primary);
       border-radius: 4px;
     }
+
+    /* Media Queries */
+    @media (min-width: 769px) {
+      #side-panel {
+        width: 350px;
+        max-height: 100vh;
+        bottom: auto;
+        top: 48px;
+        left: -360px;
+        border-radius: 0 24px 24px 0;
+        box-shadow: 2px 0 18px rgba(0,0,0,0.12);
+        transform: translateX(0);
+        transition: left 0.3s cubic-bezier(0.4,0,0.2,1);
+      }
+      #side-panel.open {
+        left: 0;
+        transform: translateX(0);
+      }
+      #side-panel.expanded {
+        max-height: 95vh;
+      }
+      #map {
+        top: 48px;
+        left: 350px;
+        width: calc(100% - 350px);
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -297,47 +280,35 @@
 
   <div id="map"></div>
 
-  <div class="search-bar" role="search">
-    <input
-      id="search"
-      type="search"
-      placeholder="Search a place..."
-      autocomplete="off"
-      aria-label="Search places"
-      spellcheck="false"
-    />
+  <div class="search-bar">
+    <input id="search" placeholder="Search a place..." autocomplete="off" />
+    <button id="search-icon" aria-label="Search">🔍</button>
   </div>
 
-  <div id="recent-searches" role="listbox" aria-label="Recent searches"></div>
-  <div id="suggestions" role="listbox" aria-label="Search suggestions"></div>
+  <div id="recent-searches"></div>
+  <div id="suggestions"></div>
 
-  <div id="side-panel" aria-live="polite" aria-atomic="true" aria-label="Place info panel">
-    <button id="close-side-panel" aria-label="Close panel">&times;</button>
-
+  <div id="side-panel" aria-label="Place information panel" role="region">
+    <button id="close-side-panel" aria-label="Close panel">×</button>
     <div id="panel-header">
-      <div id="panel-arrow" title="Collapse/Expand panel">⬇️</div>
-      <div id="place-name">Select a place</div>
-      <div id="panel-search-icon" title="Search icon">🔍</div>
+      <div id="panel-arrow" title="Expand/Collapse panel">⬇️</div>
+      <div id="place-name">Loading...</div>
+      <div id="panel-search-icon" title="Focus search input">🔍</div>
     </div>
-
     <button id="directions-btn" title="Get directions">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M20.71 11.29l-9-9a1 1 0 00-1.42 1.42L17.59 11H4a1 1 0 000 2h13.59l-7.3 7.29a1 1 0 001.42 1.42l9-9a1 1 0 000-1.42z"></path>
-      </svg>
+      <svg viewBox="0 0 24 24"><path d="M21 11.5 8.5 21v-6H3v-3h5.5v-6z"/></svg>
       Directions
     </button>
-
     <div id="place-images" aria-label="Images of the place"></div>
-
     <div id="quick-facts">
       <h3>Quick Facts</h3>
-      <p id="place-description">No place selected.</p>
-      <p id="place-weather"></p>
+      <p id="place-description">Loading description...</p>
+      <p id="place-weather">Loading weather...</p>
     </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+  <script src="https://unpkg.com/fuse.js@6.6.2"></script>
   <script src="app.js"></script>
 </body>
 </html>
