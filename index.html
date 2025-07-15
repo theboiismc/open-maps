@@ -4,311 +4,289 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TheBoiisMC Maps</title>
+
+  <!-- Favicon & Icons -->
+  <link rel="icon" type="image/png" href="/53e87aea-e737-4098-a968-363c73a31175.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/53e87aea-e737-4098-a968-363c73a31175.png" sizes="16x16">
+  <link rel="apple-touch-icon" href="/53e87aea-e737-4098-a968-363c73a31175.png">
+  <link rel="shortcut icon" href="/53e87aea-e737-4098-a968-363c73a31175.png">
+
+  <!-- Open Graph Preview -->
+  <meta property="og:title" content="TheBoiisMC Maps">
+  <meta property="og:description" content="Explore the world with TheBoiisMC Maps — Fast, Private, Modern Mapping.">
+  <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png">
+  <meta property="og:url" content="https://maps.theboiismc.com">
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="TheBoiisMC Maps">
+  <meta name="twitter:description" content="Explore the world with TheBoiisMC Maps — Fast, Private, Modern Mapping.">
+  <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png">
+
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/fuse.js@6.6.2"></script>
+
   <style>
-    /* THEBOIISMC BRAND COLORS */
     :root {
       --primary: #1a73e8;
       --primary-dark: #155ab6;
-      --background: #f9faff;
-      --text-primary: #222;
+      --bg: #f9faff;
+      --text: #222;
       --text-secondary: #555;
       --accent: #ff6f61;
     }
     html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--background); color: var(--text-primary);
+      margin:0; padding:0;
+      height:100%; width:100%;
+      background:var(--bg); color:var(--text);
+      font-family:'Segoe UI',sans-serif;
+      overflow:hidden;
     }
+
     #top-banner {
-      background: var(--primary);
-      color: white;
-      font-weight: 900;
-      font-size: 1.4rem;
-      text-align: center;
-      padding: 12px 0;
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 30;
-      user-select: none;
-      box-shadow: 0 2px 10px rgb(26 115 232 / 0.4);
-      font-family: 'Poppins', sans-serif;
+      position:fixed; top:0; left:0; right:0;
+      background:var(--primary); color:white;
+      font-weight:900; font-size:1.4rem;
+      text-align:center; padding:12px 0;
+      z-index:50; user-select:none;
+      box-shadow:0 2px 10px rgb(26 115 232 / 0.4);
     }
     #map {
-      position: absolute;
-      top: 48px;
-      bottom: 0;
-      width: 100%;
-      z-index: 1;
+      position:absolute;
+      top:48px; bottom:0;
+      left:0; right:0;
+      transition:left 0.3s ease;
+      z-index:1;
     }
+
     .search-bar {
-      position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      border-radius: 30px;
-      display: flex;
-      align-items: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      z-index: 40;
-      width: 80%;
-      max-width: 450px;
-      padding: 8px 16px;
-      font-size: 16px;
+      position:fixed;
+      top:60px;
+      left:50%;
+      transform:translateX(-50%);
+      background:white; border-radius:30px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.1);
+      width:80%; max-width:450px;
+      padding:8px 16px;
+      z-index:60;
+      display:flex; align-items:center;
     }
     .search-bar input {
-      border: none;
-      outline: none;
-      flex-grow: 1;
-      font-size: 16px;
-      padding: 10px 12px;
-      border-radius: 30px;
-      color: var(--text-primary);
+      flex-grow:1;
+      border:none; outline:none;
+      font-size:16px;
+      padding:10px 12px;
+      color:var(--text);
     }
+    .search-bar button {
+      border:none; background:none;
+      font-size:18px; cursor:pointer;
+      color:var(--primary);
+    }
+
     #suggestions, #recent-searches {
-      position: absolute;
-      top: 102px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      border-radius: 10px;
-      width: 80%;
-      max-width: 450px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-      z-index: 39;
-      max-height: 240px;
-      overflow-y: auto;
-      font-size: 15px;
-      display: none;
+      position:absolute;
+      top:102px; left:50%;
+      transform:translateX(-50%);
+      width:80%; max-width:450px;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 4px 15px rgba(0,0,0,0.15);
+      max-height:240px; overflow-y:auto;
+      font-size:15px;
+      display:none;
+      z-index:60;
     }
     .suggestion {
-      padding: 10px 14px;
-      cursor: pointer;
-      border-bottom: 1px solid #eee;
-      color: var(--text-primary);
-      user-select: none;
-      transition: background 0.2s;
+      padding:10px 14px;
+      cursor:pointer;
+      border-bottom:1px solid #eee;
+      transition:background 0.2s;
     }
-    .suggestion:hover {
-      background: var(--primary);
-      color: white;
+    .suggestion:hover, .suggestion:focus {
+      background:var(--primary); color:white;
     }
     .suggestion.recent {
-      font-style: italic;
-      font-weight: 600;
-      color: var(--primary-dark);
+      font-style:italic; font-weight:600;
+      color:var(--primary-dark);
     }
+
     #side-panel {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      max-height: 75vh;
-      background: white;
-      box-shadow: 0 -3px 18px rgba(0,0,0,0.12);
-      border-radius: 24px 24px 0 0;
-      padding: 20px 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transform: translateY(100%);
-      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
-      z-index: 45;
-      overflow-y: auto;
-      user-select: none;
+      position:fixed;
+      bottom:0; left:0; right:0;
+      max-height:75vh;
+      background:white;
+      box-shadow:0 -3px 18px rgba(0,0,0,0.12);
+      border-radius:24px 24px 0 0;
+      padding:20px 24px;
+      transform:translateY(100%);
+      transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      z-index:55;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      overflow-y:auto;
     }
-    #side-panel.open {
-      transform: translateY(0);
+    #side-panel.open { transform:translateY(0); }
+    #side-panel.expanded { max-height:90vh; }
+
+    @media(min-width:769px){
+      #side-panel {
+        top:48px; bottom:0;
+        left:-360px; width:360px;
+        border-radius:0 24px 24px 0;
+        box-shadow:2px 0 18px rgba(0,0,0,0.12);
+        transform:translateX(0);
+      }
+      #side-panel.open { left:0; }
+      #side-panel.expanded { max-height:95vh; }
+      #map { left:360px; }
     }
-    #side-panel.expanded {
-      max-height: 90vh;
-    }
+
     #close-side-panel {
-      position: absolute;
-      top: 14px;
-      right: 18px;
-      background: transparent;
-      border: none;
-      font-size: 28px;
-      cursor: pointer;
-      color: var(--text-secondary);
-      user-select: none;
-      transition: color 0.3s;
+      position:absolute; top:14px; right:18px;
+      border:none; background:none;
+      font-size:28px; cursor:pointer;
+      color:var(--text-secondary);
+      transition:color .3s;
+      user-select:none;
     }
-    #close-side-panel:hover {
-      color: var(--accent);
-    }
+    #close-side-panel:hover { color:var(--accent); }
 
     #panel-header {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-      user-select: none;
+      width:100%;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:14px;
+      user-select:none;
     }
     #panel-arrow, #panel-search-icon {
-      font-size: 24px;
-      cursor: pointer;
-      user-select: none;
-      color: var(--primary);
-      transition: color 0.3s;
+      font-size:24px;
+      cursor:pointer;
+      color:var(--primary);
+      transition:color .3s;
     }
     #panel-arrow:hover, #panel-search-icon:hover {
-      color: var(--accent);
+      color:var(--accent);
     }
     #place-name {
-      font-weight: 800;
-      font-size: 22px;
-      color: var(--primary-dark);
-      text-align: center;
-      flex-grow: 1;
-      margin: 0 10px;
-      user-select: text;
-    }
-    #directions-btn {
-      margin: 0 auto 18px;
-      background: var(--primary);
-      border: none;
-      border-radius: 12px;
-      color: white;
-      font-weight: 700;
-      font-size: 16px;
-      padding: 8px 18px;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgb(26 115 232 / 0.5);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      user-select: none;
-      transition: background-color 0.3s;
-    }
-    #directions-btn:hover {
-      background: var(--primary-dark);
-    }
-    #directions-btn svg {
-      width: 20px;
-      height: 20px;
-      fill: white;
-      user-select: none;
-    }
-    #place-images {
-      display: flex;
-      gap: 12px;
-      overflow-x: auto;
-      margin-bottom: 18px;
-      width: 100%;
-      user-select: none;
-      scrollbar-width: thin;
-      scrollbar-color: var(--primary) transparent;
-    }
-    #place-images img {
-      height: 110px;
-      border-radius: 14px;
-      object-fit: cover;
-      user-select: none;
-      box-shadow: 0 2px 8px rgba(26,115,232,0.25);
-      flex-shrink: 0;
-      cursor: pointer;
-      transition: transform 0.3s ease;
-    }
-    #place-images img:hover {
-      transform: scale(1.1);
-      box-shadow: 0 4px 15px rgba(26,115,232,0.6);
-    }
-    #quick-facts {
-      width: 100%;
-      user-select: none;
-    }
-    #quick-facts h3 {
-      font-weight: 700;
-      font-size: 18px;
-      color: var(--primary);
-      margin-bottom: 6px;
-    }
-    #place-description {
-      font-size: 15px;
-      line-height: 1.4;
-      margin-bottom: 10px;
-      color: var(--text-primary);
-    }
-    #place-weather {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--primary);
+      font-weight:800;
+      font-size:22px;
+      color:var(--primary-dark);
+      text-align:center;
+      flex-grow:1;
+      margin:0 10px;
+      user-select:text;
     }
 
-    /* Scrollbar for images */
+    #directions-btn {
+      display:flex; align-items:center;
+      background:var(--primary);
+      color:white;
+      border:none;
+      border-radius:12px;
+      padding:8px 18px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 4px 10px rgb(26 115 232 / 0.5);
+      margin-bottom:18px;
+      transition:background-color .3s;
+      user-select:none;
+    }
+    #directions-btn:hover { background:var(--primary-dark); }
+
+    #directions-btn svg {
+      width:20px; height:20px;
+      margin-right:8px;
+      fill:white;
+      user-select:none;
+    }
+
+    #place-images {
+      display:flex;
+      gap:12px;
+      overflow-x:auto;
+      margin-bottom:18px;
+      width:100%;
+      scrollbar-width:thin;
+      scrollbar-color:var(--primary) transparent;
+      user-select:none;
+    }
     #place-images::-webkit-scrollbar {
-      height: 8px;
+      height:8px;
     }
     #place-images::-webkit-scrollbar-thumb {
-      background-color: var(--primary);
-      border-radius: 4px;
+      background:var(--primary);
+      border-radius:4px;
+    }
+    #place-images img {
+      height:110px;
+      border-radius:14px;
+      object-fit:cover;
+      flex-shrink:0;
+      cursor:pointer;
+      box-shadow:0 2px 8px rgba(26,115,232,0.25);
+      transition:transform .3s ease;
+    }
+    #place-images img:hover {
+      transform:scale(1.1);
+      box-shadow:0 4px 15px rgba(26,115,232,0.6);
     }
 
-    /* Media Queries */
-    @media (min-width: 769px) {
-      #side-panel {
-        width: 350px;
-        max-height: 100vh;
-        bottom: auto;
-        top: 48px;
-        left: -360px;
-        border-radius: 0 24px 24px 0;
-        box-shadow: 2px 0 18px rgba(0,0,0,0.12);
-        transform: translateX(0);
-        transition: left 0.3s cubic-bezier(0.4,0,0.2,1);
-      }
-      #side-panel.open {
-        left: 0;
-        transform: translateX(0);
-      }
-      #side-panel.expanded {
-        max-height: 95vh;
-      }
-      #map {
-        top: 48px;
-        left: 350px;
-        width: calc(100% - 350px);
-      }
+    #quick-facts {
+      width:100%; user-select:none;
     }
-
+    #quick-facts h3 {
+      font-weight:700;
+      font-size:18px;
+      color:var(--primary);
+      margin-bottom:6px;
+    }
+    #place-description {
+      font-size:15px;
+      line-height:1.4;
+      margin-bottom:10px;
+      color:var(--text);
+    }
+    #place-weather {
+      font-size:14px;
+      font-weight:600;
+      color:var(--primary);
+    }
   </style>
 </head>
 <body>
   <div id="top-banner">TheBoiisMC Maps</div>
-
   <div id="map"></div>
-
   <div class="search-bar">
     <input id="search" placeholder="Search a place..." autocomplete="off" />
     <button id="search-icon" aria-label="Search">🔍</button>
   </div>
-
   <div id="recent-searches"></div>
   <div id="suggestions"></div>
-
-  <div id="side-panel" aria-label="Place information panel" role="region">
-    <button id="close-side-panel" aria-label="Close panel">×</button>
+  <div id="side-panel" role="region" aria-label="Place info panel">
+    <button id="close-side-panel" aria-label="Close">×</button>
     <div id="panel-header">
-      <div id="panel-arrow" title="Expand/Collapse panel">⬇️</div>
+      <div id="panel-arrow" title="Expand/Collapse">⬇️</div>
       <div id="place-name">Loading...</div>
-      <div id="panel-search-icon" title="Focus search input">🔍</div>
+      <div id="panel-search-icon" title="Focus search">🔍</div>
     </div>
-    <button id="directions-btn" title="Get directions">
-      <svg viewBox="0 0 24 24"><path d="M21 11.5 8.5 21v-6H3v-3h5.5v-6z"/></svg>
+    <button id="directions-btn" title="Directions">
+      <svg viewBox="0 0 24 24">
+        <path d="M21 11.5 8.5 21v-6H3v-3h5.5v-6z"/>
+      </svg>
       Directions
     </button>
-    <div id="place-images" aria-label="Images of the place"></div>
+    <div id="place-images" aria-label="Place images"></div>
     <div id="quick-facts">
       <h3>Quick Facts</h3>
       <p id="place-description">Loading description...</p>
       <p id="place-weather">Loading weather...</p>
     </div>
   </div>
-
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-  <script src="https://unpkg.com/fuse.js@6.6.2"></script>
   <script src="app.js"></script>
 </body>
 </html>
