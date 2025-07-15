@@ -9,14 +9,14 @@
   <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
 
   <!-- Open Graph / Twitter Cards -->
-  <meta property="og:title" content="TheBoiisMC Maps">
-  <meta property="og:description" content="Explore the world with private, modern mapping.">
-  <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png">
-  <meta property="og:url" content="https://maps.theboiismc.com">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="TheBoiisMC Maps">
-  <meta name="twitter:description" content="Explore the world with private, modern mapping.">
-  <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png">
+  <meta property="og:title" content="TheBoiisMC Maps" />
+  <meta property="og:description" content="Explore the world with private, modern mapping." />
+  <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+  <meta property="og:url" content="https://maps.theboiismc.com" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TheBoiisMC Maps" />
+  <meta name="twitter:description" content="Explore the world with private, modern mapping." />
+  <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
 
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/fuse.js@6.6.2"></script>
@@ -44,9 +44,13 @@
       z-index: 50;
     }
     #map {
-      position: absolute; top: 48px; bottom: 0; left: 0; right: 0;
+      position: absolute;
+      top: 48px; bottom: 0; left: 0; right: 0;
       transition: left 0.3s ease;
       z-index: 1;
+    }
+    #map.shifted {
+      left: var(--panel-width);
     }
     .search-bar {
       position: absolute; top: 60px; left: 50%;
@@ -87,32 +91,35 @@
       font-style: italic;
       color: var(--primary);
     }
+    /* Side panel common */
     #side-panel {
       position: fixed;
-      top: 0; left: calc(-1 * var(--panel-width)); width: var(--panel-width);
-      height: 100%; background: white;
+      background: white;
       box-shadow: 2px 0 15px rgba(0,0,0,0.1);
       overflow-y: auto; padding: 20px;
-      transition: left 0.3s ease;
+      transition: left 0.3s ease, bottom 0.3s ease;
       z-index: 55;
     }
-    #side-panel.open { left: 0; }
     #close-side-panel {
       position: absolute; top: 15px; right: 15px;
       background: none; border: none;
       font-size: 24px; cursor: pointer;
+      color: var(--primary);
     }
     #panel-header {
       display: flex; align-items: center; margin-bottom: 16px;
+      font-family: 'Segoe UI', sans-serif;
     }
     #panel-arrow, #panel-search-icon {
       font-size: 20px; cursor: pointer;
       color: var(--primary);
       margin: 0 8px;
+      user-select: none;
     }
     #place-name {
       flex: 1; font-size: 20px; font-weight: 600;
       text-align: center;
+      color: var(--text);
     }
     #directions-btn {
       display: flex; align-items: center;
@@ -131,17 +138,36 @@
       object-fit: cover; border-radius: 8px;
     }
     #quick-facts h3 {
-      margin: 0 0 8px;
+      margin-bottom: 8px;
+      color: var(--primary);
     }
+    #quick-facts p {
+      margin: 4px 0;
+    }
+
+    /* Desktop panel (>= 769px) */
+    @media (min-width: 769px) {
+      #side-panel {
+        top: 48px; left: calc(-1 * var(--panel-width));
+        width: var(--panel-width);
+        height: calc(100% - 48px);
+        border-radius: 0;
+      }
+      #side-panel.open {
+        left: 0;
+      }
+    }
+
+    /* Mobile panel (< 769px) */
     @media (max-width: 768px) {
-      #map { top: 48px; }
       #side-panel {
         top: auto; bottom: -75vh; width: 100%;
         height: 75vh; border-radius: 20px 20px 0 0;
-        box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
-        left: 0; transition: bottom 0.3s ease;
+        left: 0; /* full width */
       }
-      #side-panel.open { bottom: 0; }
+      #side-panel.open {
+        bottom: 0;
+      }
     }
   </style>
 </head>
@@ -153,18 +179,18 @@
 
   <div class="search-bar">
     <input id="search" placeholder="Search a place..." autocomplete="off" />
-    <button id="search-icon">🔍</button>
+    <button id="search-icon" aria-label="Search">🔍</button>
   </div>
 
-  <div id="recent-searches"></div>
-  <div id="suggestions"></div>
+  <div id="recent-searches" role="listbox"></div>
+  <div id="suggestions" role="listbox"></div>
 
-  <div id="side-panel" aria-label="Place info panel">
-    <button id="close-side-panel" aria-label="Close">×</button>
+  <div id="side-panel" aria-label="Place info panel" role="region" aria-hidden="true">
+    <button id="close-side-panel" aria-label="Close side panel">×</button>
     <div id="panel-header">
-      <div id="panel-arrow">⬇️</div>
+      <div id="panel-arrow" role="button" aria-expanded="false" tabindex="0" aria-label="Toggle side panel">⬇️</div>
       <div id="place-name">Select a place</div>
-      <div id="panel-search-icon">🔍</div>
+      <div id="panel-search-icon" role="button" tabindex="0" aria-label="Focus search input">🔍</div>
     </div>
     <button id="directions-btn">Directions</button>
     <div id="place-images"></div>
