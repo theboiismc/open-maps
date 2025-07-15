@@ -4,7 +4,6 @@ const map = new maplibregl.Map({
   center: [-95, 39],
   zoom: 4
 });
-
 map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), 'bottom-right');
 
@@ -18,40 +17,61 @@ const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
 const placeImage = $('place-image');
 
-const panelMaxHeightRatio = 0.8; // 80% max height on mobile
-let initialVisibleHeight = 0;
+let panelMaxHeight = window.innerHeight * 0.8;
+let collapsedTranslateY = panelMaxHeight * 0.75;
+const expandedTranslateY = 0;
 
-function openPanel() {
-  sidePanel.classList.remove('hidden');
+let dragging = false;
+let startY = 0;
+let lastY = 0;
+let lastTime = 0;
+let velocity = 0;
 
-  if (window.innerWidth <= 768) {
-    initialVisibleHeight = window.innerHeight * panelMaxHeightRatio / 2; // half panel height
-    sidePanel.classList.remove('expanded');
-    sidePanel.classList.add('collapsed');
-    sidePanel.style.transition = 'transform 0.25s ease';
-    sidePanel.style.transform = `translateY(${window.innerHeight - initialVisibleHeight}px)`;
+function updatePanelSizes() {
+  panelMaxHeight = window.innerHeight * 0.8;
+  collapsedTranslateY = panelMaxHeight * 0.75;
+  if (sidePanel.classList.contains('expanded')) {
+    sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
+  } else if (sidePanel.classList.contains('collapsed')) {
+    sidePanel.style.transform = `translateY(${collapsedTranslateY}px)`;
   } else {
-    sidePanel.classList.add('open');
+    sidePanel.style.transform = `translateY(${panelMaxHeight}px)`;
   }
 }
 
+window.addEventListener('resize', () => {
+  updatePanelSizes();
+});
+
+function openPanel() {
+  sidePanel.classList.remove('hidden');
+  sidePanel.classList.add('collapsed');
+  sidePanel.classList.remove('expanded');
+  sidePanel.style.transition = 'transform 0.25s ease';
+  sidePanel.style.transform = `translateY(${collapsedTranslateY}px)`;
+}
+
 function closePanel() {
-  sidePanel.classList.add('hidden');
-  sidePanel.classList.remove('open', 'collapsed', 'expanded');
-  sidePanel.style.transform = '';
-  sidePanel.style.transition = '';
+  sidePanel.style.transition = 'transform 0.25s ease';
+  sidePanel.style.transform = `translateY(${panelMaxHeight}px)`;
+  setTimeout(() => {
+    sidePanel.classList.add('hidden');
+    sidePanel.classList.remove('expanded', 'collapsed');
+    sidePanel.style.transition = '';
+  }, 300);
 }
 
 closeSidePanel.addEventListener('click', closePanel);
 
 search.addEventListener('input', debounce(async () => {
   const query = search.value.trim();
-  if (!query) return suggestions.innerHTML = '';
-
+  if (!query) {
+    suggestions.innerHTML = '';
+    return;
+  }
   const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
   const json = await res.json();
   suggestions.innerHTML = '';
-
   json.features.forEach(f => {
     const div = document.createElement('div');
     div.className = 'suggestion';
@@ -69,7 +89,6 @@ search.addEventListener('input', debounce(async () => {
 
 async function loadPlaceInfo(name, lat, lon) {
   placeName.textContent = name;
-
   try {
     const imageRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
     const imageData = await imageRes.json();
@@ -80,7 +99,6 @@ async function loadPlaceInfo(name, lat, lon) {
   } catch {
     placeImage.src = 'default.jpg';
   }
-
   try {
     const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
     const wikiData = await wikiRes.json();
@@ -88,7 +106,6 @@ async function loadPlaceInfo(name, lat, lon) {
   } catch {
     placeDescription.textContent = 'No description available.';
   }
-
   placeWeather.textContent = 'Weather info would be here';
 }
 
@@ -100,59 +117,85 @@ function debounce(fn, delay) {
   };
 }
 
-// Swipe drag logic
-let dragging = false;
-let startY = 0;
-let currentY = 0;
-let offsetY = 0;
+// Swipe Drag + Flick handling
 
-function enablePanelDrag() {
-  sidePanel.addEventListener('touchstart', (e) => {
-    if (window.innerWidth > 768) return;
-    dragging = true;
-    startY = e.touches[0].clientY;
-    offsetY = sidePanel.getBoundingClientRect().top;
-    sidePanel.style.transition = 'none';
-  });
+sidePanel.addEventListener('touchstart', e => {
+  if (window.innerWidth > 768) return;
+  dragging = true;
+  startY = e.touches[0].clientY;
+  lastY = startY;
+  lastTime = performance.now();
+  sidePanel.style.transition = 'none';
+});
 
-  sidePanel.addEventListener('touchmove', (e) => {
-    if (!dragging) return;
-    currentY = e.touches[0].clientY;
-    let delta = currentY - startY;
-    let maxTranslateY = window.innerHeight - (window.innerHeight * panelMaxHeightRatio / 2);
-    let newY = offsetY + delta;
-    newY = Math.max(0, Math.min(newY, maxTranslateY));
-    sidePanel.style.transform = `translateY(${newY}px)`;
-  });
+sidePanel.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  const currentY = e.touches[0].clientY;
+  const deltaY = currentY - startY;
 
-  sidePanel.addEventListener('touchend', () => {
-    if (!dragging) return;
-    dragging = false;
-    const top = sidePanel.getBoundingClientRect().top;
-    const snapThreshold = window.innerHeight / 2;
+  let newTranslateY = collapsedTranslateY + deltaY;
+  newTranslateY = Math.min(Math.max(expandedTranslateY, newTranslateY), panelMaxHeight);
 
-    if (top < snapThreshold) {
+  sidePanel.style.transform = `translateY(${newTranslateY}px)`;
+
+  const now = performance.now();
+  const dt = now - lastTime;
+  if (dt > 0) {
+    velocity = (currentY - lastY) / dt;
+    lastY = currentY;
+    lastTime = now;
+  }
+});
+
+sidePanel.addEventListener('touchend', e => {
+  if (!dragging) return;
+  dragging = false;
+  sidePanel.style.transition = 'transform 0.25s ease';
+
+  const matrix = window.getComputedStyle(sidePanel).transform;
+  let translateY = collapsedTranslateY;
+  if (matrix && matrix !== 'none') {
+    const values = matrix.match(/matrix.*\((.+)\)/)[1].split(', ');
+    translateY = parseFloat(values[5]);
+  }
+
+  const threshold = panelMaxHeight / 3;
+  const flickThreshold = 0.3;
+
+  if (velocity < -flickThreshold) {
+    sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
+    sidePanel.classList.add('expanded');
+    sidePanel.classList.remove('collapsed');
+  } else if (velocity > flickThreshold) {
+    closePanel();
+  } else {
+    if (translateY < threshold) {
+      sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
       sidePanel.classList.add('expanded');
       sidePanel.classList.remove('collapsed');
-      sidePanel.style.transition = 'transform 0.25s ease';
-      sidePanel.style.transform = `translateY(0px)`;
     } else {
+      sidePanel.style.transform = `translateY(${collapsedTranslateY}px)`;
       sidePanel.classList.add('collapsed');
       sidePanel.classList.remove('expanded');
-      sidePanel.style.transition = 'transform 0.25s ease';
-      sidePanel.style.transform = `translateY(${window.innerHeight - (window.innerHeight * panelMaxHeightRatio / 2)}px)`;
     }
-  });
-}
-
-enablePanelDrag();
+  }
+});
 
 $('panel-arrow').addEventListener('click', () => {
-  const expanded = sidePanel.classList.contains('expanded');
-  sidePanel.classList.toggle('expanded', !expanded);
-  sidePanel.classList.toggle('collapsed', expanded);
-  sidePanel.style.transition = 'transform 0.25s ease';
-  sidePanel.style.transform = expanded
-    ? `translateY(${window.innerHeight - (window.innerHeight * panelMaxHeightRatio / 2)}px)`
-    : `translateY(0px)`;
+  const isExpanded = sidePanel.classList.contains('expanded');
+  if (isExpanded) {
+    sidePanel.style.transition = 'transform 0.25s ease';
+    sidePanel.style.transform = `translateY(${collapsedTranslateY}px)`;
+    sidePanel.classList.remove('expanded');
+    sidePanel.classList.add('collapsed');
+  } else {
+    sidePanel.style.transition = 'transform 0.25s ease';
+    sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
+    sidePanel.classList.add('expanded');
+    sidePanel.classList.remove('collapsed');
+  }
 });
+
+// Initial panel state:
+sidePanel.classList.add('hidden');
+updatePanelSizes();
