@@ -5,7 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TheBoiisMC Maps</title>
 
-  <!-- Favicon / OG / Twitter metas omitted for brevity -->
+  <!-- Favicon -->
+  <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
+
+  <!-- Open Graph / Twitter Cards -->
+  <meta property="og:title" content="TheBoiisMC Maps" />
+  <meta property="og:description" content="Explore the world with private, modern mapping." />
+  <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+  <meta property="og:url" content="https://maps.theboiismc.com" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TheBoiisMC Maps" />
+  <meta name="twitter:description" content="Explore the world with private, modern mapping." />
+  <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
 
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/fuse.js@6.6.2"></script>
@@ -119,7 +130,6 @@
 
     /* Directions panel */
     #directions-section { display: none; }
-    #directions-section.active { display: block; }
     #directions-section label {
       display: block; margin: 6px 0 2px; font-weight: 600;
     }
@@ -183,24 +193,24 @@
   <div id="map"></div>
 
   <div class="search-bar">
-    <input id="search" placeholder="Search a place..." autocomplete="off" />
-    <button id="search-icon">🔍</button>
+    <input id="search" placeholder="Search a place…" autocomplete="off" />
+    <button id="search-icon" aria-label="Search">🔍</button>
   </div>
   <div id="recent-searches" aria-label="Recent searches"></div>
   <div id="suggestions" aria-label="Search suggestions"></div>
 
   <div id="side-panel" aria-hidden="true">
-    <button id="close-side-panel">×</button>
+    <button id="close-side-panel" aria-label="Close panel">×</button>
     <div id="panel-header">
-      <div id="panel-arrow">⬇️</div>
+      <div id="panel-arrow" aria-expanded="false" aria-label="Toggle panel">⬇️</div>
       <div id="place-name">Select a place</div>
-      <div id="panel-search-icon">🔍</div>
+      <div id="panel-search-icon" aria-label="Focus search">🔍</div>
     </div>
 
     <!-- Place info -->
     <div id="place-info-section">
-      <button id="directions-btn">Directions</button>
-      <div id="place-images"></div>
+      <button id="directions-btn" aria-label="Show directions">Directions</button>
+      <div id="place-images" aria-live="polite" aria-atomic="true"></div>
       <div id="quick-facts">
         <h3>Quick Facts</h3>
         <p id="place-description"></p>
@@ -210,7 +220,7 @@
 
     <!-- Directions form -->
     <div id="directions-section">
-      <form id="directions-form">
+      <form id="directions-form" aria-label="Directions form">
         <label for="from-input">From</label>
         <input id="from-input" required autocomplete="off" />
         <div id="from-suggestions" class="dir-suggestions"></div>
@@ -222,7 +232,7 @@
         <button type="submit">Get Directions</button>
         <button type="button" id="back-to-info-btn">Back</button>
       </form>
-      <pre id="directions-result"></pre>
+      <pre id="directions-result" aria-live="polite"></pre>
     </div>
 
     <!-- Route steps -->
