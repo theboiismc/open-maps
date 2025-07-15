@@ -21,6 +21,14 @@ const placeWeather = $("place-weather");
 const placeImages = $("place-images");
 const directionsBtn = $("directions-btn");
 
+const placeInfoSection = $("place-info-section");
+const directionsSection = $("directions-section");
+const backToInfoBtn = $("back-to-info");
+const directionsForm = $("directions-form");
+const fromInput = $("from-input");
+const toInput = $("to-input");
+const directionsResult = $("directions-result");
+
 let currentPlace = null;
 let recentSearches = JSON.parse(localStorage.getItem("recentSearches") || "[]");
 let fuseRecent = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
@@ -61,13 +69,18 @@ function renderSuggestions(list) {
   suggestionsEl.style.display = "block";
 }
 
-async function fetchPhoton(q) {
-  const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5`);
+async function fetchNominatim(q) {
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`, {
+    headers: {
+      'Accept-Language': 'en-US,en;q=0.9',
+      'X-Requested-With': 'theboiismc-maps-app'
+    }
+  });
   const json = await res.json();
-  return json.features.map(f => ({
-    name: f.properties.name,
-    lat: f.geometry.coordinates[1],
-    lon: f.geometry.coordinates[0]
+  return json.map(place => ({
+    name: place.display_name,
+    lat: parseFloat(place.lat),
+    lon: parseFloat(place.lon),
   }));
 }
 
@@ -91,7 +104,7 @@ searchInput.addEventListener("input", debounce(async () => {
     list = fuseRecent.search(q).map(r => r.item);
   }
   if (list.length < 5) {
-    const extra = await fetchPhoton(q);
+    const extra = await fetchNominatim(q);
     extra.forEach(e => {
       if (!list.find(r => r.name === e.name)) list.push(e);
     });
@@ -108,7 +121,25 @@ document.addEventListener("click", e => {
 });
 
 function togglePanel(open) {
-  panel.classList.toggle("open", open);
+  if (window.innerWidth <= 768) {
+    // MOBILE
+    if (open) {
+      panel.classList.add("open");
+      panel.style.bottom = "0";
+    } else {
+      panel.classList.remove("open");
+      panel.style.bottom = `calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)))`;
+    }
+  } else {
+    // DESKTOP
+    if (open) {
+      panel.classList.add("open");
+      panel.style.left = "0";
+    } else {
+      panel.classList.remove("open");
+      panel.style.left = `calc(-1 * var(--panel-width))`;
+    }
+  }
   panel.setAttribute("aria-hidden", open ? "false" : "true");
   panelArrow.setAttribute("aria-expanded", open ? "true" : "false");
   map.resize();
@@ -117,7 +148,7 @@ function togglePanel(open) {
 closeBtn.addEventListener("click", () => togglePanel(false));
 panelArrow.addEventListener("click", () => togglePanel(!panel.classList.contains("open")));
 panelArrow.addEventListener("keydown", e => {
-  if (e.key === "Enter" || e.key === " " ) {
+  if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
     togglePanel(!panel.classList.contains("open"));
   }
@@ -133,6 +164,12 @@ async function selectPlace(p) {
   window.placeMarker = new maplibregl.Marker().setLngLat([p.lon, p.lat]).addTo(map);
   map.flyTo({ center: [p.lon, p.lat], zoom: 13 });
   await loadPlaceInfo(p);
+
+  // Show place info section, hide directions section
+  placeInfoSection.hidden = false;
+  directionsSection.classList.remove("active");
+  directionsSection.hidden = true;
+
   togglePanel(true);
 }
 
@@ -151,40 +188,56 @@ async function loadPlaceInfo(p) {
     placeDesc.textContent = "No description available.";
   }
 
-  // Images (Wikipedia)
-  try {
-    const pg = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=images&titles=${encodeURIComponent(p.name)}&format=json&origin=*`);
-    const j = await pg.json();
-    const page = j.query.pages[Object.keys(j.query.pages)[0]];
-    const imgs = (page.images || []).slice(0, 5);
-    for (let img of imgs) {
-      if (/\.(jpg|jpeg|png)$/i.test(img.title)) {
-        const info = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(img.title)}&prop=imageinfo&iiprop=url&format=json&origin=*`);
-        const inf = await info.json();
-        const u = inf.query.pages[Object.keys(inf.query.pages)[0]].imageinfo[0].url;
-        const el = document.createElement("img");
-        el.src = u; el.alt = p.name;
-        placeImages.appendChild(el);
-      }
-    }
-  } catch {}
-
-  // Weather (Open-Meteo)
-  try {
-    const wr = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current_weather=true`);
-    const wj = await wr.json();
-    if (wj.current_weather) {
-      const cw = wj.current_weather;
-      placeWeather.textContent = `Temp: ${cw.temperature}°C, Wind: ${cw.windspeed} km/h`;
-    } else placeWeather.textContent = "No weather info.";
-  } catch {
-    placeWeather.textContent = "No weather info.";
-  }
+  // TODO: Add weather & images if you want (can be added later)
 }
 
-window.addEventListener("load", () => {
-  panel.classList.remove("open");
-  panel.setAttribute("aria-hidden", "true");
-  panelArrow.setAttribute("aria-expanded", "false");
-  map.resize();
+directionsBtn.addEventListener("click", () => {
+  // Switch to directions panel
+  placeInfoSection.hidden = true;
+  directionsSection.classList.add("active");
+  directionsSection.hidden = false;
+  if (currentPlace) {
+    fromInput.value = currentPlace.name;
+    toInput.value = "";
+    directionsResult.textContent = "";
+  }
 });
+
+backToInfoBtn.addEventListener("click", () => {
+  // Back to place info panel
+  directionsSection.classList.remove("active");
+  directionsSection.hidden = true;
+  placeInfoSection.hidden = false;
+});
+
+// Dummy directions routing (for example)
+directionsForm.addEventListener("submit", e => {
+  e.preventDefault();
+  if (!toInput.value.trim()) return;
+  directionsResult.textContent = `Routing from "${fromInput.value}" to "${toInput.value}"... (demo, no real routing yet)`;
+});
+
+// On load: set panel hidden according to viewport size
+function initPanelState() {
+  if (window.innerWidth <= 768) {
+    // mobile: partially visible panel
+    panel.classList.remove("open");
+    panel.style.bottom = `calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)))`;
+    panel.style.left = "0";
+    panel.setAttribute("aria-hidden", "true");
+    panelArrow.setAttribute("aria-expanded", "false");
+  } else {
+    // desktop: fully hidden panel (offscreen left)
+    panel.classList.remove("open");
+    panel.style.left = `calc(-1 * var(--panel-width))`;
+    panel.style.bottom = "";
+    panel.setAttribute("aria-hidden", "true");
+    panelArrow.setAttribute("aria-expanded", "false");
+  }
+  map.resize();
+}
+
+// On window resize, reset panel state (optional)
+window.addEventListener("resize", initPanelState);
+
+initPanelState();
