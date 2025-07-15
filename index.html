@@ -1,12 +1,10 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TheBoiisMC Maps</title>
-
-  <!-- Favicon & Social metas -->
   <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
   <meta property="og:title" content="TheBoiisMC Maps" />
   <meta property="og:description" content="Explore the world with private, modern mapping." />
@@ -16,158 +14,313 @@
   <meta name="twitter:title" content="TheBoiisMC Maps" />
   <meta name="twitter:description" content="Explore the world with private, modern mapping." />
   <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
-
-  <!-- Libraries -->
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/fuse.js@6.6.2"></script>
-
   <style>
     :root {
       --primary: #1a73e8;
       --bg: #f9faff;
       --text: #222;
-      --panel-width: 360px;
-      --panel-mobile-height: 75vh;
-      --panel-mobile-peek: 40vh;
+      --panel-width: 300px;
+      --panel-mobile-height: 400px;
+      --panel-mobile-peek: 100px;
     }
+
     html, body {
-      margin:0; padding:0; height:100%; width:100%;
-      overflow:hidden; background:var(--bg);
-      font-family:'Segoe UI',sans-serif; color:var(--text);
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Segoe UI', sans-serif;
+      color: var(--text);
     }
-    #top-banner {
-      position:fixed; top:0; left:0; right:0;
-      background:var(--primary); color:#fff;
-      font-weight:700; font-size:1.3rem;
-      text-align:center; padding:12px 0; z-index:50;
-    }
+
     #map {
-      position:absolute; top:48px; bottom:0; left:0; right:0; z-index:1;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
     }
+
     .search-bar {
-      position:absolute; top:60px; left:50%;
-      transform:translateX(-50%);
-      background:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.1);
-      border-radius:25px; padding:8px 16px;
-      display:flex; align-items:center;
-      width:80%; max-width:450px; z-index:60;
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-radius: 25px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      width: 80%;
+      max-width: 450px;
+      z-index: 60;
     }
+
     .search-bar input {
-      flex:1; border:none; outline:none;
-      padding:8px 12px; font-size:16px; border-radius:25px;
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 8px 12px;
+      font-size: 16px;
+      border-radius: 25px;
     }
+
     .search-bar button {
-      background:none; border:none; font-size:20px;
-      cursor:pointer; color:var(--primary);
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--primary);
     }
+
     #suggestions, #recent-searches {
-      position:absolute; top:102px; left:50%;
-      transform:translateX(-50%);
-      width:80%; max-width:450px;
-      background:#fff; border-radius:8px;
-      box-shadow:0 4px 15px rgba(0,0,0,0.15);
-      max-height:240px; overflow-y:auto;
-      display:none; z-index:60;
+      position: absolute;
+      top: 102px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 450px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      max-height: 240px;
+      overflow-y: auto;
+      display: none;
+      z-index: 60;
     }
+
     .suggestion {
-      padding:10px 14px; cursor:pointer;
-      border-bottom:1px solid #eee;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
     }
-    .suggestion:hover { background:var(--primary); color:#fff; }
-    .suggestion.recent { font-style:italic; color:var(--primary); }
+
+    .suggestion:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .suggestion.recent {
+      font-style: italic;
+      color: var(--primary);
+    }
 
     #side-panel {
-      position:fixed; top:0; left:calc(-1*var(--panel-width));
-      width:var(--panel-width); height:100%;
-      background:#fff; box-shadow:2px 0 15px rgba(0,0,0,0.1);
-      overflow-y:auto; padding:20px;
-      transition:left .3s ease,bottom .3s ease;
-      z-index:55;
+      position: fixed;
+      top: 0;
+      left: calc(-1 * var(--panel-width));
+      width: var(--panel-width);
+      height: 100%;
+      background: #fff;
+      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+      padding: 20px;
+      transition: left .3s ease, bottom .3s ease;
+      z-index: 55;
     }
-    #side-panel.open { left:0; }
+
+    #side-panel.open {
+      left: 0;
+    }
+
     #close-side-panel {
-      position:absolute; top:15px; right:15px;
-      background:none; border:none; font-size:24px; cursor:pointer;
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
     }
-    #panel-header { display:flex; align-items:center; margin-bottom:16px; }
+
+    #panel-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
     #panel-arrow, #panel-search-icon {
-      font-size:20px; cursor:pointer; color:var(--primary); margin:0 8px;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--primary);
+      margin: 0 8px;
     }
+
     #place-name {
-      flex:1; font-size:20px; font-weight:600; text-align:center;
+      flex: 1;
+      font-size: 20px;
+      font-weight: 600;
+      text-align: center;
     }
 
     /* Info Mode */
     #directions-btn {
-      background:var(--primary); color:#fff;
-      border:none; border-radius:12px; padding:8px 16px;
-      font-size:15px; cursor:pointer; margin-bottom:14px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-bottom: 14px;
     }
-    #directions-btn:hover { background:darkblue; }
-    #place-images { display:flex; gap:10px; overflow-x:auto; margin-bottom:14px; }
-    #place-images img { width:100px; height:100px; object-fit:cover; border-radius:8px; }
-    #quick-facts h3 { margin:0 0 8px; }
+
+    #directions-btn:hover {
+      background: darkblue;
+    }
+
+    #place-images {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      margin-bottom: 14px;
+    }
+
+    #place-images img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    #quick-facts h3 {
+      margin: 0 0 8px;
+    }
 
     /* Directions Mode */
-    #directions-section { display:none; }
-    #directions-section:not([hidden]) { display:block; }
-    #directions-section label { display:block; margin:6px 0 2px; font-weight:600; }
-    #directions-section input {
-      width:100%; padding:6px 8px; margin-bottom:4px;
-      border:1px solid #ccc; border-radius:8px; font-size:14px;
+    #directions-section {
+      display: none;
     }
+
+    #directions-section:not([hidden]) {
+      display: block;
+    }
+
+    #directions-section label {
+      display: block;
+      margin: 6px 0 2px;
+      font-weight: 600;
+    }
+
+    #directions-section input {
+      width: 100%;
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
     #directions-section button[type="submit"],
     #back-to-info-btn {
-      background:var(--primary); color:#fff;
-      border:none; border-radius:12px; padding:8px 16px;
-      font-size:15px; cursor:pointer; margin:6px 8px 0 0;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      margin: 6px 8px 0 0;
     }
+
     #directions-section button[type="submit"]:hover,
-    #back-to-info-btn:hover { background:darkblue; }
+    #back-to-info-btn:hover {
+      background: darkblue;
+    }
+
     #directions-result {
-      margin-top:8px; font-size:14px; white-space:pre-wrap; color:#333;
+      margin-top: 8px;
+      font-size: 14px;
+      white-space: pre-wrap;
+      color: #333;
     }
+
     .dir-suggestions {
-      background:#fff; border:1px solid #ccc;
-      max-height:150px; overflow-y:auto;
-      display:none; position:relative; z-index:70; margin-bottom:8px;
+      background: #fff;
+      border: 1px solid #ccc;
+      max-height: 150px;
+      overflow-y: auto;
+      display: none;
+      position: relative;
+      z-index: 70;
+      margin-bottom: 8px;
     }
-    .dir-suggestions .suggestion:hover { background:var(--primary); color:#fff; }
+
+    .dir-suggestions .suggestion:hover {
+      background: var(--primary);
+      color: #fff;
+    }
 
     /* Route Mode */
-    #route-section { display:none; }
-    #route-section:not([hidden]) { display:block; }
-    #route-section h3 { margin-top:0; }
-    #route-steps { padding-left:20px; }
-    #exit-route-btn {
-      background:var(--primary); color:#fff;
-      border:none; border-radius:12px; padding:8px 16px;
-      font-size:15px; cursor:pointer; margin-top:12px;
+    #route-section {
+      display: none;
     }
-    #exit-route-btn:hover { background:darkblue; }
 
-    @media (max-width:768px) {
+    #route-section:not([hidden]) {
+      display: block;
+    }
+
+    #route-section h3 {
+      margin-top: 0;
+    }
+
+    #route-steps {
+      padding-left: 20px;
+    }
+
+    #exit-route-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    #exit-route-btn:hover {
+      background: darkblue;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
       #side-panel {
-        top:auto; bottom:calc(-1*(var(--panel-mobile-height)-var(--panel-mobile-peek)));
-        width:100%; height:var(--panel-mobile-height);
-        border-radius:20px 20px 0 0; box-shadow:0 -3px 18px rgba(0,0,0,0.1);
-        left:0; transition:bottom .3s ease;
+        top: auto;
+        bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+        width: 100%;
+        height: var(--panel-mobile-height);
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+        left: 0;
+        transition: bottom .3s ease;
       }
-      #side-panel.open { bottom:0; left:0; }
+
+      #side-panel.open {
+        bottom: 0;
+        left: 0;
+      }
     }
   </style>
 </head>
-<body>
-  <div id="top-banner">TheBoiisMC Maps</div>
-  <div id="map"></div>
 
+<body>
+  <div id="map"></div>
+  
   <div class="search-bar">
-    <input id="search" placeholder="Search a place…" autocomplete="off" />
+    <input id="search" type="text" placeholder="Search places..." />
     <button id="search-icon">🔍</button>
   </div>
-  <div id="recent-searches"></div>
-  <div id="suggestions"></div>
 
+  <div id="suggestions"></div>
+  <div id="recent-searches"></div>
+
+  <!-- Side Panel -->
   <div id="side-panel" aria-hidden="true">
     <button id="close-side-panel">×</button>
     <div id="panel-header">
@@ -175,7 +328,6 @@
       <div id="place-name">Select a place</div>
       <div id="panel-search-icon">🔍</div>
     </div>
-
     <!-- Info Mode -->
     <div id="place-info-section">
       <button id="directions-btn">Directions</button>
@@ -186,30 +338,26 @@
         <p id="place-weather"></p>
       </div>
     </div>
-
     <!-- Directions Mode -->
     <div id="directions-section" hidden>
       <form id="directions-form">
         <label for="from-input">From</label>
-        <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex; gap:4px; align-items:center;">
           <input id="from-input" autocomplete="off" placeholder="Type or My Location" />
           <button type="button" class="my-loc-btn" data-target="from">📍</button>
         </div>
         <div id="from-suggestions" class="dir-suggestions"></div>
-
         <label for="to-input">To</label>
-        <div style="display:flex;gap:4px;align-items:center;">
+        <div style="display:flex; gap:4px; align-items:center;">
           <input id="to-input" autocomplete="off" placeholder="Type or My Location" />
           <button type="button" class="my-loc-btn" data-target="to">📍</button>
         </div>
         <div id="to-suggestions" class="dir-suggestions"></div>
-
         <button type="submit">Get Directions</button>
         <button type="button" id="back-to-info-btn">Back</button>
       </form>
       <pre id="directions-result"></pre>
     </div>
-
     <!-- Route Mode -->
     <div id="route-section" hidden>
       <h3>Route Steps</h3>
@@ -221,4 +369,5 @@
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
+
 </html>
