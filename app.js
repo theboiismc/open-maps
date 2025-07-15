@@ -18,26 +18,28 @@ const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
 const placeImage = $('place-image');
 
-// Open panel
 function openPanel() {
+  sidePanel.classList.remove('hidden');
+
   if (window.innerWidth <= 768) {
     sidePanel.classList.remove('expanded');
     sidePanel.classList.add('collapsed');
     sidePanel.style.transition = 'transform 0.25s ease';
-    sidePanel.style.transform = `translateY(${window.innerHeight - 120}px)`;
+    sidePanel.style.transform = `translateY(${window.innerHeight - 240}px)`;
   } else {
     sidePanel.classList.add('open');
   }
 }
 
-// Close panel
 function closePanel() {
+  sidePanel.classList.add('hidden');
   sidePanel.classList.remove('open', 'collapsed', 'expanded');
+  sidePanel.style.transform = '';
+  sidePanel.style.transition = '';
 }
 
 closeSidePanel.addEventListener('click', closePanel);
 
-// Debounced search input
 search.addEventListener('input', debounce(async () => {
   const query = search.value.trim();
   if (!query) return suggestions.innerHTML = '';
@@ -94,7 +96,7 @@ function debounce(fn, delay) {
   };
 }
 
-// 🧠 SWIPE LOGIC (fixed version)
+// Swipe drag logic
 let dragging = false;
 let startY = 0;
 let currentY = 0;
@@ -113,8 +115,9 @@ function enablePanelDrag() {
     if (!dragging) return;
     currentY = e.touches[0].clientY;
     let delta = currentY - startY;
+    let maxTranslateY = window.innerHeight - 240; // collapsed pos
     let newY = offsetY + delta;
-    newY = Math.max(0, Math.min(newY, window.innerHeight - 120));
+    newY = Math.max(0, Math.min(newY, maxTranslateY));
     sidePanel.style.transform = `translateY(${newY}px)`;
   });
 
@@ -133,20 +136,20 @@ function enablePanelDrag() {
       sidePanel.classList.add('collapsed');
       sidePanel.classList.remove('expanded');
       sidePanel.style.transition = 'transform 0.25s ease';
-      sidePanel.style.transform = `translateY(${window.innerHeight - 120}px)`;
+      sidePanel.style.transform = `translateY(${window.innerHeight - 240}px)`;
     }
   });
 }
 
 enablePanelDrag();
 
-// Optional: tap arrow to toggle expand/collapse
+// Optional: toggle arrow to expand/collapse panel on mobile
 $('panel-arrow').addEventListener('click', () => {
   const expanded = sidePanel.classList.contains('expanded');
   sidePanel.classList.toggle('expanded', !expanded);
   sidePanel.classList.toggle('collapsed', expanded);
   sidePanel.style.transition = 'transform 0.25s ease';
   sidePanel.style.transform = expanded
-    ? `translateY(${window.innerHeight - 120}px)`
+    ? `translateY(${window.innerHeight - 240}px)`
     : `translateY(0px)`;
 });
