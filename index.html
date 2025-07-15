@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -185,18 +185,18 @@
 
   <div class="search-bar">
     <input id="search" placeholder="Search a place..." autocomplete="off" />
-    <button id="search-icon">🔍</button>
+    <button id="search-icon" aria-label="Search">🔍</button>
   </div>
 
   <div id="recent-searches"></div>
   <div id="suggestions"></div>
 
   <div id="side-panel" aria-label="Place info panel" aria-hidden="true">
-    <button id="close-side-panel" aria-label="Close">×</button>
+    <button id="close-side-panel" aria-label="Close panel">×</button>
     <div id="panel-header">
-      <div id="panel-arrow" aria-expanded="false">⬇️</div>
+      <div id="panel-arrow" aria-expanded="false" role="button" tabindex="0">⬇️</div>
       <div id="place-name">Select a place</div>
-      <div id="panel-search-icon">🔍</div>
+      <div id="panel-search-icon" role="button" tabindex="0" aria-label="Focus search">🔍</div>
     </div>
     <button id="directions-btn">Directions</button>
     <div id="place-images"></div>
