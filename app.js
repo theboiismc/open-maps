@@ -1,6 +1,6 @@
 // app.js
 
-// Initialize the map
+// 1) Init map + controls
 const map = new maplibregl.Map({
   container: "map",
   style: "https://tiles.openfreemap.org/styles/liberty",
@@ -8,44 +8,48 @@ const map = new maplibregl.Map({
   zoom: 4,
 });
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-map.addControl(
-  new maplibregl.GeolocateControl({ trackUserLocation: true }),
-  "bottom-right"
-);
+const geoCtrl = new maplibregl.GeolocateControl({
+  trackUserLocation: true,
+  showUserHeading: true,
+});
+map.addControl(geoCtrl, "bottom-right");
 
-// Element getters
-const $ = (id) => document.getElementById(id);
-const searchInput       = $("search"),
-      suggestionsEl     = $("suggestions"),
-      recentEl          = $("recent-searches"),
-      panel             = $("side-panel"),
-      closeBtn          = $("close-side-panel"),
-      panelArrow        = $("panel-arrow"),
-      panelSearch       = $("panel-search-icon"),
-      placeName         = $("place-name"),
-      placeDesc         = $("place-description"),
-      placeWeather      = $("place-weather"),
-      placeImages       = $("place-images"),
-      directionsBtn     = $("directions-btn"),
-      placeInfoSection  = $("place-info-section"),
-      directionsSection = $("directions-section"),
-      directionsForm    = $("directions-form"),
-      fromInput         = $("from-input"),
-      toInput           = $("to-input"),
-      fromSug           = $("from-suggestions"),
-      toSug             = $("to-suggestions"),
-      directionsResult  = $("directions-result"),
-      backToInfoBtn     = $("back-to-info-btn"),
-      routeSection      = $("route-section"),
-      routeStepsEl      = $("route-steps"),
-      exitRouteBtn      = $("exit-route-btn");
+// 2) Elements
+const $ = id => document.getElementById(id);
+const searchInput = $("search"),
+      suggestionsEl = $("suggestions"),
+      recentEl = $("recent-searches"),
+      panel = $("side-panel"),
+      closeBtn = $("close-side-panel"),
+      panelArrow = $("panel-arrow"),
+      panelSearch = $("panel-search-icon"),
+      placeName = $("place-name"),
+      placeDesc = $("place-description"),
+      placeWeather = $("place-weather"),
+      placeImages = $("place-images"),
+      directionsBtn = $("directions-btn"),
+      infoSection = $("place-info-section"),
+      dirSection = $("directions-section"),
+      form = $("directions-form"),
+      fromInput = $("from-input"),
+      toInput = $("to-input"),
+      fromSug = $("from-suggestions"),
+      toSug = $("to-suggestions"),
+      resultEl = $("directions-result"),
+      backBtn = $("back-to-info-btn"),
+      routeSection = $("route-section"),
+      stepsList = $("route-steps"),
+      exitBtn = $("exit-route-btn"),
+      myLocBtns = document.querySelectorAll(".my-loc-btn");
 
 let currentPlace = null;
 let recentSearches = JSON.parse(localStorage.getItem("recentSearches") || "[]");
-let fuseRecent = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
-let fromCoords = null, toCoords = null;
+let fuse = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
+let fromCoords = null,
+    toCoords = null,
+    activeField = "from";
 
-// debounce helper
+// 3) Utilities
 const debounce = (fn, ms) => {
   let t;
   return (...args) => {
@@ -54,230 +58,313 @@ const debounce = (fn, ms) => {
   };
 };
 
-// Nominatim lookup
-async function fetchNominatim(q) {
+async function nominatim(q) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`,
-    { headers: { "User-Agent":"TheBoiisMCMaps/1.0", Referer:"https://maps.theboiismc.com" } }
+    {
+      headers: {
+        "User-Agent": "TheBoiisMCMaps/1.0",
+        Referer: "https://maps.theboiismc.com",
+      },
+    }
   );
-  const arr = await res.json();
-  return arr.map(r => ({ name:r.display_name, lat:+r.lat, lon:+r.lon }));
+  return (await res.json()).map(r => ({
+    name: r.display_name,
+    lat: +r.lat,
+    lon: +r.lon,
+  }));
 }
 
-// Recent logic
-function saveRecent(p) {
-  recentSearches = recentSearches.filter(r => r.name !== p.name);
-  recentSearches.unshift(p);
-  if (recentSearches.length>10) recentSearches.pop();
-  localStorage.setItem("recentSearches", JSON.stringify(recentSearches));
-  fuseRecent = new Fuse(recentSearches, { keys:["name"], threshold:0.3 });
+async function reverseGeocode(lat, lon) {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+    {
+      headers: {
+        "User-Agent": "TheBoiisMCMaps/1.0",
+        Referer: "https://maps.theboiismc.com",
+      },
+    }
+  );
+  const j = await res.json();
+  return j.display_name;
 }
+
+function render(list, container, cb) {
+  container.innerHTML = "";
+  list.forEach(p => {
+    const d = document.createElement("div");
+    d.className = "suggestion";
+    d.textContent = p.name;
+    d.onclick = () => {
+      cb(p);
+      container.style.display = "none";
+    };
+    container.appendChild(d);
+  });
+  container.style.display = list.length ? "block" : "none";
+}
+
+// 4) Main search + recents
 function showRecent() {
   suggestionsEl.style.display = "none";
   if (!searchInput.value.trim() && recentSearches.length) {
-    recentEl.innerHTML="";
-    recentSearches.forEach(p=>{
-      const d=document.createElement("div");
-      d.className="suggestion recent";
+    recentEl.innerHTML = "";
+    recentSearches.forEach(p => {
+      const d = document.createElement("div");
+      d.className = "suggestion recent";
       d.textContent = p.name;
-      d.onclick = ()=> selectPlace(p);
+      d.onclick = () => selectPlace(p);
       recentEl.appendChild(d);
     });
-    recentEl.style.display="block";
+    recentEl.style.display = "block";
   }
 }
-function renderSuggestions(list, container, setter) {
-  container.innerHTML="";
-  list.forEach(p=>{
-    const d=document.createElement("div");
-    d.className="suggestion";
-    d.textContent=p.name;
-    d.onclick=()=>{ setter(p); container.style.display="none"; };
-    container.appendChild(d);
-  });
-  container.style.display = list.length?"block":"none";
-}
 
-// Panel toggle
+searchInput.addEventListener("focus", showRecent);
+searchInput.addEventListener("input", debounce(async () => {
+  const q = searchInput.value.trim();
+  if (!q) return showRecent();
+  let list = fuse.search(q).map(r => r.item);
+  if (list.length < 5) {
+    (await nominatim(q)).forEach(e => {
+      if (!list.find(r => r.name === e.name)) list.push(e);
+    });
+  }
+  render(list, suggestionsEl, selectPlace);
+}, 150));
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".search-bar") &&
+      !e.target.closest("#suggestions") &&
+      !e.target.closest("#recent-searches")) {
+    suggestionsEl.style.display = recentEl.style.display = "none";
+  }
+});
+
+// 5) Panel toggles
 function togglePanel(open) {
   panel.classList.toggle("open", open);
   panel.setAttribute("aria-hidden", (!open).toString());
   map.resize();
 }
-closeBtn.onclick = ()=>togglePanel(false);
-panelArrow.onclick = ()=>togglePanel(!panel.classList.contains("open"));
-panelSearch.onclick = ()=>searchInput.focus();
+closeBtn.onclick = () => togglePanel(false);
+panelArrow.onclick = () => togglePanel(!panel.classList.contains("open"));
+panelSearch.onclick = () => searchInput.focus();
 
-// Main search wiring
-searchInput.addEventListener("focus", showRecent);
-searchInput.addEventListener("input", debounce(async()=>{
-  const q = searchInput.value.trim();
-  if (!q) return showRecent();
-  let list = fuseRecent.search(q).map(r=>r.item);
-  if (list.length<5) (await fetchNominatim(q)).forEach(e=>{
-    if (!list.find(r=>r.name===e.name)) list.push(e);
-  });
-  renderSuggestions(list, suggestionsEl, selectPlace);
-},150));
-document.addEventListener("click", e=>{
-  if (!e.target.closest(".search-bar")&&!e.target.closest("#suggestions")&&!e.target.closest("#recent-searches")) {
-    suggestionsEl.style.display=recentEl.style.display="none";
-  }
-});
-
-// Directions autocompletes
-fromInput.addEventListener("input", debounce(async()=>{
-  const q=fromInput.value.trim(); if(!q) return fromSug.style.display="none";
-  const list=await fetchNominatim(q);
-  renderSuggestions(list, fromSug, p=>{
-    fromInput.value=p.name; fromCoords=[p.lon,p.lat];
-  });
-},200));
-toInput.addEventListener("input", debounce(async()=>{
-  const q=toInput.value.trim(); if(!q) return toSug.style.display="none";
-  const list=await fetchNominatim(q);
-  renderSuggestions(list, toSug, p=>{
-    toInput.value=p.name; toCoords=[p.lon,p.lat];
-  });
-},200));
-document.addEventListener("click",e=>{
-  if (!e.target.closest("#directions-section")) fromSug.style.display=toSug.style.display="none";
-});
-
-// Place select
+// 6) Place select & info load
 async function selectPlace(p) {
-  currentPlace=p; saveRecent(p);
-  searchInput.value=p.name;
+  currentPlace = p;
+  recentSearches = recentSearches.filter(r => r.name !== p.name);
+  recentSearches.unshift(p);
+  if (recentSearches.length > 10) recentSearches.pop();
+  localStorage.setItem("recentSearches", JSON.stringify(recentSearches));
+  fuse = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
+
+  searchInput.value = p.name;
   if (window.placeMarker) placeMarker.remove();
-  window.placeMarker=new maplibregl.Marker().setLngLat([p.lon,p.lat]).addTo(map);
-  map.flyTo({center:[p.lon,p.lat],zoom:13});
-  await loadPlaceInfo(p);
-  placeInfoSection.hidden=false;
-  directionsSection.hidden=true;
-  routeSection.hidden=true;
+  window.placeMarker = new maplibregl.Marker()
+    .setLngLat([p.lon, p.lat])
+    .addTo(map);
+
+  map.flyTo({ center: [p.lon, p.lat], zoom: 13 });
+  await loadInfo(p);
+
+  infoSection.hidden = false;
+  dirSection.hidden = true;
+  routeSection.hidden = true;
   togglePanel(true);
 }
 
-// Load info
-async function loadPlaceInfo(p) {
-  placeName.textContent=p.name;
-  placeDesc.textContent="Loading...";
-  placeWeather.textContent="";
-  placeImages.innerHTML="";
+async function loadInfo(p) {
+  placeName.textContent = p.name;
+  placeDesc.textContent = "Loading…";
+  placeWeather.textContent = "";
+  placeImages.innerHTML = "";
 
-  // Wikipedia summary
   try {
-    const res=await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(p.name)}`);
-    const data=await res.json();
-    const s=data.extract.match(/[^\.!\?]+[\.!\?]+/g)||[data.extract];
-    let brief=s.slice(0,3).join(" ").trim();
-    if (brief.length>300) brief=brief.slice(0,300).trim()+"…";
-    placeDesc.textContent=brief||"No description.";
-  } catch{ placeDesc.textContent="No description."; }
+    let r = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(p.name)}`
+    );
+    let j = await r.json();
+    let s = j.extract.match(/[^\.!\?]+[\.!\?]+/g) || [j.extract];
+    let b = s.slice(0, 3).join(" ").trim();
+    if (b.length > 300) b = b.slice(0, 300) + "…";
+    placeDesc.textContent = b || "No description.";
+  } catch {
+    placeDesc.textContent = "No description.";
+  }
 
-  // Wikipedia images
   try {
-    const pg=await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=images&titles=${encodeURIComponent(p.name)}&format=json&origin=*`);
-    const j=await pg.json();
-    const page=j.query.pages[Object.keys(j.query.pages)[0]];
-    const imgs=(page.images||[]).slice(0,5);
-    for (let img of imgs) {
+    let r = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&prop=images&titles=${encodeURIComponent(p.name)}&format=json&origin=*`
+    );
+    let j = await r.json(),
+        pg = j.query.pages[Object.keys(j.query.pages)[0]];
+    (pg.images || []).slice(0, 5).forEach(async img => {
       if (/\.(jpg|jpeg|png)$/i.test(img.title)) {
-        const info=await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(img.title)}&prop=imageinfo&iiprop=url&format=json&origin=*`);
-        const inf=await info.json();
-        const url=inf.query.pages[Object.keys(inf.query.pages)[0]].imageinfo[0].url;
-        const el=document.createElement("img"); el.src=url; el.alt=p.name;
+        let r2 = await fetch(
+          `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(img.title)}&prop=imageinfo&iiprop=url&format=json&origin=*`
+        );
+        let j2 = await r2.json();
+        let url = j2.query.pages[Object.keys(j2.query.pages)[0]].imageinfo[0].url;
+        let el = document.createElement("img");
+        el.src = url;
+        el.alt = p.name;
         placeImages.appendChild(el);
       }
-    }
-  } catch{}
+    });
+  } catch {}
 
-  // Weather
   try {
-    const wr=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current_weather=true`);
-    const wj=await wr.json();
-    if (wj.current_weather) placeWeather.textContent=`Temp: ${wj.current_weather.temperature}°C, Wind: ${wj.current_weather.windspeed} km/h`;
-    else placeWeather.textContent="No weather.";
-  } catch{ placeWeather.textContent="No weather."; }
+    let wr = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current_weather=true`
+    );
+    let wj = await wr.json();
+    if (wj.current_weather)
+      placeWeather.textContent = `Temp: ${wj.current_weather.temperature}°C, Wind: ${wj.current_weather.windspeed} km/h`;
+    else placeWeather.textContent = "No weather.";
+  } catch {
+    placeWeather.textContent = "No weather.";
+  }
 }
 
-// Show directions mode
-directionsBtn.onclick=()=>{
-  placeInfoSection.hidden=true;
-  directionsSection.hidden=false;
-  routeSection.hidden=true;
-  fromInput.value=""; toInput.value=currentPlace.name;
-  fromCoords=null; toCoords=[currentPlace.lon,currentPlace.lat];
-  directionsResult.textContent="";
+// 7) Enter Directions mode
+directionsBtn.onclick = () => {
+  infoSection.hidden = true;
+  dirSection.hidden = false;
+  routeSection.hidden = true;
+  fromInput.value = "";
+  toInput.value = currentPlace.name;
+  resultEl.textContent = "";
+  fromSug.style.display = toSug.style.display = "none";
+  fromCoords = toCoords = [currentPlace.lon, currentPlace.lat];
 };
 
-// Back & Exit
-backToInfoBtn.onclick=()=>{
-  directionsSection.hidden=true;
-  placeInfoSection.hidden=false;
+// 8) Track focused field
+[fromInput, toInput].forEach(inp =>
+  inp.addEventListener("focus", () =>
+    (activeField = inp.id.startsWith("from") ? "from" : "to")
+  )
+);
+
+// 9) My Location buttons
+myLocBtns.forEach(btn =>
+  btn.addEventListener("click", async () => {
+    geoCtrl.trigger();
+    const pos = await new Promise(res => geoCtrl.once("geolocate", res));
+    const { latitude, longitude } = pos.coords;
+    const addr = await reverseGeocode(latitude, longitude);
+    if (activeField === "from") {
+      fromInput.value = addr;
+      fromCoords = [longitude, latitude];
+    } else {
+      toInput.value = addr;
+      toCoords = [longitude, latitude];
+    }
+  })
+);
+
+// 10) Autocomplete both fields
+fromInput.addEventListener(
+  "input",
+  debounce(async () => {
+    const q = fromInput.value.trim();
+    if (!q) return (fromSug.style.display = "none");
+    const list = await nominatim(q);
+    render(list, fromSug, p => {
+      fromInput.value = p.name;
+      fromCoords = [p.lon, p.lat];
+    });
+  }, 200)
+);
+
+toInput.addEventListener(
+  "input",
+  debounce(async () => {
+    const q = toInput.value.trim();
+    if (!q) return (toSug.style.display = "none");
+    const list = await nominatim(q);
+    render(list, toSug, p => {
+      toInput.value = p.name;
+      toCoords = [p.lon, p.lat];
+    });
+  }, 200)
+);
+
+document.addEventListener("click", e => {
+  if (!e.target.closest("#directions-section"))
+    fromSug.style.display = toSug.style.display = "none";
+});
+
+// 11) Back & Exit
+backBtn.onclick = () => {
+  dirSection.hidden = true;
+  infoSection.hidden = false;
 };
-exitRouteBtn.onclick=()=>{
-  routeSection.hidden=true;
-  placeInfoSection.hidden=false;
+exitBtn.onclick = () => {
+  routeSection.hidden = true;
+  infoSection.hidden = false;
   if (map.getSource("route")) {
     map.removeLayer("route-line");
     map.removeSource("route");
   }
 };
 
-// Route fetch & draw
-directionsForm.onsubmit=async e=>{
+// 12) Fetch & draw route (OSRM)
+form.onsubmit = async e => {
   e.preventDefault();
-  directionsResult.textContent="Routing…";
-  try {
-    if (!fromCoords) throw Error("Pick a valid From");
-    if (!toCoords) throw Error("Pick a valid To");
-    const res=await fetch("https://api.openrouteservice.org/v2/directions/driving-car/geojson", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({coordinates:[fromCoords,toCoords]})
-    });
-    const geo=await res.json();
-    const steps=geo.features[0].properties.segments[0].steps;
+  resultEl.textContent = "Routing…";
+  if (!fromCoords || !toCoords)
+    return (resultEl.textContent = "Pick valid points.");
 
-    // draw
-    if (map.getSource("route")) {
-      map.removeLayer("route-line"); map.removeSource("route");
-    }
-    map.addSource("route",{type:"geojson",data:geo});
-    map.addLayer({id:"route-line",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-width":4,"line-color":"#1a73e8"} });
+  const url = `https://router.project-osrm.org/route/v1/driving/${fromCoords[0]},${fromCoords[1]};${toCoords[0]},${toCoords[1]}?overview=full&geometries=geojson&steps=true`;
+  const r = await fetch(url);
+  const j = await r.json();
+  if (j.code !== "Ok") return (resultEl.textContent = "Routing error.");
 
-    // list
-    routeStepsEl.innerHTML="";
-    steps.forEach(s=>{
-      const li=document.createElement("li"); li.textContent=s.instruction;
-      routeStepsEl.appendChild(li);
-    });
-
-    directionsSection.hidden=true;
-    routeSection.hidden=false;
-  } catch(err){
-    directionsResult.textContent="Error: "+err.message;
+  const geo = j.routes[0].geometry;
+  if (map.getSource("route")) {
+    map.removeLayer("route-line");
+    map.removeSource("route");
   }
+  map.addSource("route", { type: "geojson", data: geo });
+  map.addLayer({
+    id: "route-line",
+    type: "line",
+    source: "route",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-width": 4, "line-color": "#1a73e8" },
+  });
+
+  stepsList.innerHTML = "";
+  j.routes[0].legs[0].steps.forEach(st => {
+    const li = document.createElement("li");
+    li.textContent = st.maneuver.instruction;
+    stepsList.appendChild(li);
+  });
+
+  dirSection.hidden = true;
+  routeSection.hidden = false;
 };
 
-// Init panel state
-window.addEventListener("load",()=>{
-  if (window.innerWidth>768) togglePanel(false);
+// 13) Init panel state
+window.addEventListener("load", () => {
+  if (window.innerWidth > 768) togglePanel(false);
   else {
-    panel.style.bottom=`calc(-1*(var(--panel-mobile-height)-var(--panel-mobile-peek)))`;
-    panel.setAttribute("aria-hidden","false");
+    panel.style.bottom = `calc(-1*(var(--panel-mobile-height)-var(--panel-mobile-peek)))`;
+    panel.setAttribute("aria-hidden", "false");
   }
 });
-window.addEventListener("resize",()=>{
-  if (window.innerWidth>768 && !panel.classList.contains("open")) {
-    panel.style.left=`calc(-1*var(--panel-width))`;
-    panel.setAttribute("aria-hidden","true");
+window.addEventListener("resize", () => {
+  if (window.innerWidth > 768 && !panel.classList.contains("open")) {
+    panel.style.left = `calc(-1*var(--panel-width))`;
+    panel.setAttribute("aria-hidden", "true");
   }
-  if (window.innerWidth<=768 && !panel.classList.contains("open")) {
-    panel.style.bottom=`calc(-1*(var(--panel-mobile-height)-var(--panel-mobile-peek)))`;
-    panel.setAttribute("aria-hidden","false");
+  if (window.innerWidth <= 768 && !panel.classList.contains("open")) {
+    panel.style.bottom = `calc(-1*(var(--panel-mobile-height)-var(--panel-mobile-peek)))`;
+    panel.setAttribute("aria-hidden", "false");
   }
 });
-document.addEventListener("keydown",e=>{
-  if (e.key==="Escape"&&panel.classList.contains("open")) togglePanel(false);
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && panel.classList.contains("open")) togglePanel(false);
 });
