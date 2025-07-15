@@ -18,16 +18,24 @@ const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
 const placeImage = $('place-image');
 
+// Panel open logic
 function openPanel() {
-  sidePanel.classList.add('open');
+  if (window.innerWidth <= 768) {
+    sidePanel.classList.remove('expanded');
+    sidePanel.classList.add('collapsed');
+  } else {
+    sidePanel.classList.add('open');
+  }
 }
 
+// Panel close logic (desktop only)
 function closePanel() {
-  sidePanel.classList.remove('open');
+  sidePanel.classList.remove('open', 'collapsed', 'expanded');
 }
 
 closeSidePanel.addEventListener('click', closePanel);
 
+// Search logic
 search.addEventListener('input', debounce(async () => {
   const query = search.value.trim();
   if (!query) return suggestions.innerHTML = '';
@@ -73,9 +81,10 @@ async function loadPlaceInfo(name, lat, lon) {
     placeDescription.textContent = 'No description available.';
   }
 
-  placeWeather.textContent = 'Weather info would be here'; // Placeholder
+  placeWeather.textContent = 'Weather info would be here';
 }
 
+// Debounce
 function debounce(fn, delay) {
   let timeout;
   return function (...args) {
@@ -83,3 +92,48 @@ function debounce(fn, delay) {
     timeout = setTimeout(() => fn(...args), delay);
   };
 }
+
+// Swipe logic (mobile)
+let startY = 0;
+let currentY = 0;
+let isDragging = false;
+
+sidePanel.addEventListener('touchstart', e => {
+  if (window.innerWidth <= 768) {
+    startY = e.touches[0].clientY;
+    isDragging = true;
+  }
+});
+
+sidePanel.addEventListener('touchmove', e => {
+  if (!isDragging) return;
+  currentY = e.touches[0].clientY;
+});
+
+sidePanel.addEventListener('touchend', () => {
+  if (!isDragging) return;
+  const deltaY = currentY - startY;
+
+  if (deltaY > 50) {
+    sidePanel.classList.remove('expanded');
+    sidePanel.classList.add('collapsed');
+  }
+
+  if (deltaY < -50) {
+    sidePanel.classList.remove('collapsed');
+    sidePanel.classList.add('expanded');
+  }
+
+  isDragging = false;
+});
+
+// Click arrow to toggle expand/collapse
+$('panel-arrow').addEventListener('click', () => {
+  if (sidePanel.classList.contains('collapsed')) {
+    sidePanel.classList.remove('collapsed');
+    sidePanel.classList.add('expanded');
+  } else {
+    sidePanel.classList.remove('expanded');
+    sidePanel.classList.add('collapsed');
+  }
+});
