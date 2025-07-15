@@ -116,6 +116,16 @@ function renderSuggestions(list, container, onSelect) {
   container.style.display = list.length ? "block" : "none";
 }
 
+// Panel toggle helpers
+function togglePanel(open) {
+  panel.classList.toggle("open", open);
+  panel.setAttribute("aria-hidden", (!open).toString());
+  map.resize();
+}
+closeBtn.onclick = () => togglePanel(false);
+panelArrow.onclick = () => togglePanel(!panel.classList.contains("open"));
+panelSearch.onclick = () => searchInput.focus();
+
 // Main search wiring
 searchInput.addEventListener("focus", showRecent);
 searchInput.addEventListener(
@@ -173,16 +183,6 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Panel toggle helpers
-function togglePanel(open) {
-  panel.classList.toggle("open", open);
-  panel.setAttribute("aria-hidden", (!open).toString());
-  map.resize();
-}
-closeBtn.onclick = () => togglePanel(false);
-panelArrow.onclick = () => togglePanel(!panel.classList.contains("open"));
-panelSearch.onclick = () => searchInput.focus();
-
 // Place selection handler
 async function selectPlace(p) {
   currentPlace = p;
@@ -200,6 +200,7 @@ async function selectPlace(p) {
   placeInfoSection.hidden = false;
   directionsSection.hidden = true;
   routeSection.hidden = true;
+  directionsSection.classList.remove("active");
   togglePanel(true);
 }
 
@@ -219,12 +220,10 @@ async function loadPlaceInfo(p) {
     );
     const data = await res.json();
     const sents = data.extract
-      ? data.extract.match(/[^\.!\?]+[\.!\?]+/g) || [data.extract]
+      ? data.extract.match(/[^\\.!?]+[\\.!?]+/g) || [data.extract]
       : [];
     let brief = sents.slice(0, 3).join(" ").trim();
-    if (brief.length > 300) {
-      brief = brief.slice(0, 300).trim() + "…";
-    }
+    if (brief.length > 300) brief = brief.slice(0, 300).trim() + "…";
     placeDesc.textContent = brief || "No description available.";
   } catch {
     placeDesc.textContent = "No description available.";
@@ -261,7 +260,7 @@ async function loadPlaceInfo(p) {
   // Open-Meteo weather
   try {
     const wr = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current_weather=true`
+      `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current_weather=true}`
     );
     const wj = await wr.json();
     if (wj.current_weather) {
@@ -323,13 +322,7 @@ directionsForm.onsubmit = async (e) => {
       map.removeSource("route");
     }
     map.addSource("route", { type: "geojson", data: geo });
-    map.addLayer({
-      id: "route-line",
-      type: "line",
-      source: "route",
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-width": 4, "line-color": "#1a73e8" },
-    });
+    map.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-width": 4, "line-color": "#1a73e8" } });
 
     // Populate step list
     routeStepsEl.innerHTML = "";
