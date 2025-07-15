@@ -1,554 +1,84 @@
 <!DOCTYPE html>
-<html lang="en" >
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TheBoiisMC Map</title>
-
-  <!-- MapLibre CSS -->
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
-
-  <!-- Feather Icons CDN -->
-  <script src="https://unpkg.com/feather-icons"></script>
-
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.css" rel="stylesheet" />
   <style>
-    /* Reset & base */
-    html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%;
-      background: #0f111a;
-      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: #e1e6f0;
-      user-select: none;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    #map {
-      position: absolute; top: 0; bottom: 0; width: 100%;
-      filter: brightness(0.95);
-    }
-
-    /* Search bar */
-    .search-bar {
-      position: absolute;
-      top: 18px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1b1e2b;
-      border-radius: 32px;
-      display: flex;
-      align-items: center;
-      box-shadow: 0 8px 16px rgba(0, 170, 255, 0.3);
-      z-index: 100;
-      width: 90%;
-      max-width: 500px;
-      padding: 8px 16px;
-      user-select: text;
-    }
-    .search-bar input {
-      border: none;
-      outline: none;
-      flex-grow: 1;
-      padding: 12px 16px;
-      font-size: 16px;
-      color: #e1e6f0;
-      background: transparent;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-    .search-bar input::placeholder {
-      color: #8a9bb8;
-      font-weight: 500;
-    }
-    .search-bar button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0 8px;
-      color: #00aaff;
-      display: flex;
-      align-items: center;
-      transition: color 0.3s ease;
-    }
-    .search-bar button:hover {
-      color: #55ccff;
-    }
-    .search-bar button svg {
-      stroke-width: 2.2;
-    }
-
-    /* Suggestions + Recent searches */
-    #suggestions, #recent-searches {
-      position: absolute;
-      top: 62px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1b1e2b;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
-      box-shadow: 0 12px 24px rgba(0,170,255,0.3);
-      z-index: 90;
-      max-height: 280px;
+    /* (Keep your existing CSS for #map, #side-panel, search bar, etc. 
+       Add minor tweaks if needed for better fuzzy UI, same style you had) */
+    /* Just example for suggestions styling */
+    #suggestions, #recent-searches, .dir-suggestions {
+      max-height: 220px;
       overflow-y: auto;
-      color: #b8c1d9;
-      font-weight: 600;
-      display: none;
-      user-select: none;
     }
-    .suggestion, .recent-item {
-      padding: 10px 16px;
+    .suggestion, .recent-item, .dir-suggestion-item {
+      padding: 8px 12px;
       cursor: pointer;
-      border-bottom: 1px solid #223154;
-      transition: background 0.25s ease;
+      border-bottom: 1px solid #eee;
     }
-    .suggestion:hover, .recent-item:hover {
-      background: #003e80;
-      color: #00aaff;
-    }
-
-    /* Side panel */
-    #side-panel {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 80vh;
-      background: #1b1e2b;
-      box-shadow: 0 -6px 24px rgba(0, 170, 255, 0.5);
-      padding: 24px 24px 36px;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 95;
-      overflow-y: auto;
-      border-radius: 24px 24px 0 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      transform: translateY(100vh);
-      user-select: text;
-    }
-    #side-panel.hidden {
-      display: none;
-    }
-    @media (min-width: 769px) {
-      #side-panel {
-        top: 0;
-        bottom: 0;
-        left: 0;
-        width: 380px;
-        height: 100vh;
-        border-radius: 0;
-        box-shadow: 6px 0 24px rgba(0,170,255,0.5);
-        transform: translateX(-100%);
-        padding: 32px 28px 36px;
-      }
-      #side-panel.collapsed {
-        transform: translateX(0);
-        width: 380px;
-      }
-      #side-panel.expanded {
-        transform: translateX(0);
-        width: 380px;
-      }
-    }
-
-    /* Panel header */
-    #panel-header {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      user-select: none;
-    }
-    #panel-arrow {
-      cursor: pointer;
-      font-size: 24px;
-      padding: 6px 10px;
-      color: #00aaff;
-      transition: transform 0.3s ease;
-      user-select: none;
-      display: flex;
-      align-items: center;
-    }
-    #panel-arrow:hover {
-      color: #55ccff;
-    }
-    #place-name {
-      font-size: 22px;
-      font-weight: 700;
-      text-align: center;
-      flex-grow: 1;
-      color: #e1e6f0;
-      padding: 0 12px;
-      user-select: text;
-      letter-spacing: 0.03em;
-    }
-    #panel-search-icon {
-      cursor: pointer;
-      color: #00aaff;
-      transition: color 0.3s ease;
-      display: flex;
-      align-items: center;
-      user-select: none;
-    }
-    #panel-search-icon:hover {
-      color: #55ccff;
-    }
-
-    /* Directions button */
-    #directions-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #00aaff;
-      color: #1b1e2b;
-      border: none;
-      border-radius: 16px;
-      padding: 10px 20px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-bottom: 16px;
-      box-shadow: 0 6px 12px rgba(0,170,255,0.5);
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
-      user-select: none;
-      width: 100%;
-      max-width: 280px;
-    }
-    #directions-btn:hover {
-      background-color: #0095dd;
-      box-shadow: 0 8px 18px rgba(0,150,221,0.8);
-    }
-    #directions-btn svg {
-      width: 20px;
-      height: 20px;
-      margin-right: 10px;
-      stroke: #1b1e2b;
-      stroke-width: 2.5;
-    }
-
-    /* Place images */
-    #place-image-container {
-      width: 100%;
-      height: 220px;
-      overflow: hidden;
-      margin-bottom: 18px;
-      border-radius: 20px;
-      box-shadow: 0 6px 16px rgba(0, 170, 255, 0.3);
-      background: linear-gradient(135deg, #0a0c14 0%, #142038 100%);
-    }
-    #place-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 20px;
-      transition: filter 0.35s ease;
-      filter: brightness(0.9);
-    }
-
-    /* Place description */
-    #place-description {
-      font-size: 16px;
-      line-height: 1.4;
-      color: #cbd5f7;
-      text-align: center;
-      margin-bottom: 24px;
-      padding: 0 10px;
-      user-select: text;
-      font-weight: 500;
-    }
-
-    /* Quick facts */
-    #quick-facts {
-      width: 100%;
-      border-top: 1px solid #223154;
-      padding-top: 14px;
-      color: #a3b1da;
-      font-weight: 600;
-    }
-    #quick-facts h3 {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: 0.04em;
-      color: #00aaff;
-    }
-    #place-weather {
-      font-size: 15px;
-      text-align: center;
-      color: #89a0d3;
-      font-weight: 600;
-    }
-
-    /* Close panel button */
-    #close-side-panel {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      background: transparent;
-      border: none;
-      font-size: 28px;
-      color: #00aaff;
-      cursor: pointer;
-      user-select: none;
-      transition: color 0.3s ease;
-    }
-    #close-side-panel:hover {
-      color: #55ccff;
-    }
-
-    /* Directions panel */
-    #directions-content {
-      width: 100%;
-      display: none;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .dir-input-container {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .dir-input-container input {
-      flex-grow: 1;
-      padding: 12px 18px;
-      font-size: 16px;
-      border: 1px solid #223154;
-      border-radius: 18px;
-      background: #131827;
-      color: #d0dbff;
-      font-weight: 600;
-      outline: none;
-      transition: border-color 0.3s ease;
-      user-select: text;
-    }
-    .dir-input-container input::placeholder {
-      color: #7a8ebd;
-      font-weight: 500;
-    }
-    .dir-input-container input:focus {
-      border-color: #00aaff;
-      box-shadow: 0 0 8px #00aaffaa;
-    }
-
-    .dir-suggestions {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #1b1e2b;
-      border-radius: 10px;
-      box-shadow: 0 12px 28px rgba(0,170,255,0.4);
-      max-height: 160px;
-      overflow-y: auto;
-      z-index: 200;
-      color: #8bb9ff;
-      font-weight: 600;
-      display: none;
-      user-select: none;
-    }
-
-    .dir-suggestion-item {
-      padding: 10px 16px;
-      cursor: pointer;
-      border-bottom: 1px solid #223154;
-      transition: background 0.25s ease;
-    }
-    .dir-suggestion-item:hover {
-      background: #004a9c;
-      color: #a9d6ff;
-    }
-
-    #your-location-btn {
-      background: #007ecc;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      padding: 10px 14px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      user-select: none;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    }
-    #your-location-btn:hover {
-      background-color: #005fa3;
-      box-shadow: 0 6px 12px rgba(0, 95, 163, 0.8);
-    }
-    #your-location-btn svg {
-      width: 20px;
-      height: 20px;
-      stroke-width: 2.3;
-      stroke: white;
-    }
-
-    #directions-back-btn {
-      margin-top: 12px;
-      background: none;
-      border: none;
-      color: #00aaff;
-      cursor: pointer;
-      font-weight: 700;
-      user-select: none;
-      align-self: flex-start;
-      transition: color 0.3s ease;
-    }
-    #directions-back-btn:hover {
-      color: #55ccff;
-    }
-
-    /* Panel arrows rotation on expand */
-    #panel-arrow.expanded {
-      transform: rotate(180deg);
-      color: #55ccff;
-    }
-
-    /* Scrollbars */
-    #suggestions::-webkit-scrollbar, #recent-searches::-webkit-scrollbar,
-    .dir-suggestions::-webkit-scrollbar {
-      width: 6px;
-    }
-    #suggestions::-webkit-scrollbar-thumb, #recent-searches::-webkit-scrollbar-thumb,
-    .dir-suggestions::-webkit-scrollbar-thumb {
-      background: #005ea3;
-      border-radius: 3px;
-    }
-
-    #side-panel::-webkit-scrollbar {
-      width: 8px;
-    }
-    #side-panel::-webkit-scrollbar-thumb {
-      background: #003157;
-      border-radius: 4px;
-    }
-
-    /* Accessibility focus outlines */
-    input:focus, button:focus, #place-name:focus {
-      outline: 2px solid #00aaff;
-      outline-offset: 2px;
+    .suggestion:hover, .recent-item:hover, .dir-suggestion-item:hover {
+      background: #e0f2ff;
     }
   </style>
 </head>
 <body>
-  <div id="map" role="application" aria-label="Map of places"></div>
+  <div id="map"></div>
 
   <div class="search-bar">
-    <input
-      id="search"
-      placeholder="Search a place..."
-      autocomplete="off"
-      spellcheck="false"
-      aria-autocomplete="list"
-      aria-controls="suggestions recent-searches"
-      aria-haspopup="listbox"
-      aria-expanded="false"
-      aria-activedescendant=""
-      role="combobox"
-      aria-label="Search for places"
-    />
-    <button id="search-icon" aria-label="Search">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="feather feather-search"
-        viewBox="0 0 24 24"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-    </button>
+    <input id="search" placeholder="Search a place..." autocomplete="off" spellcheck="false" />
+    <button id="search-icon" aria-label="Search button">🔍</button>
   </div>
 
   <div id="recent-searches" role="listbox" aria-label="Recent searches"></div>
   <div id="suggestions" role="listbox" aria-label="Search suggestions"></div>
 
-  <div id="side-panel" class="hidden" role="dialog" aria-modal="true" aria-labelledby="place-name">
-
-    <div id="info-content" style="display:flex; flex-direction: column; align-items: center; width: 100%;">
-      <div id="panel-header" role="banner">
-        <button id="panel-arrow" aria-label="Expand or collapse panel">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="3"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="feather feather-chevron-down"
-            viewBox="0 0 24 24"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-        <div id="place-name" tabindex="0">Place Name</div>
-        <button id="panel-search-icon" aria-label="Search">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="feather feather-search"
-            viewBox="0 0 24 24"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-        </button>
+  <div id="side-panel" class="hidden" aria-live="polite">
+    <div id="info-content" style="display:flex; flex-direction: column; align-items: center;">
+      <div id="panel-header" style="display:flex; align-items:center; justify-content: space-between; width: 100%;">
+        <button id="panel-arrow" aria-label="Toggle panel height" style="background:none; border:none; font-size: 20px;">▼</button>
+        <h2 id="place-name" style="margin: 0; text-align:center; flex-grow:1;"></h2>
+        <button id="panel-search-icon" aria-label="Focus search" style="background:none; border:none; font-size: 20px;">🔍</button>
       </div>
 
-      <button id="directions-btn" aria-label="Get directions">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          stroke="#1b1e2b"
-          stroke-width="3"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="feather feather-navigation"
-          viewBox="0 0 24 24"
-        >
-          <polygon points="12 2 19 21 12 17 5 21 12 2" />
+      <button id="directions-btn" style="background:#005bff; color:#fff; border:none; border-radius: 12px; padding: 8px 14px; margin: 12px 0; font-weight: 600; cursor:pointer; display:flex; align-items:center; gap:6px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="white" viewBox="0 0 24 24">
+          <path d="M12 2L19 21H5L12 2Z" />
         </svg>
         Directions
       </button>
 
-      <div id="place-image-container" aria-label="Place images">
-        <img id="place-image" src="" alt="Image of place" />
+      <div id="place-image-container" aria-label="Place images" style="width: 100%; max-height: 240px; overflow: hidden; border-radius: 14px; margin-bottom: 12px;">
+        <img id="place-image" src="" alt="Image of place" style="width:100%; height:100%; object-fit: cover;" />
       </div>
 
-      <p id="place-description" aria-live="polite">Loading description...</p>
+      <p id="place-description" style="text-align:center; font-size: 14px; line-height: 1.4; margin: 0 10px 12px 10px;">Loading description...</p>
 
-      <div id="quick-facts" aria-label="Quick facts about place">
-        <h3>Quick Facts</h3>
-        <p id="place-weather">Loading weather...</p>
+      <div id="quick-facts" aria-label="Quick facts about place" style="width: 100%;">
+        <h3 style="margin-bottom:6px; font-weight: 600;">Quick Facts</h3>
+        <p id="place-weather" style="font-size: 13px;">Loading weather...</p>
       </div>
     </div>
 
-    <div id="directions-content" aria-label="Directions panel" style="display:none;">
-      <div class="dir-input-container">
+    <div id="directions-content" aria-label="Directions panel" style="display:none; flex-direction: column; gap: 10px; width: 100%;">
+      <div class="dir-input-container" style="display:flex; align-items:center; gap: 6px;">
         <input
           type="text"
           id="dir-start"
           placeholder="Starting point"
           autocomplete="off"
-          aria-label="Starting point"
           spellcheck="false"
+          aria-label="Starting point"
+          style="flex-grow:1; padding:8px 12px; border-radius: 12px; border: 1.5px solid #ccc;"
         />
-        <button id="your-location-btn" aria-label="Use your current location" title="Use your current location">
+        <button
+          id="your-location-btn"
+          aria-label="Use your current location"
+          title="Use your current location"
+          style="background:#005bff; border:none; border-radius: 12px; padding: 8px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center;"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -558,6 +88,8 @@
             stroke-linejoin="round"
             class="feather feather-crosshair"
             viewBox="0 0 24 24"
+            width="18"
+            height="18"
           >
             <circle cx="12" cy="12" r="10" />
             <line x1="22" y1="12" x2="18" y2="12" />
@@ -566,26 +98,28 @@
             <line x1="12" y1="22" x2="12" y2="18" />
           </svg>
         </button>
-        <div id="dir-start-suggestions" class="dir-suggestions"></div>
       </div>
+      <div id="dir-start-suggestions" class="dir-suggestions" style="max-height: 160px; overflow-y: auto; border: 1.5px solid #ccc; border-radius: 10px; display:none;"></div>
 
-      <div class="dir-input-container">
+      <div class="dir-input-container" style="margin-top: 8px;">
         <input
           type="text"
           id="dir-end"
           placeholder="Destination"
           autocomplete="off"
-          aria-label="Destination"
           spellcheck="false"
+          aria-label="Destination"
+          style="width: 100%; padding:8px 12px; border-radius: 12px; border: 1.5px solid #ccc;"
         />
-        <div id="dir-end-suggestions" class="dir-suggestions"></div>
+        <div id="dir-end-suggestions" class="dir-suggestions" style="max-height: 160px; overflow-y: auto; border: 1.5px solid #ccc; border-radius: 10px; display:none;"></div>
       </div>
 
-      <button id="directions-back-btn" aria-label="Back to place info">Back</button>
+      <button id="directions-back-btn" style="margin-top: 14px; background:#005bff; color:#fff; border:none; border-radius: 14px; padding: 10px; font-weight: 600; cursor: pointer;">Back</button>
     </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
   <script src="app.js"></script>
 </body>
 </html>
