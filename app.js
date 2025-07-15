@@ -8,15 +8,18 @@ map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
 map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), 'bottom-right');
 
 const $ = id => document.getElementById(id);
+
 const search = $('search');
 const suggestions = $('suggestions');
 const recentSearchesDiv = $('recent-searches');
+
 const sidePanel = $('side-panel');
 const closeSidePanel = $('close-side-panel');
 const placeName = $('place-name');
 const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
 const placeImage = $('place-image');
+const directionsBtn = $('directions-btn');
 
 let panelMaxHeight = window.innerHeight * 0.8;
 let collapsedTranslateY = panelMaxHeight * 0.4;
@@ -32,6 +35,10 @@ let currentController = null;
 
 let recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
 const cache = {};
+
+let selectedPlace = null; // To keep the selected place info (name, lat, lon)
+
+// -- RECENT SEARCHES + SEARCH SUGGESTIONS (same as before) --
 
 function saveRecentSearch(term) {
   if (!term) return;
@@ -107,13 +114,43 @@ function renderSuggestions(features) {
       loadPlaceInfo(f.properties.name, f.geometry.coordinates[1], f.geometry.coordinates[0]);
       openPanel();
       hideRecentSearches();
+      selectedPlace = {
+        name: f.properties.name,
+        lat: f.geometry.coordinates[1],
+        lon: f.geometry.coordinates[0]
+      };
+      showPlaceInfoPanel();
     });
     suggestions.appendChild(div);
   });
   suggestions.style.display = 'block';
 }
 
-// Panel swipe stuff
+// Search input events for main search bar
+
+search.addEventListener('focus', () => {
+  if (!search.value.trim()) showRecentSearches();
+});
+
+search.addEventListener('blur', () => {
+  setTimeout(() => {
+    suggestions.style.display = 'none';
+    hideRecentSearches();
+  }, 200);
+});
+
+search.addEventListener('input', debounce(() => {
+  const query = search.value.trim();
+  if (!query) {
+    suggestions.style.display = 'none';
+    showRecentSearches();
+    return;
+  }
+  hideRecentSearches();
+  doSearch(query);
+}, 150));
+
+// -- PANEL OPEN/CLOSE AND SWIPE LOGIC --
 
 function updatePanelSizes() {
   panelMaxHeight = window.innerHeight * 0.8;
@@ -150,67 +187,6 @@ function closePanel() {
 }
 
 closeSidePanel.addEventListener('click', closePanel);
-
-function debounce(fn, delay) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => fn(...args), delay);
-  };
-}
-
-// Load place info
-
-async function loadPlaceInfo(name, lat, lon) {
-  placeName.textContent = name;
-
-  try {
-    const imageRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
-    const imageData = await imageRes.json();
-    const pages = imageData.query.pages;
-    const pageId = Object.keys(pages)[0];
-    const imageUrl = pages[pageId]?.imageinfo?.[0]?.url;
-    placeImage.src = imageUrl || 'default.jpg';
-  } catch {
-    placeImage.src = 'default.jpg';
-  }
-
-  try {
-    const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
-    const wikiData = await wikiRes.json();
-    placeDescription.textContent = wikiData.extract || 'No description available.';
-  } catch {
-    placeDescription.textContent = 'No description available.';
-  }
-
-  placeWeather.textContent = 'Weather info would be here';
-}
-
-// Search input event handlers
-
-search.addEventListener('focus', () => {
-  if (!search.value.trim()) showRecentSearches();
-});
-
-search.addEventListener('blur', () => {
-  setTimeout(() => {
-    suggestions.style.display = 'none';
-    hideRecentSearches();
-  }, 200);
-});
-
-search.addEventListener('input', debounce(() => {
-  const query = search.value.trim();
-  if (!query) {
-    suggestions.style.display = 'none';
-    showRecentSearches();
-    return;
-  }
-  hideRecentSearches();
-  doSearch(query);
-}, 150));
-
-// Panel touch drag handling
 
 sidePanel.addEventListener('touchstart', e => {
   if (window.innerWidth > 768) return;
@@ -276,6 +252,173 @@ sidePanel.addEventListener('touchend', e => {
   }
 });
 
-// Init hidden panel and sizing
+// -- LOAD PLACE INFO PANEL CONTENT --
+
+async function loadPlaceInfo(name, lat, lon) {
+  placeName.textContent = name;
+
+  try {
+    const imageRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
+    const imageData = await imageRes.json();
+    const pages = imageData.query.pages;
+    const pageId = Object.keys(pages)[0];
+    const imageUrl = pages[pageId]?.imageinfo?.[0]?.url;
+    placeImage.src = imageUrl || 'default.jpg';
+  } catch {
+    placeImage.src = 'default.jpg';
+  }
+
+  try {
+    const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
+    const wikiData = await wikiRes.json();
+    placeDescription.textContent = wikiData.extract || 'No description available.';
+  } catch {
+    placeDescription.textContent = 'No description available.';
+  }
+
+  placeWeather.textContent = 'Weather info would be here';
+}
+
+// -- PANEL MODES: INFO vs DIRECTIONS --
+
+const panelContent = {
+  info: $('info-content'),
+  directions: $('directions-content')
+};
+
+function showPlaceInfoPanel() {
+  panelContent.info.style.display = 'flex';
+  panelContent.directions.style.display = 'none';
+  directionsBtn.style.display = 'flex';
+}
+
+function showDirectionsPanel() {
+  panelContent.info.style.display = 'none';
+  panelContent.directions.style.display = 'flex';
+  directionsBtn.style.display = 'none';
+  initDirectionsPanel();
+}
+
+// -- DIRECTIONS PANEL ELEMENTS --
+
+const startInput = $('start-input');
+const destInput = $('dest-input');
+const startSuggestions = $('start-suggestions');
+const destSuggestions = $('dest-suggestions');
+const yourLocationBtn = $('your-location-btn');
+const directionsBackBtn = $('directions-back-btn');
+
+directionsBtn.addEventListener('click', () => {
+  showDirectionsPanel();
+});
+
+directionsBackBtn.addEventListener('click', () => {
+  showPlaceInfoPanel();
+});
+
+// -- PHOTON AUTOCOMPLETE for directions inputs --
+
+let dirCurrentController = null;
+
+function setupAutocomplete(inputEl, suggestionsEl) {
+  inputEl.addEventListener('input', debounce(async () => {
+    const query = inputEl.value.trim();
+    if (!query) {
+      suggestionsEl.style.display = 'none';
+      suggestionsEl.innerHTML = '';
+      return;
+    }
+    if (dirCurrentController) dirCurrentController.abort();
+    dirCurrentController = new AbortController();
+
+    try {
+      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`, { signal: dirCurrentController.signal });
+      const json = await res.json();
+      suggestionsEl.innerHTML = '';
+      json.features.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'suggestion';
+        div.textContent = `${f.properties.name}, ${f.properties.state || ''}, ${f.properties.country || ''}`;
+        div.addEventListener('click', () => {
+          inputEl.value = div.textContent;
+          suggestionsEl.style.display = 'none';
+        });
+        suggestionsEl.appendChild(div);
+      });
+      suggestionsEl.style.display = 'block';
+    } catch (e) {
+      if (e.name !== 'AbortError') console.error('Directions autocomplete error:', e);
+      suggestionsEl.innerHTML = '';
+      suggestionsEl.style.display = 'none';
+    }
+  }, 200));
+
+  inputEl.addEventListener('blur', () => {
+    setTimeout(() => {
+      suggestionsEl.style.display = 'none';
+    }, 150);
+  });
+}
+
+// -- YOUR LOCATION BUTTON LOGIC --
+
+yourLocationBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    alert('Geolocation not supported.');
+    return;
+  }
+  yourLocationBtn.disabled = true;
+  yourLocationBtn.textContent = 'Locating...';
+
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const { latitude, longitude } = pos.coords;
+    try {
+      const res = await fetch(`https://photon.komoot.io/reverse?lat=${latitude}&lon=${longitude}`);
+      const json = await res.json();
+      if (json.features && json.features.length > 0) {
+        const locName = json.features[0].properties.name;
+        startInput.value = locName || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      } else {
+        startInput.value = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      }
+    } catch {
+      startInput.value = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+    }
+    yourLocationBtn.disabled = false;
+    yourLocationBtn.textContent = 'Your Location';
+  }, err => {
+    alert('Error getting location');
+    yourLocationBtn.disabled = false;
+    yourLocationBtn.textContent = 'Your Location';
+  });
+});
+
+// Initialize directions panel inputs and autocomplete
+
+function initDirectionsPanel() {
+  startInput.value = selectedPlace ? selectedPlace.name : '';
+  destInput.value = '';
+  startSuggestions.innerHTML = '';
+  destSuggestions.innerHTML = '';
+  startSuggestions.style.display = 'none';
+  destSuggestions.style.display = 'none';
+
+  setupAutocomplete(startInput, startSuggestions);
+  setupAutocomplete(destInput, destSuggestions);
+}
+
+// -- UTILS --
+
+function debounce(fn, delay) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// Initialize
+
 sidePanel.classList.add('hidden');
 updatePanelSizes();
+showPlaceInfoPanel();
