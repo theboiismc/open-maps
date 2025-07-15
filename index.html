@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TheBoiisMC Maps</title>
-  <!-- Favicon & Social metas -->
   <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
   <meta property="og:title" content="TheBoiisMC Maps" />
   <meta property="og:description" content="Explore the world with private, modern mapping." />
@@ -15,10 +13,10 @@
   <meta name="twitter:title" content="TheBoiisMC Maps" />
   <meta name="twitter:description" content="Explore the world with private, modern mapping." />
   <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
-  <!-- Libraries -->
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/fuse.js@6.6.2"></script>
   <style>
+    /* Custom Styles */
     :root {
       --primary: #1a73e8;
       --bg: #f9faff;
@@ -27,175 +25,76 @@
       --panel-mobile-height: 75vh;
       --panel-mobile-peek: 40vh;
     }
-
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      background: var(--bg);
-      font-family: 'Segoe UI', sans-serif;
-      color: var(--text);
+    /* Reset body, html styles */
+    html, body {
+      margin:0;
+      padding:0;
+      height:100%;
+      width:100%;
+      overflow:hidden;
+      font-family:'Segoe UI',sans-serif;
+      background:var(--bg);
+      color:var(--text);
     }
-
-    #top-banner {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: var(--primary);
-      color: #fff;
-      font-weight: 700;
-      font-size: 1.3rem;
-      text-align: center;
-      padding: 12px 0;
-      z-index: 50;
-    }
-
+    /* Map container */
     #map {
-      position: absolute;
-      top: 48px;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 1;
+      position:absolute;
+      top:48px;
+      bottom:0;
+      left:0;
+      right:0;
     }
-
+    /* Search bar styles */
     .search-bar {
-      position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #fff;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      border-radius: 25px;
-      padding: 8px 16px;
-      display: flex;
-      align-items: center;
-      width: 80%;
-      max-width: 450px;
-      z-index: 60;
+      position:absolute;
+      top:60px;
+      left:50%;
+      transform:translateX(-50%);
+      background:#fff;
+      box-shadow:0 4px 12px rgba(0,0,0,0.1);
+      padding:8px 16px;
+      display:flex;
+      align-items:center;
+      width:80%;
+      max-width:450px;
     }
-
     .search-bar input {
-      flex: 1;
-      border: none;
-      outline: none;
-      padding: 8px 12px;
-      font-size: 16px;
-      border-radius: 25px;
+      flex:1;
+      border:none;
+      outline:none;
+      padding:8px 12px;
+      font-size:16px;
+      border-radius:25px;
     }
-
-    .search-bar button {
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-      color: var(--primary);
-    }
-
-    #suggestions,
-    #recent-searches {
-      position: absolute;
-      top: 102px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80%;
-      max-width: 450px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-      max-height: 240px;
-      overflow-y: auto;
-      display: none;
-      z-index: 60;
-    }
-
-    .suggestion {
-      padding: 10px 14px;
-      cursor: pointer;
-      border-bottom: 1px solid #eee;
-    }
-
-    .suggestion:hover {
-      background: var(--primary);
-      color: #fff;
-    }
-
-    .suggestion.recent {
-      font-style: italic;
-      color: var(--primary);
-    }
-
+    /* Panel */
     #side-panel {
-      position: fixed;
-      top: 0;
-      left: calc(-1 * var(--panel-width));
-      bottom: 0;
-      width: var(--panel-width);
-      background: #fff;
+      position:fixed;
+      top:0;
+      left:calc(-1*var(--panel-width));
+      width:var(--panel-width);
+      height:100%;
+      background:#fff;
       box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
-      z-index: 100;
+      z-index:100;
       padding: 20px;
-      transition: left 0.3s;
+      transition:left .3s;
     }
-
-    #side-panel.open {
-      left: 0;
-    }
-
-    #panel-arrow {
-      position: absolute;
-      top: 20px;
-      left: 100%;
-      border: solid transparent;
-      border-width: 10px;
-      border-left-color: var(--primary);
-      cursor: pointer;
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    #place-info-section,
-    #directions-section,
-    #route-section {
-      display: none;
-    }
-
     /* Mobile styles */
-    @media (max-width: 768px) {
+    @media (max-width:768px) {
       #side-panel {
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: var(--panel-mobile-height);
-        transition: bottom 0.3s;
-        box-shadow: none;
+        position:absolute;
+        left:0;
+        bottom:0;
+        width:100%;
+        height:var(--panel-mobile-height);
+        box-shadow:none;
       }
-
       #side-panel.open {
-        bottom: var(--panel-mobile-peek);
-      }
-
-      .search-bar {
-        top: 12px;
-      }
-
-      .panel-header {
-        justify-content: space-between;
-        padding: 10px 20px;
+        bottom:var(--panel-mobile-peek);
       }
     }
   </style>
 </head>
-
 <body>
   <div id="top-banner">TheBoiisMC Maps</div>
   <div id="map"></div>
@@ -229,5 +128,4 @@
   </div>
   <script src="app.js"></script>
 </body>
-
 </html>
