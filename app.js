@@ -18,14 +18,18 @@ const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
 const placeImage = $('place-image');
 
+const panelMaxHeightRatio = 0.8; // 80% max height on mobile
+let initialVisibleHeight = 0;
+
 function openPanel() {
   sidePanel.classList.remove('hidden');
 
   if (window.innerWidth <= 768) {
+    initialVisibleHeight = window.innerHeight * panelMaxHeightRatio / 2; // half panel height
     sidePanel.classList.remove('expanded');
     sidePanel.classList.add('collapsed');
     sidePanel.style.transition = 'transform 0.25s ease';
-    sidePanel.style.transform = `translateY(${window.innerHeight - 240}px)`;
+    sidePanel.style.transform = `translateY(${window.innerHeight - initialVisibleHeight}px)`;
   } else {
     sidePanel.classList.add('open');
   }
@@ -115,7 +119,7 @@ function enablePanelDrag() {
     if (!dragging) return;
     currentY = e.touches[0].clientY;
     let delta = currentY - startY;
-    let maxTranslateY = window.innerHeight - 240; // collapsed pos
+    let maxTranslateY = window.innerHeight - (window.innerHeight * panelMaxHeightRatio / 2);
     let newY = offsetY + delta;
     newY = Math.max(0, Math.min(newY, maxTranslateY));
     sidePanel.style.transform = `translateY(${newY}px)`;
@@ -136,20 +140,19 @@ function enablePanelDrag() {
       sidePanel.classList.add('collapsed');
       sidePanel.classList.remove('expanded');
       sidePanel.style.transition = 'transform 0.25s ease';
-      sidePanel.style.transform = `translateY(${window.innerHeight - 240}px)`;
+      sidePanel.style.transform = `translateY(${window.innerHeight - (window.innerHeight * panelMaxHeightRatio / 2)}px)`;
     }
   });
 }
 
 enablePanelDrag();
 
-// Optional: toggle arrow to expand/collapse panel on mobile
 $('panel-arrow').addEventListener('click', () => {
   const expanded = sidePanel.classList.contains('expanded');
   sidePanel.classList.toggle('expanded', !expanded);
   sidePanel.classList.toggle('collapsed', expanded);
   sidePanel.style.transition = 'transform 0.25s ease';
   sidePanel.style.transform = expanded
-    ? `translateY(${window.innerHeight - 240}px)`
+    ? `translateY(${window.innerHeight - (window.innerHeight * panelMaxHeightRatio / 2)}px)`
     : `translateY(0px)`;
 });
