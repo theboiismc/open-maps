@@ -41,16 +41,12 @@
       background: var(--primary); color: white;
       font-weight: 700; font-size: 1.3rem;
       text-align: center; padding: 12px 0;
-      z-index: 50;
+      z-index: 150;
     }
     #map {
       position: absolute;
       top: 48px; bottom: 0; left: 0; right: 0;
-      transition: left 0.3s ease;
       z-index: 1;
-    }
-    #map.shifted {
-      left: var(--panel-width);
     }
     .search-bar {
       position: absolute; top: 60px; left: 50%;
@@ -59,7 +55,7 @@
       border-radius: 25px; padding: 8px 16px;
       display: flex; align-items: center;
       width: 80%; max-width: 450px;
-      z-index: 60;
+      z-index: 160;
     }
     .search-bar input {
       flex: 1; border: none; outline: none;
@@ -78,7 +74,7 @@
       background: white; border-radius: 8px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.15);
       max-height: 240px; overflow-y: auto;
-      display: none; z-index: 60;
+      display: none; z-index: 160;
     }
     .suggestion {
       padding: 10px 14px; cursor: pointer;
@@ -91,35 +87,72 @@
       font-style: italic;
       color: var(--primary);
     }
-    /* Side panel common */
-    #side-panel {
-      position: fixed;
-      background: white;
-      box-shadow: 2px 0 15px rgba(0,0,0,0.1);
-      overflow-y: auto; padding: 20px;
-      transition: left 0.3s ease, bottom 0.3s ease;
-      z-index: 55;
+
+    /* Desktop panel (left slide) */
+    @media (min-width: 769px) {
+      #side-panel {
+        position: fixed;
+        top: 48px;
+        left: calc(-1 * var(--panel-width));
+        width: var(--panel-width);
+        height: calc(100% - 48px);
+        background: white;
+        box-shadow: 2px 0 15px rgba(0,0,0,0.15);
+        overflow-y: auto;
+        padding: 20px;
+        border-radius: 0;
+        transition: left 0.3s ease;
+        z-index: 200;
+      }
+      #side-panel.open {
+        left: 0;
+      }
     }
+
+    /* Mobile panel (bottom slide) */
+    @media (max-width: 768px) {
+      #side-panel {
+        position: fixed;
+        left: 0;
+        bottom: -75vh;
+        width: 100%;
+        height: 75vh;
+        background: white;
+        box-shadow: 0 -3px 18px rgba(0,0,0,0.15);
+        border-radius: 20px 20px 0 0;
+        padding: 20px;
+        transition: bottom 0.3s ease;
+        z-index: 200;
+      }
+      #side-panel.open {
+        bottom: 0;
+      }
+    }
+
+    #side-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+    #side-panel::-webkit-scrollbar-thumb {
+      background-color: rgba(0,0,0,0.1);
+      border-radius: 4px;
+    }
+
     #close-side-panel {
       position: absolute; top: 15px; right: 15px;
       background: none; border: none;
       font-size: 24px; cursor: pointer;
-      color: var(--primary);
     }
     #panel-header {
       display: flex; align-items: center; margin-bottom: 16px;
-      font-family: 'Segoe UI', sans-serif;
     }
     #panel-arrow, #panel-search-icon {
       font-size: 20px; cursor: pointer;
       color: var(--primary);
       margin: 0 8px;
-      user-select: none;
     }
     #place-name {
       flex: 1; font-size: 20px; font-weight: 600;
       text-align: center;
-      color: var(--text);
     }
     #directions-btn {
       display: flex; align-items: center;
@@ -128,7 +161,9 @@
       padding: 8px 16px; font-size: 15px;
       cursor: pointer; margin-bottom: 14px;
     }
-    #directions-btn:hover { background: darkblue; }
+    #directions-btn:hover {
+      background: darkblue;
+    }
     #place-images {
       display: flex; gap: 10px;
       overflow-x: auto; margin-bottom: 14px;
@@ -138,36 +173,7 @@
       object-fit: cover; border-radius: 8px;
     }
     #quick-facts h3 {
-      margin-bottom: 8px;
-      color: var(--primary);
-    }
-    #quick-facts p {
-      margin: 4px 0;
-    }
-
-    /* Desktop panel (>= 769px) */
-    @media (min-width: 769px) {
-      #side-panel {
-        top: 48px; left: calc(-1 * var(--panel-width));
-        width: var(--panel-width);
-        height: calc(100% - 48px);
-        border-radius: 0;
-      }
-      #side-panel.open {
-        left: 0;
-      }
-    }
-
-    /* Mobile panel (< 769px) */
-    @media (max-width: 768px) {
-      #side-panel {
-        top: auto; bottom: -75vh; width: 100%;
-        height: 75vh; border-radius: 20px 20px 0 0;
-        left: 0; /* full width */
-      }
-      #side-panel.open {
-        bottom: 0;
-      }
+      margin: 0 0 8px;
     }
   </style>
 </head>
@@ -179,18 +185,18 @@
 
   <div class="search-bar">
     <input id="search" placeholder="Search a place..." autocomplete="off" />
-    <button id="search-icon" aria-label="Search">🔍</button>
+    <button id="search-icon">🔍</button>
   </div>
 
-  <div id="recent-searches" role="listbox"></div>
-  <div id="suggestions" role="listbox"></div>
+  <div id="recent-searches"></div>
+  <div id="suggestions"></div>
 
-  <div id="side-panel" aria-label="Place info panel" role="region" aria-hidden="true">
-    <button id="close-side-panel" aria-label="Close side panel">×</button>
+  <div id="side-panel" aria-label="Place info panel" aria-hidden="true">
+    <button id="close-side-panel" aria-label="Close">×</button>
     <div id="panel-header">
-      <div id="panel-arrow" role="button" aria-expanded="false" tabindex="0" aria-label="Toggle side panel">⬇️</div>
+      <div id="panel-arrow" aria-expanded="false">⬇️</div>
       <div id="place-name">Select a place</div>
-      <div id="panel-search-icon" role="button" tabindex="0" aria-label="Focus search input">🔍</div>
+      <div id="panel-search-icon">🔍</div>
     </div>
     <button id="directions-btn">Directions</button>
     <div id="place-images"></div>
