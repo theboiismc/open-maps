@@ -23,7 +23,8 @@ function openPanel() {
   if (window.innerWidth <= 768) {
     sidePanel.classList.remove('expanded');
     sidePanel.classList.add('collapsed');
-    sidePanel.style.transform = `translateY(calc(100% - 120px))`;
+    sidePanel.style.transition = 'transform 0.25s ease';
+    sidePanel.style.transform = `translateY(${window.innerHeight - 120}px)`;
   } else {
     sidePanel.classList.add('open');
   }
@@ -93,60 +94,59 @@ function debounce(fn, delay) {
   };
 }
 
-// Drag panel
+// 🧠 SWIPE LOGIC (fixed version)
+let dragging = false;
 let startY = 0;
 let currentY = 0;
-let translateY = 0;
-let dragging = false;
+let offsetY = 0;
 
-function setTranslate(y, withTransition = false) {
-  sidePanel.style.transition = withTransition ? 'transform 0.25s ease' : 'none';
-  sidePanel.style.transform = `translateY(${y}px)`;
+function enablePanelDrag() {
+  sidePanel.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 768) return;
+    dragging = true;
+    startY = e.touches[0].clientY;
+    offsetY = sidePanel.getBoundingClientRect().top;
+    sidePanel.style.transition = 'none';
+  });
+
+  sidePanel.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    currentY = e.touches[0].clientY;
+    let delta = currentY - startY;
+    let newY = offsetY + delta;
+    newY = Math.max(0, Math.min(newY, window.innerHeight - 120));
+    sidePanel.style.transform = `translateY(${newY}px)`;
+  });
+
+  sidePanel.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    const top = sidePanel.getBoundingClientRect().top;
+    const snapThreshold = window.innerHeight / 2;
+
+    if (top < snapThreshold) {
+      sidePanel.classList.add('expanded');
+      sidePanel.classList.remove('collapsed');
+      sidePanel.style.transition = 'transform 0.25s ease';
+      sidePanel.style.transform = `translateY(0px)`;
+    } else {
+      sidePanel.classList.add('collapsed');
+      sidePanel.classList.remove('expanded');
+      sidePanel.style.transition = 'transform 0.25s ease';
+      sidePanel.style.transform = `translateY(${window.innerHeight - 120}px)`;
+    }
+  });
 }
 
-sidePanel.addEventListener('touchstart', (e) => {
-  if (window.innerWidth > 768) return;
-  startY = e.touches[0].clientY;
-  translateY = sidePanel.getBoundingClientRect().top;
-  dragging = true;
-  sidePanel.style.transition = 'none';
-});
+enablePanelDrag();
 
-sidePanel.addEventListener('touchmove', (e) => {
-  if (!dragging) return;
-  currentY = e.touches[0].clientY;
-  const delta = currentY - startY;
-  const newTranslateY = Math.min(Math.max(delta + translateY, 0), window.innerHeight - 100);
-  setTranslate(newTranslateY);
-});
-
-sidePanel.addEventListener('touchend', () => {
-  if (!dragging) return;
-  dragging = false;
-
-  const panelTop = sidePanel.getBoundingClientRect().top;
-  const screenHeight = window.innerHeight;
-
-  if (panelTop < screenHeight / 2) {
-    sidePanel.classList.add('expanded');
-    sidePanel.classList.remove('collapsed');
-    setTranslate(0, true);
-  } else {
-    sidePanel.classList.add('collapsed');
-    sidePanel.classList.remove('expanded');
-    setTranslate(screenHeight - 120, true);
-  }
-});
-
-// Tap arrow to expand/collapse
+// Optional: tap arrow to toggle expand/collapse
 $('panel-arrow').addEventListener('click', () => {
-  if (sidePanel.classList.contains('collapsed')) {
-    sidePanel.classList.remove('collapsed');
-    sidePanel.classList.add('expanded');
-    setTranslate(0, true);
-  } else {
-    sidePanel.classList.remove('expanded');
-    sidePanel.classList.add('collapsed');
-    setTranslate(window.innerHeight - 120, true);
-  }
+  const expanded = sidePanel.classList.contains('expanded');
+  sidePanel.classList.toggle('expanded', !expanded);
+  sidePanel.classList.toggle('collapsed', expanded);
+  sidePanel.style.transition = 'transform 0.25s ease';
+  sidePanel.style.transform = expanded
+    ? `translateY(${window.innerHeight - 120}px)`
+    : `translateY(0px)`;
 });
