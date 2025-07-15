@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TheBoiisMC Maps</title>
+  <!-- Favicon & Social metas -->
   <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
   <meta property="og:title" content="TheBoiisMC Maps" />
   <meta property="og:description" content="Explore the world with private, modern mapping." />
@@ -14,6 +15,7 @@
   <meta name="twitter:title" content="TheBoiisMC Maps" />
   <meta name="twitter:description" content="Explore the world with private, modern mapping." />
   <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+  <!-- Libraries -->
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/fuse.js@6.6.2"></script>
   <style>
@@ -21,12 +23,13 @@
       --primary: #1a73e8;
       --bg: #f9faff;
       --text: #222;
-      --panel-width: 300px;
-      --panel-mobile-height: 400px;
-      --panel-mobile-peek: 100px;
+      --panel-width: 360px;
+      --panel-mobile-height: 75vh;
+      --panel-mobile-peek: 40vh;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       padding: 0;
       height: 100%;
@@ -37,12 +40,27 @@
       color: var(--text);
     }
 
-    #map {
-      position: absolute;
+    #top-banner {
+      position: fixed;
       top: 0;
       left: 0;
       right: 0;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.3rem;
+      text-align: center;
+      padding: 12px 0;
+      z-index: 50;
+    }
+
+    #map {
+      position: absolute;
+      top: 48px;
       bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
     }
 
     .search-bar {
@@ -78,7 +96,8 @@
       color: var(--primary);
     }
 
-    #suggestions, #recent-searches {
+    #suggestions,
+    #recent-searches {
       position: absolute;
       top: 102px;
       left: 50%;
@@ -114,259 +133,100 @@
       position: fixed;
       top: 0;
       left: calc(-1 * var(--panel-width));
+      bottom: 0;
       width: var(--panel-width);
-      height: 100%;
       background: #fff;
-      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
-      overflow-y: auto;
+      box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+      z-index: 100;
       padding: 20px;
-      transition: left .3s ease, bottom .3s ease;
-      z-index: 55;
+      transition: left 0.3s;
     }
 
     #side-panel.open {
       left: 0;
     }
 
-    #close-side-panel {
+    #panel-arrow {
       position: absolute;
-      top: 15px;
-      right: 15px;
-      background: none;
-      border: none;
-      font-size: 24px;
+      top: 20px;
+      left: 100%;
+      border: solid transparent;
+      border-width: 10px;
+      border-left-color: var(--primary);
       cursor: pointer;
     }
 
-    #panel-header {
+    .panel-header {
       display: flex;
       align-items: center;
-      margin-bottom: 16px;
+      justify-content: space-between;
     }
 
-    #panel-arrow, #panel-search-icon {
-      font-size: 20px;
-      cursor: pointer;
-      color: var(--primary);
-      margin: 0 8px;
-    }
-
-    #place-name {
-      flex: 1;
-      font-size: 20px;
-      font-weight: 600;
-      text-align: center;
-    }
-
-    /* Info Mode */
-    #directions-btn {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      padding: 8px 16px;
-      font-size: 15px;
-      cursor: pointer;
-      margin-bottom: 14px;
-    }
-
-    #directions-btn:hover {
-      background: darkblue;
-    }
-
-    #place-images {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      margin-bottom: 14px;
-    }
-
-    #place-images img {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 8px;
-    }
-
-    #quick-facts h3 {
-      margin: 0 0 8px;
-    }
-
-    /* Directions Mode */
-    #directions-section {
-      display: none;
-    }
-
-    #directions-section:not([hidden]) {
-      display: block;
-    }
-
-    #directions-section label {
-      display: block;
-      margin: 6px 0 2px;
-      font-weight: 600;
-    }
-
-    #directions-section input {
-      width: 100%;
-      padding: 6px 8px;
-      margin-bottom: 4px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-
-    #directions-section button[type="submit"],
-    #back-to-info-btn {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      padding: 8px 16px;
-      font-size: 15px;
-      cursor: pointer;
-      margin: 6px 8px 0 0;
-    }
-
-    #directions-section button[type="submit"]:hover,
-    #back-to-info-btn:hover {
-      background: darkblue;
-    }
-
-    #directions-result {
-      margin-top: 8px;
-      font-size: 14px;
-      white-space: pre-wrap;
-      color: #333;
-    }
-
-    .dir-suggestions {
-      background: #fff;
-      border: 1px solid #ccc;
-      max-height: 150px;
-      overflow-y: auto;
-      display: none;
-      position: relative;
-      z-index: 70;
-      margin-bottom: 8px;
-    }
-
-    .dir-suggestions .suggestion:hover {
-      background: var(--primary);
-      color: #fff;
-    }
-
-    /* Route Mode */
+    #place-info-section,
+    #directions-section,
     #route-section {
       display: none;
     }
 
-    #route-section:not([hidden]) {
-      display: block;
-    }
-
-    #route-section h3 {
-      margin-top: 0;
-    }
-
-    #route-steps {
-      padding-left: 20px;
-    }
-
-    #exit-route-btn {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      padding: 8px 16px;
-      font-size: 15px;
-      cursor: pointer;
-      margin-top: 12px;
-    }
-
-    #exit-route-btn:hover {
-      background: darkblue;
-    }
-
-    /* Mobile responsiveness */
+    /* Mobile styles */
     @media (max-width: 768px) {
       #side-panel {
-        top: auto;
-        bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+        position: absolute;
+        left: 0;
+        bottom: 0;
         width: 100%;
         height: var(--panel-mobile-height);
-        border-radius: 20px 20px 0 0;
-        box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
-        left: 0;
-        transition: bottom .3s ease;
+        transition: bottom 0.3s;
+        box-shadow: none;
       }
 
       #side-panel.open {
-        bottom: 0;
-        left: 0;
+        bottom: var(--panel-mobile-peek);
+      }
+
+      .search-bar {
+        top: 12px;
+      }
+
+      .panel-header {
+        justify-content: space-between;
+        padding: 10px 20px;
       }
     }
   </style>
 </head>
 
 <body>
+  <div id="top-banner">TheBoiisMC Maps</div>
   <div id="map"></div>
-  
   <div class="search-bar">
-    <input id="search" type="text" placeholder="Search places..." />
-    <button id="search-icon">🔍</button>
+    <input id="search" type="text" placeholder="Search for a place" />
+    <button id="panel-search-icon">&#128269;</button>
   </div>
-
   <div id="suggestions"></div>
   <div id="recent-searches"></div>
-
-  <!-- Side Panel -->
   <div id="side-panel" aria-hidden="true">
-    <button id="close-side-panel">×</button>
-    <div id="panel-header">
-      <div id="panel-arrow">⬇️</div>
-      <div id="place-name">Select a place</div>
-      <div id="panel-search-icon">🔍</div>
-    </div>
-    <!-- Info Mode -->
+    <div id="panel-arrow"></div>
     <div id="place-info-section">
-      <button id="directions-btn">Directions</button>
+      <h2 id="place-name"></h2>
+      <p id="place-description"></p>
+      <p id="place-weather"></p>
       <div id="place-images"></div>
-      <div id="quick-facts">
-        <h3>Quick Facts</h3>
-        <p id="place-description"></p>
-        <p id="place-weather"></p>
-      </div>
+      <button id="directions-btn">Get Directions</button>
     </div>
-    <!-- Directions Mode -->
-    <div id="directions-section" hidden>
-      <form id="directions-form">
-        <label for="from-input">From</label>
-        <div style="display:flex; gap:4px; align-items:center;">
-          <input id="from-input" autocomplete="off" placeholder="Type or My Location" />
-          <button type="button" class="my-loc-btn" data-target="from">📍</button>
-        </div>
-        <div id="from-suggestions" class="dir-suggestions"></div>
-        <label for="to-input">To</label>
-        <div style="display:flex; gap:4px; align-items:center;">
-          <input id="to-input" autocomplete="off" placeholder="Type or My Location" />
-          <button type="button" class="my-loc-btn" data-target="to">📍</button>
-        </div>
-        <div id="to-suggestions" class="dir-suggestions"></div>
-        <button type="submit">Get Directions</button>
-        <button type="button" id="back-to-info-btn">Back</button>
-      </form>
-      <pre id="directions-result"></pre>
+    <div id="directions-section">
+      <input id="from-input" type="text" placeholder="From" />
+      <input id="to-input" type="text" placeholder="To" />
+      <button id="back-to-info-btn">Back</button>
+      <div id="directions-result"></div>
+      <div id="from-suggestions"></div>
+      <div id="to-suggestions"></div>
     </div>
-    <!-- Route Mode -->
-    <div id="route-section" hidden>
-      <h3>Route Steps</h3>
-      <ol id="route-steps"></ol>
-      <button id="exit-route-btn">Exit Route</button>
+    <div id="route-section">
+      <ul id="route-steps"></ul>
+      <button id="exit-route-btn">Exit Navigation</button>
     </div>
   </div>
-
-  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
 
