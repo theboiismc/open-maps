@@ -123,6 +123,10 @@
       text-align: center;
       margin-bottom: 12px;
     }
+    #quick-facts {
+      width: 100%;
+      margin-top: auto;
+    }
     #quick-facts h3 {
       font-size: 18px;
       font-weight: bold;
@@ -161,10 +165,10 @@
       font-size: 18px;
       cursor: pointer;
       margin-left: 6px;
-      user-select: none;
     }
 
-    #suggestions {
+    /* Suggestions */
+    #suggestions, #recent-searches {
       position: absolute;
       top: 60px;
       left: 50%;
@@ -178,69 +182,107 @@
       overflow-y: auto;
       display: none;
     }
-    .suggestion {
+    .suggestion, .recent-item {
       padding: 8px 12px;
       cursor: pointer;
       border-bottom: 1px solid #eee;
       user-select: none;
     }
-    .suggestion:hover {
+    .suggestion:hover, .recent-item:hover {
       background: #eee;
     }
 
-    #recent-searches {
+    /* Directions Panel */
+
+    #directions-content {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dir-input-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dir-input-container input {
+      flex-grow: 1;
+      padding: 8px 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      outline: none;
+    }
+
+    .dir-suggestions {
       position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 100%;
+      left: 0;
+      right: 0;
       background: white;
-      border-radius: 8px;
-      width: 80%;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      z-index: 11;
-      max-height: 250px;
+      border-radius: 6px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-height: 150px;
       overflow-y: auto;
+      z-index: 15;
       display: none;
     }
-    .recent-item {
+
+    .dir-suggestion-item {
       padding: 8px 12px;
       cursor: pointer;
       border-bottom: 1px solid #eee;
-      user-select: none;
     }
-    .recent-item:hover {
+
+    .dir-suggestion-item:hover {
       background: #eee;
     }
 
+    #your-location-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #your-location-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: white;
+    }
+
+    #directions-back-btn {
+      margin-top: 10px;
+      background: none;
+      border: none;
+      color: #007bff;
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
+      align-self: flex-start;
+    }
+
+    /* Mobile adjustments */
     @media (max-width: 768px) {
       #side-panel {
-        height: 80vh;
-        border-radius: 30px 30px 0 0;
+        width: 100%;
+        border-radius: 20px 20px 0 0;
       }
-      #panel-header {
-        margin-bottom: 8px;
-      }
-      #place-name {
-        font-size: 18px;
-      }
-      #place-image-container {
-        height: 160px;
-      }
-      #place-description {
-        font-size: 14px;
-      }
-      #place-weather {
-        font-size: 12px;
-      }
-      .search-bar {
+      #suggestions, #recent-searches {
         width: 90%;
-        top: 15px;
-      }
-      #suggestions {
-        width: 90%;
-      }
-      #recent-searches {
-        width: 90%;
+        left: 50%;
+        transform: translateX(-50%);
       }
     }
   </style>
@@ -253,30 +295,46 @@
     <button id="search-icon">🔍</button>
   </div>
 
-  <div id="recent-searches"></div>
   <div id="suggestions"></div>
+  <div id="recent-searches"></div>
 
   <div id="side-panel" class="hidden">
-    <div id="panel-header">
-      <div id="panel-arrow">⬇️</div>
-      <h2 id="place-name"></h2>
-      <div id="search-icon">🔍</div>
+    <div id="info-content" style="display:flex; flex-direction: column; align-items: center; width: 100%;">
+      <div id="panel-header">
+        <div id="panel-arrow" title="Collapse/Expand panel">⬇️</div>
+        <div id="place-name">Place Name</div>
+        <div id="search-icon" title="Search">🔍</div>
+      </div>
+      <button id="directions-btn" aria-label="Get directions">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 11.5 7 3v7H3v3h4v7z"/></svg>
+        Directions
+      </button>
+      <div id="place-image-container">
+        <img id="place-image" src="default.jpg" alt="Place Image" />
+      </div>
+      <p id="place-description">Loading...</p>
+      <div id="quick-facts">
+        <h3>Quick Facts</h3>
+        <p id="place-weather">Loading weather...</p>
+      </div>
     </div>
 
-    <button id="directions-btn">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 11.5 7 3v7H3v3h4v7z"/></svg>
-      Directions
-    </button>
+    <div id="directions-content">
+      <div class="dir-input-container">
+        <input type="text" id="start-input" placeholder="Start" autocomplete="off" />
+        <button id="your-location-btn" title="Use your current location" aria-label="Your location">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0-6v2m0 16v2m6.364-15.364-1.414 1.414m-10.728 10.728-1.414 1.414m15.364 0 1.414 1.414m-10.728-10.728-1.414-1.414"/></svg>
+          Your Location
+        </button>
+      </div>
+      <div id="start-suggestions" class="dir-suggestions"></div>
 
-    <div id="place-image-container">
-      <img id="place-image" src="default.jpg" alt="Place Image" />
-    </div>
+      <div class="dir-input-container" style="margin-top: 8px;">
+        <input type="text" id="dest-input" placeholder="Destination" autocomplete="off" />
+      </div>
+      <div id="dest-suggestions" class="dir-suggestions"></div>
 
-    <p id="place-description">Loading...</p>
-
-    <div id="quick-facts">
-      <h3>Quick Facts</h3>
-      <p id="place-weather">Loading weather...</p>
+      <button id="directions-back-btn" aria-label="Back to place info">← Back</button>
     </div>
 
     <button id="close-side-panel" aria-label="Close panel">×</button>
