@@ -116,6 +116,12 @@ function togglePanel(open) {
 
 closeBtn.addEventListener("click", () => togglePanel(false));
 panelArrow.addEventListener("click", () => togglePanel(!panel.classList.contains("open")));
+panelArrow.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " " ) {
+    e.preventDefault();
+    togglePanel(!panel.classList.contains("open"));
+  }
+});
 panelSearch.addEventListener("click", () => searchInput.focus());
 
 async function selectPlace(p) {
