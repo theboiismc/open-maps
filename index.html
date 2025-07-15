@@ -130,6 +130,7 @@
 
     /* Directions panel */
     #directions-section { display: none; }
+    #directions-section.active { display: block; }
     #directions-section label {
       display: block; margin: 6px 0 2px; font-weight: 600;
     }
@@ -193,7 +194,7 @@
   <div id="map"></div>
 
   <div class="search-bar">
-    <input id="search" placeholder="Search a place…" autocomplete="off" />
+    <input id="search" placeholder="Search a place..." autocomplete="off" />
     <button id="search-icon" aria-label="Search">🔍</button>
   </div>
   <div id="recent-searches" aria-label="Recent searches"></div>
@@ -222,11 +223,11 @@
     <div id="directions-section">
       <form id="directions-form" aria-label="Directions form">
         <label for="from-input">From</label>
-        <input id="from-input" required autocomplete="off" />
+        <input type="text" id="from-input" required autocomplete="off" />
         <div id="from-suggestions" class="dir-suggestions"></div>
 
         <label for="to-input">To</label>
-        <input id="to-input" required autocomplete="off" />
+        <input type="text" id="to-input" required autocomplete="off" />
         <div id="to-suggestions" class="dir-suggestions"></div>
 
         <button type="submit">Get Directions</button>
