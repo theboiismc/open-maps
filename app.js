@@ -41,7 +41,12 @@ function showRecent() {
       const d = document.createElement("div");
       d.className = "suggestion recent";
       d.textContent = p.name;
+      d.setAttribute("role", "option");
+      d.tabIndex = 0;
       d.addEventListener("click", () => selectPlace(p));
+      d.addEventListener("keydown", e => {
+        if (e.key === "Enter") selectPlace(p);
+      });
       recentEl.appendChild(d);
     });
     recentEl.style.display = "block";
@@ -55,7 +60,12 @@ function renderSuggestions(list) {
     const d = document.createElement("div");
     d.className = "suggestion";
     d.textContent = p.name;
+    d.setAttribute("role", "option");
+    d.tabIndex = 0;
     d.addEventListener("click", () => selectPlace(p));
+    d.addEventListener("keydown", e => {
+      if (e.key === "Enter") selectPlace(p);
+    });
     suggestionsEl.appendChild(d);
   });
   suggestionsEl.style.display = "block";
@@ -109,20 +119,48 @@ document.addEventListener("click", e => {
 
 function togglePanel(open) {
   panel.classList.toggle("open", open);
-  document.getElementById("map").style.left = open && window.innerWidth > 768 ? "var(--panel-width)" : "0";
+  const mapEl = document.getElementById("map");
+  if (window.innerWidth > 768) {
+    if (open) {
+      mapEl.classList.add("shifted");
+      panel.setAttribute("aria-hidden", "false");
+      panelArrow.setAttribute("aria-expanded", "true");
+    } else {
+      mapEl.classList.remove("shifted");
+      panel.setAttribute("aria-hidden", "true");
+      panelArrow.setAttribute("aria-expanded", "false");
+    }
+  } else {
+    mapEl.classList.remove("shifted");
+    panel.setAttribute("aria-hidden", open ? "false" : "true");
+    panelArrow.setAttribute("aria-expanded", open ? "true" : "false");
+  }
   map.resize();
 }
 
 closeBtn.addEventListener("click", () => togglePanel(false));
 panelArrow.addEventListener("click", () => togglePanel(!panel.classList.contains("open")));
+panelArrow.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    togglePanel(!panel.classList.contains("open"));
+  }
+});
 panelSearch.addEventListener("click", () => searchInput.focus());
+panelSearch.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    searchInput.focus();
+  }
+});
 
 async function selectPlace(p) {
   currentPlace = p;
   saveRecent(p);
   searchInput.value = p.name;
-  const marker = window.placeMarker;
-  if (marker) marker.remove();
+  suggestionsEl.style.display = recentEl.style.display = "none";
+
+  if (window.placeMarker) window.placeMarker.remove();
   window.placeMarker = new maplibregl.Marker().setLngLat([p.lon, p.lat]).addTo(map);
   map.flyTo({ center: [p.lon, p.lat], zoom: 13 });
   await loadPlaceInfo(p);
@@ -175,6 +213,32 @@ async function loadPlaceInfo(p) {
   }
 }
 
+// On page load, make sure panel is closed and map fills whole screen
+window.addEventListener("load", () => {
+  panel.classList.remove("open");
+  document.getElementById("map").classList.remove("shifted");
+  panel.setAttribute("aria-hidden", "true");
+  panelArrow.setAttribute("aria-expanded", "false");
+  map.resize();
+});
+
+// Close suggestions on ESC key press for UX
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    suggestionsEl.style.display = recentEl.style.display = "none";
+    togglePanel(false);
+    searchInput.blur();
+  }
+});
+
+// Resize handler to close panel or adjust map if needed
 window.addEventListener("resize", () => {
-  if (!panel.classList.contains("open")) togglePanel(false);
+  if (!panel.classList.contains("open")) {
+    document.getElementById("map").classList.remove("shifted");
+  } else if (window.innerWidth > 768) {
+    document.getElementById("map").classList.add("shifted");
+  } else {
+    document.getElementById("map").classList.remove("shifted");
+  }
+  map.resize();
 });
