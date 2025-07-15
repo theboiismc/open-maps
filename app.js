@@ -10,16 +10,16 @@ map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), 'bo
 const $ = id => document.getElementById(id);
 const search = $('search');
 const suggestions = $('suggestions');
+const recentSearchesDiv = $('recent-searches');
 const sidePanel = $('side-panel');
 const closeSidePanel = $('close-side-panel');
 const placeName = $('place-name');
 const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
 const placeImage = $('place-image');
-const panelArrow = $('panel-arrow');
 
 let panelMaxHeight = window.innerHeight * 0.8;
-let collapsedTranslateY = panelMaxHeight * 0.4; // collapsed = panel pushed down 40% of screen height
+let collapsedTranslateY = panelMaxHeight * 0.4;
 const expandedTranslateY = 0;
 
 let dragging = false;
@@ -27,6 +27,93 @@ let startY = 0;
 let lastY = 0;
 let lastTime = 0;
 let velocity = 0;
+
+let currentController = null;
+
+let recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+const cache = {};
+
+function saveRecentSearch(term) {
+  if (!term) return;
+  recentSearches = recentSearches.filter(t => t.toLowerCase() !== term.toLowerCase());
+  recentSearches.unshift(term);
+  if (recentSearches.length > 10) recentSearches.pop();
+  localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+}
+
+function showRecentSearches() {
+  if (recentSearches.length === 0) {
+    recentSearchesDiv.style.display = 'none';
+    return;
+  }
+  recentSearchesDiv.innerHTML = '';
+  recentSearches.forEach(term => {
+    const div = document.createElement('div');
+    div.className = 'recent-item';
+    div.textContent = term;
+    div.addEventListener('click', () => {
+      search.value = term;
+      recentSearchesDiv.style.display = 'none';
+      doSearch(term);
+    });
+    recentSearchesDiv.appendChild(div);
+  });
+  recentSearchesDiv.style.display = 'block';
+}
+
+function hideRecentSearches() {
+  recentSearchesDiv.style.display = 'none';
+}
+
+async function doSearch(query) {
+  if (!query) {
+    suggestions.innerHTML = '';
+    suggestions.style.display = 'none';
+    return;
+  }
+
+  if (cache[query]) {
+    renderSuggestions(cache[query]);
+    return;
+  }
+
+  if (currentController) currentController.abort();
+  currentController = new AbortController();
+
+  try {
+    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`, { signal: currentController.signal });
+    const json = await res.json();
+    cache[query] = json.features;
+    renderSuggestions(json.features);
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error('Search fetch error:', e);
+    suggestions.innerHTML = '';
+    suggestions.style.display = 'none';
+  }
+}
+
+function renderSuggestions(features) {
+  suggestions.innerHTML = '';
+  features.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'suggestion';
+    div.textContent = `${f.properties.name}, ${f.properties.state || ''}, ${f.properties.country || ''}`;
+    div.addEventListener('click', () => {
+      const placeText = div.textContent;
+      search.value = placeText;
+      suggestions.innerHTML = '';
+      suggestions.style.display = 'none';
+      saveRecentSearch(placeText);
+      loadPlaceInfo(f.properties.name, f.geometry.coordinates[1], f.geometry.coordinates[0]);
+      openPanel();
+      hideRecentSearches();
+    });
+    suggestions.appendChild(div);
+  });
+  suggestions.style.display = 'block';
+}
+
+// Panel swipe stuff
 
 function updatePanelSizes() {
   panelMaxHeight = window.innerHeight * 0.8;
@@ -64,32 +151,19 @@ function closePanel() {
 
 closeSidePanel.addEventListener('click', closePanel);
 
-search.addEventListener('input', debounce(async () => {
-  const query = search.value.trim();
-  if (!query) {
-    suggestions.innerHTML = '';
-    return;
-  }
-  const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`);
-  const json = await res.json();
-  suggestions.innerHTML = '';
-  json.features.forEach(f => {
-    const div = document.createElement('div');
-    div.className = 'suggestion';
-    div.textContent = `${f.properties.name}, ${f.properties.state || ''}, ${f.properties.country || ''}`;
-    div.addEventListener('click', () => {
-      search.value = div.textContent;
-      suggestions.innerHTML = '';
-      const [lon, lat] = f.geometry.coordinates;
-      loadPlaceInfo(f.properties.name, lat, lon);
-      openPanel();
-    });
-    suggestions.appendChild(div);
-  });
-}, 300));
+function debounce(fn, delay) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// Load place info
 
 async function loadPlaceInfo(name, lat, lon) {
   placeName.textContent = name;
+
   try {
     const imageRes = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&titles=File:${encodeURIComponent(name)}&prop=imageinfo&iiprop=url`);
     const imageData = await imageRes.json();
@@ -100,6 +174,7 @@ async function loadPlaceInfo(name, lat, lon) {
   } catch {
     placeImage.src = 'default.jpg';
   }
+
   try {
     const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`);
     const wikiData = await wikiRes.json();
@@ -107,21 +182,38 @@ async function loadPlaceInfo(name, lat, lon) {
   } catch {
     placeDescription.textContent = 'No description available.';
   }
+
   placeWeather.textContent = 'Weather info would be here';
 }
 
-function debounce(fn, delay) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => fn(...args), delay);
-  };
-}
+// Search input event handlers
 
-// Swipe Drag + Flick handling
+search.addEventListener('focus', () => {
+  if (!search.value.trim()) showRecentSearches();
+});
+
+search.addEventListener('blur', () => {
+  setTimeout(() => {
+    suggestions.style.display = 'none';
+    hideRecentSearches();
+  }, 200);
+});
+
+search.addEventListener('input', debounce(() => {
+  const query = search.value.trim();
+  if (!query) {
+    suggestions.style.display = 'none';
+    showRecentSearches();
+    return;
+  }
+  hideRecentSearches();
+  doSearch(query);
+}, 150));
+
+// Panel touch drag handling
 
 sidePanel.addEventListener('touchstart', e => {
-  if (window.innerWidth > 768) return; // desktop skip swipe
+  if (window.innerWidth > 768) return;
   dragging = true;
   startY = e.touches[0].clientY;
   lastY = startY;
@@ -164,17 +256,14 @@ sidePanel.addEventListener('touchend', e => {
   const flickThreshold = 0.3;
 
   if (velocity < -flickThreshold) {
-    // flicked up → expand
     sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
     sidePanel.classList.add('expanded');
     sidePanel.classList.remove('collapsed');
   } else if (velocity > flickThreshold) {
-    // flicked down → snap to collapsed (don't close)
     sidePanel.style.transform = `translateY(${collapsedTranslateY}px)`;
     sidePanel.classList.add('collapsed');
     sidePanel.classList.remove('expanded');
   } else {
-    // no strong flick — snap based on position
     if (translateY < threshold) {
       sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
       sidePanel.classList.add('expanded');
@@ -187,24 +276,6 @@ sidePanel.addEventListener('touchend', e => {
   }
 });
 
-// Arrow button toggles expand/collapse (if you add it)
-if(panelArrow){
-  panelArrow.addEventListener('click', () => {
-    const isExpanded = sidePanel.classList.contains('expanded');
-    if (isExpanded) {
-      sidePanel.style.transition = 'transform 0.25s ease';
-      sidePanel.style.transform = `translateY(${collapsedTranslateY}px)`;
-      sidePanel.classList.remove('expanded');
-      sidePanel.classList.add('collapsed');
-    } else {
-      sidePanel.style.transition = 'transform 0.25s ease';
-      sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
-      sidePanel.classList.add('expanded');
-      sidePanel.classList.remove('collapsed');
-    }
-  });
-}
-
-// Initialize hidden
+// Init hidden panel and sizing
 sidePanel.classList.add('hidden');
 updatePanelSizes();
