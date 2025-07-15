@@ -18,24 +18,25 @@ const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
 const placeImage = $('place-image');
 
-// Panel open logic
+// Open panel
 function openPanel() {
   if (window.innerWidth <= 768) {
     sidePanel.classList.remove('expanded');
     sidePanel.classList.add('collapsed');
+    sidePanel.style.transform = `translateY(calc(100% - 120px))`;
   } else {
     sidePanel.classList.add('open');
   }
 }
 
-// Panel close logic (desktop only)
+// Close panel
 function closePanel() {
   sidePanel.classList.remove('open', 'collapsed', 'expanded');
 }
 
 closeSidePanel.addEventListener('click', closePanel);
 
-// Search logic
+// Debounced search input
 search.addEventListener('input', debounce(async () => {
   const query = search.value.trim();
   if (!query) return suggestions.innerHTML = '';
@@ -84,7 +85,6 @@ async function loadPlaceInfo(name, lat, lon) {
   placeWeather.textContent = 'Weather info would be here';
 }
 
-// Debounce
 function debounce(fn, delay) {
   let timeout;
   return function (...args) {
@@ -93,47 +93,60 @@ function debounce(fn, delay) {
   };
 }
 
-// Swipe logic (mobile)
+// Drag panel
 let startY = 0;
 let currentY = 0;
-let isDragging = false;
+let translateY = 0;
+let dragging = false;
 
-sidePanel.addEventListener('touchstart', e => {
-  if (window.innerWidth <= 768) {
-    startY = e.touches[0].clientY;
-    isDragging = true;
-  }
+function setTranslate(y, withTransition = false) {
+  sidePanel.style.transition = withTransition ? 'transform 0.25s ease' : 'none';
+  sidePanel.style.transform = `translateY(${y}px)`;
+}
+
+sidePanel.addEventListener('touchstart', (e) => {
+  if (window.innerWidth > 768) return;
+  startY = e.touches[0].clientY;
+  translateY = sidePanel.getBoundingClientRect().top;
+  dragging = true;
+  sidePanel.style.transition = 'none';
 });
 
-sidePanel.addEventListener('touchmove', e => {
-  if (!isDragging) return;
+sidePanel.addEventListener('touchmove', (e) => {
+  if (!dragging) return;
   currentY = e.touches[0].clientY;
+  const delta = currentY - startY;
+  const newTranslateY = Math.min(Math.max(delta + translateY, 0), window.innerHeight - 100);
+  setTranslate(newTranslateY);
 });
 
 sidePanel.addEventListener('touchend', () => {
-  if (!isDragging) return;
-  const deltaY = currentY - startY;
+  if (!dragging) return;
+  dragging = false;
 
-  if (deltaY > 50) {
-    sidePanel.classList.remove('expanded');
-    sidePanel.classList.add('collapsed');
-  }
+  const panelTop = sidePanel.getBoundingClientRect().top;
+  const screenHeight = window.innerHeight;
 
-  if (deltaY < -50) {
-    sidePanel.classList.remove('collapsed');
+  if (panelTop < screenHeight / 2) {
     sidePanel.classList.add('expanded');
+    sidePanel.classList.remove('collapsed');
+    setTranslate(0, true);
+  } else {
+    sidePanel.classList.add('collapsed');
+    sidePanel.classList.remove('expanded');
+    setTranslate(screenHeight - 120, true);
   }
-
-  isDragging = false;
 });
 
-// Click arrow to toggle expand/collapse
+// Tap arrow to expand/collapse
 $('panel-arrow').addEventListener('click', () => {
   if (sidePanel.classList.contains('collapsed')) {
     sidePanel.classList.remove('collapsed');
     sidePanel.classList.add('expanded');
+    setTranslate(0, true);
   } else {
     sidePanel.classList.remove('expanded');
     sidePanel.classList.add('collapsed');
+    setTranslate(window.innerHeight - 120, true);
   }
 });
