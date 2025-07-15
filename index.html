@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,7 +46,7 @@
       position: absolute; top: 48px; bottom: 0; left: 0; right: 0; z-index: 1;
     }
 
-    /* Search bar + suggestions */
+    /* Search bar */
     .search-bar {
       position: absolute; top: 60px; left: 50%;
       transform: translateX(-50%);
@@ -109,7 +110,7 @@
       text-align: center;
     }
 
-    /* Place info */
+    /* Info mode */
     #directions-btn {
       display: flex; align-items: center;
       background: var(--primary); color: white;
@@ -128,9 +129,9 @@
     }
     #quick-facts h3 { margin: 0 0 8px; }
 
-    /* Directions panel */
+    /* Directions mode */
     #directions-section { display: none; }
-    #directions-section.active { display: block; }
+    #directions-section:not([hidden]) { display: block; }
     #directions-section label {
       display: block; margin: 6px 0 2px; font-weight: 600;
     }
@@ -139,8 +140,7 @@
       margin-bottom: 4px; border: 1px solid #ccc;
       border-radius: 8px; font-size: 14px;
     }
-    #directions-section button[type="submit"],
-    #back-to-info-btn {
+    #directions-section button {
       background: var(--primary); color: white;
       border: none; border-radius: 12px;
       padding: 8px 16px; font-size: 15px;
@@ -164,8 +164,9 @@
       background: var(--primary); color: #fff;
     }
 
-    /* Route panel */
+    /* Route mode */
     #route-section { display: none; }
+    #route-section:not([hidden]) { display: block; }
     #route-section h3 { margin-top: 0; }
     #route-steps { padding-left: 20px; }
     #exit-route-btn {
@@ -194,7 +195,7 @@
   <div id="map"></div>
 
   <div class="search-bar">
-    <input id="search" placeholder="Search a place..." autocomplete="off" />
+    <input id="search" placeholder="Search a place…" autocomplete="off" />
     <button id="search-icon" aria-label="Search">🔍</button>
   </div>
   <div id="recent-searches" aria-label="Recent searches"></div>
@@ -208,7 +209,7 @@
       <div id="panel-search-icon" aria-label="Focus search">🔍</div>
     </div>
 
-    <!-- Place info -->
+    <!-- Info mode -->
     <div id="place-info-section">
       <button id="directions-btn" aria-label="Show directions">Directions</button>
       <div id="place-images" aria-live="polite" aria-atomic="true"></div>
@@ -219,8 +220,8 @@
       </div>
     </div>
 
-    <!-- Directions form -->
-    <div id="directions-section">
+    <!-- Directions mode -->
+    <div id="directions-section" hidden>
       <form id="directions-form" aria-label="Directions form">
         <label for="from-input">From</label>
         <input type="text" id="from-input" required autocomplete="off" />
@@ -236,11 +237,11 @@
       <pre id="directions-result" aria-live="polite"></pre>
     </div>
 
-    <!-- Route steps -->
-    <div id="route-section">
+    <!-- Route mode -->
+    <div id="route-section" hidden>
       <h3>Route Steps</h3>
       <ol id="route-steps"></ol>
-      <button id="exit-route-btn">Exit Route</button>
+      <button type="button" id="exit-route-btn">Exit Route</button>
     </div>
   </div>
 
