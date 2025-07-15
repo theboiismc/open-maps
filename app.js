@@ -16,9 +16,10 @@ const placeName = $('place-name');
 const placeDescription = $('place-description');
 const placeWeather = $('place-weather');
 const placeImage = $('place-image');
+const panelArrow = $('panel-arrow');
 
 let panelMaxHeight = window.innerHeight * 0.8;
-let collapsedTranslateY = panelMaxHeight * 0.75;
+let collapsedTranslateY = panelMaxHeight * 0.4; // collapsed = panel pushed down 40% of screen height
 const expandedTranslateY = 0;
 
 let dragging = false;
@@ -29,7 +30,7 @@ let velocity = 0;
 
 function updatePanelSizes() {
   panelMaxHeight = window.innerHeight * 0.8;
-  collapsedTranslateY = panelMaxHeight * 0.75;
+  collapsedTranslateY = panelMaxHeight * 0.4;
   if (sidePanel.classList.contains('expanded')) {
     sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
   } else if (sidePanel.classList.contains('collapsed')) {
@@ -120,7 +121,7 @@ function debounce(fn, delay) {
 // Swipe Drag + Flick handling
 
 sidePanel.addEventListener('touchstart', e => {
-  if (window.innerWidth > 768) return;
+  if (window.innerWidth > 768) return; // desktop skip swipe
   dragging = true;
   startY = e.touches[0].clientY;
   lastY = startY;
@@ -163,12 +164,17 @@ sidePanel.addEventListener('touchend', e => {
   const flickThreshold = 0.3;
 
   if (velocity < -flickThreshold) {
+    // flicked up → expand
     sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
     sidePanel.classList.add('expanded');
     sidePanel.classList.remove('collapsed');
   } else if (velocity > flickThreshold) {
-    closePanel();
+    // flicked down → snap to collapsed (don't close)
+    sidePanel.style.transform = `translateY(${collapsedTranslateY}px)`;
+    sidePanel.classList.add('collapsed');
+    sidePanel.classList.remove('expanded');
   } else {
+    // no strong flick — snap based on position
     if (translateY < threshold) {
       sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
       sidePanel.classList.add('expanded');
@@ -181,21 +187,24 @@ sidePanel.addEventListener('touchend', e => {
   }
 });
 
-$('panel-arrow').addEventListener('click', () => {
-  const isExpanded = sidePanel.classList.contains('expanded');
-  if (isExpanded) {
-    sidePanel.style.transition = 'transform 0.25s ease';
-    sidePanel.style.transform = `translateY(${collapsedTranslateY}px)`;
-    sidePanel.classList.remove('expanded');
-    sidePanel.classList.add('collapsed');
-  } else {
-    sidePanel.style.transition = 'transform 0.25s ease';
-    sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
-    sidePanel.classList.add('expanded');
-    sidePanel.classList.remove('collapsed');
-  }
-});
+// Arrow button toggles expand/collapse (if you add it)
+if(panelArrow){
+  panelArrow.addEventListener('click', () => {
+    const isExpanded = sidePanel.classList.contains('expanded');
+    if (isExpanded) {
+      sidePanel.style.transition = 'transform 0.25s ease';
+      sidePanel.style.transform = `translateY(${collapsedTranslateY}px)`;
+      sidePanel.classList.remove('expanded');
+      sidePanel.classList.add('collapsed');
+    } else {
+      sidePanel.style.transition = 'transform 0.25s ease';
+      sidePanel.style.transform = `translateY(${expandedTranslateY}px)`;
+      sidePanel.classList.add('expanded');
+      sidePanel.classList.remove('collapsed');
+    }
+  });
+}
 
-// Initial panel state:
+// Initialize hidden
 sidePanel.classList.add('hidden');
 updatePanelSizes();
