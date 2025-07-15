@@ -5,23 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TheBoiisMC Maps</title>
 
-  <!-- Favicon & Icons -->
-  <link rel="icon" type="image/png" href="/53e87aea-e737-4098-a968-363c73a31175.png" sizes="32x32">
-  <link rel="icon" type="image/png" href="/53e87aea-e737-4098-a968-363c73a31175.png" sizes="16x16">
-  <link rel="apple-touch-icon" href="/53e87aea-e737-4098-a968-363c73a31175.png">
-  <link rel="shortcut icon" href="/53e87aea-e737-4098-a968-363c73a31175.png">
+  <!-- Favicon -->
+  <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
 
-  <!-- Open Graph Preview -->
+  <!-- Open Graph / Twitter Cards -->
   <meta property="og:title" content="TheBoiisMC Maps">
-  <meta property="og:description" content="Explore the world with TheBoiisMC Maps — Fast, Private, Modern Mapping.">
+  <meta property="og:description" content="Explore the world with private, modern mapping.">
   <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png">
   <meta property="og:url" content="https://maps.theboiismc.com">
-  <meta property="og:type" content="website">
-
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="TheBoiisMC Maps">
-  <meta name="twitter:description" content="Explore the world with TheBoiisMC Maps — Fast, Private, Modern Mapping.">
+  <meta name="twitter:description" content="Explore the world with private, modern mapping.">
   <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png">
 
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
@@ -30,262 +24,157 @@
   <style>
     :root {
       --primary: #1a73e8;
-      --primary-dark: #155ab6;
       --bg: #f9faff;
       --text: #222;
-      --text-secondary: #555;
-      --accent: #ff6f61;
+      --panel-width: 360px;
     }
     html, body {
-      margin:0; padding:0;
-      height:100%; width:100%;
-      background:var(--bg); color:var(--text);
-      font-family:'Segoe UI',sans-serif;
-      overflow:hidden;
+      margin: 0; padding: 0;
+      height: 100%; width: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Segoe UI', sans-serif;
+      color: var(--text);
     }
-
     #top-banner {
-      position:fixed; top:0; left:0; right:0;
-      background:var(--primary); color:white;
-      font-weight:900; font-size:1.4rem;
-      text-align:center; padding:12px 0;
-      z-index:50; user-select:none;
-      box-shadow:0 2px 10px rgb(26 115 232 / 0.4);
+      position: fixed; top: 0; left: 0; right: 0;
+      background: var(--primary); color: white;
+      font-weight: 700; font-size: 1.3rem;
+      text-align: center; padding: 12px 0;
+      z-index: 50;
     }
     #map {
-      position:absolute;
-      top:48px; bottom:0;
-      left:0; right:0;
-      transition:left 0.3s ease;
-      z-index:1;
+      position: absolute; top: 48px; bottom: 0; left: 0; right: 0;
+      transition: left 0.3s ease;
+      z-index: 1;
     }
-
     .search-bar {
-      position:fixed;
-      top:60px;
-      left:50%;
-      transform:translateX(-50%);
-      background:white; border-radius:30px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.1);
-      width:80%; max-width:450px;
-      padding:8px 16px;
-      z-index:60;
-      display:flex; align-items:center;
+      position: absolute; top: 60px; left: 50%;
+      transform: translateX(-50%);
+      background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-radius: 25px; padding: 8px 16px;
+      display: flex; align-items: center;
+      width: 80%; max-width: 450px;
+      z-index: 60;
     }
     .search-bar input {
-      flex-grow:1;
-      border:none; outline:none;
-      font-size:16px;
-      padding:10px 12px;
-      color:var(--text);
+      flex: 1; border: none; outline: none;
+      font-size: 16px; padding: 8px 12px;
+      border-radius: 25px;
     }
     .search-bar button {
-      border:none; background:none;
-      font-size:18px; cursor:pointer;
-      color:var(--primary);
+      background: none; border: none;
+      font-size: 20px; cursor: pointer;
+      color: var(--primary);
     }
-
     #suggestions, #recent-searches {
-      position:absolute;
-      top:102px; left:50%;
-      transform:translateX(-50%);
-      width:80%; max-width:450px;
-      background:white;
-      border-radius:10px;
-      box-shadow:0 4px 15px rgba(0,0,0,0.15);
-      max-height:240px; overflow-y:auto;
-      font-size:15px;
-      display:none;
-      z-index:60;
+      position: absolute; top: 102px; left: 50%;
+      transform: translateX(-50%);
+      width: 80%; max-width: 450px;
+      background: white; border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      max-height: 240px; overflow-y: auto;
+      display: none; z-index: 60;
     }
     .suggestion {
-      padding:10px 14px;
-      cursor:pointer;
-      border-bottom:1px solid #eee;
-      transition:background 0.2s;
+      padding: 10px 14px; cursor: pointer;
+      border-bottom: 1px solid #eee;
     }
-    .suggestion:hover, .suggestion:focus {
-      background:var(--primary); color:white;
+    .suggestion:hover {
+      background: var(--primary); color: white;
     }
     .suggestion.recent {
-      font-style:italic; font-weight:600;
-      color:var(--primary-dark);
+      font-style: italic;
+      color: var(--primary);
     }
-
     #side-panel {
-      position:fixed;
-      bottom:0; left:0; right:0;
-      max-height:75vh;
-      background:white;
-      box-shadow:0 -3px 18px rgba(0,0,0,0.12);
-      border-radius:24px 24px 0 0;
-      padding:20px 24px;
-      transform:translateY(100%);
-      transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
-      z-index:55;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      overflow-y:auto;
+      position: fixed;
+      top: 0; left: calc(-1 * var(--panel-width)); width: var(--panel-width);
+      height: 100%; background: white;
+      box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+      overflow-y: auto; padding: 20px;
+      transition: left 0.3s ease;
+      z-index: 55;
     }
-    #side-panel.open { transform:translateY(0); }
-    #side-panel.expanded { max-height:90vh; }
-
-    @media(min-width:769px){
-      #side-panel {
-        top:48px; bottom:0;
-        left:-360px; width:360px;
-        border-radius:0 24px 24px 0;
-        box-shadow:2px 0 18px rgba(0,0,0,0.12);
-        transform:translateX(0);
-      }
-      #side-panel.open { left:0; }
-      #side-panel.expanded { max-height:95vh; }
-      #map { left:360px; }
-    }
-
+    #side-panel.open { left: 0; }
     #close-side-panel {
-      position:absolute; top:14px; right:18px;
-      border:none; background:none;
-      font-size:28px; cursor:pointer;
-      color:var(--text-secondary);
-      transition:color .3s;
-      user-select:none;
+      position: absolute; top: 15px; right: 15px;
+      background: none; border: none;
+      font-size: 24px; cursor: pointer;
     }
-    #close-side-panel:hover { color:var(--accent); }
-
     #panel-header {
-      width:100%;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:14px;
-      user-select:none;
+      display: flex; align-items: center; margin-bottom: 16px;
     }
     #panel-arrow, #panel-search-icon {
-      font-size:24px;
-      cursor:pointer;
-      color:var(--primary);
-      transition:color .3s;
-    }
-    #panel-arrow:hover, #panel-search-icon:hover {
-      color:var(--accent);
+      font-size: 20px; cursor: pointer;
+      color: var(--primary);
+      margin: 0 8px;
     }
     #place-name {
-      font-weight:800;
-      font-size:22px;
-      color:var(--primary-dark);
-      text-align:center;
-      flex-grow:1;
-      margin:0 10px;
-      user-select:text;
+      flex: 1; font-size: 20px; font-weight: 600;
+      text-align: center;
     }
-
     #directions-btn {
-      display:flex; align-items:center;
-      background:var(--primary);
-      color:white;
-      border:none;
-      border-radius:12px;
-      padding:8px 18px;
-      font-weight:700;
-      cursor:pointer;
-      box-shadow:0 4px 10px rgb(26 115 232 / 0.5);
-      margin-bottom:18px;
-      transition:background-color .3s;
-      user-select:none;
+      display: flex; align-items: center;
+      background: var(--primary); color: white;
+      border: none; border-radius: 12px;
+      padding: 8px 16px; font-size: 15px;
+      cursor: pointer; margin-bottom: 14px;
     }
-    #directions-btn:hover { background:var(--primary-dark); }
-
-    #directions-btn svg {
-      width:20px; height:20px;
-      margin-right:8px;
-      fill:white;
-      user-select:none;
-    }
-
+    #directions-btn:hover { background: darkblue; }
     #place-images {
-      display:flex;
-      gap:12px;
-      overflow-x:auto;
-      margin-bottom:18px;
-      width:100%;
-      scrollbar-width:thin;
-      scrollbar-color:var(--primary) transparent;
-      user-select:none;
-    }
-    #place-images::-webkit-scrollbar {
-      height:8px;
-    }
-    #place-images::-webkit-scrollbar-thumb {
-      background:var(--primary);
-      border-radius:4px;
+      display: flex; gap: 10px;
+      overflow-x: auto; margin-bottom: 14px;
     }
     #place-images img {
-      height:110px;
-      border-radius:14px;
-      object-fit:cover;
-      flex-shrink:0;
-      cursor:pointer;
-      box-shadow:0 2px 8px rgba(26,115,232,0.25);
-      transition:transform .3s ease;
-    }
-    #place-images img:hover {
-      transform:scale(1.1);
-      box-shadow:0 4px 15px rgba(26,115,232,0.6);
-    }
-
-    #quick-facts {
-      width:100%; user-select:none;
+      width: 100px; height: 100px;
+      object-fit: cover; border-radius: 8px;
     }
     #quick-facts h3 {
-      font-weight:700;
-      font-size:18px;
-      color:var(--primary);
-      margin-bottom:6px;
+      margin: 0 0 8px;
     }
-    #place-description {
-      font-size:15px;
-      line-height:1.4;
-      margin-bottom:10px;
-      color:var(--text);
-    }
-    #place-weather {
-      font-size:14px;
-      font-weight:600;
-      color:var(--primary);
+    @media (max-width: 768px) {
+      #map { top: 48px; }
+      #side-panel {
+        top: auto; bottom: -75vh; width: 100%;
+        height: 75vh; border-radius: 20px 20px 0 0;
+        box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
+        left: 0; transition: bottom 0.3s ease;
+      }
+      #side-panel.open { bottom: 0; }
     }
   </style>
 </head>
 <body>
+
   <div id="top-banner">TheBoiisMC Maps</div>
+
   <div id="map"></div>
+
   <div class="search-bar">
     <input id="search" placeholder="Search a place..." autocomplete="off" />
-    <button id="search-icon" aria-label="Search">🔍</button>
+    <button id="search-icon">🔍</button>
   </div>
+
   <div id="recent-searches"></div>
   <div id="suggestions"></div>
-  <div id="side-panel" role="region" aria-label="Place info panel">
+
+  <div id="side-panel" aria-label="Place info panel">
     <button id="close-side-panel" aria-label="Close">×</button>
     <div id="panel-header">
-      <div id="panel-arrow" title="Expand/Collapse">⬇️</div>
-      <div id="place-name">Loading...</div>
-      <div id="panel-search-icon" title="Focus search">🔍</div>
+      <div id="panel-arrow">⬇️</div>
+      <div id="place-name">Select a place</div>
+      <div id="panel-search-icon">🔍</div>
     </div>
-    <button id="directions-btn" title="Directions">
-      <svg viewBox="0 0 24 24">
-        <path d="M21 11.5 8.5 21v-6H3v-3h5.5v-6z"/>
-      </svg>
-      Directions
-    </button>
-    <div id="place-images" aria-label="Place images"></div>
+    <button id="directions-btn">Directions</button>
+    <div id="place-images"></div>
     <div id="quick-facts">
       <h3>Quick Facts</h3>
-      <p id="place-description">Loading description...</p>
-      <p id="place-weather">Loading weather...</p>
+      <p id="place-description">No description yet.</p>
+      <p id="place-weather"></p>
     </div>
   </div>
+
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
