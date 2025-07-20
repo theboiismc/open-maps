@@ -68,10 +68,11 @@ const debounce = (fn, ms) => {
   };
 };
 
-// Nominatim API request function
-async function nominatim(query) {
-  const response = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`,
+async function nominatim(q) {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
+      q
+    )}`,
     {
       headers: {
         "User-Agent": "TheBoiisMCMaps/1.0",
@@ -79,192 +80,223 @@ async function nominatim(query) {
       },
     }
   );
-  const data = await response.json();
-  return data.map((place) => ({
-    name: place.display_name,
-    lat: place.lat,
-    lon: place.lon,
-    type: place.type,
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.map((el) => ({
+    name: el.display_name,
+    lat: el.lat,
+    lon: el.lon,
+    type: el.type,
   }));
 }
 
-// Utility function for handling panel visibility based on desktop or mobile
+function render(list, container, cb) {
+  if (!list.length) {
+    container.style.display = "none";
+    container.innerHTML = "";
+    return;
+  }
+  container.style.display = "block";
+  container.innerHTML = list
+    .map(
+      (item, i) =>
+        `<div class="suggestion" role="option" tabindex="0" data-index="${i}">${item.name}</div>`
+    )
+    .join("");
+  // Attach click handlers to suggestions
+  container.querySelectorAll(".suggestion").forEach((el) => {
+    el.addEventListener("click", () => {
+      const idx = +el.getAttribute("data-index");
+      cb(list[idx]);
+    });
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const idx = +el.getAttribute("data-index");
+        cb(list[idx]);
+      }
+    });
+  });
+}
+
+function saveRecent(place) {
+  // Save unique by name
+  recentSearches = recentSearches.filter((p) => p.name !== place.name);
+  recentSearches.unshift(place);
+  if (recentSearches.length > 10) recentSearches.pop();
+  localStorage.setItem("recentSearches", JSON.stringify(recentSearches));
+  fuse = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
+}
+
+function selectPlace(place) {
+  if (!place) return;
+  currentPlace = place;
+
+  // Update panel info
+  placeName.textContent = place.name || "Unknown place";
+  placeDesc.textContent = `Type: ${place.type || "Unknown"}`;
+  placeWeather.textContent = "";
+  placeImages.innerHTML = "";
+
+  showPlaceInfoPanel();
+
+  // Center map
+  map.flyTo({ center: [place.lon, place.lat], zoom: 14 });
+
+  saveRecent(place);
+}
+
+function showPlaceInfoPanel() {
+  panelInfoSection.hidden = false;
+  dirSection.hidden = true;
+  routeSection.hidden = true;
+  panel.setAttribute("aria-hidden", "false");
+  openPanel();
+  updateMainSearchVisibility();
+}
+
+function showDirectionsPanel() {
+  panelInfoSection.hidden = true;
+  dirSection.hidden = false;
+  routeSection.hidden = true;
+  panel.setAttribute("aria-hidden", "false");
+  openPanel();
+  updateMainSearchVisibility();
+}
+
+function showRouteSteps(steps) {
+  panelInfoSection.hidden = true;
+  dirSection.hidden = true;
+  routeSection.hidden = false;
+  panel.setAttribute("aria-hidden", "false");
+  openPanel();
+  updateMainSearchVisibility();
+
+  stepsList.innerHTML = "";
+  steps.forEach((step) => {
+    const li = document.createElement("li");
+    li.textContent = step.maneuver.instruction || step.maneuver.type;
+    stepsList.appendChild(li);
+  });
+}
+
+function openPanel() {
+  panel.classList.add("open");
+  panel.setAttribute("aria-hidden", "false");
+  updateMainSearchVisibility();
+}
+
+function closePanel() {
+  panel.classList.remove("open");
+  panel.setAttribute("aria-hidden", "true");
+  updateMainSearchVisibility();
+}
+
 function updateMainSearchVisibility() {
   const isDesktop = window.innerWidth > 768;
   const isPanelOpen = panel.classList.contains("open");
-
-  if (isDesktop) {
-    // On desktop, the main search bar should be visible unless the panel is open
-    if (isPanelOpen) {
-      mainSearchContainer.classList.add("hidden");
-    } else {
-      mainSearchContainer.classList.remove("hidden");
-    }
+  if (isDesktop && isPanelOpen) {
+    mainSearchContainer.classList.add("hidden");
   } else {
-    // On mobile, always show the search bar
     mainSearchContainer.classList.remove("hidden");
   }
 }
 
-// Update when screen loads or resizes
-window.addEventListener("load", updateMainSearchVisibility);
-window.addEventListener("resize", updateMainSearchVisibility);
+// 4) Event handlers & logic
 
-// Panel toggle and close button functionality
-panelArrow.addEventListener("click", () => {
-  panel.classList.toggle("open");
-  updateMainSearchVisibility();
-  panelArrow.innerHTML = panel.classList.contains("open") ? "&gt;" : "&lt;";
-  panel.setAttribute("aria-hidden", panel.classList.contains("open") ? "false" : "true");
-});
+// Main search bar logic (front & center)
+mainSearchInput.addEventListener(
+  "input",
+  debounce(async () => {
+    const q = mainSearchInput.value.trim();
+    if (!q) {
+      mainSuggestionsEl.style.display = "none";
+      return;
+    }
 
-closeBtn.addEventListener("click", () => {
-  panel.classList.remove("open");
-  updateMainSearchVisibility();
-  panelArrow.innerHTML = "&lt;";
-  panel.setAttribute("aria-hidden", "true");
-});
+    // Search recent first with fuse
+    let results = fuse.search(q).map((r) => r.item);
 
-// Handle search input for main search and side panel search
-mainSearchInput.addEventListener("input", debounce(handleSearch, 300));
-panelInfoSearchInput.addEventListener("input", debounce(handleSearch, 300));
+    // Fill with nominatim if less than 5
+    if (results.length < 5) {
+      const nominatimResults = await nominatim(q);
+      nominatimResults.forEach((e) => {
+        if (!results.find((r) => r.name === e.name)) results.push(e);
+      });
+    }
 
-// Handle search suggestions
-async function handleSearch(event) {
-  const searchTerm = event.target.value;
-  const isPanelSearch = event.target === panelInfoSearchInput;
+    render(results, mainSuggestionsEl, (place) => {
+      mainSearchInput.value = place.name;
+      mainSuggestionsEl.style.display = "none";
+      selectPlace(place);
+    });
+  }, 150)
+);
 
-  if (!searchTerm) {
-    (isPanelSearch ? panelInfoSuggestionsEl : mainSuggestionsEl).innerHTML = "";
-    return;
-  }
-
-  // Fetch results from Fuse.js (recent searches)
-  const fuseResults = fuse.search(searchTerm);
-  let results = fuseResults.map((result) => result.item);
-
-  // Fetch results from Nominatim if Fuse results are less than 5
-  if (results.length < 5) {
-    const nominatimResults = await nominatim(searchTerm);
-    nominatimResults.forEach((place) => {
-      if (!results.find((r) => r.name === place.name)) {
-        results.push(place);
-      }
+mainSearchInput.addEventListener("focus", () => {
+  // Optionally show recent suggestions on focus
+  if (recentSearches.length) {
+    render(recentSearches, mainSuggestionsEl, (place) => {
+      mainSearchInput.value = place.name;
+      mainSuggestionsEl.style.display = "none";
+      selectPlace(place);
     });
   }
-
-  // Render the results to the appropriate suggestion list
-  const suggestionsEl = isPanelSearch ? panelInfoSuggestionsEl : mainSuggestionsEl;
-  suggestionsEl.innerHTML = results
-    .map(
-      (place) => `
-        <div class="suggestion" data-id="${place.name}">
-          ${place.name}
-        </div>
-      `
-    )
-    .join("");
-
-  const suggestionItems = suggestionsEl.querySelectorAll(".suggestion");
-  suggestionItems.forEach((item) =>
-    item.addEventListener("click", () => {
-      const selectedPlace = results.find(
-        (suggestion) => suggestion.name === item.dataset.id
-      );
-      showPlaceInfo(selectedPlace);
-      updateMainSearchVisibility();
-      panel.classList.add("open");
-    })
-  );
-}
-
-// Show place info when selected from the search results
-function showPlaceInfo(place) {
-  currentPlace = place;
-  placeName.innerText = place.name;
-  placeDesc.innerText = place.type || "No type available.";
-  placeWeather.innerText = "Weather data will be here."; // Add actual weather data if available
-  placeImages.innerHTML = place.images
-    ? place.images.map(
-        (img) => `<img src="${img}" alt="Image of ${place.name}" style="width: 100%" />`
-      )
-    : `<p>No images available.</p>`;
-  panelInfoSection.hidden = false;
-  dirSection.hidden = true;
-  routeSection.hidden = true;
-}
-
-// Handle directions form submission
-form.addEventListener("submit", (event) => {
-  event.preventDefault();
-  getDirections();
 });
 
-// Fetch directions and show route steps
-function getDirections() {
-  // Example logic for directions
-  if (!fromCoords || !toCoords) {
-    resultEl.innerText = "Please set both origin and destination.";
-    return;
+document.addEventListener("click", (e) => {
+  if (
+    !e.target.closest("#main-search-container") &&
+    !e.target.closest("#main-suggestions")
+  ) {
+    mainSuggestionsEl.style.display = "none";
   }
+});
 
-  // This would involve calling your routing service/API
-  const route = [
-    { step: "Head north", distance: "500m" },
-    { step: "Turn left", distance: "300m" },
-    { step: "Your destination is on the right", distance: "50m" },
-  ];
+mainSearchIcon.addEventListener("click", () => {
+  mainSearchInput.focus();
+});
 
-  stepsList.innerHTML = route
-    .map(
-      (step) =>
-        `<li>${step.step} (${step.distance})</li>`
-    )
-    .join("");
-  routeSection.hidden = false;
-  dirSection.hidden = true;
+// Directions panel inputs autocomplete logic
+function setupDirectionsAutocomplete(inputEl, sugEl, updateFn) {
+  inputEl.addEventListener(
+    "input",
+    debounce(async () => {
+      const q = inputEl.value.trim();
+      if (!q) {
+        sugEl.style.display = "none";
+        return;
+      }
+      const results = await nominatim(q);
+      render(results, sugEl, (place) => {
+        inputEl.value = place.name;
+        updateFn(place);
+        sugEl.style.display = "none";
+      });
+    }, 150)
+  );
+
+  inputEl.addEventListener("focus", () => {
+    // could show recent here if you want
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(`#${inputEl.id}`) && !e.target.closest(`#${sugEl.id}`)) {
+      sugEl.style.display = "none";
+    }
+  });
 }
 
-// Back to the info panel
-backBtn.addEventListener("click", () => {
-  panelInfoSection.hidden = false;
-  dirSection.hidden = true;
-  routeSection.hidden = true;
+setupDirectionsAutocomplete(fromInput, fromSug, (place) => {
+  fromCoords = [parseFloat(place.lon), parseFloat(place.lat)];
 });
 
-// Exit navigation
-exitBtn.addEventListener("click", () => {
-  routeSection.hidden = true;
-  panel.classList.remove("open");
-  updateMainSearchVisibility();
-  panelArrow.innerHTML = "&lt;";
-  panel.setAttribute("aria-hidden", "true");
+setupDirectionsAutocomplete(toInput, toSug, (place) => {
+  toCoords = [parseFloat(place.lon), parseFloat(place.lat)];
 });
 
-// Set user's location as starting point
+// Use My Location buttons
 myLocBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
     geoCtrl.trigger();
-    setTimeout(() => {
-      const coords = geoCtrl._lastKnownPosition;
-      if (coords) {
-        const loc = [coords.coords.longitude, coords.coords.latitude];
-        if (activeField === "from") {
-          fromCoords = loc;
-          fromInput.value = "My Location";
-        } else if (activeField === "to") {
-          toCoords = loc;
-          toInput.value = "My Location";
-        }
-      }
-    }, 500);
   });
-});
-
-// Handle the "From" and "To" fields toggling
-fromInput.addEventListener("focus", () => {
-  activeField = "from";
-});
-toInput.addEventListener("focus", () => {
-  activeField = "to";
 });
