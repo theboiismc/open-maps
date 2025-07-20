@@ -68,175 +68,171 @@ const debounce = (fn, ms) => {
   };
 };
 
-async function nominatim(q) {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
-      q
-    )}`,
-    {
-      headers: {
-        "User-Agent": "TheBoiisMCMaps/1.0",
-        Referer: "https://maps.theboiismc.com",
-      },
-    }
-  );
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.map((el) => ({
-    name: el.display_name,
-    lat: el.lat,
-    lon: el.lon,
-    type: el.type,
-  }));
-}
-
-function render(list, container, cb) {
-  if (!list.length) {
-    container.style.display = "none";
-    container.innerHTML = "";
-    return;
-  }
-  container.style.display = "block";
-  container.innerHTML = list
-    .map(
-      (item, i) =>
-        `<div class="suggestion" role="option" tabindex="0" data-index="${i}">${item.name}</div>`
-    )
-    .join("");
-  // Attach click handlers to suggestions
-  container.querySelectorAll(".suggestion").forEach((el) => {
-    el.addEventListener("click", () => {
-      const idx = +el.getAttribute("data-index");
-      cb(list[idx]);
-    });
-    el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        const idx = +el.getAttribute("data-index");
-        cb(list[idx]);
-      }
-    });
-  });
-}
-
-function saveRecent(place) {
-  // Save unique by name
-  recentSearches = recentSearches.filter((p) => p.name !== place.name);
-  recentSearches.unshift(place);
-  if (recentSearches.length > 10) recentSearches.pop();
-  localStorage.setItem("recentSearches", JSON.stringify(recentSearches));
-  fuse = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
-}
-
-function selectPlace(place) {
-  if (!place) return;
-  currentPlace = place;
-
-  // Update panel info
-  placeName.textContent = place.name || "Unknown place";
-  placeDesc.textContent = `Type: ${place.type || "Unknown"}`;
-  placeWeather.textContent = "";
-  placeImages.innerHTML = "";
-
-  showPlaceInfoPanel();
-
-  // Center map
-  map.flyTo({ center: [place.lon, place.lat], zoom: 14 });
-
-  saveRecent(place);
-}
-
-function showPlaceInfoPanel() {
-  panelInfoSection.hidden = false;
-  dirSection.hidden = true;
-  routeSection.hidden = true;
-  panel.setAttribute("aria-hidden", "false");
-  openPanel();
-  updateMainSearchVisibility();
-}
-
-function showDirectionsPanel() {
-  panelInfoSection.hidden = true;
-  dirSection.hidden = false;
-  routeSection.hidden = true;
-  panel.setAttribute("aria-hidden", "false");
-  openPanel();
-  updateMainSearchVisibility();
-}
-
-function showRouteSteps(steps) {
-  panelInfoSection.hidden = true;
-  dirSection.hidden = true;
-  routeSection.hidden = false;
-  panel.setAttribute("aria-hidden", "false");
-  openPanel();
-  updateMainSearchVisibility();
-
-  stepsList.innerHTML = "";
-  steps.forEach((step) => {
-    const li = document.createElement("li");
-    li.textContent = step.maneuver.instruction || step.maneuver.type;
-    stepsList.appendChild(li);
-  });
-}
-
-function openPanel() {
-  panel.classList.add("open");
-  panel.setAttribute("aria-hidden", "false");
-  updateMainSearchVisibility();
-}
-
-function closePanel() {
-  panel.classList.remove("open");
-  panel.setAttribute("aria-hidden", "true");
-  updateMainSearchVisibility();
-}
-
+// Utility function for handling panel visibility based on desktop or mobile
 function updateMainSearchVisibility() {
   const isDesktop = window.innerWidth > 768;
   const isPanelOpen = panel.classList.contains("open");
-  if (isDesktop && isPanelOpen) {
-    mainSearchContainer.classList.add("hidden");
+
+  if (isDesktop) {
+    // On desktop, the main search bar should be visible unless the panel is open
+    if (isPanelOpen) {
+      mainSearchContainer.classList.add("hidden");
+    } else {
+      mainSearchContainer.classList.remove("hidden");
+    }
   } else {
+    // On mobile, always show the search bar
     mainSearchContainer.classList.remove("hidden");
   }
 }
 
-function hidePanel() {
-  panel.classList.remove("open");
-  panel.setAttribute("aria-hidden", "true");
-  updateMainSearchVisibility();
-}
+// Update when screen loads or resizes
+window.addEventListener("load", updateMainSearchVisibility);
+window.addEventListener("resize", updateMainSearchVisibility);
 
-function handleDirectionSearchInput(e) {
-  const searchText = e.target.value;
-  const results = fuse.search(searchText).map((res) => res.item);
-  render(results, panelInfoSuggestionsEl, selectPlace);
-}
-
-function handlePanelInput(e) {
-  if (e.target === fromInput) {
-    activeField = "from";
-  } else if (e.target === toInput) {
-    activeField = "to";
-  }
-  handleDirectionSearchInput(e);
-}
-
-mainSearchInput.addEventListener("input", handleDirectionSearchInput);
-panelInfoSearchInput.addEventListener("input", handleDirectionSearchInput);
-
-// Handle direction selection for "from" and "to" fields
-fromInput.addEventListener("input", handlePanelInput);
-toInput.addEventListener("input", handlePanelInput);
-
-// Handle panel toggle
+// Panel toggle and close button functionality
 panelArrow.addEventListener("click", () => {
-  if (panel.classList.contains("open")) closePanel();
-  else openPanel();
+  panel.classList.toggle("open");
+  updateMainSearchVisibility();
+  panelArrow.innerHTML = panel.classList.contains("open") ? "&gt;" : "&lt;";
+  panel.setAttribute("aria-hidden", panel.classList.contains("open") ? "false" : "true");
 });
 
-// Handle close panel button
-closeBtn.addEventListener("click", closePanel);
+closeBtn.addEventListener("click", () => {
+  panel.classList.remove("open");
+  updateMainSearchVisibility();
+  panelArrow.innerHTML = "&lt;";
+  panel.setAttribute("aria-hidden", "true");
+});
 
-// Back button in directions section
-backBtn.addEventListener("click", showPlaceInfoPanel);
+// Handle search input for main search and side panel search
+mainSearchInput.addEventListener("input", debounce(handleSearch, 300));
+panelInfoSearchInput.addEventListener("input", debounce(handleSearch, 300));
+
+// Handle search suggestions
+function handleSearch(event) {
+  const searchTerm = event.target.value;
+  const isPanelSearch = event.target === panelInfoSearchInput;
+
+  if (!searchTerm) {
+    (isPanelSearch ? panelInfoSuggestionsEl : mainSuggestionsEl).innerHTML = "";
+    return;
+  }
+
+  const results = fuse.search(searchTerm);
+  const suggestions = results.map((result) => result.item);
+
+  const suggestionsEl = isPanelSearch ? panelInfoSuggestionsEl : mainSuggestionsEl;
+  suggestionsEl.innerHTML = suggestions
+    .map(
+      (place) => `
+        <div class="suggestion" data-id="${place.id}">
+          ${place.name}
+        </div>
+      `
+    )
+    .join("");
+
+  const suggestionItems = suggestionsEl.querySelectorAll(".suggestion");
+  suggestionItems.forEach((item) =>
+    item.addEventListener("click", () => {
+      const selectedPlace = suggestions.find(
+        (suggestion) => suggestion.id === item.dataset.id
+      );
+      showPlaceInfo(selectedPlace);
+      updateMainSearchVisibility();
+      panel.classList.add("open");
+    })
+  );
+}
+
+// Show place info when selected from the search results
+function showPlaceInfo(place) {
+  currentPlace = place;
+  placeName.innerText = place.name;
+  placeDesc.innerText = place.description || "No description available.";
+  placeWeather.innerText = place.weather || "No weather data available.";
+  placeImages.innerHTML = place.images
+    ? place.images.map(
+        (img) => `<img src="${img}" alt="Image of ${place.name}" style="width: 100%" />`
+      )
+    : `<p>No images available.</p>`;
+  panelInfoSection.hidden = false;
+  dirSection.hidden = true;
+  routeSection.hidden = true;
+}
+
+// Handle directions form submission
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  getDirections();
+});
+
+// Fetch directions and show route steps
+function getDirections() {
+  // Example logic for directions
+  if (!fromCoords || !toCoords) {
+    resultEl.innerText = "Please set both origin and destination.";
+    return;
+  }
+
+  // This would involve calling your routing service/API
+  const route = [
+    { step: "Head north", distance: "500m" },
+    { step: "Turn left", distance: "300m" },
+    { step: "Your destination is on the right", distance: "50m" },
+  ];
+
+  stepsList.innerHTML = route
+    .map(
+      (step) =>
+        `<li>${step.step} (${step.distance})</li>`
+    )
+    .join("");
+  routeSection.hidden = false;
+  dirSection.hidden = true;
+}
+
+// Back to the info panel
+backBtn.addEventListener("click", () => {
+  panelInfoSection.hidden = false;
+  dirSection.hidden = true;
+  routeSection.hidden = true;
+});
+
+// Exit navigation
+exitBtn.addEventListener("click", () => {
+  routeSection.hidden = true;
+  panel.classList.remove("open");
+  updateMainSearchVisibility();
+  panelArrow.innerHTML = "&lt;";
+  panel.setAttribute("aria-hidden", "true");
+});
+
+// Set user's location as starting point
+myLocBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    geoCtrl.trigger();
+    setTimeout(() => {
+      const coords = geoCtrl._lastKnownPosition;
+      if (coords) {
+        const loc = [coords.coords.longitude, coords.coords.latitude];
+        if (activeField === "from") {
+          fromCoords = loc;
+          fromInput.value = "My Location";
+        } else if (activeField === "to") {
+          toCoords = loc;
+          toInput.value = "My Location";
+        }
+      }
+    }, 500);
+  });
+});
+
+// Handle the "From" and "To" fields toggling
+fromInput.addEventListener("focus", () => {
+  activeField = "from";
+});
+toInput.addEventListener("focus", () => {
+  activeField = "to";
+});
