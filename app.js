@@ -51,7 +51,6 @@ const exitBtn = $("exit-route-btn");
 const myLocBtns = document.querySelectorAll(".my-loc-btn");
 
 let currentPlace = null;
-
 let recentSearches = JSON.parse(localStorage.getItem("recentSearches") || "[]");
 let fuse = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
 
@@ -180,24 +179,22 @@ function showRouteSteps(steps) {
 }
 
 function openPanel() {
-  panel.classList.add("open");
-  panel.setAttribute("aria-hidden", "false");
+  panel.style.display = "block";
   updateMainSearchVisibility();
 }
 
 function closePanel() {
-  panel.classList.remove("open");
-  panel.setAttribute("aria-hidden", "true");
+  panel.style.display = "none";
   updateMainSearchVisibility();
 }
 
 function updateMainSearchVisibility() {
   const isDesktop = window.innerWidth > 768;
-  const isPanelOpen = panel.classList.contains("open");
+  const isPanelOpen = panel.style.display === "block";
   if (isDesktop && isPanelOpen) {
-    mainSearchContainer.classList.add("hidden");
+    mainSearchContainer.style.display = "none";
   } else {
-    mainSearchContainer.classList.remove("hidden");
+    mainSearchContainer.style.display = "block";
   }
 }
 
@@ -297,6 +294,43 @@ setupDirectionsAutocomplete(toInput, toSug, (place) => {
 // Use My Location buttons
 myLocBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
-    geoCtrl.trigger();
+    geoCtrl.trigger(); // Request current position
+
+    geoCtrl.once("geolocate", (e) => {
+      const coords = e.coords;
+      const latLon = [coords.longitude, coords.latitude];
+      if (activeField === "from") {
+        fromCoords = latLon;
+      } else {
+        toCoords = latLon;
+      }
+      updateMainSearchVisibility();
+    });
   });
 });
+
+// Form submission logic to get directions
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!fromCoords || !toCoords) return;
+
+  // Here you would make a request to a routing API (OSRM)
+  // For this, it's a simple placeholder
+  showRouteSteps([
+    { maneuver: { instruction: "Start from your location" } },
+    { maneuver: { instruction: "Turn left" } },
+  ]);
+});
+
+backBtn.addEventListener("click", showPlaceInfoPanel);
+
+exitBtn.addEventListener("click", closePanel);
+
+closeBtn.addEventListener("click", closePanel);
+
+panelArrow.addEventListener("click", closePanel);
+
+window.addEventListener("resize", updateMainSearchVisibility);
+
+// On load
+updateMainSearchVisibility();
