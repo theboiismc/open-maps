@@ -39,7 +39,7 @@
         bottom: 0;
       }
 
-      /* Main search bar */
+      /* Main search bar (visible by default on desktop) */
       #main-search-container {
         position: fixed;
         top: 20px;
@@ -59,6 +59,7 @@
         display: none;
       }
 
+      /* Suggestions dropdown */
       .suggestions-dropdown {
         position: absolute;
         background: white;
@@ -87,7 +88,7 @@
         width: var(--panel-width);
       }
 
-      /* Panel show */
+      /* Panel open */
       #side-panel.open {
         display: block;
       }
@@ -144,7 +145,7 @@
   <body>
     <div id="map"></div>
 
-    <div id="main-search-container" class="hidden">
+    <div id="main-search-container">
       <input type="text" id="main-search" placeholder="Search places..." autocomplete="off" aria-autocomplete="list" aria-controls="main-suggestions" aria-haspopup="listbox" />
       <button id="main-search-icon" aria-label="Focus main search">🔍</button>
       <div id="main-suggestions" role="listbox" tabindex="-1" class="suggestions-dropdown"></div>
