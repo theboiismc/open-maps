@@ -68,6 +68,26 @@ const debounce = (fn, ms) => {
   };
 };
 
+// Nominatim API request function
+async function nominatim(query) {
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`,
+    {
+      headers: {
+        "User-Agent": "TheBoiisMCMaps/1.0",
+        Referer: "https://maps.theboiismc.com",
+      },
+    }
+  );
+  const data = await response.json();
+  return data.map((place) => ({
+    name: place.display_name,
+    lat: place.lat,
+    lon: place.lon,
+    type: place.type,
+  }));
+}
+
 // Utility function for handling panel visibility based on desktop or mobile
 function updateMainSearchVisibility() {
   const isDesktop = window.innerWidth > 768;
@@ -110,7 +130,7 @@ mainSearchInput.addEventListener("input", debounce(handleSearch, 300));
 panelInfoSearchInput.addEventListener("input", debounce(handleSearch, 300));
 
 // Handle search suggestions
-function handleSearch(event) {
+async function handleSearch(event) {
   const searchTerm = event.target.value;
   const isPanelSearch = event.target === panelInfoSearchInput;
 
@@ -119,14 +139,26 @@ function handleSearch(event) {
     return;
   }
 
-  const results = fuse.search(searchTerm);
-  const suggestions = results.map((result) => result.item);
+  // Fetch results from Fuse.js (recent searches)
+  const fuseResults = fuse.search(searchTerm);
+  let results = fuseResults.map((result) => result.item);
 
+  // Fetch results from Nominatim if Fuse results are less than 5
+  if (results.length < 5) {
+    const nominatimResults = await nominatim(searchTerm);
+    nominatimResults.forEach((place) => {
+      if (!results.find((r) => r.name === place.name)) {
+        results.push(place);
+      }
+    });
+  }
+
+  // Render the results to the appropriate suggestion list
   const suggestionsEl = isPanelSearch ? panelInfoSuggestionsEl : mainSuggestionsEl;
-  suggestionsEl.innerHTML = suggestions
+  suggestionsEl.innerHTML = results
     .map(
       (place) => `
-        <div class="suggestion" data-id="${place.id}">
+        <div class="suggestion" data-id="${place.name}">
           ${place.name}
         </div>
       `
@@ -136,8 +168,8 @@ function handleSearch(event) {
   const suggestionItems = suggestionsEl.querySelectorAll(".suggestion");
   suggestionItems.forEach((item) =>
     item.addEventListener("click", () => {
-      const selectedPlace = suggestions.find(
-        (suggestion) => suggestion.id === item.dataset.id
+      const selectedPlace = results.find(
+        (suggestion) => suggestion.name === item.dataset.id
       );
       showPlaceInfo(selectedPlace);
       updateMainSearchVisibility();
@@ -150,8 +182,8 @@ function handleSearch(event) {
 function showPlaceInfo(place) {
   currentPlace = place;
   placeName.innerText = place.name;
-  placeDesc.innerText = place.description || "No description available.";
-  placeWeather.innerText = place.weather || "No weather data available.";
+  placeDesc.innerText = place.type || "No type available.";
+  placeWeather.innerText = "Weather data will be here."; // Add actual weather data if available
   placeImages.innerHTML = place.images
     ? place.images.map(
         (img) => `<img src="${img}" alt="Image of ${place.name}" style="width: 100%" />`
