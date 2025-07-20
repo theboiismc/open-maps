@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TheBoiisMC Maps</title>
-    <!-- Favicon & Social metas -->
     <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
     <meta property="og:title" content="TheBoiisMC Maps" />
     <meta property="og:description" content="Explore the world with private, modern mapping." />
@@ -15,8 +14,6 @@
     <meta name="twitter:description" content="Explore the world with private, modern mapping." />
     <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
     <meta name="theme-color" content="#1a73e8" />
-
-    <!-- Styles -->
     <style>
       :root {
         --panel-width: 320px;
@@ -92,10 +89,12 @@
         width: var(--panel-width);
         height: 100%;
         border-radius: 0;
+        display: none;
       }
       /* Desktop open state */
       #side-panel.open {
         left: 0;
+        display: block;
       }
       /* Mobile panel adjustments */
       @media (max-width: 768px) {
@@ -107,76 +106,10 @@
           height: var(--panel-mobile-height);
           border-radius: 20px 20px 0 0;
           box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+          display: block;
         }
         #side-panel.open {
           bottom: 0;
-        }
-      }
-
-      /* Search bar styles */
-      .search-bar {
-        display: flex;
-        align-items: center;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 8px 12px;
-        margin-bottom: 10px;
-        background: #fafafa;
-        position: relative;
-      }
-      .search-bar input[type="text"] {
-        border: none;
-        outline: none;
-        flex-grow: 1;
-        font-size: 1rem;
-        background: transparent;
-      }
-      .search-bar button {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1.2rem;
-        color: #555;
-      }
-
-      #close-side-panel {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        background: none;
-        border: none;
-        font-size: 1.8rem;
-        cursor: pointer;
-        color: #999;
-      }
-
-      #panel-arrow {
-        position: absolute;
-        top: 50%;
-        right: -28px;
-        transform: translateY(-50%);
-        width: 24px;
-        height: 48px;
-        background: #1a73e8;
-        border-radius: 8px 0 0 8px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        user-select: none;
-        z-index: 60;
-      }
-      @media (max-width: 768px) {
-        #panel-arrow {
-          right: 50%;
-          bottom: calc(var(--panel-mobile-height) - var(--panel-mobile-peek) - 20px);
-          top: auto;
-          width: 48px;
-          height: 24px;
-          border-radius: 20px 20px 0 0;
-          transform: translateX(50%) rotate(180deg);
         }
       }
 
@@ -185,46 +118,6 @@
       #directions-section,
       #route-section {
         margin-top: 40px;
-      }
-
-      /* Directions form */
-      #directions-form {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      #directions-form input[type="text"] {
-        padding: 8px;
-        font-size: 1rem;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        width: 100%;
-      }
-
-      /* Suggestion dropdowns inside panels */
-      #panel-info-suggestions,
-      #panel-from-suggestions,
-      #panel-to-suggestions {
-        position: absolute;
-        background: white;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        max-height: 140px;
-        overflow-y: auto;
-        width: 100%;
-        z-index: 70;
-        display: none;
-      }
-      #panel-info-suggestions .suggestion,
-      #panel-from-suggestions .suggestion,
-      #panel-to-suggestions .suggestion {
-        padding: 8px 12px;
-        cursor: pointer;
-      }
-      #panel-info-suggestions .suggestion:hover,
-      #panel-from-suggestions .suggestion:hover,
-      #panel-to-suggestions .suggestion:hover {
-        background: #eee;
       }
 
       /* Buttons */
@@ -281,25 +174,6 @@
 
       <!-- Info panel -->
       <section id="place-info-section" hidden>
-        <div class="search-bar" role="search">
-          <input
-            type="text"
-            id="panel-info-search"
-            placeholder="Search info panel places"
-            autocomplete="off"
-            aria-autocomplete="list"
-            aria-controls="panel-info-suggestions"
-            aria-haspopup="listbox"
-          />
-          <button id="panel-info-search-icon" aria-label="Focus info search">🔍</button>
-          <div
-            id="panel-info-suggestions"
-            role="listbox"
-            tabindex="-1"
-            class="suggestions-dropdown"
-          ></div>
-        </div>
-
         <h2 id="place-name"></h2>
         <p id="place-description"></p>
         <p id="place-weather"></p>
@@ -325,13 +199,6 @@
             tabindex="-1"
             class="suggestions-dropdown"
           ></div>
-          <button
-            type="button"
-            class="my-loc-btn"
-            aria-label="Use my location as start"
-          >
-            Use My Location (From)
-          </button>
 
           <label for="panel-to-input">To</label>
           <input
@@ -348,13 +215,6 @@
             tabindex="-1"
             class="suggestions-dropdown"
           ></div>
-          <button
-            type="button"
-            class="my-loc-btn"
-            aria-label="Use my location as destination"
-          >
-            Use My Location (To)
-          </button>
 
           <button type="submit" id="route-btn">Route</button>
         </form>
