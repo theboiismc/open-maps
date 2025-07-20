@@ -15,19 +15,17 @@
     <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
     <meta name="theme-color" content="#1a73e8" />
 
+    <link href="https://unpkg.com/maplibre-gl@2.6.1/dist/maplibre-gl.css" rel="stylesheet" />
     <style>
-      :root {
-        --panel-width: 320px;
-        --panel-mobile-height: 420px;
-        --panel-mobile-peek: 160px;
-      }
+      /* Global styling */
       html, body, #map {
         margin: 0;
         padding: 0;
         height: 100%;
         width: 100%;
-        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
       }
+
+      /* Map container */
       #map {
         position: fixed;
         top: 0;
@@ -36,15 +34,15 @@
         bottom: 0;
       }
 
-      /* Main search bar - fixed top center */
+      /* Main search bar */
       #main-search-container {
         position: fixed;
         top: 20px;
         left: 50%;
         transform: translateX(-50%);
-        z-index: 60;
+        z-index: 100;
         width: 250px;
-        background: #fafafa;
+        background: #fff;
         border-radius: 8px;
         padding: 10px;
         display: flex;
@@ -54,7 +52,7 @@
       #main-search {
         width: 80%;
         padding: 8px;
-        border: none;
+        border: 1px solid #ddd;
         border-radius: 5px;
         font-size: 14px;
         box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
@@ -86,7 +84,7 @@
       /* Panel Styles */
       #side-panel {
         display: none;
-        width: var(--panel-width);
+        width: 300px;
         position: fixed;
         top: 0;
         left: 0;
@@ -101,7 +99,6 @@
         transition: all 0.3s ease-in-out;
       }
 
-      /* Directions Section */
       #directions-section {
         display: block;
       }
