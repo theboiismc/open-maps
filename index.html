@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TheBoiisMC Maps</title>
-    <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta property="og:title" content="TheBoiisMC Maps" />
     <meta property="og:description" content="Explore the world with private, modern mapping." />
     <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
@@ -14,131 +12,180 @@
     <meta name="twitter:description" content="Explore the world with private, modern mapping." />
     <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
     <meta name="theme-color" content="#1a73e8" />
-
+    <title>TheBoiisMC Maps</title>
+    <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@2.1.8/dist/maplibre-gl.css" />
     <style>
-      :root {
-        --panel-width: 320px;
-        --panel-mobile-height: 420px;
-        --panel-mobile-peek: 160px;
-      }
-      html, body, #map {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        width: 100%;
-        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-      }
-      #map {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-      }
+        :root {
+            --panel-width: 320px;
+            --panel-mobile-height: 420px;
+            --panel-mobile-peek: 160px;
+        }
 
-      /* Main search bar - fixed top center */
-      #main-search-container {
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 60;
-        width: 250px;
-        background: #fafafa;
-        border-radius: 8px;
-        padding: 10px;
-        display: flex;
-        justify-content: space-between;
-      }
+        html, body, #map {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
 
-      #main-search {
-        width: 80%;
-        padding: 8px;
-        border: none;
-        border-radius: 5px;
-        font-size: 14px;
-        box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-      }
+        #map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
 
-      #main-suggestions {
-        position: absolute;
-        top: 40px;
-        left: 0;
-        right: 0;
-        background: white;
-        box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
-        display: none;
-        z-index: 50;
-        border-radius: 5px;
-        max-height: 200px;
-        overflow-y: auto;
-      }
+        /* Main search bar - fixed top center */
+        #main-search-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 60;
+            width: 250px;
+            background: #fafafa;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+        }
 
-      .suggestion {
-        padding: 8px;
-        cursor: pointer;
-      }
+        /* Suggestions dropdown */
+        .suggestions-dropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            width: 100%;
+            max-height: 160px;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 70;
+            display: none;
+        }
 
-      .suggestion:hover {
-        background-color: #f5f5f5;
-      }
+        /* Side Panel */
+        #side-panel {
+            position: fixed;
+            top: 0;
+            left: -100%;
+            width: var(--panel-width);
+            height: 100%;
+            background: white;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            z-index: 55;
+            transition: left 0.3s ease;
+        }
 
-      /* Panel Styles */
-      #side-panel {
-        display: none;
-        width: var(--panel-width);
-        position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        background: white;
-        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        z-index: 100;
-        flex-direction: column;
-        align-items: stretch;
-        overflow-y: auto;
-        transition: all 0.3s ease-in-out;
-      }
+        /* Open Panel */
+        #side-panel.open {
+            left: 0;
+        }
 
-      /* Directions Section */
-      #directions-section {
-        display: block;
-      }
+        /* Mobile Panel Adjustments */
+        @media (max-width: 768px) {
+            #side-panel {
+                top: auto;
+                bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+                left: 0;
+                width: 100%;
+                height: var(--panel-mobile-height);
+                border-radius: 20px 20px 0 0;
+                box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+            }
+            #side-panel.open {
+                bottom: 0;
+            }
+        }
+
+        /* Panel content sections */
+        #place-info-section,
+        #directions-section,
+        #route-section {
+            margin-top: 40px;
+        }
+
+        /* Buttons */
+        button {
+            background: #1a73e8;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Responsive tweaks */
+        @media (max-width: 768px) {
+            #main-search-container {
+                width: 90vw;
+                left: 5vw;
+                transform: none;
+            }
+        }
     </style>
-  </head>
+</head>
+<body>
 
-  <body>
+    <!-- Main Search Bar Section -->
+    <div id="main-search-container">
+        <input type="text" id="main-search" placeholder="Search for a place..." />
+        <div id="main-suggestions" class="suggestions-dropdown"></div>
+    </div>
+
+    <!-- Side Panel -->
+    <div id="side-panel" aria-hidden="true">
+        <div id="close-side-panel" class="close-btn">X</div>
+        <div id="panel-arrow" class="panel-arrow">&#9665;</div>
+
+        <!-- Place Info Section -->
+        <div id="place-info-section" hidden>
+            <h3 id="place-name">Place Name</h3>
+            <p id="place-description">Description or Type</p>
+            <p id="place-weather">Weather: TBD</p>
+            <div id="place-images"></div>
+            <button id="directions-btn">Get Directions</button>
+        </div>
+
+        <!-- Directions Section -->
+        <div id="directions-section" hidden>
+            <form id="directions-form">
+                <label for="panel-from-input">From</label>
+                <input type="text" id="panel-from-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-from-suggestions" aria-haspopup="listbox" />
+                <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
+
+                <label for="panel-to-input">To</label>
+                <input type="text" id="panel-to-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-to-suggestions" aria-haspopup="listbox" />
+                <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
+
+                <button type="button" class="my-loc-btn">Use My Location</button>
+                <button type="submit" id="route-btn">Get Route</button>
+            </form>
+            <button id="back-to-info-btn">Back</button>
+        </div>
+
+        <!-- Route Steps Section -->
+        <div id="route-section" hidden>
+            <h3>Route Steps</h3>
+            <ol id="route-steps"></ol>
+            <button id="exit-route-btn">Stop Navigation</button>
+        </div>
+    </div>
+
     <!-- Map Container -->
     <div id="map"></div>
 
-    <!-- Main Search Bar -->
-    <div id="main-search-container">
-      <input type="text" id="main-search" placeholder="Search for places" />
-    </div>
-
-    <!-- Suggestions for Main Search -->
-    <div id="main-suggestions"></div>
-
-    <!-- Directions Panel -->
-    <div id="side-panel">
-      <h3>Get Directions</h3>
-      <form id="directions-form">
-        <input type="text" id="panel-from-input" placeholder="From" autocomplete="off" />
-        <div id="panel-from-suggestions"></div>
-        <input type="text" id="panel-to-input" placeholder="To" autocomplete="off" />
-        <div id="panel-to-suggestions"></div>
-        <button type="submit">Get Directions</button>
-      </form>
-
-      <!-- Route Steps -->
-      <div id="route-section" hidden>
-        <h4>Route Steps</h4>
-        <ul id="route-steps"></ul>
-      </div>
-    </div>
-
-    <script src="https://unpkg.com/maplibre-gl@2.6.1/dist/maplibre-gl.js"></script>
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@2.1.8/dist/maplibre-gl.js"></script>
+    <!-- Fuse.js for search -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <!-- App script -->
     <script src="app.js"></script>
-  </body>
+
+</body>
 </html>
