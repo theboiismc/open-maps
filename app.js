@@ -57,6 +57,7 @@ const debounce = (fn, ms) => {
     t = setTimeout(() => fn(...args), ms);
   };
 };
+
 async function nominatim(q) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
@@ -75,6 +76,7 @@ async function nominatim(q) {
     lon: +r.lon,
   }));
 }
+
 async function reverseGeocode(lat, lon) {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
@@ -88,6 +90,7 @@ async function reverseGeocode(lat, lon) {
   const j = await res.json();
   return j.display_name;
 }
+
 function render(list, container, cb) {
   container.innerHTML = "";
   list.forEach((p) => {
@@ -143,29 +146,60 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// 5) Panel toggles
+// 5) Panel toggles & responsive sliding panel
+
 function togglePanel(open) {
   panel.classList.toggle("open", open);
   panel.setAttribute("aria-hidden", (!open).toString());
-  if (window.innerWidth > 768) {
-    // Desktop
-    if (open) {
+
+  if (window.innerWidth <= 768) {
+    // mobile: slide up/down by controlling bottom
+    panel.style.left = "0";
+    panel.style.bottom = open
+      ? "0"
+      : `calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)))`;
+  } else {
+    // desktop: slide left/right by controlling left
+    panel.style.bottom = "auto";
+    panel.style.left = open ? "0" : `calc(-1 * var(--panel-width))`;
+  }
+
+  map.resize();
+}
+
+function resetPanelOnResize() {
+  if (window.innerWidth <= 768) {
+    if (!panel.classList.contains("open")) {
       panel.style.left = "0";
+      panel.style.bottom = `calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)))`;
+      panel.setAttribute("aria-hidden", "false"); // partial peek visible on mobile closed
     } else {
-      panel.style.left = "-340px"; // fully offscreen (panel width + buffer)
+      panel.style.left = "0";
+      panel.style.bottom = "0";
+      panel.setAttribute("aria-hidden", "false");
     }
   } else {
-    // Mobile
-    if (open) {
-      panel.style.bottom = "0";
+    if (!panel.classList.contains("open")) {
+      panel.style.bottom = "auto";
+      panel.style.left = `calc(-1 * var(--panel-width))`;
+      panel.setAttribute("aria-hidden", "true"); // fully hidden on desktop closed
     } else {
-      panel.style.bottom = `calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)))`;
+      panel.style.bottom = "auto";
+      panel.style.left = "0";
+      panel.setAttribute("aria-hidden", "false");
     }
   }
   map.resize();
 }
+
+window.addEventListener("load", resetPanelOnResize);
+window.addEventListener("resize", resetPanelOnResize);
+
+// close button handler
 closeBtn.onclick = () => togglePanel(false);
+// panel arrow toggler (can open/close)
 panelArrow.onclick = () => togglePanel(!panel.classList.contains("open"));
+// search icon focuses input
 panelSearch.onclick = () => searchInput.focus();
 
 // 6) Place select & info load
@@ -186,6 +220,7 @@ async function selectPlace(p) {
   routeSection.hidden = true;
   togglePanel(true);
 }
+
 async function loadInfo(p) {
   placeName.textContent = p.name;
   placeDesc.textContent = "Loading…";
@@ -216,7 +251,7 @@ async function loadInfo(p) {
       .forEach(async (img) => {
         if (/\.(jpg|jpeg|png)$/i.test(img.title)) {
           let r2 = await fetch(
-            `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(
+            `https://wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(
               img.title
             )}&prop=imageinfo&iiprop=url&format=json&origin=*`
           );
@@ -229,6 +264,7 @@ async function loadInfo(p) {
         }
       });
   } catch {}
+
   try {
     let wr = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current_weather=true`
@@ -289,6 +325,7 @@ fromInput.addEventListener(
     });
   }, 200)
 );
+
 toInput.addEventListener(
   "input",
   debounce(async () => {
@@ -301,6 +338,7 @@ toInput.addEventListener(
     });
   }, 200)
 );
+
 document.addEventListener("click", (e) => {
   if (!e.target.closest("#directions-section")) fromSug.style.display = toSug.style.display = "none";
 });
@@ -310,6 +348,7 @@ backBtn.onclick = () => {
   dirSection.hidden = true;
   infoSection.hidden = false;
 };
+
 exitBtn.onclick = () => {
   routeSection.hidden = true;
   infoSection.hidden = false;
@@ -351,7 +390,7 @@ form.onsubmit = async (e) => {
   routeSection.hidden = false;
 };
 
-// 13) Mobile drag to open/close
+// 13) Mobile drag-to-open/close logic
 function setupMobileDrag() {
   if (window.innerWidth > 768) return;
 
@@ -366,40 +405,29 @@ function setupMobileDrag() {
     getComputedStyle(document.documentElement).getPropertyValue("--panel-mobile-peek")
   );
 
-  panel.ontouchstart = null;
-  panel.ontouchmove = null;
-  panel.ontouchend = null;
-
   panel.addEventListener("touchstart", (e) => {
-    const touchY = e.touches[0].clientY;
-    const viewportHeight = window.innerHeight;
-
-    // Visible top edge of the panel
-    const panelBottomPx = parseFloat(panel.style.bottom) || (-1 * (panelHeight - panelPeek));
-    const panelTop = viewportHeight - panelHeight - panelBottomPx;
-
-    if (touchY >= panelTop) {
-      dragging = true;
-      startY = touchY;
-      currentBottom = parseFloat(panel.style.bottom) || (-1 * (panelHeight - panelPeek));
-      panel.style.transition = "none";
-    }
+    if (!panel.classList.contains("open")) return;
+    dragging = true;
+    startY = e.touches[0].clientY;
+    currentBottom = parseFloat(panel.style.bottom) || 0;
+    panel.style.transition = "none"; // disable transition during drag
   });
 
   panel.addEventListener("touchmove", (e) => {
     if (!dragging) return;
     const dy = e.touches[0].clientY - startY;
     let newBottom = currentBottom - dy;
-    newBottom = Math.min(newBottom, 0);
-    newBottom = Math.max(newBottom, -1 * (panelHeight - panelPeek));
+    newBottom = Math.min(newBottom, 0); // don't drag above fully open
+    newBottom = Math.max(newBottom, -1 * (panelHeight - panelPeek)); // don't drag below peek
     panel.style.bottom = `${newBottom}px`;
   });
 
   panel.addEventListener("touchend", () => {
     if (!dragging) return;
     dragging = false;
-    panel.style.transition = "";
+    panel.style.transition = ""; // restore transition
 
+    // Snap logic: if dragged more than halfway down, close; else open
     const bottomPx = parseFloat(panel.style.bottom);
     if (bottomPx < -((panelHeight - panelPeek) / 2)) {
       togglePanel(false);
@@ -409,26 +437,5 @@ function setupMobileDrag() {
   });
 }
 
-window.addEventListener("resize", () => {
-  if (window.innerWidth > 768 && !panel.classList.contains("open")) {
-    panel.style.left = "-340px";
-    panel.setAttribute("aria-hidden", "true");
-  }
-  if (window.innerWidth <= 768 && !panel.classList.contains("open")) {
-    panel.style.bottom = `calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)))`;
-    panel.setAttribute("aria-hidden", "false");
-  }
-});
-
-window.addEventListener("load", () => {
-  if (window.innerWidth > 768) togglePanel(false);
-  else {
-    panel.style.bottom = `calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)))`;
-    panel.setAttribute("aria-hidden", "false");
-  }
-  setupMobileDrag();
-});
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && panel.classList.contains("open")) togglePanel(false);
-});
+window.addEventListener("load", setupMobileDrag);
+window.addEventListener("resize", setupMobileDrag);
