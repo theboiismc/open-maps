@@ -201,186 +201,42 @@ function updateMainSearchVisibility() {
   }
 }
 
-// 4) Event handlers & logic
-
-// Main search bar logic (front & center)
-mainSearchInput.addEventListener(
-  "input",
-  debounce(async () => {
-    const q = mainSearchInput.value.trim();
-    if (!q) {
-      mainSuggestionsEl.style.display = "none";
-      return;
-    }
-
-    // Search recent first with fuse
-    let results = fuse.search(q).map((r) => r.item);
-
-    // Fill with nominatim if less than 5
-    if (results.length < 5) {
-      const nominatimResults = await nominatim(q);
-      nominatimResults.forEach((e) => {
-        if (!results.find((r) => r.name === e.name)) results.push(e);
-      });
-    }
-
-    render(results, mainSuggestionsEl, (place) => {
-      mainSearchInput.value = place.name;
-      mainSuggestionsEl.style.display = "none";
-      selectPlace(place);
-    });
-  }, 150)
-);
-
-mainSearchInput.addEventListener("focus", () => {
-  // Optionally show recent suggestions on focus
-  if (recentSearches.length) {
-    render(recentSearches, mainSuggestionsEl, (place) => {
-      mainSearchInput.value = place.name;
-      mainSuggestionsEl.style.display = "none";
-      selectPlace(place);
-    });
-  }
-});
-
-document.addEventListener("click", (e) => {
-  if (
-    !e.target.closest("#main-search-container") &&
-    !e.target.closest("#main-suggestions")
-  ) {
-    mainSuggestionsEl.style.display = "none";
-  }
-});
-
-mainSearchIcon.addEventListener("click", () => {
-  mainSearchInput.focus();
-});
-
-// Directions panel inputs autocomplete logic
-function setupDirectionsAutocomplete(inputEl, sugEl, updateFn) {
-  inputEl.addEventListener(
-    "input",
-    debounce(async () => {
-      const q = inputEl.value.trim();
-      if (!q) {
-        sugEl.style.display = "none";
-        return;
-      }
-      const results = await nominatim(q);
-      render(results, sugEl, (place) => {
-        inputEl.value = place.name;
-        updateFn(place);
-        sugEl.style.display = "none";
-      });
-    }, 150)
-  );
-
-  inputEl.addEventListener("focus", () => {
-    // could show recent here if you want
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!e.target.closest(`#${inputEl.id}`) && !e.target.closest(`#${sugEl.id}`)) {
-      sugEl.style.display = "none";
-    }
-  });
+function hidePanel() {
+  panel.classList.remove("open");
+  panel.setAttribute("aria-hidden", "true");
+  updateMainSearchVisibility();
 }
 
-setupDirectionsAutocomplete(fromInput, fromSug, (place) => {
-  fromCoords = [parseFloat(place.lon), parseFloat(place.lat)];
-});
+function handleDirectionSearchInput(e) {
+  const searchText = e.target.value;
+  const results = fuse.search(searchText).map((res) => res.item);
+  render(results, panelInfoSuggestionsEl, selectPlace);
+}
 
-setupDirectionsAutocomplete(toInput, toSug, (place) => {
-  toCoords = [parseFloat(place.lon), parseFloat(place.lat)];
-});
-
-// Use My Location buttons
-myLocBtns.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    geoCtrl.trigger(); // Request current position
-
-    geoCtrl.once("geolocate", (ev) => {
-      const { longitude, latitude } = ev.coords;
-      if (btn.textContent.includes("From")) {
-        fromCoords = [longitude, latitude];
-        fromInput.value = "My Location";
-      } else {
-        toCoords = [longitude, latitude];
-        toInput.value = "My Location";
-      }
-    });
-  });
-});
-
-// Directions form submit
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!fromCoords || !toCoords) {
-    resultEl.textContent = "Please enter valid 'from' and 'to' locations.";
-    return;
+function handlePanelInput(e) {
+  if (e.target === fromInput) {
+    activeField = "from";
+  } else if (e.target === toInput) {
+    activeField = "to";
   }
-  resultEl.textContent = "Routing...";
+  handleDirectionSearchInput(e);
+}
 
-  // Call OSRM or your routing service
-  try {
-    const r = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${fromCoords[0]},${fromCoords[1]};${toCoords[0]},${toCoords[1]}?overview=false&steps=true`
-    );
-    const data = await r.json();
-    if (data.code !== "Ok") throw new Error("Routing error");
+mainSearchInput.addEventListener("input", handleDirectionSearchInput);
+panelInfoSearchInput.addEventListener("input", handleDirectionSearchInput);
 
-    const route = data.routes[0];
-    const steps = route.legs[0].steps;
+// Handle direction selection for "from" and "to" fields
+fromInput.addEventListener("input", handlePanelInput);
+toInput.addEventListener("input", handlePanelInput);
 
-    showRouteSteps(steps);
-    resultEl.textContent = `Distance: ${(route.distance / 1000).toFixed(
-      2
-    )} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
-
-    // Draw route on map (optional, add polyline layer)
-  } catch (err) {
-    resultEl.textContent = "Failed to get route. Try again.";
-  }
-});
-
-// Back button on directions panel
-backBtn.addEventListener("click", () => {
-  showPlaceInfoPanel();
-});
-
-// Exit route steps panel
-exitBtn.addEventListener("click", () => {
-  showPlaceInfoPanel();
-});
-
-// Directions button on place info
-directionsBtn.addEventListener("click", () => {
-  // Prefill 'to' with current place
-  if (currentPlace) {
-    toInput.value = currentPlace.name;
-    toCoords = [parseFloat(currentPlace.lon), parseFloat(currentPlace.lat)];
-  }
-  showDirectionsPanel();
-});
-
-// Panel open/close logic
-closeBtn.addEventListener("click", closePanel);
+// Handle panel toggle
 panelArrow.addEventListener("click", () => {
   if (panel.classList.contains("open")) closePanel();
   else openPanel();
 });
-panelArrow.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" || e.key === " ") {
-    if (panel.classList.contains("open")) closePanel();
-    else openPanel();
-  }
-});
 
-// On load
-window.addEventListener("load", () => {
-  updateMainSearchVisibility();
-});
+// Handle close panel button
+closeBtn.addEventListener("click", closePanel);
 
-window.addEventListener("resize", () => {
-  updateMainSearchVisibility();
-});
+// Back button in directions section
+backBtn.addEventListener("click", showPlaceInfoPanel);
