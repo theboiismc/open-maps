@@ -19,17 +19,12 @@ const mainSuggestionsEl = $("main-suggestions");
 const mainSearchContainer = $("main-search-container");
 const panel = $("side-panel");
 const closeBtn = $("close-side-panel");
-const panelArrow = $("panel-arrow");
 
 const placeName = $("place-name");
 const placeDesc = $("place-description");
 const placeWeather = $("place-weather");
 const placeImages = $("place-images");
 const directionsBtn = $("directions-btn");
-
-const form = $("directions-form");
-const fromInput = $("panel-from-input");
-const toInput = $("panel-to-input");
 const routeBtn = $("route-btn");
 const routeSteps = $("route-steps");
 const backToInfoBtn = $("back-to-info-btn");
@@ -86,21 +81,16 @@ function selectPlace(place) {
 // Show/hide the panel
 function openPanel() {
   panel.classList.add("open");
+  mainSearchContainer.classList.add("hidden");
 }
 
 function closePanel() {
   panel.classList.remove("open");
+  mainSearchContainer.classList.remove("hidden");
 }
 
 // Add event listeners for opening and closing the panel
 closeBtn.addEventListener("click", closePanel);
-panelArrow.addEventListener("click", () => {
-  if (panel.classList.contains("open")) {
-    closePanel();
-  } else {
-    openPanel();
-  }
-});
 
 // Route functionality (mock)
 routeBtn.addEventListener("click", (e) => {
