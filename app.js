@@ -15,13 +15,13 @@ const geoCtrl = new maplibregl.GeolocateControl({
 
 map.addControl(geoCtrl, "bottom-right");
 
-// 2) Utility function for selecting elements
+// 2) Elements & selectors
 const $ = (id) => document.getElementById(id);
 
-// Elements & selectors
 const mainSearchInput = $("main-search");
 const mainSuggestionsEl = $("main-suggestions");
 const panel = $("side-panel");
+
 const fromInput = $("panel-from-input");
 const toInput = $("panel-to-input");
 const fromSug = $("panel-from-suggestions");
@@ -30,7 +30,7 @@ const toSug = $("panel-to-suggestions");
 let fromCoords = null,
   toCoords = null;
 
-// 3) Debounce function for better performance on input
+// 3) Utilities
 const debounce = (fn, ms) => {
   let t;
   return (...args) => {
@@ -39,8 +39,9 @@ const debounce = (fn, ms) => {
   };
 };
 
-// Nominatim API call for search suggestions
+// Nominatim API call for suggestions
 async function nominatim(q) {
+  // Trying to ensure we can find short names like "Madison", "New York", etc.
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
       q
@@ -54,6 +55,8 @@ async function nominatim(q) {
   );
   if (!res.ok) return [];
   const data = await res.json();
+
+  // Filter results to make sure they contain the name of the place
   return data
     .map((el) => ({
       name: el.display_name,
@@ -61,10 +64,13 @@ async function nominatim(q) {
       lon: el.lon,
       type: el.type,
     }))
-    .filter((place) => place.name.toLowerCase().includes(q.toLowerCase()));
+    .filter((place) => {
+      // Ensure that results include common keywords like city, state, country, etc.
+      return place.name.toLowerCase().includes(q.toLowerCase());
+    });
 }
 
-// Render search results in suggestions dropdown
+// Render function for search results
 function render(list, container, cb) {
   if (!list.length) {
     container.style.display = "none";
@@ -93,7 +99,7 @@ function render(list, container, cb) {
   });
 }
 
-// Update map view and set coordinates based on selection
+// Update the map view based on a place selection
 function selectPlace(place, isFrom) {
   if (!place) return;
   if (isFrom) {
@@ -104,11 +110,11 @@ function selectPlace(place, isFrom) {
     toInput.value = place.name;
   }
 
-  // Fly to the selected place on map
+  // Fly to the selected place
   map.flyTo({ center: [place.lon, place.lat], zoom: 14 });
 }
 
-// Handle "Enter" key press for manual input
+// Handle the "Enter" key for auto-navigation to a place
 function handleEnterKey(inputEl, isFrom) {
   const place = inputEl.value.trim();
   if (place) {
@@ -120,7 +126,7 @@ function handleEnterKey(inputEl, isFrom) {
   }
 }
 
-// Setup autocomplete functionality for From and To fields
+// Handle search input for From and To fields
 function setupDirectionsAutocomplete(inputEl, sugEl, isFrom) {
   inputEl.addEventListener(
     "input",
@@ -159,12 +165,13 @@ function setupDirectionsAutocomplete(inputEl, sugEl, isFrom) {
   });
 }
 
-// Set up input fields with autocomplete functionality
+// Set up the input fields with autocomplete
 setupDirectionsAutocomplete(fromInput, fromSug, true);
 setupDirectionsAutocomplete(toInput, toSug, false);
 
-// Event listener for the directions form
+// 4) Event handlers & logic
 document.addEventListener("DOMContentLoaded", () => {
+  // Event handler for the directions form
   const directionsForm = $("directions-form");
   directionsForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -173,7 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Fetch route from OSRM API or similar routing service
+    // Call OSRM or your routing service
     const routeUrl = `https://router.project-osrm.org/route/v1/driving/${fromCoords[0]},${fromCoords[1]};${toCoords[0]},${toCoords[1]}?overview=false&steps=true`;
 
     fetch(routeUrl)
@@ -194,7 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Display route steps after fetching from OSRM API
+// Display route steps after fetching from OSRM
 function showRouteSteps(steps) {
   const stepsList = $("route-steps");
   stepsList.innerHTML = "";
