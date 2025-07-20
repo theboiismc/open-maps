@@ -1,198 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TheBoiisMC Maps</title>
-  <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
-  <meta property="og:title" content="TheBoiisMC Maps" />
-  <meta property="og:description" content="Explore the world with private, modern mapping." />
-  <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
-  <meta property="og:url" content="https://maps.theboiismc.com" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="TheBoiisMC Maps" />
-  <meta name="twitter:description" content="Explore the world with private, modern mapping." />
-  <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
-  <meta name="theme-color" content="#1a73e8" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TheBoiisMC Maps</title>
+    <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
+    <meta property="og:title" content="TheBoiisMC Maps" />
+    <meta property="og:description" content="Explore the world with private, modern mapping." />
+    <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+    <meta property="og:url" content="https://maps.theboiismc.com" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TheBoiisMC Maps" />
+    <meta name="twitter:description" content="Explore the world with private, modern mapping." />
+    <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+    <meta name="theme-color" content="#1a73e8" />
 
-  <style>
-    :root {
-      --panel-width: 320px;
-      --panel-mobile-height: 420px;
-      --panel-mobile-peek: 160px;
-    }
+    <style>
+      :root {
+        --panel-width: 320px;
+        --panel-mobile-height: 420px;
+        --panel-mobile-peek: 160px;
+      }
 
-    html, body, #map {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-    }
-
-    #map {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-
-    /* Main search bar - fixed top center */
-    #main-search-container {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 60;
-      width: 250px;
-      background: #fafafa;
-      border-radius: 20px;
-      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-
-    /* Suggestions dropdown */
-    .suggestions-dropdown {
-      position: absolute;
-      background: white;
-      border: 1px solid #ccc;
-      width: 100%;
-      max-height: 160px;
-      overflow-y: auto;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
-      z-index: 70;
-      display: none;
-    }
-
-    /* Panel styles */
-    #side-panel {
-      position: fixed;
-      background: #fff;
-      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
-      overflow-y: auto;
-      padding: 20px;
-      z-index: 55;
-      height: 100%;
-      border-radius: 0;
-      display: none; /* Default to hidden on desktop */
-      top: 0;
-      left: calc(-1 * var(--panel-width));
-      width: var(--panel-width);
-    }
-
-    /* Desktop open state */
-    #side-panel.open {
-      display: block; /* Only shows when the panel is "open" */
-      left: 0;
-    }
-
-    /* Mobile panel adjustments */
-    @media (max-width: 768px) {
-      #side-panel {
-        top: auto;
-        bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
-        left: 0;
+      html,
+      body,
+      #map {
+        margin: 0;
+        padding: 0;
+        height: 100%;
         width: 100%;
-        height: var(--panel-mobile-height);
-        border-radius: 20px 20px 0 0;
-        box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      }
+      #map {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+
+      /* Main search bar */
+      #main-search-container {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 60;
+        width: 250px;
+        background: #fafafa;
+        border-radius: 20px;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+      }
+
+      #main-search-container.hidden {
+        display: none;
+      }
+
+      .suggestions-dropdown {
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        width: 100%;
+        max-height: 160px;
+        overflow-y: auto;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+        z-index: 70;
+        display: none;
+      }
+
+      /* Panel styles */
+      #side-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        background: #fff;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        padding: 20px;
+        z-index: 55;
+        height: 100%;
+        display: none;
+        width: var(--panel-width);
+      }
+
+      /* Panel show */
+      #side-panel.open {
         display: block;
       }
 
-      #side-panel.open {
-        bottom: 0;
+      /* Mobile panel adjustments */
+      @media (max-width: 768px) {
+        #side-panel {
+          top: auto;
+          bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+          left: 0;
+          width: 100%;
+          height: var(--panel-mobile-height);
+          border-radius: 20px 20px 0 0;
+          box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+        }
+
+        #side-panel.open {
+          bottom: 0;
+        }
       }
-    }
 
-    /* Panel content sections */
-    #place-info-section, #directions-section, #route-section {
-      margin-top: 40px;
-    }
-
-    /* Buttons */
-    button {
-      background: #1a73e8;
-      border: none;
-      padding: 10px;
-      border-radius: 6px;
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      background: #aaa;
-      cursor: not-allowed;
-    }
-
-    /* Route steps list */
-    #route-steps {
-      list-style-type: decimal;
-      padding-left: 20px;
-    }
-
-    /* Responsive tweaks */
-    @media (max-width: 768px) {
-      #main-search-container {
-        width: 90vw;
-        left: 5vw;
-        transform: none;
+      /* Panel content sections */
+      #place-info-section,
+      #directions-section,
+      #route-section {
+        margin-top: 40px;
       }
-    }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
 
-  <!-- Main search bar (outside panel) -->
-  <div id="main-search-container" class="hidden">
-    <input type="text" id="main-search" placeholder="Search places..." />
-    <div id="main-suggestions" class="suggestions-dropdown"></div>
-    <button id="main-search-icon" aria-label="Focus main search">🔍</button>
-  </div>
+      /* Buttons */
+      button {
+        background: #1a73e8;
+        border: none;
+        padding: 10px;
+        border-radius: 6px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+      }
 
-  <aside id="side-panel" aria-hidden="true" aria-label="Sidebar panel">
-    <button id="close-side-panel" aria-label="Close panel">&times;</button>
+      /* Responsive tweaks */
+      @media (max-width: 768px) {
+        #main-search-container {
+          width: 90vw;
+          left: 5vw;
+        }
+      }
+    </style>
+  </head>
 
-    <!-- Info panel -->
-    <section id="place-info-section" hidden>
-      <h2 id="place-name"></h2>
-      <p id="place-description"></p>
-      <p id="place-weather"></p>
-      <div id="place-images"></div>
-      <button id="directions-btn">Get Directions</button>
-    </section>
+  <body>
+    <div id="map"></div>
 
-    <!-- Directions panel -->
-    <section id="directions-section" hidden>
-      <form id="directions-form">
-        <input type="text" id="panel-from-input" placeholder="From" />
-        <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-        <input type="text" id="panel-to-input" placeholder="To" />
-        <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-        <button type="submit">Get Route</button>
-      </form>
-      <button id="back-to-info-btn">Back to Info</button>
-    </section>
+    <div id="main-search-container" class="hidden">
+      <input type="text" id="main-search" placeholder="Search places..." autocomplete="off" aria-autocomplete="list" aria-controls="main-suggestions" aria-haspopup="listbox" />
+      <button id="main-search-icon" aria-label="Focus main search">🔍</button>
+      <div id="main-suggestions" role="listbox" tabindex="-1" class="suggestions-dropdown"></div>
+    </div>
 
-    <!-- Route steps -->
-    <section id="route-section" hidden>
-      <ul id="route-steps"></ul>
-      <button id="exit-route-btn">Exit Route</button>
-    </section>
+    <aside id="side-panel" aria-hidden="true" aria-label="Sidebar panel">
+      <button id="close-side-panel" aria-label="Close panel">&times;</button>
 
-    <button id="panel-arrow" aria-label="Toggle side panel" role="button" tabindex="0">
-      &lt;
-    </button>
-  </aside>
+      <!-- Info panel -->
+      <section id="place-info-section" hidden>
+        <h2 id="place-name"></h2>
+        <p id="place-description"></p>
+        <p id="place-weather"></p>
+        <div id="place-images"></div>
+        <button id="directions-btn">Get Directions</button>
+      </section>
 
-  <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
-  <script src="app.js"></script>
-</body>
+      <!-- Directions panel -->
+      <section id="directions-section" hidden>
+        <form id="directions-form">
+          <label for="panel-from-input">From</label>
+          <input type="text" id="panel-from-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-from-suggestions" aria-haspopup="listbox" />
+          <div id="panel-from-suggestions" role="listbox" tabindex="-1" class="suggestions-dropdown"></div>
+          <button type="button" class="my-loc-btn" aria-label="Use my location as start">Use My Location (From)</button>
+
+          <label for="panel-to-input">To</label>
+          <input type="text" id="panel-to-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-to-suggestions" aria-haspopup="listbox" />
+          <div id="panel-to-suggestions" role="listbox" tabindex="-1" class="suggestions-dropdown"></div>
+          <button type="button" class="my-loc-btn" aria-label="Use my location as destination">Use My Location (To)</button>
+
+          <button type="submit" id="route-btn">Route</button>
+        </form>
+        <button id="back-to-info-btn" type="button">Back</button>
+        <p id="directions-result"></p>
+      </section>
+
+      <!-- Route steps -->
+      <section id="route-section" hidden>
+        <h3>Route Steps</h3>
+        <ol id="route-steps"></ol>
+        <button id="exit-route-btn" type="button">Stop Navigation</button>
+      </section>
+
+    </aside>
+
+    <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+    <script src="app.js"></script>
+  </body>
 </html>
