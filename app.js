@@ -1,5 +1,3 @@
-// app.js
-
 // 1) Init map + controls
 const map = new maplibregl.Map({
   container: "map",
@@ -196,16 +194,9 @@ function closePanel() {
 function updateMainSearchVisibility() {
   const isDesktop = window.innerWidth > 768;
   const isPanelOpen = panel.classList.contains("open");
-
-  // On desktop, hide search bar if the panel is open
-  if (isDesktop) {
-    if (isPanelOpen) {
-      mainSearchContainer.classList.add("hidden");
-    } else {
-      mainSearchContainer.classList.remove("hidden");
-    }
+  if (isDesktop && isPanelOpen) {
+    mainSearchContainer.classList.add("hidden");
   } else {
-    // Always visible on mobile
     mainSearchContainer.classList.remove("hidden");
   }
 }
@@ -263,41 +254,6 @@ document.addEventListener("click", (e) => {
 
 mainSearchIcon.addEventListener("click", () => {
   mainSearchInput.focus();
-});
-
-// Panel info search bar logic
-panelInfoSearchInput.addEventListener(
-  "input",
-  debounce(async () => {
-    const q = panelInfoSearchInput.value.trim();
-    if (!q) {
-      panelInfoSuggestionsEl.style.display = "none";
-      return;
-    }
-    const results = await nominatim(q);
-    render(results, panelInfoSuggestionsEl, (place) => {
-      panelInfoSearchInput.value = place.name;
-      panelInfoSuggestionsEl.style.display = "none";
-      selectPlace(place);
-    });
-  }, 150)
-);
-
-panelInfoSearchInput.addEventListener("focus", () => {
-  // optionally show recent here too
-});
-
-document.addEventListener("click", (e) => {
-  if (
-    !e.target.closest("#panel-info-search") &&
-    !e.target.closest("#panel-info-suggestions")
-  ) {
-    panelInfoSuggestionsEl.style.display = "none";
-  }
-});
-
-panelInfoSearchIcon.addEventListener("click", () => {
-  panelInfoSearchInput.focus();
 });
 
 // Directions panel inputs autocomplete logic
@@ -422,7 +378,6 @@ panelArrow.addEventListener("keydown", (e) => {
 
 // On load
 window.addEventListener("load", () => {
-  closePanel(); // Ensure panel starts closed
   updateMainSearchVisibility();
 });
 
