@@ -15,6 +15,7 @@
     <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
     <meta name="theme-color" content="#1a73e8" />
 
+    <!-- Styles -->
     <style>
       :root {
         --panel-width: 320px;
@@ -22,15 +23,14 @@
         --panel-mobile-peek: 160px;
       }
 
-      html,
-      body,
-      #map {
+      html, body, #map {
         margin: 0;
         padding: 0;
         height: 100%;
         width: 100%;
         font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
       }
+
       #map {
         position: fixed;
         top: 0;
@@ -39,7 +39,7 @@
         bottom: 0;
       }
 
-      /* Main search bar (visible by default on desktop) */
+      /* Main search bar */
       #main-search-container {
         position: fixed;
         top: 20px;
@@ -53,10 +53,6 @@
         padding: 8px 12px;
         display: flex;
         align-items: center;
-      }
-
-      #main-search-container.hidden {
-        display: none;
       }
 
       /* Suggestions dropdown */
@@ -73,48 +69,34 @@
         display: none;
       }
 
-      /* Panel styles */
+      /* Side panel styles */
       #side-panel {
         position: fixed;
         top: 0;
         left: 0;
         background: #fff;
-        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
-        overflow-y: auto;
-        padding: 20px;
-        z-index: 55;
-        height: 100%;
-        display: none;
         width: var(--panel-width);
+        height: 100%;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        z-index: 50;
+        display: none;
       }
 
-      /* Panel open */
       #side-panel.open {
         display: block;
       }
 
-      /* Mobile panel adjustments */
-      @media (max-width: 768px) {
-        #side-panel {
-          top: auto;
-          bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
-          left: 0;
-          width: 100%;
-          height: var(--panel-mobile-height);
-          border-radius: 20px 20px 0 0;
-          box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
-        }
-
-        #side-panel.open {
-          bottom: 0;
-        }
+      /* Panel content sections */
+      #place-info-section, #directions-section, #route-section {
+        margin-top: 40px;
       }
 
-      /* Panel content sections */
-      #place-info-section,
-      #directions-section,
-      #route-section {
-        margin-top: 40px;
+      /* Directions form */
+      #directions-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
 
       /* Buttons */
@@ -137,58 +119,53 @@
         #main-search-container {
           width: 90vw;
           left: 5vw;
+          transform: none;
+        }
+        #side-panel {
+          top: auto;
+          bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+          left: 0;
+          width: 100%;
+          height: var(--panel-mobile-height);
+          border-radius: 20px 20px 0 0;
+          box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
         }
       }
     </style>
   </head>
-
   <body>
     <div id="map"></div>
 
+    <!-- Main search bar -->
     <div id="main-search-container">
-      <input type="text" id="main-search" placeholder="Search places..." autocomplete="off" aria-autocomplete="list" aria-controls="main-suggestions" aria-haspopup="listbox" />
-      <button id="main-search-icon" aria-label="Focus main search">🔍</button>
-      <div id="main-suggestions" role="listbox" tabindex="-1" class="suggestions-dropdown"></div>
+      <input type="text" id="main-search" placeholder="Search places..." autocomplete="off" aria-autocomplete="list" />
+      <button id="main-search-icon">🔍</button>
+      <div id="main-suggestions" class="suggestions-dropdown"></div>
     </div>
 
-    <aside id="side-panel" aria-hidden="true" aria-label="Sidebar panel">
-      <button id="close-side-panel" aria-label="Close panel">&times;</button>
-
-      <!-- Info panel -->
-      <section id="place-info-section" hidden>
+    <!-- Side panel -->
+    <aside id="side-panel">
+      <button id="close-side-panel">×</button>
+      <section id="place-info-section">
         <h2 id="place-name"></h2>
         <p id="place-description"></p>
-        <p id="place-weather"></p>
-        <div id="place-images"></div>
         <button id="directions-btn">Get Directions</button>
       </section>
-
-      <!-- Directions panel -->
       <section id="directions-section" hidden>
         <form id="directions-form">
           <label for="panel-from-input">From</label>
-          <input type="text" id="panel-from-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-from-suggestions" aria-haspopup="listbox" />
-          <div id="panel-from-suggestions" role="listbox" tabindex="-1" class="suggestions-dropdown"></div>
-          <button type="button" class="my-loc-btn" aria-label="Use my location as start">Use My Location (From)</button>
-
+          <input type="text" id="panel-from-input" />
           <label for="panel-to-input">To</label>
-          <input type="text" id="panel-to-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-to-suggestions" aria-haspopup="listbox" />
-          <div id="panel-to-suggestions" role="listbox" tabindex="-1" class="suggestions-dropdown"></div>
-          <button type="button" class="my-loc-btn" aria-label="Use my location as destination">Use My Location (To)</button>
-
-          <button type="submit" id="route-btn">Route</button>
+          <input type="text" id="panel-to-input" />
+          <button type="submit">Route</button>
         </form>
-        <button id="back-to-info-btn" type="button">Back</button>
+        <button id="back-to-info-btn">Back</button>
         <p id="directions-result"></p>
       </section>
-
-      <!-- Route steps -->
       <section id="route-section" hidden>
-        <h3>Route Steps</h3>
         <ol id="route-steps"></ol>
-        <button id="exit-route-btn" type="button">Stop Navigation</button>
+        <button id="exit-route-btn">Stop Navigation</button>
       </section>
-
     </aside>
 
     <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
