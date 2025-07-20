@@ -1,12 +1,14 @@
+// app.js
+
 // 1) Init map + controls
-const map = new maplibregl.Map({
+const map = new maplibre.gl.Map({
   container: "map",
   style: "https://tiles.openfreemap.org/styles/liberty",
   center: [-95, 39],
   zoom: 4,
 });
-map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-const geoCtrl = new maplibregl.GeolocateControl({
+map.addControl(new maplibre.gl.NavigationControl(), "bottom-right");
+const geoCtrl = new maplibre.gl.GeolocateControl({
   trackUserLocation: true,
   showUserHeading: true,
 });
@@ -256,6 +258,41 @@ mainSearchIcon.addEventListener("click", () => {
   mainSearchInput.focus();
 });
 
+// Panel info search bar logic
+panelInfoSearchInput.addEventListener(
+  "input",
+  debounce(async () => {
+    const q = panelInfoSearchInput.value.trim();
+    if (!q) {
+      panelInfoSuggestionsEl.style.display = "none";
+      return;
+    }
+    const results = await nominatim(q);
+    render(results, panelInfoSuggestionsEl, (place) => {
+      panelInfoSearchInput.value = place.name;
+      panelInfoSuggestionsEl.style.display = "none";
+      selectPlace(place);
+    });
+  }, 150)
+);
+
+panelInfoSearchInput.addEventListener("focus", () => {
+  // optionally show recent here too
+});
+
+document.addEventListener("click", (e) => {
+  if (
+    !e.target.closest("#panel-info-search") &&
+    !e.target.closest("#panel-info-suggestions")
+  ) {
+    panelInfoSuggestionsEl.style.display = "none";
+  }
+});
+
+panelInfoSearchIcon.addEventListener("click", () => {
+  panelInfoSearchInput.focus();
+});
+
 // Directions panel inputs autocomplete logic
 function setupDirectionsAutocomplete(inputEl, sugEl, updateFn) {
   inputEl.addEventListener(
@@ -280,107 +317,18 @@ function setupDirectionsAutocomplete(inputEl, sugEl, updateFn) {
   });
 
   document.addEventListener("click", (e) => {
-    if (!e.target.closest(`#${inputEl.id}`) && !e.target.closest(`#${sugEl.id}`)) {
+    if (!e.target.closest(`#panel-from-search`) && !e.target.closest(`#panel-from-suggestions`)) {
       sugEl.style.display = "none";
     }
   });
 }
 
+// Setting up autocomplete for the 'from' and 'to' input fields
 setupDirectionsAutocomplete(fromInput, fromSug, (place) => {
-  fromCoords = [parseFloat(place.lon), parseFloat(place.lat)];
+  fromCoords = [place.lon, place.lat];
+  toInput.focus();
 });
 
 setupDirectionsAutocomplete(toInput, toSug, (place) => {
-  toCoords = [parseFloat(place.lon), parseFloat(place.lat)];
-});
-
-// Use My Location buttons
-myLocBtns.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    geoCtrl.trigger(); // Request current position
-
-    geoCtrl.once("geolocate", (ev) => {
-      const { longitude, latitude } = ev.coords;
-      if (btn.textContent.includes("From")) {
-        fromCoords = [longitude, latitude];
-        fromInput.value = "My Location";
-      } else {
-        toCoords = [longitude, latitude];
-        toInput.value = "My Location";
-      }
-    });
-  });
-});
-
-// Directions form submit
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!fromCoords || !toCoords) {
-    resultEl.textContent = "Please enter valid 'from' and 'to' locations.";
-    return;
-  }
-  resultEl.textContent = "Routing...";
-
-  // Call OSRM or your routing service
-  try {
-    const r = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${fromCoords[0]},${fromCoords[1]};${toCoords[0]},${toCoords[1]}?overview=false&steps=true`
-    );
-    const data = await r.json();
-    if (data.code !== "Ok") throw new Error("Routing error");
-
-    const route = data.routes[0];
-    const steps = route.legs[0].steps;
-
-    showRouteSteps(steps);
-    resultEl.textContent = `Distance: ${(route.distance / 1000).toFixed(
-      2
-    )} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
-
-    // Draw route on map (optional, add polyline layer)
-  } catch (err) {
-    resultEl.textContent = "Failed to get route. Try again.";
-  }
-});
-
-// Back button on directions panel
-backBtn.addEventListener("click", () => {
-  showPlaceInfoPanel();
-});
-
-// Exit route steps panel
-exitBtn.addEventListener("click", () => {
-  showPlaceInfoPanel();
-});
-
-// Directions button on place info
-directionsBtn.addEventListener("click", () => {
-  // Prefill 'to' with current place
-  if (currentPlace) {
-    toInput.value = currentPlace.name;
-    toCoords = [parseFloat(currentPlace.lon), parseFloat(currentPlace.lat)];
-  }
-  showDirectionsPanel();
-});
-
-// Panel open/close logic
-closeBtn.addEventListener("click", closePanel);
-panelArrow.addEventListener("click", () => {
-  if (panel.classList.contains("open")) closePanel();
-  else openPanel();
-});
-panelArrow.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" || e.key === " ") {
-    if (panel.classList.contains("open")) closePanel();
-    else openPanel();
-  }
-});
-
-// On load
-window.addEventListener("load", () => {
-  updateMainSearchVisibility();
-});
-
-window.addEventListener("resize", () => {
-  updateMainSearchVisibility();
+  toCoords = [place.lon, place.lat];
 });
