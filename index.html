@@ -1,354 +1,346 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TheBoiisMC Maps</title>
-  <!-- Favicon & Social metas -->
-  <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
-  <meta property="og:title" content="TheBoiisMC Maps" />
-  <meta property="og:description" content="Explore the world with private, modern mapping." />
-  <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
-  <meta property="og:url" content="https://maps.theboiismc.com" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="TheBoiisMC Maps" />
-  <meta name="twitter:description" content="Explore the world with private, modern mapping." />
-  <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
-  <!-- Libraries -->
-  <link
-    href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"
-    rel="stylesheet"
-  />
-  <script src="https://unpkg.com/fuse.js@6.6.2"></script>
-  <style>
-    :root {
-      --primary: #1a73e8;
-      --bg: #f9faff;
-      --text: #222;
-      --panel-width: 320px;
-      --panel-mobile-height: 75vh;
-      --panel-mobile-peek: 40vh;
-    }
-    html,
-    body,
-    #map {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      overflow: hidden;
-    }
-    #map {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 0;
-    }
-    /* Desktop search bar outside panel */
-    #desktop-search-bar {
-      position: fixed;
-      top: 60px;
-      left: 20px;
-      width: 300px;
-      background: white;
-      padding: 8px 12px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      z-index: 70;
-      display: block;
-    }
-    #desktop-search-bar input {
-      width: 85%;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 6px 8px;
-      font-size: 1rem;
-    }
-    #desktop-search-bar button {
-      width: 12%;
-      margin-left: 5px;
-      background: var(--primary);
-      border: none;
-      border-radius: 6px;
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    /* Hide desktop search bar on mobile */
-    @media (max-width: 768px) {
-      #desktop-search-bar {
-        display: none;
-      }
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TheBoiisMC Maps</title>
+    <!-- Favicon & Social metas -->
+    <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
+    <meta property="og:title" content="TheBoiisMC Maps" />
+    <meta property="og:description" content="Explore the world with private, modern mapping." />
+    <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+    <meta property="og:url" content="https://maps.theboiismc.com" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TheBoiisMC Maps" />
+    <meta name="twitter:description" content="Explore the world with private, modern mapping." />
+    <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+    <meta name="theme-color" content="#1a73e8" />
 
-    /* Side panel base */
-    #side-panel {
-      position: fixed;
-      background: white;
-      width: var(--panel-width);
-      max-width: 100vw;
-      height: 100%;
-      top: 0;
-      box-shadow: 2px 0 6px rgb(0 0 0 / 0.12);
-      display: flex;
-      flex-direction: column;
-      transition: left 0.3s ease, bottom 0.3s ease;
-      z-index: 60;
-    }
-    /* Desktop panel closed: fully offscreen left */
-    @media (min-width: 769px) {
-      #side-panel {
-        left: -340px; /* fully hidden */
-        bottom: auto;
-        border-radius: 0 12px 12px 0;
+    <!-- Styles -->
+    <style>
+      :root {
+        --panel-width: 320px;
+        --panel-mobile-height: 420px;
+        --panel-mobile-peek: 160px;
       }
-      #side-panel.open {
-        left: 0;
-      }
-    }
-    /* Mobile panel */
-    @media (max-width: 768px) {
-      #side-panel {
+
+      html,
+      body,
+      #map {
+        margin: 0;
+        padding: 0;
+        height: 100%;
         width: 100%;
-        height: var(--panel-mobile-height);
-        left: 0;
-        bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
-        border-radius: 12px 12px 0 0;
-        box-shadow: 0 -3px 15px rgb(0 0 0 / 0.15);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
       }
-      #side-panel.open {
+
+      #map {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
         bottom: 0;
       }
-    }
 
-    /* Panel header */
-    #side-panel header {
-      display: flex;
-      align-items: center;
-      padding: 8px 12px;
-      border-bottom: 1px solid #eee;
-      justify-content: space-between;
-    }
-    #side-panel header h2 {
-      margin: 0;
-      font-size: 1.25rem;
-    }
-    #close-side-panel {
-      background: transparent;
-      border: none;
-      font-size: 1.4rem;
-      cursor: pointer;
-      color: var(--primary);
-    }
-    #panel-arrow {
-      cursor: pointer;
-      font-size: 1.4rem;
-      padding: 6px;
-      color: var(--primary);
-    }
-    #panel-search-icon {
-      cursor: pointer;
-      font-size: 1.4rem;
-      padding: 6px;
-      color: var(--primary);
-    }
-    /* Search bar inside panel (mobile only) */
-    .search-bar {
-      display: flex;
-      padding: 8px 12px;
-      border-bottom: 1px solid #eee;
-    }
-    .search-bar input {
-      flex: 1;
-      font-size: 1rem;
-      padding: 6px 8px;
-      border: 1px solid #ddd;
-      border-radius: 6px 0 0 6px;
-      outline-offset: 1px;
-    }
-    .search-bar button {
-      width: 40px;
-      border: 1px solid #ddd;
-      border-left: none;
-      background: var(--primary);
-      color: white;
-      border-radius: 0 6px 6px 0;
-      cursor: pointer;
-    }
-    /* Suggestions */
-    #suggestions,
-    #recent-searches {
-      position: absolute;
-      background: white;
-      border: 1px solid #ddd;
-      max-height: 200px;
-      overflow-y: auto;
-      width: calc(100% - 24px);
-      margin: 0 12px;
-      z-index: 65;
-      display: none;
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
-    }
-    .suggestion {
-      padding: 6px 10px;
-      cursor: pointer;
-    }
-    .suggestion:hover {
-      background: var(--primary);
-      color: white;
-    }
-    /* Recent */
-    .recent {
-      font-style: italic;
-      color: #555;
-    }
+      /* Panel styles */
+      #side-panel {
+        position: fixed;
+        background: #fff;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        padding: 20px;
+        z-index: 55;
+        transition: left 0.3s ease, bottom 0.3s ease;
+        will-change: left, bottom;
+        /* Desktop defaults */
+        top: 0;
+        left: calc(-1 * var(--panel-width));
+        width: var(--panel-width);
+        height: 100%;
+        border-radius: 0;
+      }
 
-    /* Sections */
-    #place-info-section,
-    #directions-section,
-    #route-section {
-      padding: 12px;
-      flex: 1;
-      overflow-y: auto;
-    }
-    /* Hide directions and route by default */
-    #directions-section,
-    #route-section {
-      display: none;
-    }
-    /* Show/hide by JS */
-    #directions-section[hidden],
-    #route-section[hidden] {
-      display: none !important;
-    }
-    #place-info-section[hidden] {
-      display: none !important;
-    }
-    /* Buttons */
-    button {
-      font-family: inherit;
-      font-size: 1rem;
-      cursor: pointer;
-      border-radius: 6px;
-      border: none;
-      background: var(--primary);
-      color: white;
-      padding: 8px 12px;
-      margin: 8px 0;
-      transition: background-color 0.2s ease;
-    }
-    button:hover {
-      background: #1669c1;
-    }
-    /* Directions inputs */
-    #directions-form {
-      display: flex;
-      flex-direction: column;
-    }
-    #directions-form input {
-      margin-bottom: 8px;
-      padding: 6px 8px;
-      font-size: 1rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-    }
-    .my-loc-btn {
-      margin-left: 8px;
-      background: #ccc;
-      color: black;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      text-align: center;
-      line-height: 30px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      display: inline-block;
-      user-select: none;
-    }
-    .my-loc-btn:hover {
-      background: #bbb;
-    }
-    /* Route steps */
-    #route-steps {
-      list-style: decimal inside;
-      padding-left: 0;
-      margin-top: 12px;
-    }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
+      /* Desktop open state */
+      #side-panel.open {
+        left: 0;
+      }
 
-  <!-- Desktop search bar (outside panel) -->
-  <div id="desktop-search-bar" class="search-bar">
-    <input id="search" placeholder="Search a place…" autocomplete="off" />
-    <button id="panel-search-icon">🔍</button>
-    <div id="suggestions"></div>
-    <div id="recent-searches"></div>
-  </div>
+      /* Mobile panel adjustments */
+      @media (max-width: 768px) {
+        #side-panel {
+          top: auto;
+          bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+          left: 0;
+          width: 100%;
+          height: var(--panel-mobile-height);
+          border-radius: 20px 20px 0 0;
+          box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+        }
+        #side-panel.open {
+          bottom: 0;
+        }
+      }
 
-  <!-- Side panel -->
-  <aside id="side-panel" aria-hidden="true" aria-label="Sidebar panel">
-    <header>
-      <h2 id="place-name">Welcome</h2>
-      <button id="close-side-panel" aria-label="Close panel">✖</button>
-    </header>
+      /* Search bar styles */
+      .search-bar {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-bottom: 10px;
+        background: #fafafa;
+      }
 
-    <!-- Mobile search inside panel -->
-    <div class="search-bar" style="display:none">
-      <input id="search" placeholder="Search a place…" autocomplete="off" />
-      <button id="panel-search-icon-mobile">🔍</button>
-    </div>
+      .search-bar input[type="text"] {
+        border: none;
+        outline: none;
+        flex-grow: 1;
+        font-size: 1rem;
+        background: transparent;
+      }
 
-    <section id="place-info-section" aria-live="polite">
-      <p id="place-description">Select a place to get info.</p>
-      <p id="place-weather"></p>
-      <div id="place-images"></div>
-      <button id="directions-btn">Get Directions</button>
-    </section>
+      .search-bar button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2rem;
+        color: #555;
+      }
 
-    <section id="directions-section" hidden>
-      <form id="directions-form">
-        <label>
-          From:
-          <input id="from-input" autocomplete="off" placeholder="Starting point" />
-          <span class="my-loc-btn" title="Use my location">📍</span>
-        </label>
-        <div id="from-suggestions" class="suggestions"></div>
+      #suggestions,
+      #recent-searches {
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        width: calc(var(--panel-width) - 40px);
+        max-height: 160px;
+        overflow-y: auto;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+        z-index: 60;
+        display: none;
+      }
 
-        <label>
-          To:
-          <input id="to-input" autocomplete="off" placeholder="Destination" />
-          <span class="my-loc-btn" title="Use my location">📍</span>
-        </label>
-        <div id="to-suggestions" class="suggestions"></div>
+      #suggestions .suggestion,
+      #recent-searches .suggestion {
+        padding: 8px 12px;
+        cursor: pointer;
+      }
 
-        <button type="submit">Route</button>
-      </form>
-      <button id="back-to-info-btn">Back</button>
-      <p id="directions-result"></p>
-    </section>
+      #suggestions .suggestion:hover,
+      #recent-searches .suggestion:hover {
+        background: #eee;
+      }
 
-    <section id="route-section" hidden>
-      <h3>Route Steps</h3>
-      <ol id="route-steps"></ol>
-      <button id="exit-route-btn">Stop Navigation</button>
-    </section>
+      #recent-searches {
+        top: 56px;
+      }
 
-    <footer style="margin-top:auto; padding: 10px; font-size: 0.8rem; color:#777; text-align:center;">
-      © 2025 TheBoiisMC
-    </footer>
+      #suggestions {
+        top: 56px;
+      }
 
-  </aside>
+      /* Close button */
+      #close-side-panel {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        cursor: pointer;
+        color: #999;
+      }
 
-  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-  <script src="app.js"></script>
-</body>
+      /* Panel arrow toggler */
+      #panel-arrow {
+        position: absolute;
+        top: 50%;
+        right: -28px;
+        transform: translateY(-50%);
+        width: 24px;
+        height: 48px;
+        background: #1a73e8;
+        border-radius: 8px 0 0 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        user-select: none;
+        z-index: 60;
+      }
+
+      @media (max-width: 768px) {
+        #panel-arrow {
+          right: 50%;
+          bottom: calc(var(--panel-mobile-height) - var(--panel-mobile-peek) - 20px);
+          top: auto;
+          width: 48px;
+          height: 24px;
+          border-radius: 20px 20px 0 0;
+          transform: translateX(50%) rotate(180deg);
+        }
+      }
+
+      /* Panel search icon */
+      #panel-search-icon {
+        cursor: pointer;
+        margin-left: 10px;
+        font-size: 1.4rem;
+        color: #1a73e8;
+      }
+
+      /* Sections */
+      #place-info-section,
+      #directions-section,
+      #route-section {
+        margin-top: 40px;
+      }
+
+      /* Directions form */
+      #directions-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      #directions-form input[type="text"] {
+        padding: 8px;
+        font-size: 1rem;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        width: 100%;
+      }
+
+      /* Suggestion dropdowns in directions */
+      #from-suggestions,
+      #to-suggestions {
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        max-height: 140px;
+        overflow-y: auto;
+        width: 100%;
+        z-index: 70;
+        display: none;
+      }
+
+      #from-suggestions .suggestion,
+      #to-suggestions .suggestion {
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+
+      #from-suggestions .suggestion:hover,
+      #to-suggestions .suggestion:hover {
+        background: #eee;
+      }
+
+      /* Buttons */
+      button {
+        background: #1a73e8;
+        border: none;
+        padding: 10px;
+        border-radius: 6px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        background: #aaa;
+        cursor: not-allowed;
+      }
+
+      /* Route steps list */
+      #route-steps {
+        list-style-type: decimal;
+        padding-left: 20px;
+      }
+
+      /* Responsive tweaks */
+      @media (max-width: 768px) {
+        #suggestions,
+        #recent-searches {
+          width: calc(100% - 40px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <aside id="side-panel" aria-hidden="true" aria-label="Sidebar panel">
+      <button id="close-side-panel" aria-label="Close panel">&times;</button>
+      <div class="search-bar">
+        <input
+          type="text"
+          id="search"
+          placeholder="Search places"
+          autocomplete="off"
+          aria-autocomplete="list"
+          aria-controls="suggestions"
+          aria-haspopup="listbox"
+        />
+        <button id="panel-search-icon" aria-label="Focus search">&#128269;</button>
+      </div>
+      <div id="suggestions" role="listbox" tabindex="-1"></div>
+      <div id="recent-searches" role="listbox" tabindex="-1"></div>
+
+      <!-- Place info -->
+      <section id="place-info-section" hidden>
+        <h2 id="place-name"></h2>
+        <p id="place-description"></p>
+        <p id="place-weather"></p>
+        <div id="place-images"></div>
+        <button id="directions-btn">Get Directions</button>
+      </section>
+
+      <!-- Directions -->
+      <section id="directions-section" hidden>
+        <form id="directions-form">
+          <label for="from-input">From</label>
+          <input type="text" id="from-input" autocomplete="off" />
+          <div id="from-suggestions" role="listbox"></div>
+          <button type="button" class="my-loc-btn" aria-label="Use my location as start">
+            Use My Location (From)
+          </button>
+
+          <label for="to-input">To</label>
+          <input type="text" id="to-input" autocomplete="off" />
+          <div id="to-suggestions" role="listbox"></div>
+          <button type="button" class="my-loc-btn" aria-label="Use my location as destination">
+            Use My Location (To)
+          </button>
+
+          <button type="submit" id="route-btn">Route</button>
+        </form>
+        <button id="back-to-info-btn" type="button">Back</button>
+        <p id="directions-result"></p>
+      </section>
+
+      <!-- Route steps -->
+      <section id="route-section" hidden>
+        <h3>Route Steps</h3>
+        <ol id="route-steps"></ol>
+        <button id="exit-route-btn" type="button">Stop Navigation</button>
+      </section>
+
+      <div id="panel-arrow" aria-label="Toggle side panel" role="button" tabindex="0">
+        &lt;
+      </div>
+    </aside>
+
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+    <!-- Fuse.js -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+
+    <!-- App script -->
+    <script src="app.js"></script>
+  </body>
 </html>
