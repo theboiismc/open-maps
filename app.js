@@ -196,9 +196,16 @@ function closePanel() {
 function updateMainSearchVisibility() {
   const isDesktop = window.innerWidth > 768;
   const isPanelOpen = panel.classList.contains("open");
-  if (isDesktop && isPanelOpen) {
-    mainSearchContainer.classList.add("hidden");
+
+  // On desktop, hide search bar if the panel is open
+  if (isDesktop) {
+    if (isPanelOpen) {
+      mainSearchContainer.classList.add("hidden");
+    } else {
+      mainSearchContainer.classList.remove("hidden");
+    }
   } else {
+    // Always visible on mobile
     mainSearchContainer.classList.remove("hidden");
   }
 }
@@ -415,7 +422,7 @@ panelArrow.addEventListener("keydown", (e) => {
 
 // On load
 window.addEventListener("load", () => {
-  showPlaceInfoPanel();
+  closePanel(); // Ensure panel starts closed
   updateMainSearchVisibility();
 });
 
