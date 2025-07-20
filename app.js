@@ -1,4 +1,4 @@
-// Initialize map and controls
+// 1) Init map + controls
 const map = new maplibregl.Map({
   container: "map",
   style: "https://tiles.openfreemap.org/styles/liberty",
@@ -6,33 +6,58 @@ const map = new maplibregl.Map({
   zoom: 4,
 });
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-
 const geoCtrl = new maplibregl.GeolocateControl({
   trackUserLocation: true,
   showUserHeading: true,
 });
 map.addControl(geoCtrl, "bottom-right");
 
-// Select elements
+// 2) Elements & selectors
 const $ = (id) => document.getElementById(id);
+
 const mainSearchInput = $("main-search");
 const mainSuggestionsEl = $("main-suggestions");
+const mainSearchContainer = $("main-search-container");
+const mainSearchIcon = $("main-search-icon");
+
 const panel = $("side-panel");
 const closeBtn = $("close-side-panel");
-const directionsBtn = $("directions-btn");
+const panelArrow = $("panel-arrow");
+
+const panelInfoSection = $("place-info-section");
+const panelInfoSearchInput = $("panel-info-search");
+const panelInfoSuggestionsEl = $("panel-info-suggestions");
+const panelInfoSearchIcon = $("panel-info-search-icon");
+
 const placeName = $("place-name");
 const placeDesc = $("place-description");
-const directionsForm = $("directions-form");
+const placeWeather = $("place-weather");
+const placeImages = $("place-images");
+const directionsBtn = $("directions-btn");
+
+const dirSection = $("directions-section");
+const routeSection = $("route-section");
+
+const form = $("directions-form");
 const fromInput = $("panel-from-input");
 const toInput = $("panel-to-input");
+const fromSug = $("panel-from-suggestions");
+const toSug = $("panel-to-suggestions");
+const backBtn = $("back-to-info-btn");
 const resultEl = $("directions-result");
 const stepsList = $("route-steps");
+const exitBtn = $("exit-route-btn");
 
 let currentPlace = null;
+
 let recentSearches = JSON.parse(localStorage.getItem("recentSearches") || "[]");
 let fuse = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
 
-// Utilities
+let fromCoords = null,
+  toCoords = null,
+  activeField = "from";
+
+// 3) Utilities
 const debounce = (fn, ms) => {
   let t;
   return (...args) => {
@@ -41,14 +66,27 @@ const debounce = (fn, ms) => {
   };
 };
 
-async function nominatim(query) {
+async function nominatim(q) {
   const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`,
-    { headers: { "User-Agent": "TheBoiisMCMaps/1.0", Referer: "https://maps.theboiismc.com" } }
+    `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
+      q
+    )}`,
+    {
+      headers: {
+        "User-Agent": "TheBoiisMCMaps/1.0",
+        Referer: "https://maps.theboiismc.com",
+      },
+    }
   );
   if (!res.ok) return [];
   const data = await res.json();
-  return data.map((el) => ({ name: el.display_name, lat: el.lat, lon: el.lon, type: el.type }));
+  return data.map((el) => ({
+    name: el.display_name,
+    lat: el.lat,
+    lon: el.lon,
+    type: el.type,
+    description: el.excerpt, // Include a description if available
+  }));
 }
 
 function render(list, container, cb) {
@@ -64,6 +102,7 @@ function render(list, container, cb) {
         `<div class="suggestion" role="option" tabindex="0" data-index="${i}">${item.name}</div>`
     )
     .join("");
+  // Attach click handlers to suggestions
   container.querySelectorAll(".suggestion").forEach((el) => {
     el.addEventListener("click", () => {
       const idx = +el.getAttribute("data-index");
@@ -79,6 +118,7 @@ function render(list, container, cb) {
 }
 
 function saveRecent(place) {
+  // Save unique by name
   recentSearches = recentSearches.filter((p) => p.name !== place.name);
   recentSearches.unshift(place);
   if (recentSearches.length > 10) recentSearches.pop();
@@ -90,69 +130,79 @@ function selectPlace(place) {
   if (!place) return;
   currentPlace = place;
 
+  // Update panel info
   placeName.textContent = place.name || "Unknown place";
   placeDesc.textContent = `Type: ${place.type || "Unknown"}`;
+  placeWeather.textContent = place.description || ""; // Update with description
+  placeImages.innerHTML = ""; // Can add images later from OSM or other sources
+
   showPlaceInfoPanel();
 
+  // Center map
   map.flyTo({ center: [place.lon, place.lat], zoom: 14 });
+
   saveRecent(place);
 }
 
 function showPlaceInfoPanel() {
-  panel.style.display = "block";
+  panelInfoSection.hidden = false;
+  dirSection.hidden = true;
+  routeSection.hidden = true;
   panel.setAttribute("aria-hidden", "false");
+  openPanel();
+  updateMainSearchVisibility();
+}
+
+function showDirectionsPanel() {
+  panelInfoSection.hidden = true;
+  dirSection.hidden = false;
+  routeSection.hidden = true;
+  panel.setAttribute("aria-hidden", "false");
+  openPanel();
+  updateMainSearchVisibility();
+}
+
+function showRouteSteps(steps) {
+  panelInfoSection.hidden = true;
+  dirSection.hidden = true;
+  routeSection.hidden = false;
+  panel.setAttribute("aria-hidden", "false");
+  openPanel();
+  updateMainSearchVisibility();
+
+  stepsList.innerHTML = "";
+  steps.forEach((step) => {
+    const li = document.createElement("li");
+    li.textContent = step.maneuver.instruction || step.maneuver.type;
+    stepsList.appendChild(li);
+  });
+}
+
+function openPanel() {
+  panel.classList.add("open");
+  panel.setAttribute("aria-hidden", "false");
+  updateMainSearchVisibility();
 }
 
 function closePanel() {
-  panel.style.display = "none";
+  panel.classList.remove("open");
   panel.setAttribute("aria-hidden", "true");
+  updateMainSearchVisibility();
 }
 
-// Event handlers
-mainSearchInput.addEventListener(
-  "input",
-  debounce(async () => {
-    const query = mainSearchInput.value.trim();
-    if (!query) return (mainSuggestionsEl.style.display = "none");
-
-    let results = fuse.search(query).map((r) => r.item);
-    if (results.length < 5) {
-      const nominatimResults = await nominatim(query);
-      nominatimResults.forEach((e) => {
-        if (!results.find((r) => r.name === e.name)) results.push(e);
-      });
-    }
-
-    render(results, mainSuggestionsEl, (place) => {
-      mainSearchInput.value = place.name;
-      mainSuggestionsEl.style.display = "none";
-      selectPlace(place);
-    });
-  }, 150)
-);
-
-mainSearchInput.addEventListener("focus", () => {
-  if (recentSearches.length) {
-    render(recentSearches, mainSuggestionsEl, (place) => {
-      mainSearchInput.value = place.name;
-      mainSuggestionsEl.style.display = "none";
-      selectPlace(place);
-    });
+function updateMainSearchVisibility() {
+  const isDesktop = window.innerWidth > 768;
+  const isPanelOpen = panel.classList.contains("open");
+  if (isDesktop && isPanelOpen) {
+    mainSearchContainer.classList.add("hidden");
+  } else {
+    mainSearchContainer.classList.remove("hidden");
   }
-});
+}
 
-document.addEventListener("click", (e) => {
-  if (!e.target.closest("#main-search-container") && !e.target.closest("#main-suggestions")) {
-    mainSuggestionsEl.style.display = "none";
-  }
-});
-
-// Directions form submit logic
-directionsForm.addEventListener("submit", async (e) => {
+// Directions form submit
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const fromCoords = [parseFloat(fromInput.value.split(",")[1]), parseFloat(fromInput.value.split(",")[0])];
-  const toCoords = [parseFloat(toInput.value.split(",")[1]), parseFloat(toInput.value.split(",")[0])];
-  
   if (!fromCoords || !toCoords) {
     resultEl.textContent = "Please enter valid 'from' and 'to' locations.";
     return;
@@ -171,7 +221,9 @@ directionsForm.addEventListener("submit", async (e) => {
     const steps = route.legs[0].steps;
 
     showRouteSteps(steps);
-    resultEl.textContent = `Distance: ${(route.distance / 1000).toFixed(2)} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
+    resultEl.textContent = `Distance: ${(route.distance / 1000).toFixed(
+      2
+    )} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
 
     // Draw route on map (optional, add polyline layer)
   } catch (err) {
@@ -179,36 +231,153 @@ directionsForm.addEventListener("submit", async (e) => {
   }
 });
 
-// Show route steps
-function showRouteSteps(steps) {
-  stepsList.innerHTML = "";
-  steps.forEach((step) => {
-    const li = document.createElement("li");
-    li.textContent = step.maneuver.instruction || step.maneuver.type;
-    stepsList.appendChild(li);
-  });
-  panel.style.display = "block";
-  panel.setAttribute("aria-hidden", "false");
-}
-
 // Directions button on place info
 directionsBtn.addEventListener("click", () => {
   // Prefill 'to' with current place
   if (currentPlace) {
     toInput.value = currentPlace.name;
-    selectPlace(currentPlace);
+    toCoords = [parseFloat(currentPlace.lon), parseFloat(currentPlace.lat)];
   }
+  showDirectionsPanel();
 });
 
 // Back button on directions panel
-$("back-to-info-btn").addEventListener("click", () => {
+backBtn.addEventListener("click", () => {
   showPlaceInfoPanel();
 });
 
 // Exit route steps panel
-$("exit-route-btn").addEventListener("click", () => {
+exitBtn.addEventListener("click", () => {
   showPlaceInfoPanel();
 });
 
-// Close side panel
+// Panel open/close logic
 closeBtn.addEventListener("click", closePanel);
+panelArrow.addEventListener("click", () => {
+  if (panel.classList.contains("open")) closePanel();
+  else openPanel();
+});
+panelArrow.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    if (panel.classList.contains("open")) closePanel();
+    else openPanel();
+  }
+});
+
+// Main search bar logic (front & center)
+mainSearchInput.addEventListener(
+  "input",
+  debounce(async () => {
+    const q = mainSearchInput.value.trim();
+    if (!q) {
+      mainSuggestionsEl.style.display = "none";
+      return;
+    }
+
+    // Search recent first with fuse
+    let results = fuse.search(q).map((r) => r.item);
+
+    // Fill with nominatim if less than 5
+    if (results.length < 5) {
+      const nominatimResults = await nominatim(q);
+      nominatimResults.forEach((e) => {
+        if (!results.find((r) => r.name === e.name)) results.push(e);
+      });
+    }
+
+    render(results, mainSuggestionsEl, (place) => {
+      mainSearchInput.value = place.name;
+      mainSuggestionsEl.style.display = "none";
+      selectPlace(place);
+    });
+  }, 150)
+);
+
+mainSearchInput.addEventListener("focus", () => {
+  // Optionally show recent suggestions on focus
+  if (recentSearches.length) {
+    render(recentSearches, mainSuggestionsEl, (place) => {
+      mainSearchInput.value = place.name;
+      mainSuggestionsEl.style.display = "none";
+      selectPlace(place);
+    });
+  }
+});
+
+document.addEventListener("click", (e) => {
+  if (
+    !e.target.closest("#main-search-container") &&
+    !e.target.closest("#main-suggestions")
+  ) {
+    mainSuggestionsEl.style.display = "none";
+  }
+});
+
+mainSearchIcon.addEventListener("click", () => {
+  mainSearchInput.focus();
+});
+
+// Directions panel inputs autocomplete logic
+function setupDirectionsAutocomplete(inputEl, sugEl, updateFn) {
+  inputEl.addEventListener(
+    "input",
+    debounce(async () => {
+      const q = inputEl.value.trim();
+      if (!q) {
+        sugEl.style.display = "none";
+        return;
+      }
+      const results = await nominatim(q);
+      render(results, sugEl, (place) => {
+        inputEl.value = place.name;
+        updateFn(place);
+        sugEl.style.display = "none";
+      });
+    }, 150)
+  );
+
+  inputEl.addEventListener("focus", () => {
+    // could show recent here if you want
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(`#${inputEl.id}`) && !e.target.closest(`#${sugEl.id}`)) {
+      sugEl.style.display = "none";
+    }
+  });
+}
+
+setupDirectionsAutocomplete(fromInput, fromSug, (place) => {
+  fromCoords = [parseFloat(place.lon), parseFloat(place.lat)];
+});
+
+setupDirectionsAutocomplete(toInput, toSug, (place) => {
+  toCoords = [parseFloat(place.lon), parseFloat(place.lat)];
+});
+
+// Use My Location buttons
+myLocBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    geoCtrl.trigger(); // Request current position
+
+    geoCtrl.once("geolocate", (ev) => {
+      const { longitude, latitude } = ev.coords;
+      if (btn.textContent.includes("From")) {
+        fromCoords = [longitude, latitude];
+        fromInput.value = "My Location";
+      } else {
+        toCoords = [longitude, latitude];
+        toInput.value = "My Location";
+      }
+    });
+  });
+});
+
+// On load
+window.addEventListener("load", () => {
+  updateMainSearchVisibility();
+});
+
+window.addEventListener("resize", () => {
+  updateMainSearchVisibility();
+});
