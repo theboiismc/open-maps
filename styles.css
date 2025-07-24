@@ -1,0 +1,110 @@
+:root {
+  --panel-width: 320px;
+  --panel-mobile-height: 420px;
+  --panel-mobile-peek: 160px;
+}
+
+html, body, #map {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+#map {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Main search bar - fixed top center */
+#main-search-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: 250px;
+  background: #fafafa;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+}
+
+/* Suggestions dropdown */
+.suggestions-dropdown {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  width: 100%;
+  max-height: 160px;
+  overflow-y: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 70;
+  display: none;
+}
+
+/* Side Panel */
+#side-panel {
+  position: fixed;
+  top: 0;
+  left: -100%;
+  width: var(--panel-width);
+  height: 100%;
+  background: white;
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  z-index: 55;
+  transition: left 0.3s ease;
+}
+
+/* Open Panel */
+#side-panel.open {
+  left: 0;
+}
+
+/* Panel Sections */
+#place-info-section,
+#directions-section,
+#route-section {
+  margin-top: 40px;
+}
+
+/* Buttons */
+button {
+  background: #1a73e8;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Mobile Panel Adjustments */
+@media (max-width: 768px) {
+  #side-panel {
+    top: auto;
+    bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+    left: 0;
+    width: 100%;
+    height: var(--panel-mobile-height);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+  }
+
+  #side-panel.open {
+    bottom: 0;
+  }
+
+  #main-search-container {
+    width: 90vw;
+    left: 5vw;
+    transform: none;
+  }
+}
