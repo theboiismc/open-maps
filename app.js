@@ -1,14 +1,49 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- SETUP & STATE MANAGEMENT ---
     const isMobile = /Mobi/i.test(navigator.userAgent);
-    const STYLES = { /* ... styles from previous step ... */ }; // (Keep this section)
-    const STYLE_ICONS = { /* ... style icons from previous step ... */ }; // (Keep this section)
+    
+    // ✅ FIXED: The full style objects are now here, not placeholders.
+    const STYLES = {
+        default: 'https://tiles.openfreemap.org/styles/liberty',
+        satellite: {
+            version: 8,
+            sources: {
+                "esri-world-imagery": {
+                    type: "raster",
+                    tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+                    tileSize: 256,
+                    attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                }
+            },
+            layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }]
+        }
+    };
+    const STYLE_ICONS = {
+        default: { src: 'satelite_style.png', alt: 'Switch to Satellite View' },
+        satellite: { src: 'default_style.png', alt: 'Switch to Default View' }
+    };
 
-    const map = new maplibregl.Map({ /* ... map initialization ... */ });
+    // ✅ FIXED: Map initialization is complete.
+    const map = new maplibregl.Map({
+        container: "map",
+        style: STYLES.default,
+        center: [-95, 39],
+        zoom: 4
+    });
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), "bottom-right");
 
     // DOM References
+    const fromInput = document.getElementById('panel-from-input');
+    const toInput = document.getElementById('panel-to-input');
+    const getRouteBtn = document.getElementById('get-route-btn');
+    const startNavBtn = document.getElementById('start-nav-btn');
+    const shareRouteBtn = document.getElementById('share-route-btn');
+    const routeSection = document.getElementById('route-section');
+    const directionsPanel = document.getElementById('directions-panel-redesign');
+    const backToDirectionsBtn = document.getElementById('back-to-directions-btn');
+    const sidePanel = document.getElementById('side-panel');
+    const mainDirectionsIcon = document.getElementById('main-directions-icon');
     const navUi = document.getElementById('nav-ui');
     const navInstructionEl = document.getElementById('nav-instruction');
     const navDistanceEl = document.getElementById('nav-distance');
@@ -16,46 +51,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareModalOverlay = document.getElementById('share-modal-overlay');
     const qrCodeCanvas = document.getElementById('qr-code');
     const shareLinkInput = document.getElementById('share-link');
-    const mainRouteActionBtn = document.getElementById('main-route-action-btn');
-    // ... other existing DOM references ...
-
+    const layerSwitcher = document.getElementById('layer-switcher');
+    const layerSwitcherIcon = document.getElementById('layer-switcher-icon');
+    
     // Navigation State
     let isNavigating = false;
-    let currentRoute = null; // Will hold the full route data from OSRM
+    let currentRoute = null;
+    let currentRouteGeoJSON = null;
     let currentStepIndex = 0;
     let locationWatcherId = null;
     let userMarker = null;
 
     // --- INITIALIZATION ---
-    // Check for navigation parameters in the URL on page load
     checkForNavInUrl();
-
+    mainDirectionsIcon.addEventListener('click', () => sidePanel.classList.add('open'));
+    backToDirectionsBtn.addEventListener('click', () => {
+        routeSection.classList.add('hidden');
+        directionsPanel.classList.remove('hidden');
+    });
 
     // --- NAVIGATION ENGINE ---
-
     function startNavigation() {
         if (!currentRoute || !isMobile) return;
-
         isNavigating = true;
         currentStepIndex = 0;
-        closePanel();
+        sidePanel.classList.remove('open');
         navUi.classList.add('visible');
         map.flyTo({ zoom: 18, pitch: 60 });
 
-        // Add a marker for the user's location
         if (!userMarker) {
             const el = document.createElement('div');
-            el.className = 'user-marker'; // You can style this in CSS if you want
-            el.style.background = '#1a73e8';
-            el.style.border = '3px solid white';
-            el.style.width = '20px';
-            el.style.height = '20px';
-            el.style.borderRadius = '50%';
-            el.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+            el.className = 'user-marker';
             userMarker = new maplibregl.Marker(el).setLngLat([0, 0]).addTo(map);
         }
         
-        // Start watching the user's GPS position
         locationWatcherId = navigator.geolocation.watchPosition(
             (position) => {
                 const userCoords = [position.coords.longitude, position.coords.latitude];
@@ -63,10 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 map.setCenter(userCoords);
                 checkStepCompletion(userCoords);
             },
-            () => { alert("GPS signal lost. Please ensure location services are enabled."); stopNavigation(); },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            () => { alert("GPS signal lost."); stopNavigation(); },
+            { enableHighAccuracy: true }
         );
-
         updateNavInstruction();
     }
     
@@ -74,25 +102,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isNavigating) return;
         isNavigating = false;
         navUi.classList.remove('visible');
-        if (locationWatcherId) {
-            navigator.geolocation.clearWatch(locationWatcherId);
-            locationWatcherId = null;
-        }
-        if (userMarker) {
-            userMarker.remove();
-            userMarker = null;
-        }
-        map.flyTo({ pitch: 0 }); // Reset map pitch
-        speechSynthesis.cancel(); // Stop any ongoing speech
+        if (locationWatcherId) navigator.geolocation.clearWatch(locationWatcherId);
+        if (userMarker) { userMarker.remove(); userMarker = null; }
+        map.flyTo({ pitch: 0 });
+        speechSynthesis.cancel();
     }
+    
     exitNavBtn.addEventListener('click', stopNavigation);
+    startNavBtn.addEventListener('click', startNavigation);
 
     function updateNavInstruction() {
         if (!currentRoute || currentStepIndex >= currentRoute.legs[0].steps.length) {
             navInstructionEl.textContent = "You have arrived!";
             navDistanceEl.textContent = "";
             speak("You have arrived at your destination.");
-            stopNavigation();
+            setTimeout(stopNavigation, 3000);
             return;
         }
         const step = currentRoute.legs[0].steps[currentStepIndex];
@@ -104,12 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentRoute) return;
         const step = currentRoute.legs[0].steps[currentStepIndex];
         const nextManeuverCoords = step.maneuver.location;
-        
         const distance = getDistance(userCoords, nextManeuverCoords);
         navDistanceEl.textContent = `${distance.toFixed(2)} mi to next turn`;
-
-        // If user is within ~20 meters of the turn, advance to the next step
-        if (distance < 0.012) { // approx 20 meters in miles
+        if (distance < 0.012) { // approx 20 meters
             currentStepIndex++;
             updateNavInstruction();
         }
@@ -117,46 +138,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function speak(text) {
         if ('speechSynthesis' in window) {
-            speechSynthesis.cancel(); // Clear queue
+            speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             speechSynthesis.speak(utterance);
         }
     }
 
-    // Haversine distance formula (approximated in miles)
     function getDistance(coords1, coords2) {
-        const R = 3959; // Radius of the Earth in miles
-        const lat1 = coords1[1] * Math.PI/180;
-        const lat2 = coords2[1] * Math.PI/180;
-        const dLat = (coords2[1]-coords1[1]) * Math.PI/180;
-        const dLon = (coords2[0]-coords1[0]) * Math.PI/180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1) * Math.cos(lat2) *
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
+        const R = 3959; // Earth radius in miles
+        const dLat = (coords2[1] - coords1[1]) * Math.PI / 180;
+        const dLon = (coords2[0] - coords1[0]) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(coords1[1] * Math.PI / 180) * Math.cos(coords2[1] * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-
     // --- ROUTING & SHARE LOGIC ---
-    
-    document.getElementById('get-route-btn').addEventListener('click', async () => {
-        // This button's text and function will change, so we check its text
-        const action = mainRouteActionBtn.textContent;
-        if (action.includes("Share")) {
-            showShareModal();
-        } else if (action.includes("Start")) {
-            startNavigation();
-        } else {
-             // Default action: Get the route
-            if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
-            try {
-                const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-                fetchAndDisplayRoute(start, end);
-            } catch (err) {
-                alert(`Error getting route: ${err.message}`);
-            }
-        }
+    getRouteBtn.addEventListener('click', async () => {
+        if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
+        try {
+            const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
+            fetchAndDisplayRoute(start, end);
+        } catch (err) { alert(`Error getting route: ${err.message}`); }
     });
 
     async function fetchAndDisplayRoute(startCoords, endCoords) {
@@ -165,15 +167,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (!data.routes || data.routes.length === 0) return alert("No route found.");
         
-        currentRoute = data.routes[0]; // Store full route data
-        const routeGeoJSON = { type: 'Feature', geometry: currentRoute.geometry };
-        currentRouteGeoJSON = routeGeoJSON; // For style changes
-        addRouteToMap(routeGeoJSON);
+        currentRoute = data.routes[0];
+        currentRouteGeoJSON = { type: 'Feature', geometry: currentRoute.geometry };
+        addRouteToMap(currentRouteGeoJSON);
 
-        // Update UI
         const bounds = new maplibregl.LngLatBounds();
         currentRoute.geometry.coordinates.forEach(coord => bounds.extend(coord));
-        map.fitBounds(bounds, { padding: isMobile ? {top: 50, bottom: 250, left: 50, right: 50} : 100 });
+        map.fitBounds(bounds, { padding: 100 });
         
         const stepsEl = document.getElementById("route-steps");
         stepsEl.innerHTML = "";
@@ -183,51 +183,72 @@ document.addEventListener('DOMContentLoaded', () => {
             stepsEl.appendChild(li);
         });
         
-        // Change the button based on platform
+        // Show the route panel and the correct action button
+        directionsPanel.classList.add('hidden');
+        routeSection.classList.remove('hidden');
+        getRouteBtn.classList.add('hidden');
         if (isMobile) {
-            mainRouteActionBtn.textContent = "Start Navigation";
+            startNavBtn.classList.remove('hidden');
         } else {
-            mainRouteActionBtn.textContent = "Share Route to Phone";
+            shareRouteBtn.classList.remove('hidden');
         }
-        showPanel('route-section');
     }
     
-    function showShareModal() {
+    shareRouteBtn.addEventListener('click', () => {
         const start = currentRoute.legs[0].steps[0].maneuver.location;
         const end = currentRoute.legs[0].steps[currentRoute.legs[0].steps.length - 1].maneuver.location;
         const navUrl = `${window.location.origin}${window.location.pathname}?nav=${start.join(',')};${end.join(',')}`;
-        
         shareLinkInput.value = navUrl;
-        new QRious({
-            element: qrCodeCanvas,
-            value: navUrl,
-            size: 200,
-            padding: 10
-        });
+        new QRious({ element: qrCodeCanvas, value: navUrl, size: 200, padding: 10 });
         shareModalOverlay.classList.add('visible');
-    }
+    });
+
     shareModalOverlay.addEventListener('click', (e) => {
-        if (e.target === shareModalOverlay) {
-            shareModalOverlay.classList.remove('visible');
-        }
+        if (e.target === shareModalOverlay) shareModalOverlay.classList.remove('visible');
     });
 
     function checkForNavInUrl() {
         const params = new URLSearchParams(window.location.search);
         const navData = params.get('nav');
         if (navData) {
+            sidePanel.classList.add('open');
             const [startStr, endStr] = navData.split(';');
             const startCoords = startStr.split(',').map(Number);
             const endCoords = endStr.split(',').map(Number);
-            
-            // Set input values for context, even though we use coords directly
-            fromInput.value = `Start: ${startCoords.join(', ')}`;
-            toInput.value = `Destination: ${endCoords.join(', ')}`;
-            
+            fromInput.value = `Route Start`;
+            toInput.value = `Route Destination`;
             fetchAndDisplayRoute(startCoords, endCoords);
         }
     }
 
-    // ... (All other functions: geocode, addRouteToMap, layer switcher logic, panel logic, etc. remain here unchanged)
+    async function geocode(query) {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data[0]) throw new Error(`Could not find: ${query}`);
+        return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+    }
 
+    // --- MAP & LAYER LOGIC ---
+    function addRouteToMap(routeGeoJSON) {
+        if (map.getSource('route')) {
+             map.getSource('route').setData(routeGeoJSON);
+        } else {
+            map.addSource('route', { type: 'geojson', data: routeGeoJSON });
+            map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#0d89ec', 'line-width': 6 } }, 'road-label'); // Draw route under labels
+        }
+    }
+    
+    layerSwitcher.addEventListener('click', () => {
+        const newStyleKey = (currentStyle === 'default') ? 'satellite' : 'default';
+        map.setStyle(STYLES[newStyleKey]);
+        const newIcon = STYLE_ICONS[newStyleKey];
+        layerSwitcherIcon.src = newIcon.src;
+        layerSwitcherIcon.alt = newIcon.alt;
+        currentStyle = newStyleKey;
+    });
+
+    map.on('styledata', () => {
+        if (currentRouteGeoJSON) addRouteToMap(currentRouteGeoJSON);
+    });
 });
