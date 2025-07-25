@@ -29,18 +29,13 @@
         html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
         #map { position: fixed; top: 0; left: 0; }
 
-        /* Wrappers for moving the search bar */
         #top-search-wrapper {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 60;
             width: 400px; transition: opacity 0.2s ease;
         }
         #panel-search-placeholder {
-            padding: 15px;
-            background-color: #fff;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 15px; background-color: #fff; border-bottom: 1px solid #e0e0e0;
         }
-
-        /* Main Search Bar */
         #main-search-container {
             width: 100%; background: #fff; border-radius: 28px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             padding: 0 15px; display: flex; align-items: center; position: relative;
@@ -48,7 +43,6 @@
         #main-search { width: 100%; border: none; outline: none; background: transparent; height: 48px; font-size: 16px; }
         .search-icon, .directions-icon { cursor: pointer; opacity: 0.7; margin-left: 10px; }
 
-        /* Suggestions Dropdown (used by all inputs) */
         .suggestions-dropdown {
             position: absolute; background: white; border: 1px solid #ccc;
             width: 100%; max-height: 200px; overflow-y: auto; border-radius: 8px;
@@ -57,7 +51,6 @@
         .suggestions-dropdown .search-result { padding: 12px 15px; cursor: pointer; }
         .suggestions-dropdown .search-result:hover { background-color: #f0f0f0; }
 
-        /* Main Side Panel Container */
         #side-panel {
             position: fixed; z-index: 55; background: #fff; top: 0; left: -100%;
             width: var(--panel-width); height: 100%; box-shadow: 2px 0 15px rgba(0,0,0,0.1);
@@ -66,22 +59,22 @@
         #side-panel.open { left: 0; }
         #panel-grabber { display: none; }
 
-        /* Panel Close Button (Desktop) */
         #close-panel-btn {
             position: fixed; top: 15px; left: calc(var(--panel-width) + 15px); z-index: 60;
-            width: 36px; height: 36px;
-            background: #fff; border: none; border-radius: 50%; cursor: pointer;
-            font-size: 20px; line-height: 36px; text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            opacity: 0; transform: scale(0.8);
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            width: 36px; height: 36px; background: #fff; border: none; border-radius: 50%; cursor: pointer;
+            font-size: 20px; line-height: 36px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            opacity: 0; transform: scale(0.8); transition: opacity 0.2s ease, transform 0.2s ease;
         }
-        #side-panel.open + #close-panel-btn {
-            opacity: 1;
-            transform: scale(1);
-        }
+        #side-panel.open + #close-panel-btn { opacity: 1; transform: scale(1); }
 
-        /* --- REDESIGNED INFO & DIRECTIONS PANEL (Shared structure) --- */
+        /* --- Layer Switcher Button --- */
+        #layer-switcher {
+            position: fixed; bottom: 20px; left: 20px; z-index: 40;
+            background-color: white; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; overflow: hidden;
+        }
+        #layer-switcher-icon { width: 64px; height: 64px; display: block; }
+
         .panel-content { flex-grow: 1; overflow-y: auto; }
         .panel-content .header-image { width: 100%; height: 200px; object-fit: cover; background-color: #e0e0e0; display: block; }
         .panel-content .info-content-padding { padding: 20px; }
@@ -117,7 +110,6 @@
         }
         #directions-panel-redesign .dir-quick-select .icon-wrapper { margin-right: 15px; }
         
-        /* --- MOBILE STYLES --- */
         @media (max-width: 768px) and (pointer: coarse) {
             #top-search-wrapper { width: 90vw; left: 5vw; transform: none; }
             #side-panel {
@@ -132,11 +124,12 @@
                 position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: grab;
             }
             #close-panel-btn { display: none !important; }
+            /* Reposition layer switcher on mobile for better UX */
+            #layer-switcher { bottom: 30px; left: 10px; }
         }
     </style>
 </head>
 <body>
-    <!-- Wrapper for Main Search Bar (for moving it) -->
     <div id="top-search-wrapper">
         <div id="main-search-container">
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
@@ -145,15 +138,10 @@
             <div id="main-suggestions" class="suggestions-dropdown"></div>
         </div>
     </div>
-
-    <!-- Side Panel -->
     <div id="side-panel">
         <div id="panel-grabber"></div>
-        <!-- This placeholder will hold the search bar when the panel is open on desktop -->
         <div id="panel-search-placeholder" hidden></div>
-
         <div class="panel-content">
-            <!-- Info Panel View -->
             <div id="info-panel-redesign" hidden>
                 <img class="header-image" id="info-image" src="" alt="Image of the location"/>
                 <div class="info-content-padding">
@@ -161,59 +149,36 @@
                     <div class="address" id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn">
-                            <div class="icon-circle"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M22.43,10.59,13.42,1.58a2,2,0,0,0-2.83,0l-9,9a2,2,0,0,0,0,2.83l9,9a2,2,0,0,0,2.83,0l9-9A2,2,0,0,0,22.43,10.59ZM12,18.59,5.41,12,12,5.41,18.59,12Z"></path></svg></div>
-                            <div class="btn-label">Directions</div>
-                        </div>
-                        <div class="btn-wrapper" id="info-save-btn">
-                            <div class="icon-circle"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M17,3H7A2,2,0,0,0,5,5V21L12,18L19,21V5A2,2,0,0,0,17,3Z"></path></svg></div>
-                            <div class="btn-label">Save</div>
-                        </div>
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M22.43,10.59,13.42,1.58a2,2,0,0,0-2.83,0l-9,9a2,2,0,0,0,0,2.83l9,9a2,2,0,0,0,2.83,0l9-9A2,2,0,0,0,22.43,10.59ZM12,18.59,5.41,12,12,5.41,18.59,12Z"></path></svg></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M17,3H7A2,2,0,0,0,5,5V21L12,18L19,21V5A2,2,0,0,0,17,3Z"></path></svg></div><div class="btn-label">Save</div></div>
                     </div>
-                    <div id="quick-facts">
-                        <h4>Quick facts</h4>
-                        <p id="quick-facts-content"></p>
-                    </div>
+                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
             </div>
-
-            <!-- Directions Panel View -->
             <div id="directions-panel-redesign" hidden>
                  <div class="info-content-padding">
                     <div class="dir-input-group">
-                        <div class="dir-input-wrapper">
-                            <svg class="input-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#000" stroke-width="2"/></svg>
-                            <input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/>
-                        </div>
+                        <div class="dir-input-wrapper"><svg class="input-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#000" stroke-width="2"/></svg><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
                         <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                        <div class="dir-input-wrapper">
-                            <svg class="input-icon" width="24" height="24" viewBox="0 0 24 24"><path fill="#D83025" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
-                            <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/>
-                        </div>
+                        <div class="dir-input-wrapper"><svg class="input-icon" width="24" height="24" viewBox="0 0 24 24"><path fill="#D83025" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
                         <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
                         <button id="swap-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l-4-4m4 4l4-4" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                     </div>
-                    <div class="dir-quick-select" id="dir-use-my-location">
-                        <div class="icon-wrapper"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12,8A4,4,0,0,1,16,12A4,4,0,0,1,12,16A4,4,0,0,1,8,12A4,4,0,0,1,12,8M12,2A10,10,0,0,0,2,12A10,10,0,0,0,12,22A10,10,0,0,0,22,12A10,10,0,0,0,12,2Z" /></svg></div>
-                        Your location
-                    </div>
-                    <button id="get-route-btn">Get Route</button>
-                    <button id="back-to-info-btn">Back</button>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12,8A4,4,0,0,1,16,12A4,4,0,0,1,12,16A4,4,0,0,1,8,12A4,4,0,0,1,12,8M12,2A10,10,0,0,0,2,12A10,10,0,0,0,12,22A10,10,0,0,0,22,12A10,10,0,0,0,12,2Z" /></svg></div>Your location</div>
+                    <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
                 </div>
             </div>
-
-            <!-- Route steps view -->
             <div id="route-section" hidden>
-                <div class="info-content-padding">
-                    <h3>Route Steps</h3>
-                    <button id="exit-route-btn">Back</button>
-                    <ol id="route-steps"></ol>
-                </div>
+                <div class="info-content-padding"><h3>Route Steps</h3><button id="exit-route-btn">Back</button><ol id="route-steps"></ol></div>
             </div>
         </div>
     </div>
-
     <button id="close-panel-btn" title="Close Panel">×</button>
+    
+    <!-- Layer Switcher Element -->
+    <div id="layer-switcher" title="Switch map style">
+        <img id="layer-switcher-icon" src="satelite_style.png" alt="Switch to Satellite View">
+    </div>
 
     <div id="map"></div>
     <script src="app.js"></script>
