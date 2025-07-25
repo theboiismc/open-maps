@@ -222,14 +222,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const weatherEl = document.getElementById('info-weather');
         weatherEl.textContent = "Loading weather...";
         try {
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}¤t=temperature_2m,weather_code&temperature_unit=fahrenheit`;
+            // ✅ FIXED: Switched to the more robust `current_weather=true` parameter.
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}¤t_weather=true&temperature_unit=fahrenheit`;
             const res = await fetch(url);
+            
+            if (!res.ok) { // Check if response is successful
+                throw new Error(`API returned status ${res.status}`);
+            }
+
             const data = await res.json();
             
-            if (data.current) {
-                const tempF = Math.round(data.current.temperature_2m);
+            // ✅ FIXED: Parsing the new response structure from `current_weather`.
+            if (data.current_weather) {
+                const tempF = Math.round(data.current_weather.temperature);
                 const tempC = Math.round((tempF - 32) * 5 / 9);
-                const description = getWeatherDescription(data.current.weather_code);
+                // The weather code is now in `weathercode` (no underscore)
+                const description = getWeatherDescription(data.current_weather.weathercode);
                 weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
             } else {
                  throw new Error("Invalid weather data format from API.");
