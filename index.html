@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1a73e8" />
+  <title>TheBoiisMC Maps</title>
+
+  <!-- Open Graph & Twitter Card -->
   <meta property="og:title" content="TheBoiisMC Maps" />
   <meta property="og:description" content="Explore the world with private, modern mapping." />
   <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
@@ -11,18 +15,26 @@
   <meta name="twitter:title" content="TheBoiisMC Maps" />
   <meta name="twitter:description" content="Explore the world with private, modern mapping." />
   <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
-  <meta name="theme-color" content="#1a73e8" />
-  <title>TheBoiisMC Maps</title>
   <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
 
-  <!-- ✅ Dynamically pulls latest MapLibre version -->
+  <!-- ✅ MapLibre CSS and JS in HEAD -->
   <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+
+  <!-- Optional: Font and global styles -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+
   <style>
     :root {
       --panel-width: 320px;
       --panel-mobile-height: 420px;
       --panel-mobile-peek: 160px;
     }
+
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+
     html, body, #map {
       margin: 0;
       padding: 0;
@@ -30,13 +42,13 @@
       width: 100%;
       overflow: hidden;
     }
+
     #map {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
     }
+
     #main-search-container {
       position: fixed;
       top: 20px;
@@ -50,12 +62,8 @@
       padding: 8px 12px;
       display: flex;
       align-items: center;
-      transition: opacity 0.3s, visibility 0.3s;
     }
-    #main-search-container.hidden {
-      opacity: 0;
-      visibility: hidden;
-    }
+
     .suggestions-dropdown {
       position: absolute;
       background: white;
@@ -66,10 +74,10 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       z-index: 70;
-      display: none;
       top: 100%;
       left: 0;
     }
+
     #side-panel {
       position: fixed;
       z-index: 55;
@@ -83,12 +91,15 @@
       transition: left 0.3s ease;
       padding: 20px;
     }
+
     #side-panel.open {
       left: 0;
     }
+
     #panel-grabber {
       display: none;
     }
+
     @media (max-width: 768px) {
       #side-panel {
         top: auto;
@@ -100,10 +111,11 @@
         bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
         transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
       }
+
       #side-panel.open {
         bottom: 0;
-        left: 0;
       }
+
       #panel-grabber {
         display: block;
         width: 40px;
@@ -116,10 +128,14 @@
         transform: translateX(-50%);
         cursor: grab;
       }
+
+      #main-search-container {
+        width: 90vw;
+        left: 5vw;
+        transform: none;
+      }
     }
-    #welcome-section, #place-info-section, #directions-section, #route-section {
-      margin-top: 30px;
-    }
+
     button {
       background: #1a73e8;
       border: none;
@@ -128,13 +144,6 @@
       color: white;
       font-weight: 600;
       cursor: pointer;
-    }
-    @media (max-width: 768px) {
-      #main-search-container {
-        width: 90vw;
-        left: 5vw;
-        transform: none;
-      }
     }
   </style>
 </head>
@@ -146,7 +155,7 @@
 
   <div id="side-panel">
     <div id="panel-grabber"></div>
-    <div id="close-side-panel" style="position: absolute; top: 10px; right: 10px; cursor: pointer; z-index: 10;">X</div>
+    <button id="close-side-panel" style="position: absolute; top: 10px; right: 10px;">✕</button>
 
     <div id="welcome-section">
       <h3>Welcome to TheBoiisMC Maps</h3>
@@ -165,14 +174,17 @@
         <input type="text" id="panel-from-input" autocomplete="off"/>
         <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
         <button type="button" class="my-loc-btn">Use My Location</button>
+
         <br><br>
         <label for="panel-to-input">To</label>
         <input type="text" id="panel-to-input" autocomplete="off"/>
         <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
         <button type="button" class="my-loc-btn">Use My Location</button>
+
         <br><br>
         <button type="submit" id="get-route-btn">Get Route</button>
       </form>
+
       <div id="directions-result"></div>
       <button id="back-to-info-btn">Back</button>
     </div>
@@ -186,9 +198,7 @@
 
   <div id="map"></div>
 
-  <!-- ✅ Dynamic MapLibre and dependencies -->
-  <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+  <!-- ✅ Your main script -->
   <script src="app.js"></script>
 </body>
 </html>
