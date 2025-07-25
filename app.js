@@ -14,22 +14,69 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM element references
     const sidePanel = document.getElementById("side-panel");
     const mainSearchInput = document.getElementById("main-search");
+    const mainSearchContainer = document.getElementById('main-search-container');
+    const topSearchWrapper = document.getElementById('top-search-wrapper');
+    const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
+    const closePanelBtn = document.getElementById('close-panel-btn');
+
     let currentPlace = null;
     let routeLine = null;
+
+    // --- UI LOGIC FOR MOVING SEARCH BAR ---
+    function moveSearchBarToPanel() {
+        if (isMobile) return;
+        mainSearchContainer.style.boxShadow = 'none';
+        mainSearchContainer.style.borderRadius = '8px';
+        panelSearchPlaceholder.hidden = false;
+        panelSearchPlaceholder.appendChild(mainSearchContainer);
+        topSearchWrapper.style.opacity = '0';
+    }
+
+    function moveSearchBarToTop() {
+        if (isMobile) return;
+        mainSearchContainer.style.boxShadow = ''; // Reset to CSS default
+        mainSearchContainer.style.borderRadius = ''; // Reset to CSS default
+        topSearchWrapper.appendChild(mainSearchContainer);
+        panelSearchPlaceholder.hidden = true;
+        topSearchWrapper.style.opacity = '1';
+    }
 
     // Utility to show a specific panel view
     function showPanel(viewId) {
         ['info-panel-redesign', 'directions-panel-redesign', 'route-section'].forEach(id => {
             document.getElementById(id).hidden = id !== viewId;
         });
-        if (!sidePanel.classList.contains('peek') && !sidePanel.classList.contains('open')) {
+
+        if (!sidePanel.classList.contains('open')) {
             if (isMobile) {
-                sidePanel.classList.add('peek');
+                if (!sidePanel.classList.contains('peek')) {
+                     sidePanel.classList.add('peek');
+                }
             } else {
                 sidePanel.classList.add('open');
+                moveSearchBarToPanel();
             }
         }
     }
+
+    function closePanel() {
+        if (isMobile) {
+            sidePanel.classList.remove('open', 'peek');
+        } else {
+            sidePanel.classList.remove('open');
+            moveSearchBarToTop();
+        }
+    }
+    
+    closePanelBtn.addEventListener('click', closePanel);
+    map.on('click', (e) => {
+        // Close panel if map is clicked and the click wasn't on a map control
+        const targetClasses = e.originalEvent.target.classList;
+        if (!targetClasses.contains('maplibregl-ctrl-icon') && !targetClasses.contains('mapboxgl-ctrl-icon')) {
+             closePanel();
+        }
+    });
+
 
     // Debounce function to prevent API calls on every keystroke
     function debounce(func, delay) {
@@ -82,12 +129,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
 
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.length > 0) onSelect(data[0]);
-        else alert("No results found for your search.");
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.length > 0) onSelect(data[0]);
+            else alert("No results found for your search.");
+        } catch (e) {
+             alert("Search failed. Please check your connection.");
+        }
     }
-
 
     // Attach listeners to search bars
     const mainSuggestions = document.getElementById("main-suggestions");
@@ -114,51 +164,79 @@ document.addEventListener('DOMContentLoaded', () => {
     function processPlaceResult(place) {
         currentPlace = place;
         map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
-        mainSearchInput.value = place.display_name;
+        mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
         
         document.getElementById('info-name').textContent = place.display_name.split(',')[0];
         document.getElementById('info-address').textContent = place.display_name;
 
-        fetchAndSetPlaceImage(place.display_name.split(',')[0]);
+        const locationName = place.display_name.split(',')[0];
+        fetchAndSetPlaceImage(locationName);
         fetchAndSetWeather(place.lat, place.lon);
-        fetchAndSetQuickFacts(place.display_name.split(',')[0]);
+        fetchAndSetQuickFacts(locationName);
         
         showPanel('info-panel-redesign');
     }
 
-    function fetchAndSetPlaceImage(query) {
+    async function fetchAndSetPlaceImage(query) {
         const imgEl = document.getElementById('info-image');
-        const cleanedQuery = query.split(' ').join(',');
-        imgEl.onerror = function() {
-            this.alt = 'Image not available';
-            this.style.backgroundColor = '#e0e0e0';
-            this.src = ''; // Clear the broken source
+        imgEl.src = ''; // Clear previous image
+        imgEl.style.backgroundColor = '#e0e0e0';
+        imgEl.alt = 'Loading image...';
+
+        try {
+            const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const page = Object.values(data.query.pages)[0];
+            
+            if (page.thumbnail && page.thumbnail.source) {
+                imgEl.src = page.thumbnail.source;
+                imgEl.alt = `Image of ${query}`;
+                imgEl.onerror = () => { // Add a fallback just in case the URL is bad
+                    imgEl.style.backgroundColor = '#e0e0e0';
+                    imgEl.alt = 'Image not available';
+                };
+            } else {
+                throw new Error("No image found on Wikipedia.");
+            }
+        } catch (e) {
+            console.error("Wikipedia Image API error:", e);
+            imgEl.alt = 'Image not available';
+        }
+    }
+    
+    function getWeatherDescription(code) {
+        const descriptions = {
+            0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+            45: 'Fog', 48: 'Depositing rime fog',
+            51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
+            61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+            71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall',
+            80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
+            95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail'
         };
-        imgEl.style.backgroundColor = '';
-        imgEl.src = `https://source.unsplash.com/800x600/?${encodeURIComponent(cleanedQuery)}`;
-        imgEl.alt = `Image of ${query}`;
+        return descriptions[code] || "Weather data unavailable";
     }
 
     async function fetchAndSetWeather(lat, lon) {
         const weatherEl = document.getElementById('info-weather');
         weatherEl.textContent = "Loading weather...";
         try {
-            const res = await fetch(`https://wttr.in/${lat},${lon}?format=j1`, {
-                headers: { 'User-Agent': 'TheBoiisMC-Maps/1.0' }
-            });
-
-            if (!res.ok) {
-                const errorText = await res.text();
-                throw new Error(`Weather service returned an error: ${errorText}`);
-            }
-
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}¤t=temperature_2m,weather_code&temperature_unit=fahrenheit`;
+            const res = await fetch(url);
             const data = await res.json();
-            const condition = data.current_condition[0];
-            weatherEl.innerHTML = `<img src="${condition.weatherIconUrl[0].value}" alt="weather icon" style="background: #eaf8ff; border-radius: 50%;"> ${condition.temp_C}°C / ${condition.temp_F}°F, ${condition.weatherDesc[0].value}`;
-        
+            
+            if (data.current) {
+                const tempF = Math.round(data.current.temperature_2m);
+                const tempC = Math.round((tempF - 32) * 5 / 9);
+                const description = getWeatherDescription(data.current.weather_code);
+                weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
+            } else {
+                 throw new Error("Invalid weather data format from API.");
+            }
         } catch (e) {
             weatherEl.textContent = "Could not load weather data.";
-            console.error("Weather fetch/parse error:", e);
+            console.error("Open-Meteo fetch/parse error:", e);
         }
     }
 
@@ -170,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(url);
             const data = await res.json();
             const page = Object.values(data.query.pages)[0];
-            factsEl.textContent = page.extract ? page.extract.substring(0, 300) + '...' : "No quick facts found on Wikipedia.";
+            factsEl.textContent = page.extract ? page.extract.substring(0, 350) + '...' : "No quick facts found on Wikipedia.";
         } catch (e) {
             factsEl.textContent = "Could not load facts.";
             console.error("Wikipedia API error", e);
@@ -180,16 +258,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4) Directions Panel Logic
     function openDirectionsPanel() {
+        showPanel('directions-panel-redesign');
         if (currentPlace) {
             toInput.value = currentPlace.display_name;
             toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
+            fromInput.value = '';
+            fromInput.dataset.coords = '';
         } else {
-            toInput.value = '';
+            // If no location is selected, move main search to 'to' input
+            toInput.value = mainSearchInput.value; 
             toInput.dataset.coords = '';
+            fromInput.value = '';
+            fromInput.dataset.coords = '';
         }
-        fromInput.value = '';
-        fromInput.dataset.coords = '';
-        showPanel('directions-panel-redesign');
     }
 
     document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
@@ -206,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.geolocation.getCurrentPosition(pos => {
             fromInput.value = "Your Location";
             fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
-        }, () => alert("Could not get your location."));
+        }, () => alert("Could not get your location. Please enable location permissions."));
     });
     document.getElementById('back-to-info-btn').addEventListener('click', () => {
         if (currentPlace) showPanel('info-panel-redesign');
@@ -218,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
         const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
         const data = await res.json();
-        if (!data[0]) throw new Error(`Could not find: ${inputEl.value}`);
+        if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`);
         inputEl.value = data[0].display_name;
         inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
         return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
@@ -230,18 +311,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
             const res = await fetch(url);
             const data = await res.json();
-            if (!data.routes || data.routes.length === 0) return alert("No route found.");
+            if (!data.routes || data.routes.length === 0) return alert("No route found between the specified locations.");
             
             const route = data.routes[0].geometry;
-            if (routeLine) { 
+            if (routeLine && map.getSource('route')) { 
                 map.getSource('route').setData({ type: 'Feature', geometry: route }); 
             } else {
                 map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route } });
                 map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#0d89ec', 'line-width': 6 } });
                 routeLine = true;
             }
-            const bounds = new maplibregl.LngLatBounds(start, end);
-            map.fitBounds(bounds, { padding: { top: 50, bottom: 250, left: 50, right: 50 }});
+            
+            const bounds = new maplibregl.LngLatBounds();
+            route.coordinates.forEach(coord => bounds.extend(coord));
+            map.fitBounds(bounds, { padding: isMobile ? {top: 50, bottom: 250, left: 50, right: 50} : 100 });
             
             const stepsEl = document.getElementById("route-steps");
             stepsEl.innerHTML = "";
@@ -252,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             showPanel('route-section');
         } catch (err) { 
-            alert(err.message); 
+            alert(`Error getting route: ${err.message}`); 
         }
     });
 
@@ -270,22 +353,32 @@ document.addEventListener('DOMContentLoaded', () => {
             if (startY === undefined) return;
             const currentY = e.touches[0].pageY;
             let newBottom = startBottom + (startY - currentY);
-            if (newBottom > 0) newBottom = 0;
+            if (newBottom > 0) newBottom = 0; // Don't let it go above the screen bottom
             sidePanel.style.bottom = `${newBottom}px`;
         }, { passive: true });
-        grabber.addEventListener('touchend', () => {
+        grabber.addEventListener('touchend', (e) => {
             if (startY === undefined) return;
+            const endY = e.changedTouches[0].pageY;
+            const deltaY = startY - endY;
             startY = undefined;
+
             sidePanel.style.transition = 'bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1)';
-            const currentBottom = parseInt(sidePanel.style.bottom);
-            sidePanel.style.bottom = '';
-            const threshold = -200;
-            if (currentBottom > threshold) {
-                sidePanel.classList.add("open");
-                sidePanel.classList.remove("peek");
-            } else {
-                sidePanel.classList.remove("open");
-                sidePanel.classList.add("peek");
+            const currentBottom = parseInt(sidePanel.style.bottom, 10);
+            sidePanel.style.bottom = ''; // Let CSS take over
+
+            if (deltaY > 50) { // Swiped up
+                 sidePanel.classList.remove("peek");
+                 sidePanel.classList.add("open");
+            } else if (deltaY < -50) { // Swiped down
+                sidePanel.classList.remove("open", "peek");
+            } else { // Tap or small drag, decide based on position
+                const peekHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek'));
+                if (sidePanel.classList.contains('open')) {
+                    // Stay open
+                } else if (sidePanel.classList.contains('peek')) {
+                    sidePanel.classList.remove('peek');
+                    sidePanel.classList.add('open');
+                }
             }
         });
     }
