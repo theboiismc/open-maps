@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta property="og:title" content="TheBoiisMC Maps" />
     <meta property="og:description" content="Explore the world with private, modern mapping." />
     <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
@@ -27,7 +27,7 @@
             padding: 0;
             height: 100%;
             width: 100%;
-            overflow: hidden; /* Prevents unwanted scrollbars */
+            overflow: hidden;
         }
 
         #map {
@@ -60,7 +60,6 @@
             visibility: hidden;
         }
 
-        /* Suggestions dropdown */
         .suggestions-dropdown {
             position: absolute;
             background: white;
@@ -72,96 +71,90 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             z-index: 70;
             display: none;
-            top: 100%; /* Position below the input */
+            top: 100%;
             left: 0;
         }
 
-        /* Side Panel */
+        /* --- Side Panel --- */
         #side-panel {
             position: fixed;
+            z-index: 55;
+            background: white;
+            box-sizing: border-box;
+            /* Desktop styles */
             top: 0;
-            left: -100%; /* Initially hidden on desktop */
+            left: -100%;
             width: var(--panel-width);
             height: 100%;
-            background: white;
-            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            z-index: 55;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.1);
             transition: left 0.3s ease;
-            box-sizing: border-box;
+            padding: 20px;
         }
 
         #side-panel.open {
             left: 0;
         }
         
-        /* Mobile Panel Adjustments */
+        #panel-grabber { display: none; }
+        
+        /* --- Mobile Panel Adjustments --- */
         @media (max-width: 768px) {
             #side-panel {
                 top: auto;
-                bottom: calc(-1 * var(--panel-mobile-height)); /* Fully hidden initially */
                 left: 0;
                 width: 100%;
                 height: var(--panel-mobile-height);
                 border-radius: 20px 20px 0 0;
-                box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
-                transition: bottom 0.3s ease-in-out;
+                box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
+                /* Default state: hidden below screen */
+                bottom: calc(-1 * var(--panel-mobile-height));
+                transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
             }
 
-            /* State for peeking panel on mobile */
-            #side-panel.peek {
+            /* The "peeking" state is the base visible state on mobile */
+            #side-panel.visible {
                 bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
             }
-
-            /* State for fully open panel on mobile */
+            
+            /* The "open" state brings it fully into view */
             #side-panel.open {
                 bottom: 0;
-                left: 0; /* Ensure left is reset for mobile */
+                left: 0;
+            }
+
+            /* Visual grabber for mobile */
+            #panel-grabber {
+                display: block;
+                width: 40px;
+                height: 5px;
+                background-color: #ccc;
+                border-radius: 2.5px;
+                position: absolute;
+                top: 8px;
+                left: 50%;
+                transform: translateX(-50%);
+                cursor: grab;
             }
         }
-
-        /* Panel content sections */
-        #place-info-section,
-        #directions-section,
-        #route-section {
-            margin-top: 40px;
-        }
-
-        /* Buttons */
-        button {
-            background: #1a73e8;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        /* Responsive tweaks */
+        
+        #place-info-section, #directions-section, #route-section { margin-top: 30px; }
+        button { background: #1a73e8; border: none; padding: 10px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer; }
         @media (max-width: 768px) {
-            #main-search-container {
-                width: 90vw;
-                left: 5vw;
-                transform: none;
-            }
+            #main-search-container { width: 90vw; left: 5vw; transform: none; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Main Search Bar Section -->
     <div id="main-search-container">
         <input type="text" id="main-search" placeholder="Search for a place..." style="width: 100%; border: none; outline: none; background: transparent;"/>
         <div id="main-suggestions" class="suggestions-dropdown"></div>
     </div>
 
-    <!-- Side Panel -->
     <div id="side-panel" aria-hidden="true">
+        <div id="panel-grabber"></div>
         <div id="close-side-panel" class="close-btn" style="position: absolute; top: 10px; right: 10px; cursor: pointer;">X</div>
-        <div id="panel-arrow" class="panel-arrow" style="display: none;">◁</div>
-
-        <!-- Place Info Section -->
+        
         <div id="place-info-section" hidden>
             <h3 id="place-name">Place Name</h3>
             <p id="place-description">Description or Type</p>
@@ -170,30 +163,24 @@
             <button id="directions-btn">Get Directions</button>
         </div>
 
-        <!-- Directions Section -->
         <div id="directions-section" hidden>
             <form id="directions-form">
                 <label for="panel-from-input">From</label>
-                <input type="text" id="panel-from-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-from-suggestions" aria-haspopup="listbox" />
+                <input type="text" id="panel-from-input" autocomplete="off"/>
                 <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
                 <button type="button" class="my-loc-btn">Use My Location</button>
-
                 <br><br>
-
                 <label for="panel-to-input">To</label>
-                <input type="text" id="panel-to-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-to-suggestions" aria-haspopup="listbox" />
+                <input type="text" id="panel-to-input" autocomplete="off"/>
                 <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
                 <button type="button" class="my-loc-btn">Use My Location</button>
-                
                 <br><br>
-
                 <button type="submit" id="route-btn">Get Route</button>
             </form>
             <div id="directions-result"></div>
             <button id="back-to-info-btn">Back</button>
         </div>
 
-        <!-- Route Steps Section -->
         <div id="route-section" hidden>
             <h3>Route Steps</h3>
             <ol id="route-steps"></ol>
@@ -201,14 +188,9 @@
         </div>
     </div>
 
-    <!-- Map Container -->
     <div id="map"></div>
-
-    <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@2.1.8/dist/maplibre-gl.js"></script>
-    <!-- Fuse.js for search -->
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
-    <!-- App script -->
     <script src="app.js"></script>
 
 </body>
