@@ -81,7 +81,7 @@
             z-index: 55;
             background: white;
             box-sizing: border-box;
-            /* Desktop styles */
+            /* Desktop default: hidden */
             top: 0;
             left: -100%;
             width: var(--panel-width);
@@ -95,7 +95,9 @@
             left: 0;
         }
         
-        #panel-grabber { display: none; }
+        #panel-grabber {
+            display: none;
+        }
         
         /* --- Mobile Panel Adjustments --- */
         @media (max-width: 768px) {
@@ -106,23 +108,16 @@
                 height: var(--panel-mobile-height);
                 border-radius: 20px 20px 0 0;
                 box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
-                /* Default state: hidden below screen */
-                bottom: calc(-1 * var(--panel-mobile-height));
+                /* Mobile default: always visible in "peeking" state */
+                bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
                 transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
             }
 
-            /* The "peeking" state is the base visible state on mobile */
-            #side-panel.visible {
-                bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
-            }
-            
-            /* The "open" state brings it fully into view */
             #side-panel.open {
                 bottom: 0;
                 left: 0;
             }
 
-            /* Visual grabber for mobile */
             #panel-grabber {
                 display: block;
                 width: 40px;
@@ -137,10 +132,26 @@
             }
         }
         
-        #place-info-section, #directions-section, #route-section { margin-top: 30px; }
-        button { background: #1a73e8; border: none; padding: 10px; border-radius: 6px; color: white; font-weight: 600; cursor: pointer; }
+        #welcome-section, #place-info-section, #directions-section, #route-section {
+            margin-top: 30px;
+        }
+        
+        button {
+            background: #1a73e8;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         @media (max-width: 768px) {
-            #main-search-container { width: 90vw; left: 5vw; transform: none; }
+            #main-search-container {
+                width: 90vw;
+                left: 5vw;
+                transform: none;
+            }
         }
     </style>
 </head>
@@ -151,20 +162,23 @@
         <div id="main-suggestions" class="suggestions-dropdown"></div>
     </div>
 
-    <div id="side-panel" aria-hidden="true">
+    <div id="side-panel">
         <div id="panel-grabber"></div>
-        <div id="close-side-panel" class="close-btn" style="position: absolute; top: 10px; right: 10px; cursor: pointer;">X</div>
+        <div id="close-side-panel" style="position: absolute; top: 10px; right: 10px; cursor: pointer; z-index: 10;">X</div>
         
+        <div id="welcome-section">
+            <h3>Welcome to TheBoiisMC Maps</h3>
+            <p>Search for a place to get started.</p>
+        </div>
+
         <div id="place-info-section" hidden>
-            <h3 id="place-name">Place Name</h3>
-            <p id="place-description">Description or Type</p>
-            <p id="place-weather">Weather: TBD</p>
-            <div id="place-images"></div>
+            <h3 id="place-name"></h3>
+            <p id="place-description"></p>
             <button id="directions-btn">Get Directions</button>
         </div>
 
         <div id="directions-section" hidden>
-            <form id="directions-form">
+            <form id="directions-form" onsubmit="return false;">
                 <label for="panel-from-input">From</label>
                 <input type="text" id="panel-from-input" autocomplete="off"/>
                 <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
@@ -175,7 +189,7 @@
                 <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
                 <button type="button" class="my-loc-btn">Use My Location</button>
                 <br><br>
-                <button type="submit" id="route-btn">Get Route</button>
+                <button type="submit" id="get-route-btn">Get Route</button>
             </form>
             <div id="directions-result"></div>
             <button id="back-to-info-btn">Back</button>
@@ -184,7 +198,7 @@
         <div id="route-section" hidden>
             <h3>Route Steps</h3>
             <ol id="route-steps"></ol>
-            <button id="exit-route-btn">Stop Navigation</button>
+            <button id="exit-route-btn">Back to Place</button>
         </div>
     </div>
 
