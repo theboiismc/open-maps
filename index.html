@@ -17,11 +17,11 @@
   <meta name="twitter:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
   <link rel="icon" href="/53e87aea-e737-4098-a968-363c73a31175.png" />
 
-  <!-- ✅ MapLibre CSS and JS in HEAD -->
+  <!-- MapLibre CSS and JS -->
   <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
 
-  <!-- Optional: Font and global styles -->
+  <!-- Font and Global Styles -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 
   <style>
@@ -33,6 +33,7 @@
 
     * {
       font-family: 'Inter', sans-serif;
+      box-sizing: border-box;
     }
 
     html, body, #map {
@@ -62,6 +63,26 @@
       padding: 8px 12px;
       display: flex;
       align-items: center;
+      position: relative;
+    }
+
+    #main-search {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        padding-right: 35px; /* Space for the icon */
+    }
+
+    #main-search-icon {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        opacity: 0.6;
     }
 
     .suggestions-dropdown {
@@ -72,28 +93,38 @@
       max-height: 160px;
       overflow-y: auto;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       z-index: 70;
-      top: 100%;
+      top: 110%;
       left: 0;
+      display: none; /* Hidden by default */
+    }
+    
+    .suggestions-dropdown .search-result {
+        padding: 10px;
+        cursor: pointer;
+    }
+
+    .suggestions-dropdown .search-result:hover {
+        background-color: #f0f0f0;
     }
 
     #side-panel {
       position: fixed;
       z-index: 55;
       background: white;
-      box-sizing: border-box;
       top: 0;
-      left: -100%;
+      left: -100%; /* Start hidden on desktop */
       width: var(--panel-width);
       height: 100%;
       box-shadow: 2px 0 15px rgba(0,0,0,0.1);
-      transition: left 0.3s ease;
+      transition: none; /* No animation for desktop */
       padding: 20px;
+      overflow-y: auto;
     }
 
     #side-panel.open {
-      left: 0;
+      left: 0; /* Show on desktop */
     }
 
     #panel-grabber {
@@ -108,12 +139,17 @@
         height: var(--panel-mobile-height);
         border-radius: 20px 20px 0 0;
         box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
+        bottom: -100%; /* Start fully hidden on mobile */
+        transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1); /* Animate on mobile */
+      }
+
+      #side-panel.peek {
         bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
-        transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
       }
 
       #side-panel.open {
-        bottom: 0;
+        left: 0; /* Override desktop 'left' */
+        bottom: 0; /* Fully open on mobile */
       }
 
       #panel-grabber {
@@ -144,22 +180,47 @@
       color: white;
       font-weight: 600;
       cursor: pointer;
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+    
+    #close-side-panel {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #eee;
+        color: #333;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        line-height: 30px;
+        text-align: center;
+    }
+
+    #directions-form input {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 5px;
     }
   </style>
 </head>
 <body>
   <div id="main-search-container">
-    <input type="text" id="main-search" placeholder="Search for a place..." style="width: 100%; border: none; outline: none; background: transparent;" />
+    <input type="text" id="main-search" placeholder="Search for a place..." />
+    <svg id="main-search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15.7955 15.8111L21 21M18 10.5C18 14.6421 14.6421 18 10.5 18C6.35786 18 3 14.6421 3 10.5C3 6.35786 6.35786 3 10.5 3C14.6421 3 18 6.35786 18 10.5Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
     <div id="main-suggestions" class="suggestions-dropdown"></div>
   </div>
 
   <div id="side-panel">
     <div id="panel-grabber"></div>
-    <button id="close-side-panel" style="position: absolute; top: 10px; right: 10px;">✕</button>
+    <button id="close-side-panel">✕</button>
 
     <div id="welcome-section">
       <h3>Welcome to TheBoiisMC Maps</h3>
-      <p>Search for a place to get started.</p>
+      <p>Search for a place or click the compass to find your location.</p>
     </div>
 
     <div id="place-info-section" hidden>
@@ -171,21 +232,17 @@
     <div id="directions-section" hidden>
       <form id="directions-form" onsubmit="return false;">
         <label for="panel-from-input">From</label>
-        <input type="text" id="panel-from-input" autocomplete="off"/>
-        <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
+        <input type="text" id="panel-from-input" autocomplete="off" placeholder="Start location"/>
         <button type="button" class="my-loc-btn">Use My Location</button>
 
         <br><br>
         <label for="panel-to-input">To</label>
-        <input type="text" id="panel-to-input" autocomplete="off"/>
-        <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
+        <input type="text" id="panel-to-input" autocomplete="off" placeholder="Destination"/>
         <button type="button" class="my-loc-btn">Use My Location</button>
 
         <br><br>
         <button type="submit" id="get-route-btn">Get Route</button>
       </form>
-
-      <div id="directions-result"></div>
       <button id="back-to-info-btn">Back</button>
     </div>
 
@@ -198,7 +255,6 @@
 
   <div id="map"></div>
 
-  <!-- ✅ Your main script -->
   <script src="app.js"></script>
 </body>
 </html>
