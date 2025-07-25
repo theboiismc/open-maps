@@ -18,17 +18,12 @@ const $ = (id) => document.getElementById(id);
 const mainSearchInput = $("main-search");
 const mainSuggestionsEl = $("main-suggestions");
 const mainSearchContainer = $("main-search-container");
-const mainSearchIcon = $("main-search-icon");
 
 const panel = $("side-panel");
 const closeBtn = $("close-side-panel");
 const panelArrow = $("panel-arrow");
 
 const panelInfoSection = $("place-info-section");
-const panelInfoSearchInput = $("panel-info-search");
-const panelInfoSuggestionsEl = $("panel-info-suggestions");
-const panelInfoSearchIcon = $("panel-info-search-icon");
-
 const placeName = $("place-name");
 const placeDesc = $("place-description");
 const placeWeather = $("place-weather");
@@ -47,15 +42,12 @@ const backBtn = $("back-to-info-btn");
 const resultEl = $("directions-result");
 const stepsList = $("route-steps");
 const exitBtn = $("exit-route-btn");
+const myLocBtns = document.querySelectorAll(".my-loc-btn");
 
 let currentPlace = null;
-
 let recentSearches = JSON.parse(localStorage.getItem("recentSearches") || "[]");
 let fuse = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 });
-
-let fromCoords = null,
-  toCoords = null,
-  activeField = "from";
+let fromCoords = null, toCoords = null;
 
 // 3) Utilities
 const debounce = (fn, ms) => {
@@ -68,9 +60,7 @@ const debounce = (fn, ms) => {
 
 async function nominatim(q) {
   const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
-      q
-    )}`,
+    `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`,
     {
       headers: {
         "User-Agent": "TheBoiisMCMaps/1.0",
@@ -85,14 +75,13 @@ async function nominatim(q) {
     lat: el.lat,
     lon: el.lon,
     type: el.type,
-    description: el.excerpt, // Include a description if available
+    description: el.excerpt,
   }));
 }
 
 function render(list, container, cb) {
   if (!list.length) {
     container.style.display = "none";
-    container.innerHTML = "";
     return;
   }
   container.style.display = "block";
@@ -102,23 +91,15 @@ function render(list, container, cb) {
         `<div class="suggestion" role="option" tabindex="0" data-index="${i}">${item.name}</div>`
     )
     .join("");
-  // Attach click handlers to suggestions
   container.querySelectorAll(".suggestion").forEach((el) => {
-    el.addEventListener("click", () => {
-      const idx = +el.getAttribute("data-index");
-      cb(list[idx]);
-    });
+    el.addEventListener("click", () => cb(list[+el.dataset.index]));
     el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        const idx = +el.getAttribute("data-index");
-        cb(list[idx]);
-      }
+      if (e.key === "Enter") cb(list[+el.dataset.index]);
     });
   });
 }
 
 function saveRecent(place) {
-  // Save unique by name
   recentSearches = recentSearches.filter((p) => p.name !== place.name);
   recentSearches.unshift(place);
   if (recentSearches.length > 10) recentSearches.pop();
@@ -129,18 +110,12 @@ function saveRecent(place) {
 function selectPlace(place) {
   if (!place) return;
   currentPlace = place;
-
-  // Update panel info
   placeName.textContent = place.name || "Unknown place";
   placeDesc.textContent = `Type: ${place.type || "Unknown"}`;
-  placeWeather.textContent = place.description || ""; // Update with description
-  placeImages.innerHTML = ""; // Can add images later from OSM or other sources
-
+  placeWeather.textContent = place.description || "";
+  placeImages.innerHTML = "";
   showPlaceInfoPanel();
-
-  // Center map
   map.flyTo({ center: [place.lon, place.lat], zoom: 14 });
-
   saveRecent(place);
 }
 
@@ -148,27 +123,21 @@ function showPlaceInfoPanel() {
   panelInfoSection.hidden = false;
   dirSection.hidden = true;
   routeSection.hidden = true;
-  panel.setAttribute("aria-hidden", "false");
-  openPanel();
-  updateMainSearchVisibility();
+  openPanel(false); // On mobile, just peek initially
 }
 
 function showDirectionsPanel() {
   panelInfoSection.hidden = true;
   dirSection.hidden = false;
   routeSection.hidden = true;
-  panel.setAttribute("aria-hidden", "false");
-  openPanel();
-  updateMainSearchVisibility();
+  openPanel(true); // Open fully
 }
 
 function showRouteSteps(steps) {
   panelInfoSection.hidden = true;
   dirSection.hidden = true;
   routeSection.hidden = false;
-  panel.setAttribute("aria-hidden", "false");
-  openPanel();
-  updateMainSearchVisibility();
+  openPanel(true); // Open fully
 
   stepsList.innerHTML = "";
   steps.forEach((step) => {
@@ -178,29 +147,71 @@ function showRouteSteps(steps) {
   });
 }
 
-function openPanel() {
-  panel.classList.add("open");
-  panel.setAttribute("aria-hidden", "false");
-  updateMainSearchVisibility();
+function openPanel(fullyOpen = true) {
+    const isMobile = window.innerWidth <= 768;
+    panel.setAttribute("aria-hidden", "false");
+    if (isMobile) {
+        panel.classList.add("peek");
+        if (fullyOpen) {
+            panel.classList.add("open");
+        }
+    } else {
+        panel.classList.add("open");
+    }
+    updateMainSearchVisibility();
 }
 
 function closePanel() {
-  panel.classList.remove("open");
-  panel.setAttribute("aria-hidden", "true");
-  updateMainSearchVisibility();
+    panel.classList.remove("open", "peek");
+    panel.setAttribute("aria-hidden", "true");
+    updateMainSearchVisibility();
 }
 
 function updateMainSearchVisibility() {
-  const isDesktop = window.innerWidth > 768;
-  const isPanelOpen = panel.classList.contains("open");
-  if (isDesktop && isPanelOpen) {
-    mainSearchContainer.classList.add("hidden");
-  } else {
-    mainSearchContainer.classList.remove("hidden");
-  }
+    const isDesktop = window.innerWidth > 768;
+    const isPanelOpen = panel.classList.contains("open");
+    if (isDesktop && isPanelOpen) {
+        mainSearchContainer.classList.add("hidden");
+    } else {
+        mainSearchContainer.classList.remove("hidden");
+    }
 }
 
-// Directions form submit
+// Mobile Panel Drag Logic
+let startY, startBottom, isDragging = false;
+const peekHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek'));
+const panelHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-height'));
+
+panel.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 768) return;
+    isDragging = true;
+    startY = e.touches[0].clientY;
+    startBottom = parseInt(getComputedStyle(panel).bottom, 10);
+    panel.style.transition = 'none';
+}, { passive: true });
+
+panel.addEventListener('touchmove', (e) => {
+    if (!isDragging || window.innerWidth > 768) return;
+    const currentY = e.touches[0].clientY;
+    let diffY = startY - currentY;
+    panel.style.bottom = `${startBottom + diffY}px`;
+}, { passive: true });
+
+panel.addEventListener('touchend', () => {
+    if (!isDragging || window.innerWidth > 768) return;
+    isDragging = false;
+    panel.style.transition = 'bottom 0.3s ease-in-out';
+    const currentBottom = parseInt(getComputedStyle(panel).bottom, 10);
+    const halfwayPoint = (peekHeight - panelHeight) / 2;
+    
+    // If dragged past halfway, open fully, otherwise, snap back to peek
+    if (currentBottom > halfwayPoint) {
+        panel.classList.add('open');
+    } else {
+        panel.classList.remove('open');
+    }
+});
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!fromCoords || !toCoords) {
@@ -208,32 +219,22 @@ form.addEventListener("submit", async (e) => {
     return;
   }
   resultEl.textContent = "Routing...";
-
-  // Call OSRM or your routing service
   try {
     const r = await fetch(
       `https://router.project-osrm.org/route/v1/driving/${fromCoords[0]},${fromCoords[1]};${toCoords[0]},${toCoords[1]}?overview=false&steps=true`
     );
     const data = await r.json();
-    if (data.code !== "Ok") throw new Error("Routing error");
-
+    if (data.code !== "Ok") throw new Error(data.message || "Routing error");
     const route = data.routes[0];
     const steps = route.legs[0].steps;
-
     showRouteSteps(steps);
-    resultEl.textContent = `Distance: ${(route.distance / 1000).toFixed(
-      2
-    )} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
-
-    // Draw route on map (optional, add polyline layer)
+    resultEl.textContent = `Distance: ${(route.distance / 1000).toFixed(2)} km, Duration: ${(route.duration / 60).toFixed(0)} min`;
   } catch (err) {
-    resultEl.textContent = "Failed to get route. Try again.";
+    resultEl.textContent = `Failed to get route: ${err.message}. Try again.`;
   }
 });
 
-// Directions button on place info
 directionsBtn.addEventListener("click", () => {
-  // Prefill 'to' with current place
   if (currentPlace) {
     toInput.value = currentPlace.name;
     toCoords = [parseFloat(currentPlace.lon), parseFloat(currentPlace.lat)];
@@ -241,61 +242,43 @@ directionsBtn.addEventListener("click", () => {
   showDirectionsPanel();
 });
 
-// Back button on directions panel
-backBtn.addEventListener("click", () => {
-  showPlaceInfoPanel();
-});
-
-// Exit route steps panel
+backBtn.addEventListener("click", showPlaceInfoPanel);
 exitBtn.addEventListener("click", () => {
-  showPlaceInfoPanel();
+  // Go back to place info or close if no place is selected
+  if (currentPlace) {
+    showPlaceInfoPanel();
+  } else {
+    closePanel();
+  }
 });
-
-// Panel open/close logic
 closeBtn.addEventListener("click", closePanel);
 panelArrow.addEventListener("click", () => {
   if (panel.classList.contains("open")) closePanel();
-  else openPanel();
+  else openPanel(true);
 });
-panelArrow.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" || e.key === " ") {
-    if (panel.classList.contains("open")) closePanel();
-    else openPanel();
+
+mainSearchInput.addEventListener("input", debounce(async () => {
+  const q = mainSearchInput.value.trim();
+  if (!q) {
+    mainSuggestionsEl.style.display = "none";
+    return;
   }
-});
-
-// Main search bar logic (front & center)
-mainSearchInput.addEventListener(
-  "input",
-  debounce(async () => {
-    const q = mainSearchInput.value.trim();
-    if (!q) {
-      mainSuggestionsEl.style.display = "none";
-      return;
-    }
-
-    // Search recent first with fuse
-    let results = fuse.search(q).map((r) => r.item);
-
-    // Fill with nominatim if less than 5
-    if (results.length < 5) {
-      const nominatimResults = await nominatim(q);
-      nominatimResults.forEach((e) => {
-        if (!results.find((r) => r.name === e.name)) results.push(e);
-      });
-    }
-
-    render(results, mainSuggestionsEl, (place) => {
-      mainSearchInput.value = place.name;
-      mainSuggestionsEl.style.display = "none";
-      selectPlace(place);
+  let results = fuse.search(q).map((r) => r.item);
+  if (results.length < 5) {
+    const nominatimResults = await nominatim(q);
+    nominatimResults.forEach((e) => {
+      if (!results.find((r) => r.name === e.name)) results.push(e);
     });
-  }, 150)
-);
+  }
+  render(results, mainSuggestionsEl, (place) => {
+    mainSearchInput.value = place.name;
+    mainSuggestionsEl.style.display = "none";
+    selectPlace(place);
+  });
+}, 150));
 
 mainSearchInput.addEventListener("focus", () => {
-  // Optionally show recent suggestions on focus
-  if (recentSearches.length) {
+  if (recentSearches.length > 0 && mainSearchInput.value.trim() === "") {
     render(recentSearches, mainSuggestionsEl, (place) => {
       mainSearchInput.value = place.name;
       mainSuggestionsEl.style.display = "none";
@@ -305,46 +288,25 @@ mainSearchInput.addEventListener("focus", () => {
 });
 
 document.addEventListener("click", (e) => {
-  if (
-    !e.target.closest("#main-search-container") &&
-    !e.target.closest("#main-suggestions")
-  ) {
+  if (!mainSearchContainer.contains(e.target)) {
     mainSuggestionsEl.style.display = "none";
   }
 });
 
-mainSearchIcon.addEventListener("click", () => {
-  mainSearchInput.focus();
-});
-
-// Directions panel inputs autocomplete logic
 function setupDirectionsAutocomplete(inputEl, sugEl, updateFn) {
-  inputEl.addEventListener(
-    "input",
-    debounce(async () => {
-      const q = inputEl.value.trim();
-      if (!q) {
-        sugEl.style.display = "none";
-        return;
-      }
-      const results = await nominatim(q);
-      render(results, sugEl, (place) => {
-        inputEl.value = place.name;
-        updateFn(place);
-        sugEl.style.display = "none";
-      });
-    }, 150)
-  );
-
-  inputEl.addEventListener("focus", () => {
-    // could show recent here if you want
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!e.target.closest(`#${inputEl.id}`) && !e.target.closest(`#${sugEl.id}`)) {
+  inputEl.addEventListener("input", debounce(async () => {
+    const q = inputEl.value.trim();
+    if (!q) {
       sugEl.style.display = "none";
+      return;
     }
-  });
+    const results = await nominatim(q);
+    render(results, sugEl, (place) => {
+      inputEl.value = place.name;
+      updateFn(place);
+      sugEl.style.display = "none";
+    });
+  }, 150));
 }
 
 setupDirectionsAutocomplete(fromInput, fromSug, (place) => {
@@ -355,14 +317,13 @@ setupDirectionsAutocomplete(toInput, toSug, (place) => {
   toCoords = [parseFloat(place.lon), parseFloat(place.lat)];
 });
 
-// Use My Location buttons
 myLocBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
-    geoCtrl.trigger(); // Request current position
-
+    geoCtrl.trigger();
     geoCtrl.once("geolocate", (ev) => {
       const { longitude, latitude } = ev.coords;
-      if (btn.textContent.includes("From")) {
+      const isFromButton = btn.previousElementSibling.id === 'panel-from-input';
+      if (isFromButton) {
         fromCoords = [longitude, latitude];
         fromInput.value = "My Location";
       } else {
@@ -373,11 +334,5 @@ myLocBtns.forEach((btn) => {
   });
 });
 
-// On load
-window.addEventListener("load", () => {
-  updateMainSearchVisibility();
-});
-
-window.addEventListener("resize", () => {
-  updateMainSearchVisibility();
-});
+window.addEventListener("load", updateMainSearchVisibility);
+window.addEventListener("resize", updateMainSearchVisibility);
