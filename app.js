@@ -1,7 +1,4 @@
-// --- ‼️ PASTE YOUR API KEYS HERE ‼️ ---
-const PEXELS_API_KEY = 'YOUR_PEXELS_API_KEY';
-const OPENWEATHER_API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY';
-// -----------------------------------------
+// ✅ NO API KEYS ARE NEEDED FOR THIS FILE TO WORK.
 
 // 1) Initialize map
 const map = new maplibregl.Map({
@@ -29,7 +26,7 @@ function showPanel(viewId) {
     }
 }
 
-// ✅ FIX: Debounce function to prevent API calls on every keystroke
+// Debounce function to prevent API calls on every keystroke
 function debounce(func, delay) {
     let timeout;
     return function(...args) {
@@ -40,37 +37,31 @@ function debounce(func, delay) {
 }
 
 // 2) Search & Suggestions Logic
-/**
- * Attaches suggestion listeners to an input field.
- * @param {HTMLInputElement} inputEl - The input field.
- * @param {HTMLElement} suggestionsEl - The dropdown element for suggestions.
- * @param {function} onSelect - Callback function when a suggestion is selected.
- */
 function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
     const fetchAndDisplaySuggestions = async (query) => {
         if (!query) { suggestionsEl.style.display = "none"; return; }
-
-        // ✅ FIX: Get map bounds to improve search relevance
         const bounds = map.getBounds();
         const viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
-        
         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
         
-        const res = await fetch(url);
-        const data = await res.json();
-        
-        suggestionsEl.innerHTML = "";
-        data.forEach(item => {
-            const el = document.createElement("div");
-            el.className = "search-result";
-            el.textContent = item.display_name;
-            el.addEventListener("click", () => onSelect(item));
-            suggestionsEl.appendChild(el);
-        });
-        suggestionsEl.style.display = data.length > 0 ? "block" : "none";
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            suggestionsEl.innerHTML = "";
+            data.forEach(item => {
+                const el = document.createElement("div");
+                el.className = "search-result";
+                el.textContent = item.display_name;
+                el.addEventListener("click", () => onSelect(item));
+                suggestionsEl.appendChild(el);
+            });
+            suggestionsEl.style.display = data.length > 0 ? "block" : "none";
+        } catch (e) {
+            console.error("Suggestion fetch failed", e);
+        }
     };
 
-    // ✅ FIX: Wrap the API call in our new debounce function with a 300ms delay
     const debouncedFetch = debounce(fetchAndDisplaySuggestions, 300);
     inputEl.addEventListener("input", () => {
         debouncedFetch(inputEl.value.trim());
@@ -79,16 +70,9 @@ function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
     inputEl.addEventListener("blur", () => { setTimeout(() => { suggestionsEl.style.display = "none"; }, 200); });
 }
 
-/**
- * Performs a smart search (takes top result) for an input field.
- * @param {HTMLInputElement} inputEl - The input field to get the query from.
- * @param {function} onSelect - Callback function to process the result.
- */
 async function performSmartSearch(inputEl, onSelect) {
     const query = inputEl.value.trim();
     if (!query) return;
-
-    // ✅ FIX: Also use viewbox for smart search to get the best top result
     const bounds = map.getBounds();
     const viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
@@ -100,22 +84,26 @@ async function performSmartSearch(inputEl, onSelect) {
 }
 
 
-// Attach listeners to the main search bar
-attachSuggestionListener(mainSearchInput, document.getElementById("main-suggestions"), processPlaceResult);
+// Attach listeners to search bars
+const mainSuggestions = document.getElementById("main-suggestions");
+attachSuggestionListener(mainSearchInput, mainSuggestions, processPlaceResult);
 document.getElementById("main-search-icon").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
 mainSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult); });
 
-// Attach listeners to the directions inputs
 const fromInput = document.getElementById('panel-from-input');
-const toInput = document.getElementById('panel-to-input');
-attachSuggestionListener(fromInput, document.getElementById('panel-from-suggestions'), (place) => {
+const fromSuggestions = document.getElementById('panel-from-suggestions');
+attachSuggestionListener(fromInput, fromSuggestions, (place) => {
     fromInput.value = place.display_name;
     fromInput.dataset.coords = `${place.lon},${place.lat}`;
 });
-attachSuggestionListener(toInput, document.getElementById('panel-to-suggestions'), (place) => {
+
+const toInput = document.getElementById('panel-to-input');
+const toSuggestions = document.getElementById('panel-to-suggestions');
+attachSuggestionListener(toInput, toSuggestions, (place) => {
     toInput.value = place.display_name;
     toInput.dataset.coords = `${place.lon},${place.lat}`;
 });
+
 
 // 3) Process and Display Place Info
 function processPlaceResult(place) {
@@ -133,33 +121,25 @@ function processPlaceResult(place) {
     showPanel('info-panel-redesign');
 }
 
-async function fetchAndSetPlaceImage(query) {
+function fetchAndSetPlaceImage(query) {
     const imgEl = document.getElementById('info-image');
-    if (!PEXELS_API_KEY || PEXELS_API_KEY === 'YOUR_PEXELS_API_KEY') {
-        imgEl.alt = "Pexels API Key needed"; return;
-    }
-    try {
-        const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1`, {
-            headers: { Authorization: PEXELS_API_KEY }
-        });
-        const data = await res.json();
-        imgEl.src = data.photos[0] ? data.photos[0].src.large : '';
-        imgEl.alt = data.photos[0] ? `Image of ${query}` : `No image found for ${query}`;
-    } catch (e) { console.error("Pexels API error", e); }
+    const cleanedQuery = query.split(' ').join(',');
+    imgEl.src = `https://source.unsplash.com/800x600/?${encodeURIComponent(cleanedQuery)}`;
+    imgEl.alt = `Image of ${query}`;
 }
 
 async function fetchAndSetWeather(lat, lon) {
     const weatherEl = document.getElementById('info-weather');
-    if (!OPENWEATHER_API_KEY || OPENWEATHER_API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY') {
-        weatherEl.textContent = "Weather API Key needed"; return;
-    }
+    weatherEl.textContent = "Loading weather...";
     try {
-        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`);
+        const res = await fetch(`https://wttr.in/${lat},${lon}?format=j1`);
         const data = await res.json();
-        const tempC = Math.round(data.main.temp);
-        const tempF = Math.round(tempC * 9/5 + 32);
-        weatherEl.innerHTML = `<img src="https://openweathermap.org/img/wn/${data.weather[0].icon}.png" alt="weather icon"> ${tempC}°C / ${tempF}°F, ${data.weather[0].description}`;
-    } catch (e) { console.error("OpenWeather API error", e); }
+        const condition = data.current_condition[0];
+        weatherEl.innerHTML = `<img src="${condition.weatherIconUrl[0].value}" alt="weather icon" style="background: #eaf8ff; border-radius: 50%;"> ${condition.temp_C}°C / ${condition.temp_F}°F, ${condition.weatherDesc[0].value}`;
+    } catch (e) {
+        weatherEl.textContent = "Could not load weather data.";
+        console.error("wttr.in API error", e);
+    }
 }
 
 async function fetchAndSetQuickFacts(query) {
@@ -170,13 +150,16 @@ async function fetchAndSetQuickFacts(query) {
         const res = await fetch(url);
         const data = await res.json();
         const page = Object.values(data.query.pages)[0];
-        factsEl.textContent = page.extract ? page.extract : "No quick facts found on Wikipedia.";
-    } catch (e) { console.error("Wikipedia API error", e); }
+        factsEl.textContent = page.extract ? page.extract.substring(0, 300) + '...' : "No quick facts found on Wikipedia.";
+    } catch (e) {
+        factsEl.textContent = "Could not load facts.";
+        console.error("Wikipedia API error", e);
+    }
 }
 
 
 // 4) Directions Panel Logic
-document.getElementById('main-directions-icon').addEventListener('click', () => {
+function openDirectionsPanel() {
     if (currentPlace) {
         toInput.value = currentPlace.display_name;
         toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
@@ -187,16 +170,14 @@ document.getElementById('main-directions-icon').addEventListener('click', () => 
     fromInput.value = '';
     fromInput.dataset.coords = '';
     showPanel('directions-panel-redesign');
+}
+
+document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
+document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
+document.getElementById('info-save-btn').addEventListener('click', () => {
+    alert("Save feature not yet implemented!");
 });
-document.getElementById('info-directions-btn').addEventListener('click', () => {
-    if (currentPlace) {
-        toInput.value = currentPlace.display_name;
-        toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
-    }
-    fromInput.value = '';
-    fromInput.dataset.coords = '';
-    showPanel('directions-panel-redesign');
-});
+
 document.getElementById('swap-btn').addEventListener('click', () => {
     [fromInput.value, toInput.value] = [toInput.value, fromInput.value];
     [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords];
@@ -207,7 +188,9 @@ document.getElementById('dir-use-my-location').addEventListener('click', () => {
         fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
     }, () => alert("Could not get your location."));
 });
-document.getElementById('back-to-info-btn').addEventListener('click', () => showPanel('info-panel-redesign'));
+document.getElementById('back-to-info-btn').addEventListener('click', () => {
+    if (currentPlace) showPanel('info-panel-redesign');
+});
 document.getElementById('exit-route-btn').addEventListener('click', () => showPanel('directions-panel-redesign'));
 
 // 5) Routing Logic
@@ -216,6 +199,8 @@ async function geocode(inputEl) {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
     const data = await res.json();
     if (!data[0]) throw new Error(`Could not find: ${inputEl.value}`);
+    inputEl.value = data[0].display_name;
+    inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
     return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
 }
 document.getElementById('get-route-btn').addEventListener('click', async () => {
@@ -226,25 +211,31 @@ document.getElementById('get-route-btn').addEventListener('click', async () => {
         const res = await fetch(url);
         const data = await res.json();
         if (!data.routes || data.routes.length === 0) return alert("No route found.");
+        
         const route = data.routes[0].geometry;
-        if (routeLine) { map.getSource('route').setData({ type: 'Feature', geometry: route }); } 
-        else {
+        if (routeLine) { 
+            map.getSource('route').setData({ type: 'Feature', geometry: route }); 
+        } else {
             map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route } });
             map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#1a73e8', 'line-width': 6 } });
             routeLine = true;
         }
         const bounds = new maplibregl.LngLatBounds(start, end);
         map.fitBounds(bounds, { padding: { top: 50, bottom: 250, left: 50, right: 50 }});
+        
         const stepsEl = document.getElementById("route-steps");
         stepsEl.innerHTML = "";
         data.routes[0].legs[0].steps.forEach(step => {
             const li = document.createElement("li");
             li.textContent = step.maneuver.instruction;
             stepsEl.appendChild(li);
-});
+        });
         showPanel('route-section');
-    } catch (err) { alert(err.message); }
+    } catch (err) { 
+        alert(err.message); 
+    }
 });
+
 
 // 6) Mobile Panel Drag Logic
 if (window.innerWidth <= 768) {
