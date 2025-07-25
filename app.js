@@ -1,4 +1,5 @@
-// ✅ NO API KEYS ARE NEEDED FOR THIS FILE TO WORK.
+// ✅ ADDED: Detect if the browser is on a mobile device based on its user agent.
+const isMobile = /Mobi/i.test(navigator.userAgent);
 
 // 1) Initialize map
 const map = new maplibregl.Map({
@@ -21,8 +22,12 @@ function showPanel(viewId) {
         document.getElementById(id).hidden = id !== viewId;
     });
     if (!sidePanel.classList.contains('peek') && !sidePanel.classList.contains('open')) {
-        if (window.innerWidth <= 768) sidePanel.classList.add('peek');
-        else sidePanel.classList.add('open');
+        // ✅ MODIFIED: Use our new isMobile check instead of window width
+        if (isMobile) {
+            sidePanel.classList.add('peek');
+        } else {
+            sidePanel.classList.add('open');
+        }
     }
 }
 
@@ -238,7 +243,8 @@ document.getElementById('get-route-btn').addEventListener('click', async () => {
 
 
 // 6) Mobile Panel Drag Logic
-if (window.innerWidth <= 768) {
+// ✅ MODIFIED: The entire drag logic is now wrapped in our 'isMobile' check.
+if (isMobile) {
     const grabber = document.getElementById("panel-grabber");
     let startY, startBottom;
     grabber.addEventListener('touchstart', (e) => {
@@ -268,4 +274,4 @@ if (window.innerWidth <= 768) {
             sidePanel.classList.add("peek");
         }
     });
-}
+}```
