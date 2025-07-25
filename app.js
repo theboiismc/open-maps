@@ -1,4 +1,4 @@
-// 1) Init map + controls
+// 1) Initialize map
 const map = new maplibregl.Map({
   container: "map",
   style: "https://tiles.openfreemap.org/styles/liberty",
@@ -14,13 +14,26 @@ const geoCtrl = new maplibregl.GeolocateControl({
 });
 map.addControl(geoCtrl, "bottom-right");
 
-document.getElementById("locate-btn").addEventListener("click", () => {
-  geoCtrl.trigger();
+// Manually trigger geolocation
+document.querySelectorAll(".my-loc-btn").forEach((btn, index) => {
+  btn.addEventListener("click", () => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = `${pos.coords.longitude},${pos.coords.latitude}`;
+        if (index === 0) {
+          document.getElementById("panel-from-input").value = coords;
+        } else {
+          document.getElementById("panel-to-input").value = coords;
+        }
+      },
+      () => alert("Unable to get your location.")
+    );
+  });
 });
 
-// 2) Handle Search (Nominatim)
-const searchInput = document.getElementById("search-input");
-const resultsBox = document.getElementById("search-results");
+// 2) Nominatim search (main input)
+const searchInput = document.getElementById("main-search");
+const resultsBox = document.getElementById("main-suggestions");
 
 searchInput.addEventListener("input", async () => {
   const query = searchInput.value.trim();
@@ -29,82 +42,75 @@ searchInput.addEventListener("input", async () => {
     return;
   }
 
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-    query
-  )}&format=json&addressdetails=1&limit=5`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": "theboiismc.com/maps" },
-  });
-  const data = await res.json();
-
-  resultsBox.innerHTML = "";
-  data.forEach((item) => {
-    const option = document.createElement("div");
-    option.className = "search-result";
-    option.textContent = item.display_name;
-    option.addEventListener("click", () => {
-      map.flyTo({
-        center: [item.lon, item.lat],
-        zoom: 14,
-      });
-      resultsBox.innerHTML = "";
-      searchInput.value = item.display_name;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`, {
+      headers: { "User-Agent": "TheBoiisMC/1.0 (maps.theboiismc.com)" }
     });
-    resultsBox.appendChild(option);
-  });
-});
-
-// Hide dropdown on blur
-searchInput.addEventListener("blur", () => {
-  setTimeout(() => {
+    const data = await res.json();
     resultsBox.innerHTML = "";
-  }, 200);
+
+    data.forEach(item => {
+      const el = document.createElement("div");
+      el.className = "search-result";
+      el.textContent = item.display_name;
+      el.addEventListener("click", () => {
+        map.flyTo({
+          center: [parseFloat(item.lon), parseFloat(item.lat)],
+          zoom: 14
+        });
+        searchInput.value = item.display_name;
+        resultsBox.innerHTML = "";
+      });
+      resultsBox.appendChild(el);
+    });
+
+    resultsBox.style.display = data.length > 0 ? "block" : "none";
+  } catch (e) {
+    console.error("Nominatim search failed", e);
+  }
 });
 
-// 3) Routing (OSRM)
-const startInput = document.getElementById("start-input");
-const endInput = document.getElementById("end-input");
-const routeBtn = document.getElementById("route-btn");
-const stopBtn = document.getElementById("stop-btn");
+searchInput.addEventListener("blur", () => {
+  setTimeout(() => resultsBox.innerHTML = "", 200);
+});
+
+// 3) Routing with OSRM
+const startInput = document.getElementById("panel-from-input");
+const endInput = document.getElementById("panel-to-input");
+const routeBtn = document.getElementById("get-route-btn");
+const stopBtn = document.getElementById("exit-route-btn");
 
 let routeLine = null;
 
 routeBtn.addEventListener("click", async () => {
-  const start = startInput.value.trim();
-  const end = endInput.value.trim();
-  if (!start || !end) return alert("Enter both start and end locations");
+  const from = startInput.value.trim();
+  const to = endInput.value.trim();
+  if (!from || !to) return alert("Please enter both start and end locations.");
 
-  const startRes = await fetch(
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-      start
-    )}&format=json&limit=1`
+  const [start, end] = await Promise.all(
+    [from, to].map(async (place) => {
+      if (place.includes(",")) return place.split(",").map(Number); // already coords
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1`);
+      const data = await res.json();
+      if (!data[0]) throw new Error(`Could not find location: ${place}`);
+      return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+    })
   );
-  const startData = await startRes.json();
-  const endRes = await fetch(
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-      end
-    )}&format=json&limit=1`
-  );
-  const endData = await endRes.json();
 
-  if (!startData[0] || !endData[0]) return alert("Could not geocode locations");
+  const url = `https://router.project-osrm.org/route/v1/driving/${start.join(",")};${end.join(",")}?overview=full&geometries=geojson&steps=true`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const route = data.routes[0];
 
-  const startCoord = [startData[0].lon, startData[0].lat];
-  const endCoord = [endData[0].lon, endData[0].lat];
+  if (!route) return alert("No route found.");
 
-  const routeUrl = `https://router.project-osrm.org/route/v1/driving/${startCoord.join(
-    ","
-  )};${endCoord.join(",")}?overview=full&geometries=geojson&steps=true`;
-
-  const routeRes = await fetch(routeUrl);
-  const routeData = await routeRes.json();
-  const route = routeData.routes[0];
-
+  // Remove existing line
   if (routeLine) {
     map.removeLayer("route-line");
     map.removeSource("route");
   }
 
+  // Add new route
   map.addSource("route", {
     type: "geojson",
     data: {
@@ -123,19 +129,45 @@ routeBtn.addEventListener("click", async () => {
     },
   });
 
+  routeLine = true;
+
+  // Fit bounds
   map.fitBounds([
-    [startCoord[0], startCoord[1]],
-    [endCoord[0], endCoord[1]],
+    [Math.min(start[0], end[0]), Math.min(start[1], end[1])],
+    [Math.max(start[0], end[0]), Math.max(start[1], end[1])],
   ], { padding: 50 });
 
-  routeLine = true;
+  // Show steps
+  const stepsEl = document.getElementById("route-steps");
+  stepsEl.innerHTML = "";
+  route.legs[0].steps.forEach(step => {
+    const li = document.createElement("li");
+    li.textContent = step.maneuver.instruction;
+    stepsEl.appendChild(li);
+  });
+
+  showPanel("route-section");
 });
 
-// Stop navigation
 stopBtn.addEventListener("click", () => {
   if (routeLine) {
     map.removeLayer("route-line");
     map.removeSource("route");
     routeLine = null;
   }
+  showPanel("place-info-section");
 });
+
+// Utility: Show only one section inside the panel
+function showPanel(sectionId) {
+  const sections = [
+    "welcome-section",
+    "place-info-section",
+    "directions-section",
+    "route-section",
+  ];
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = id !== sectionId;
+  });
+}
