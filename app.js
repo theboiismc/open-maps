@@ -1,148 +1,133 @@
 // 1) Init map + controls
-const map = new maplibregl.Map({
-  container: "map",
-  style: "https://tiles.openfreemap.org/styles/liberty",
-  center: [-95, 39],
-  zoom: 4,
-});
+const map = new maplibregl.Map({ container: "map", style: "https://tiles.openfreemap.org/styles/liberty", center: [-95, 39], zoom: 4 });
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-
-const geoCtrl = new maplibregl.GeolocateControl({
-  trackUserLocation: true,
-  showUserHeading: true,
-  fitBoundsOptions: { maxZoom: 15 },
-});
+const geoCtrl = new maplibregl.GeolocateControl({ trackUserLocation: true, showUserHeading: true });
 map.addControl(geoCtrl, "bottom-right");
 
-// 2) Routing engine setup
-const osrmBackend = "https://router.project-osrm.org";
-let currentRoute = null;
-let navMarker = null;
+// 2) Elements
+const $ = (id) => document.getElementById(id);
+const mainSearchInput = $("main-search"), mainSuggestionsEl = $("main-suggestions"), mainSearchContainer = $("main-search-container");
+const panel = $("side-panel"), closeBtn = $("close-side-panel");
+const welcomeSection = $("welcome-section"), panelInfoSection = $("place-info-section"), placeName = $("place-name"), placeDesc = $("place-description"), directionsBtn = $("directions-btn");
+const dirSection = $("directions-section"), routeSection = $("route-section");
+const form = $("directions-form"), fromInput = $("panel-from-input"), toInput = $("panel-to-input"), fromSug = $("panel-from-suggestions"), toSug = $("panel-to-suggestions"), backBtn = $("back-to-info-btn"), resultEl = $("directions-result"), stepsList = $("route-steps"), exitBtn = $("exit-route-btn"), myLocBtns = document.querySelectorAll(".my-loc-btn"), getRouteBtn = $("get-route-btn");
 
-// 3) DOM elements
-const searchInput = document.getElementById("searchInput");
-const searchResults = document.getElementById("searchResults");
-const panel = document.getElementById("sidePanel");
-const toggleBtn = document.getElementById("togglePanel");
-const directionsForm = document.getElementById("directionsForm");
-const startInput = document.getElementById("start");
-const endInput = document.getElementById("end");
+let currentPlace = null, recentSearches = JSON.parse(localStorage.getItem("recentSearches") || "[]"), fuse = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 }), fromCoords = null, toCoords = null;
 
-// 4) Fuse.js for fuzzy history search
-let history = JSON.parse(localStorage.getItem("searchHistory") || "[]");
-const fuse = new Fuse(history, { includeScore: true, threshold: 0.4 });
+// 3) Utilities
+const debounce = (fn, ms) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; };
+async function nominatim(q) { const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`, { headers: { "User-Agent": "TheBoiisMCMaps/1.0", Referer: "https://maps.theboiismc.com" } }); if (!res.ok) return []; const d = await res.json(); return d.map((el) => ({ name: el.display_name, lat: el.lat, lon: el.lon, type: el.type })); }
+function render(list, container, cb) { if (!list.length) { container.style.display = "none"; return; } container.style.display = "block"; container.innerHTML = list.map((item, i) => `<div class="suggestion" role="option" tabindex="0" data-index="${i}">${item.name}</div>`).join(""); container.querySelectorAll(".suggestion").forEach((el) => { el.addEventListener("click", () => cb(list[+el.dataset.index])); el.addEventListener("keydown", (e) => { if (e.key === "Enter") cb(list[+el.dataset.index]); }); }); }
+function saveRecent(place) { recentSearches = recentSearches.filter((p) => p.name !== place.name); recentSearches.unshift(place); if (recentSearches.length > 10) recentSearches.pop(); localStorage.setItem("recentSearches", JSON.stringify(recentSearches)); fuse = new Fuse(recentSearches, { keys: ["name"], threshold: 0.3 }); }
 
-// 5) Nominatim Search
-searchInput.addEventListener("input", async (e) => {
-  const query = e.target.value.trim();
-  if (!query) {
-    searchResults.innerHTML = "";
-    return;
-  }
-
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url);
-  const data = await res.json();
-
-  searchResults.innerHTML = data
-    .map(
-      (item) => `
-      <div class="result" data-lon="${item.lon}" data-lat="${item.lat}">
-        ${item.display_name}
-      </div>`
-    )
-    .join("");
-
-  document.querySelectorAll(".result").forEach((el) => {
-    el.addEventListener("click", () => {
-      const { lon, lat } = el.dataset;
-      map.flyTo({ center: [lon, lat], zoom: 15 });
-
-      // Add to history
-      const newItem = { name: el.innerText, lon, lat };
-      history.unshift(newItem);
-      localStorage.setItem("searchHistory", JSON.stringify(history));
-      fuse.setCollection(history);
-
-      searchInput.value = "";
-      searchResults.innerHTML = "";
-    });
-  });
-});
-
-// 6) Panel toggle
-toggleBtn.addEventListener("click", () => {
-  panel.classList.toggle("open");
-});
-
-// 7) Routing (directions)
-directionsForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const startQuery = startInput.value.trim();
-  const endQuery = endInput.value.trim();
-  if (!startQuery || !endQuery) return;
-
-  const [startCoords, endCoords] = await Promise.all([
-    geocode(startQuery),
-    geocode(endQuery),
-  ]);
-
-  if (!startCoords || !endCoords) return alert("Failed to geocode inputs.");
-
-  const url = `${osrmBackend}/route/v1/driving/${startCoords.join(",")};${endCoords.join(",")}?overview=full&geometries=geojson`;
-
-  const res = await fetch(url);
-  const data = await res.json();
-  const route = data.routes[0];
-
-  if (currentRoute) {
-    map.removeLayer("route");
-    map.removeSource("route");
-  }
-
-  map.addSource("route", {
-    type: "geojson",
-    data: {
-      type: "Feature",
-      geometry: route.geometry,
-    },
-  });
-
-  map.addLayer({
-    id: "route",
-    type: "line",
-    source: "route",
-    paint: {
-      "line-width": 6,
-      "line-color": "#4a90e2",
-    },
-  });
-
-  currentRoute = route;
-
-  map.fitBounds([
-    startCoords,
-    endCoords,
-  ], { padding: 60 });
-
-  // Nav marker
-  if (!navMarker) {
-    navMarker = new maplibregl.Marker({ color: "#e91e63" }).setLngLat(startCoords).addTo(map);
-  } else {
-    navMarker.setLngLat(startCoords);
-  }
-});
-
-// 8) Geocode helper
-async function geocode(query) {
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
-  const data = await res.json();
-  if (!data || !data[0]) return null;
-  return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+// 4) Core Panel Logic
+function selectPlace(place) {
+  if (!place) return;
+  currentPlace = place;
+  placeName.textContent = place.name || "Unknown place";
+  placeDesc.textContent = `Type: ${place.type || "Unknown"}`;
+  showPanelContent('info');
+  map.flyTo({ center: [place.lon, place.lat], zoom: 14 });
+  saveRecent(place);
 }
 
-// 9) Close search dropdown on blur
-searchInput.addEventListener("blur", () => {
-  setTimeout(() => (searchResults.innerHTML = ""), 100); // allow click to register
+function showPanelContent(section) {
+    welcomeSection.hidden = section !== 'welcome';
+    panelInfoSection.hidden = section !== 'info';
+    dirSection.hidden = section !== 'directions';
+    routeSection.hidden = section !== 'route';
+    updateMainSearchVisibility();
+}
+
+function setPanelOpen(isOpen) {
+    panel.classList.toggle('open', isOpen);
+    updateMainSearchVisibility();
+}
+
+function updateMainSearchVisibility() {
+    const isDesktop = window.innerWidth > 768;
+    const isPanelOpen = panel.classList.contains("open");
+    mainSearchContainer.classList.toggle("hidden", isDesktop && isPanelOpen);
+}
+
+async function fetchRoute() {
+  if (!fromCoords || !toCoords) { resultEl.textContent = "Please set start and end points."; return; }
+  resultEl.textContent = "Routing...";
+  try {
+    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${fromCoords[0]},${fromCoords[1]};${toCoords[0]},${toCoords[1]}?overview=false&steps=true`);
+    const data = await r.json();
+    if (data.code !== "Ok") throw new Error(data.message || "Routing error");
+    showPanelContent('route'); setPanelOpen(true);
+    stepsList.innerHTML = data.routes[0].legs[0].steps.map(step => `<li>${step.maneuver.instruction}</li>`).join('');
+    resultEl.textContent = `Distance: ${(data.routes[0].distance / 1000).toFixed(2)} km, Duration: ${(data.routes[0].duration / 60).toFixed(0)} min`;
+  } catch (err) { resultEl.textContent = `Failed to get route: ${err.message}.`; }
+}
+
+// --- Mobile Panel Drag Logic ---
+let startY, startBottom, isDragging = false;
+panel.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 768) return;
+    if (e.touches[0].clientY > panel.offsetTop + 40) return;
+    isDragging = true;
+    startY = e.touches[0].clientY;
+    startBottom = parseInt(getComputedStyle(panel).bottom, 10);
+    panel.style.transition = 'none';
+}, { passive: true });
+panel.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY; let diffY = startY - currentY; const newBottom = startBottom + diffY;
+    const peekPosition = -1 * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-height')) - parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek')));
+    if (newBottom >= peekPosition) { panel.style.bottom = `${newBottom}px`; }
+}, { passive: true });
+panel.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    panel.style.transition = 'bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1)';
+    const currentBottom = parseInt(getComputedStyle(panel).bottom, 10);
+    const peekPosition = -1 * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-height')) - parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek')));
+    setPanelOpen(currentBottom > peekPosition + 60);
 });
+
+// 5) Event Listeners
+getRouteBtn.addEventListener("click", fetchRoute);
+directionsBtn.addEventListener("click", () => { if (currentPlace) { toInput.value = currentPlace.name; toCoords = [parseFloat(currentPlace.lon), parseFloat(currentPlace.lat)]; } showPanelContent('directions'); setPanelOpen(true); });
+backBtn.addEventListener("click", () => showPanelContent('info'));
+exitBtn.addEventListener("click", () => { showPanelContent('info'); setPanelOpen(false); });
+
+closeBtn.addEventListener("click", () => {
+    if (window.innerWidth <= 768) {
+        currentPlace = null;
+        showPanelContent('welcome');
+        setPanelOpen(false);
+    } else {
+        panel.classList.remove('open');
+    }
+});
+
+mainSearchInput.addEventListener("input", debounce(async () => {
+  const q = mainSearchInput.value.trim(); if (!q) { mainSuggestionsEl.style.display = "none"; return; }
+  let results = fuse.search(q).map((r) => r.item);
+  if (results.length < 5) { const nominatimResults = await nominatim(q); nominatimResults.forEach((e) => { if (!results.find((r) => r.name === e.name)) results.push(e); }); }
+  render(results, mainSuggestionsEl, (place) => { mainSearchInput.value = ''; mainSuggestionsEl.style.display = "none"; selectPlace(place); });
+}, 150));
+
+document.addEventListener("click", (e) => { if (!mainSearchContainer.contains(e.target)) { mainSuggestionsEl.style.display = "none"; } });
+function setupDirectionsAutocomplete(inputEl, sugEl, updateFn) { inputEl.addEventListener("input", debounce(async () => { const q = inputEl.value.trim(); if (!q) { sugEl.style.display = "none"; return; } const results = await nominatim(q); render(results, sugEl, (place) => { inputEl.value = place.name; updateFn(place); sugEl.style.display = "none"; }); }, 150)); }
+setupDirectionsAutocomplete(fromInput, fromSug, (place) => fromCoords = [parseFloat(place.lon), parseFloat(place.lat)]);
+setupDirectionsAutocomplete(toInput, toSug, (place) => toCoords = [parseFloat(place.lon), parseFloat(place.lat)]);
+myLocBtns.forEach((btn) => { btn.addEventListener("click", () => { geoCtrl.trigger(); geoCtrl.once("geolocate", (ev) => { const { longitude, latitude } = ev.coords; const isFrom = btn.previousElementSibling.id === 'panel-from-suggestions'; if (isFrom) { fromCoords = [longitude, latitude]; fromInput.value = "My Location"; } else { toCoords = [longitude, latitude]; toInput.value = "My Location"; } }); }); });
+
+// --- App Initialization ---
+function initializeApp() {
+    if (window.innerWidth <= 768) {
+        showPanelContent('welcome');
+    } else {
+        // Ensure panel is hidden on desktop load
+        showPanelContent('none'); // 'none' hides all sections
+        panel.classList.remove('open');
+    }
+    updateMainSearchVisibility();
+}
+
+window.addEventListener("load", initializeApp);
+window.addEventListener("resize", initializeApp);```
