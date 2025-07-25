@@ -1,4 +1,3 @@
-// ✅ WRAPPED IN DOMCONTENTLOADED: This ensures the map and all elements are ready before the script runs.
 document.addEventListener('DOMContentLoaded', () => {
 
     const isMobile = /Mobi/i.test(navigator.userAgent);
@@ -130,6 +129,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function fetchAndSetPlaceImage(query) {
         const imgEl = document.getElementById('info-image');
         const cleanedQuery = query.split(' ').join(',');
+        imgEl.onerror = function() {
+            this.alt = 'Image not available';
+            this.style.backgroundColor = '#e0e0e0';
+            this.src = ''; // Clear the broken source
+        };
+        imgEl.style.backgroundColor = '';
         imgEl.src = `https://source.unsplash.com/800x600/?${encodeURIComponent(cleanedQuery)}`;
         imgEl.alt = `Image of ${query}`;
     }
@@ -138,13 +143,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const weatherEl = document.getElementById('info-weather');
         weatherEl.textContent = "Loading weather...";
         try {
-            const res = await fetch(`https://wttr.in/${lat},${lon}?format=j1`);
+            const res = await fetch(`https://wttr.in/${lat},${lon}?format=j1`, {
+                headers: { 'User-Agent': 'TheBoiisMC-Maps/1.0' }
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Weather service returned an error: ${errorText}`);
+            }
+
             const data = await res.json();
             const condition = data.current_condition[0];
             weatherEl.innerHTML = `<img src="${condition.weatherIconUrl[0].value}" alt="weather icon" style="background: #eaf8ff; border-radius: 50%;"> ${condition.temp_C}°C / ${condition.temp_F}°F, ${condition.weatherDesc[0].value}`;
+        
         } catch (e) {
             weatherEl.textContent = "Could not load weather data.";
-            console.error("wttr.in API error", e);
+            console.error("Weather fetch/parse error:", e);
         }
     }
 
@@ -223,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 map.getSource('route').setData({ type: 'Feature', geometry: route }); 
             } else {
                 map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route } });
-                map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#1a73e8', 'line-width': 6 } });
+                map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#0d89ec', 'line-width': 6 } });
                 routeLine = true;
             }
             const bounds = new maplibregl.LngLatBounds(start, end);
