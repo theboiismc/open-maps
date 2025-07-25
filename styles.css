@@ -1,110 +1,147 @@
-:root {
-  --panel-width: 320px;
-  --panel-mobile-height: 420px;
-  --panel-mobile-peek: 160px;
-}
-
-html, body, #map {
+body, html {
   margin: 0;
   padding: 0;
   height: 100%;
-  width: 100%;
+  font-family: system-ui, sans-serif;
 }
 
 #map {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
   height: 100%;
+  width: 100%;
 }
 
-/* Main search bar - fixed top center */
-#main-search-container {
-  position: fixed;
-  top: 20px;
+.search-container {
+  position: absolute;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 60;
-  width: 250px;
-  background: #fafafa;
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
+  width: 90%;
+  max-width: 600px;
+  z-index: 999;
 }
 
-/* Suggestions dropdown */
-.suggestions-dropdown {
-  position: absolute;
-  background: white;
-  border: 1px solid #ccc;
+.search-container input {
   width: 100%;
-  max-height: 160px;
-  overflow-y: auto;
+  padding: 12px;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 70;
+  border: none;
+  font-size: 16px;
+}
+
+.suggestions {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  top: -5px;
+  max-height: 200px;
+  overflow-y: auto;
   display: none;
 }
 
-/* Side Panel */
-#side-panel {
-  position: fixed;
-  top: 0;
-  left: -100%;
-  width: var(--panel-width);
-  height: 100%;
+.panel {
+  z-index: 998;
   background: white;
-  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  z-index: 55;
-  transition: left 0.3s ease;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
 }
 
-/* Open Panel */
-#side-panel.open {
+.panel.hidden {
+  display: none;
+}
+
+.panel.desktop {
+  position: absolute;
+  top: 0;
   left: 0;
+  width: 25%;
+  height: 100%;
+  border-right: 1px solid #ccc;
 }
 
-/* Panel Sections */
-#place-info-section,
-#directions-section,
-#route-section {
-  margin-top: 40px;
+.panel.mobile {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-height: 90%;
+  height: 60%;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  transform: translateY(100%);
+  touch-action: none;
 }
 
-/* Buttons */
-button {
-  background: #1a73e8;
-  border: none;
+.panel-header {
   padding: 10px;
-  border-radius: 6px;
-  color: white;
-  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.drag-handle {
+  width: 40px;
+  height: 5px;
+  background: #ccc;
+  border-radius: 999px;
+}
+
+.close-btn {
+  position: absolute;
+  right: 12px;
+  top: 6px;
+  background: none;
+  border: none;
+  font-size: 24px;
   cursor: pointer;
 }
 
-/* Mobile Panel Adjustments */
-@media (max-width: 768px) {
-  #side-panel {
-    top: auto;
-    bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
-    left: 0;
-    width: 100%;
-    height: var(--panel-mobile-height);
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+.panel-section {
+  padding: 16px;
+  overflow-y: auto;
+  height: calc(100% - 40px);
+}
+
+.directions-ui {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 999;
+}
+
+.directions-ui input {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+#navigate-btn {
+  padding: 8px 16px;
+  border: none;
+  background: #000;
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .panel.mobile {
+    display: none;
   }
 
-  #side-panel.open {
-    bottom: 0;
+  .panel.desktop {
+    display: block;
   }
 
-  #main-search-container {
-    width: 90vw;
-    left: 5vw;
-    transform: none;
+  .directions-ui {
+    bottom: 30px;
   }
 }
