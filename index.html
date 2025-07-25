@@ -27,6 +27,7 @@
             padding: 0;
             height: 100%;
             width: 100%;
+            overflow: hidden; /* Prevents unwanted scrollbars */
         }
 
         #map {
@@ -37,7 +38,7 @@
             height: 100%;
         }
 
-        /* Main search bar - fixed top center */
+        /* Main search bar */
         #main-search-container {
             position: fixed;
             top: 20px;
@@ -51,6 +52,12 @@
             padding: 8px 12px;
             display: flex;
             align-items: center;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        #main-search-container.hidden {
+            opacity: 0;
+            visibility: hidden;
         }
 
         /* Suggestions dropdown */
@@ -65,13 +72,15 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             z-index: 70;
             display: none;
+            top: 100%; /* Position below the input */
+            left: 0;
         }
 
         /* Side Panel */
         #side-panel {
             position: fixed;
             top: 0;
-            left: -100%;
+            left: -100%; /* Initially hidden on desktop */
             width: var(--panel-width);
             height: 100%;
             background: white;
@@ -79,26 +88,35 @@
             padding: 20px;
             z-index: 55;
             transition: left 0.3s ease;
+            box-sizing: border-box;
         }
 
-        /* Open Panel */
         #side-panel.open {
             left: 0;
         }
-
+        
         /* Mobile Panel Adjustments */
         @media (max-width: 768px) {
             #side-panel {
                 top: auto;
-                bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+                bottom: calc(-1 * var(--panel-mobile-height)); /* Fully hidden initially */
                 left: 0;
                 width: 100%;
                 height: var(--panel-mobile-height);
                 border-radius: 20px 20px 0 0;
                 box-shadow: 0 -3px 18px rgba(0, 0, 0, 0.1);
+                transition: bottom 0.3s ease-in-out;
             }
+
+            /* State for peeking panel on mobile */
+            #side-panel.peek {
+                bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+            }
+
+            /* State for fully open panel on mobile */
             #side-panel.open {
                 bottom: 0;
+                left: 0; /* Ensure left is reset for mobile */
             }
         }
 
@@ -134,14 +152,14 @@
 
     <!-- Main Search Bar Section -->
     <div id="main-search-container">
-        <input type="text" id="main-search" placeholder="Search for a place..." />
+        <input type="text" id="main-search" placeholder="Search for a place..." style="width: 100%; border: none; outline: none; background: transparent;"/>
         <div id="main-suggestions" class="suggestions-dropdown"></div>
     </div>
 
     <!-- Side Panel -->
     <div id="side-panel" aria-hidden="true">
-        <div id="close-side-panel" class="close-btn">X</div>
-        <div id="panel-arrow" class="panel-arrow">&#9665;</div>
+        <div id="close-side-panel" class="close-btn" style="position: absolute; top: 10px; right: 10px; cursor: pointer;">X</div>
+        <div id="panel-arrow" class="panel-arrow" style="display: none;">◁</div>
 
         <!-- Place Info Section -->
         <div id="place-info-section" hidden>
@@ -158,14 +176,20 @@
                 <label for="panel-from-input">From</label>
                 <input type="text" id="panel-from-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-from-suggestions" aria-haspopup="listbox" />
                 <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
+                <button type="button" class="my-loc-btn">Use My Location</button>
+
+                <br><br>
 
                 <label for="panel-to-input">To</label>
                 <input type="text" id="panel-to-input" autocomplete="off" aria-autocomplete="list" aria-controls="panel-to-suggestions" aria-haspopup="listbox" />
                 <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-
                 <button type="button" class="my-loc-btn">Use My Location</button>
+                
+                <br><br>
+
                 <button type="submit" id="route-btn">Get Route</button>
             </form>
+            <div id="directions-result"></div>
             <button id="back-to-info-btn">Back</button>
         </div>
 
