@@ -5,10 +5,9 @@ const urlsToCache = [
   '/app.js',
   'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css',
   'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js',
-  '/satelite_style.png',
-  '/default_style.png',
-  '/icon-192x192.png',
-  '/icon-512x512.png'
+  // Manifest icons that actually exist
+  '/icons512_rounded.png',
+  '/icons512_maskable.png'
 ];
 
 // Install event: opens a cache and adds the core files to it.
@@ -54,7 +53,11 @@ self.addEventListener('fetch', event => {
 
             return networkResponse;
           }
-        );
+        ).catch(err => {
+            // This is a basic fallback for offline.
+            // You might want to return a custom offline page here.
+            console.error('Fetch failed; returning offline page instead.', err);
+        })
       })
   );
 });
@@ -73,4 +76,5 @@ self.addEventListener('activate', event => {
       );
     })
   );
+   return self.clients.claim();
 });
