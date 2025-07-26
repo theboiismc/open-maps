@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Error</title>
+  <style>
+    body {{
+      margin: 0;
+      background: #0a0a0a;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      flex-direction: column;
+      text-align: center;
+    }}
+    h1 {{
+      font-size: 4rem;
+      margin-bottom: 0.5rem;
+    }}
+    p {{
+      font-size: 1.25rem;
+      margin: 0.2rem 0;
+    }}
+    .info {{
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #999;
+    }}
+    .highlight {{
+      color: #00ffc8;
+    }}
+  </style>
+</head>
+<body>
+  <h1 class="highlight">whoops.</h1>
+  <p>Something went wrong.</p>
+  <p>This page isn't available or access is restricted.</p>
+  <div class="info">
+    <p>Time: 2025-07-26 02:26:25 UTC</p>
+    <p>Request Path: <script>document.write(window.location.pathname)</script></p>
+    <p>Cloudflare Ray ID: <script>document.write(window.__cfRayId || 'Unavailable')</script></p>
+  </div>
+</body>
+</html>
