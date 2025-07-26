@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isMobile = /Mobi/i.test(navigator.userAgent);
 
-    // --- START: AUTHENTICATION UI LOGIC (Corrected) ---
+    // --- START: AUTHENTICATION UI LOGIC (DEFINITIVELY FIXED) ---
 
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
@@ -21,21 +21,23 @@ document.addEventListener('DOMContentLoaded', () => {
         loggedOutView.hidden = isLoggedIn;
     };
 
+    // This listener now ONLY handles toggling the dropdown's visibility.
     profileButton.addEventListener('click', (e) => {
-        e.stopPropagation();
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
     });
 
-    document.addEventListener('click', () => {
-        if (profileDropdown.style.display === 'block') {
+    // This listener now handles all "click outside" events to close the menu.
+    document.addEventListener('click', (e) => {
+        // If the dropdown is visible AND the click was NOT inside the profile area, then close it.
+        // The `contains()` method checks if the clicked element (e.target) is a descendant of the profileArea.
+        if (profileDropdown.style.display === 'block' && !profileArea.contains(e.target)) {
             profileDropdown.style.display = 'none';
         }
     });
 
-    profileDropdown.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
+
+    // --- Placeholder actions for auth buttons ---
 
     loginBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -67,6 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- END: AUTHENTICATION UI LOGIC ---
 
+
+    // --- All other code remains the same ---
     const STYLES = {
         default: 'https://tiles.openfreemap.org/styles/liberty',
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
@@ -202,22 +206,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('info-name').textContent = place.display_name.split(',')[0];
         document.getElementById('info-address').textContent = place.display_name;
         const locationName = place.display_name.split(',')[0];
-        // Pass coordinates to the image function now
         fetchAndSetPlaceImage(locationName, place.lon, place.lat);
         fetchAndSetWeather(place.lat, place.lon);
         fetchAndSetQuickFacts(locationName);
         showPanel('info-panel-redesign');
     }
 
-    // --- MODIFIED FUNCTION WITH FALLBACK LOGIC ---
     async function fetchAndSetPlaceImage(query, lon, lat) {
         const imgEl = document.getElementById('info-image');
-        imgEl.src = ''; // Clear previous image
+        imgEl.src = '';
         imgEl.style.backgroundColor = '#e0e0e0';
         imgEl.alt = 'Loading image...';
-        imgEl.onerror = null; // Clear previous error handler
+        imgEl.onerror = null;
 
-        // --- Attempt 1: Wikipedia API for a real photo ---
         try {
             const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
             const res = await fetch(wikipediaUrl);
@@ -225,28 +226,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const page = Object.values(data.query.pages)[0];
             
             if (page.thumbnail && page.thumbnail.source) {
-                // SUCCESS: We found a Wikipedia image
                 imgEl.src = page.thumbnail.source;
                 imgEl.alt = `Photograph of ${query}`;
-                return; // Stop the function here
+                return;
             } else {
-                // No image found, throw an error to trigger the fallback
                 throw new Error("No image found on Wikipedia.");
             }
         } catch (e) {
             console.log("Wikipedia image failed:", e.message, "Activating fallback.");
-
-            // --- Attempt 2: OpenStreetMap Static Map as a Fallback ---
-            // Create a bounding box for the map image
             const offset = 0.005;
             const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`;
-            // Construct the URL for the key-less OSM static image API
             const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
-            
             imgEl.src = fallbackUrl;
             imgEl.alt = `Map view of ${query}`;
-
-            // Add a final error handler in case the OSM server is also down
             imgEl.onerror = () => {
                 imgEl.style.backgroundColor = '#e0e0e0';
                 imgEl.alt = 'Image not available';
