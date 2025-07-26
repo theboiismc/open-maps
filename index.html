@@ -24,13 +24,31 @@
             --panel-mobile-height: 90vh; /* Taller panel for mobile */
             --panel-mobile-peek: 220px;
             --brand-color: #00796b; /* Teal color from images */
+            --banner-height: 40px; /* New variable for banner height */
         }
         * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
         html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
         #map { position: fixed; top: 0; left: 0; }
 
+        #top-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--banner-height);
+            background-color: var(--brand-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
         #top-search-wrapper {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 60;
+            /* Adjusted top position to account for the new banner */
+            position: fixed; top: calc(var(--banner-height) + 15px); left: 50%; transform: translateX(-50%); z-index: 60;
             width: 400px; transition: opacity 0.2s ease;
         }
         #panel-search-placeholder {
@@ -55,12 +73,13 @@
             position: fixed; z-index: 55; background: #fff; top: 0; left: -100%;
             width: var(--panel-width); height: 100%; box-shadow: 2px 0 15px rgba(0,0,0,0.1);
             transition: left 0.3s ease-in-out; overflow: hidden; display: flex; flex-direction: column;
+            padding-top: var(--banner-height); /* Push content down to not be hidden by banner */
         }
         #side-panel.open { left: 0; }
         #panel-grabber { display: none; }
 
         #close-panel-btn {
-            position: fixed; top: 15px; left: calc(var(--panel-width) + 15px); z-index: 60;
+            position: fixed; top: calc(var(--banner-height) + 15px); left: calc(var(--panel-width) + 15px); z-index: 60;
             width: 36px; height: 36px; background: #fff; border: none; border-radius: 50%; cursor: pointer;
             font-size: 20px; line-height: 36px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             opacity: 0; transform: scale(0.8); transition: opacity 0.2s ease, transform 0.2s ease;
@@ -110,12 +129,31 @@
         }
         #directions-panel-redesign .dir-quick-select .icon-wrapper { margin-right: 15px; }
         
+        #map-watermark {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.6);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #333;
+            z-index: 40;
+            pointer-events: none; /* So it doesn't interfere with map clicks */
+        }
+        
         @media (max-width: 768px) and (pointer: coarse) {
-            #top-search-wrapper { width: 90vw; left: 5vw; transform: none; }
+            #top-search-wrapper {
+                width: 90vw;
+                left: 5vw;
+                transform: none;
+            }
             #side-panel {
                 top: auto; left: 0; width: 100%; height: var(--panel-mobile-height);
                 border-radius: 20px 20px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
                 bottom: -100%; transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+                padding-top: 0; /* Reset padding for mobile view */
             }
             #side-panel.peek { bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek))); }
             #side-panel.open { left: 0; bottom: 0; }
@@ -124,12 +162,18 @@
                 position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: grab;
             }
             #close-panel-btn { display: none !important; }
-            /* Reposition layer switcher on mobile for better UX */
             #layer-switcher { bottom: 30px; left: 10px; }
+            #map-watermark {
+                font-size: 12px;
+                bottom: 15px;
+            }
         }
     </style>
 </head>
 <body>
+
+    <div id="top-banner">TheBoiisMC Maps</div>
+
     <div id="top-search-wrapper">
         <div id="main-search-container">
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
@@ -180,7 +224,9 @@
         <img id="layer-switcher-icon" src="satelite_style.png" alt="Switch to Satellite View">
     </div>
 
-    <div id="map"></div>
+    <div id="map">
+        <div id="map-watermark">TheBoiisMC</div>
+    </div>
     <script src="app.js"></script>
 </body>
 </html>
