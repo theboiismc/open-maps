@@ -3,13 +3,28 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#1a73e8" />
+    
+    <!-- SEO and PWA Metadata -->
     <title>TheBoiisMC Maps</title>
+    <meta name="description" content="Explore the world with private, modern mapping." />
+    <meta name="theme-color" content="#00796b" />
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Security: Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://unpkg.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com/ https://tiles.openfreemap.org;
+        img-src 'self' data: https:;
+        connect-src 'self' https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org;
+        font-src https://fonts.gstatic.com;
+        worker-src 'self';
+    ">
 
     <!-- Open Graph & Twitter Card -->
     <meta property="og:title" content="TheBoiisMC Maps" />
     <meta property="og:description" content="Explore the world with private, modern mapping." />
-    <meta property="og:image" content="https://maps.theboiismc.com/53e87aea-e737-4098-a968-363c73a31175.png" />
+    <meta property="og:image" content="https://maps.theboiismc.com/icon-512x512.png" />
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
 
@@ -188,7 +203,6 @@
                 <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </button>
             <div id="profile-dropdown">
-                <!-- Logged-in View (Initially Hidden) -->
                 <div id="logged-in-view" hidden>
                     <div class="profile-section profile-section-header">
                         <div class="username">TheBoiisMC</div>
@@ -203,9 +217,7 @@
                         <a id="logout-btn">Log Out</a>
                     </div>
                 </div>
-
-                <!-- Logged-out View (Initially Visible) -->
-                <div id="logged-out-view">
+                <div id="logged-out-view" hidden>
                      <div class="profile-section" style="text-align:center; font-weight: 500; color: #5f6368;">
                         Sign in to save and view places
                     </div>
