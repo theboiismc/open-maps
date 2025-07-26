@@ -2,6 +2,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isMobile = /Mobi/i.test(navigator.userAgent);
 
+    // --- START: AUTHENTICATION UI LOGIC ---
+
+    // DOM element references for auth
+    const profileArea = document.getElementById('profile-area');
+    const profileButton = document.getElementById('profile-button');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    const loggedInView = document.getElementById('logged-in-view');
+    const loggedOutView = document.getElementById('logged-out-view');
+    const loginBtn = document.getElementById('login-btn');
+    const signupBtn = document.getElementById('signup-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const savedPlacesBtn = document.getElementById('saved-places-btn');
+
+    // This is the frontend auth state. We start as logged out.
+    // In a real app, you would check for a session token from your backend here.
+    let isLoggedIn = false;
+
+    // Function to update the UI based on login state
+    const updateAuthUI = () => {
+        if (isLoggedIn) {
+            loggedInView.hidden = false;
+            loggedOutView.hidden = true;
+        } else {
+            loggedInView.hidden = true;
+            loggedOutView.hidden = false;
+        }
+    };
+
+    // Toggle dropdown visibility
+    profileButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevents the document click from firing immediately
+        const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
+        profileDropdown.style.display = isHidden ? 'block' : 'none';
+    });
+
+    // --- Placeholder actions for auth buttons ---
+    // You will replace these alerts with redirects or API calls to your backend.
+
+    loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // **BACKEND HOOK:** Replace this alert with a redirect to your login page.
+        // window.location.href = 'https://accounts.theboiismc.com/login';
+        alert("Redirecting to login page... (Simulation)");
+        // For now, we'll just simulate a successful login to show the UI change.
+        isLoggedIn = true;
+        updateAuthUI();
+        profileDropdown.style.display = 'none';
+    });
+    
+    signupBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // **BACKEND HOOK:** Replace this alert with a redirect to your sign-up page.
+        // window.location.href = 'https://accounts.theboiismc.com/signup';
+        alert("Redirecting to sign-up page... (Simulation)");
+    });
+
+    logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // **BACKEND HOOK:** Replace this with an API call to your logout endpoint.
+        // After the API call is successful, then update the UI.
+        isLoggedIn = false;
+        updateAuthUI();
+        profileDropdown.style.display = 'none';
+        alert("You have been logged out. (Simulation)");
+    });
+    
+    savedPlacesBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        alert("Feature 'Saved Places' not yet implemented!");
+        profileDropdown.style.display = 'none';
+    });
+    
+    // Close dropdown if clicking anywhere else on the page
+    document.addEventListener('click', () => {
+        profileDropdown.style.display = 'none';
+    });
+    
+    profileDropdown.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevents clicks inside dropdown from closing it
+    });
+
+    // --- END: AUTHENTICATION UI LOGIC ---
+
+
     // --- Layer/Style Definitions ---
     const STYLES = {
         default: 'https://tiles.openfreemap.org/styles/liberty',
@@ -230,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
             45: 'Fog', 48: 'Depositing rime fog',
             51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
-            61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', // ✅ FIXED: Comma was missing here
+            61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
             71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall',
             80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
             95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail'
@@ -293,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
     document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
-    document.getElementById('info-save-btn').addEventListener('click', () => { alert("Save feature not yet implemented!"); });
+    document.getElementById('info-save-btn').addEventListener('click', () => { alert("Save feature not yet implemented! Please log in."); });
     document.getElementById('swap-btn').addEventListener('click', () => {
         [fromInput.value, toInput.value] = [toInput.value, fromInput.value];
         [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords];
@@ -401,4 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sidePanel.style.bottom = '';
         });
     }
+    
+    // --- Initialize UI state on page load ---
+    updateAuthUI();
 });
