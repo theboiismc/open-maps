@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isMobile = /Mobi/i.test(navigator.userAgent);
 
-    // --- START: AUTHENTICATION UI LOGIC ---
+    // --- START: AUTHENTICATION UI LOGIC (Corrected) ---
 
     // DOM element references for auth
     const profileArea = document.getElementById('profile-area');
@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedPlacesBtn = document.getElementById('saved-places-btn');
 
     // This is the frontend auth state. We start as logged out.
-    // In a real app, you would check for a session token from your backend here.
     let isLoggedIn = false;
 
     // Function to update the UI based on login state
@@ -30,11 +29,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Toggle dropdown visibility
+    // Toggle dropdown visibility when the profile button is clicked
     profileButton.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevents the document click from firing immediately
+        e.stopPropagation(); // VERY IMPORTANT: Prevents the document click listener from firing
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
+    });
+    
+    // Close the dropdown if the user clicks anywhere else on the page
+    document.addEventListener('click', (e) => {
+        if (profileDropdown.style.display === 'block') {
+            profileDropdown.style.display = 'none';
+        }
+    });
+    
+    // Do not close the dropdown if the user clicks inside of it
+    profileDropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
     });
 
     // --- Placeholder actions for auth buttons ---
@@ -56,12 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // **BACKEND HOOK:** Replace this alert with a redirect to your sign-up page.
         // window.location.href = 'https://accounts.theboiismc.com/signup';
         alert("Redirecting to sign-up page... (Simulation)");
+        profileDropdown.style.display = 'none';
     });
 
     logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
         // **BACKEND HOOK:** Replace this with an API call to your logout endpoint.
-        // After the API call is successful, then update the UI.
         isLoggedIn = false;
         updateAuthUI();
         profileDropdown.style.display = 'none';
@@ -72,15 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         alert("Feature 'Saved Places' not yet implemented!");
         profileDropdown.style.display = 'none';
-    });
-    
-    // Close dropdown if clicking anywhere else on the page
-    document.addEventListener('click', () => {
-        profileDropdown.style.display = 'none';
-    });
-    
-    profileDropdown.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevents clicks inside dropdown from closing it
     });
 
     // --- END: AUTHENTICATION UI LOGIC ---
@@ -266,12 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function processPlaceResult(place) {
         currentPlace = place;
         currentRouteGeoJSON = null; // Clear old route on new search
-        if (map.getLayer('route-line')) {
-            map.removeLayer('route-line');
-        }
-        if (map.getSource('route')) {
-            map.removeSource('route');
-        }
+        if (map.getLayer('route-line')) { map.removeLayer('route-line'); }
+        if (map.getSource('route')) { map.removeSource('route'); }
         map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
         document.getElementById('info-name').textContent = place.display_name.split(',')[0];
@@ -301,11 +299,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     imgEl.alt = 'Image not available';
                 };
             } else {
-                throw new Error("No image found.");
+                throw new Error("No image found on Wikipedia for this query.");
             }
         } catch (e) {
             console.error("Image API error:", e);
-            imgEl.alt = 'Image not available';
+            imgEl.alt = 'Image not available'; // This shows when no image is found
         }
     }
 
@@ -365,19 +363,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentPlace) {
             toInput.value = currentPlace.display_name;
             toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
-            fromInput.value = '';
-            fromInput.dataset.coords = '';
+            fromInput.value = ''; fromInput.dataset.coords = '';
         } else {
             toInput.value = mainSearchInput.value;
             toInput.dataset.coords = '';
-            fromInput.value = '';
-            fromInput.dataset.coords = '';
+            fromInput.value = ''; fromInput.dataset.coords = '';
         }
     }
 
     document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
     document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
-    document.getElementById('info-save-btn').addEventListener('click', () => { alert("Save feature not yet implemented! Please log in."); });
+    document.getElementById('info-save-btn').addEventListener('click', () => {
+        if (isLoggedIn) {
+             alert("Feature 'Save Place' not yet implemented!");
+        } else {
+             alert("Please log in to save places.");
+        }
+    });
     document.getElementById('swap-btn').addEventListener('click', () => {
         [fromInput.value, toInput.value] = [toInput.value, fromInput.value];
         [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords];
