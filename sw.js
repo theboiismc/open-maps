@@ -1,16 +1,15 @@
-const CACHE_NAME = 'theboiismc-maps-cache-v1';
+const CACHE_NAME = 'theboiismc-maps-cache-v2'; // Incremented cache version
 const urlsToCache = [
   '/',
   '/index.html',
   '/app.js',
   'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css',
   'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js',
-  // Manifest icons that actually exist
+  'https://npmcdn.com/@turf/turf/turf.min.js', // Cache Turf.js
   '/icons512_rounded.png',
   '/icons512_maskable.png'
 ];
 
-// Install event: opens a cache and adds the core files to it.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -22,47 +21,45 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Fetch event: serves cached content when offline.
 self.addEventListener('fetch', event => {
+  // Let the browser handle non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Don't cache dynamic API requests
+  const isApiRequest = event.request.url.includes('api.open-meteo.com') || 
+                       event.request.url.includes('nominatim.openstreetmap.org') || 
+                       event.request.url.includes('router.project-osrm.org');
+
+  if (isApiRequest) {
+    // For API requests, use a network-first strategy
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // For static assets, use a cache-first strategy
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response from cache
         if (response) {
-          return response;
+          return response; // Return from cache
         }
-
-        // Not in cache - fetch from network, then cache it
+        // Not in cache, fetch and cache
         return fetch(event.request).then(
           networkResponse => {
-            // Check if we received a valid response
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
-            }
-
-            // IMPORTANT: Clone the response. A response is a stream
-            // and because we want the browser to consume the response
-            // as well as the cache consuming the response, we need
-            // to clone it so we have two streams.
             const responseToCache = networkResponse.clone();
-
             caches.open(CACHE_NAME)
               .then(cache => {
                 cache.put(event.request, responseToCache);
               });
-
             return networkResponse;
           }
-        ).catch(err => {
-            // This is a basic fallback for offline.
-            // You might want to return a custom offline page here.
-            console.error('Fetch failed; returning offline page instead.', err);
-        })
+        );
       })
   );
 });
 
-// Activate event: removes old caches.
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -76,5 +73,5 @@ self.addEventListener('activate', event => {
       );
     })
   );
-   return self.clients.claim();
+  return self.clients.claim();
 });
