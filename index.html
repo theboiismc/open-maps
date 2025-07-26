@@ -24,21 +24,20 @@
             --panel-mobile-height: 90vh;
             --panel-mobile-peek: 220px;
             --brand-color: #00796b;
-            --banner-height: 50px; /* Increased banner height for better spacing */
+            --banner-height: 50px;
         }
         * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
         html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
         #map { position: fixed; top: 0; left: 0; }
 
+        /* --- Banner and Profile --- */
         #top-banner {
             position: fixed; top: 0; left: 0; width: 100%;
             height: var(--banner-height); background-color: var(--brand-color);
             color: white; display: flex; align-items: center; justify-content: space-between;
             z-index: 100; font-weight: 600; padding: 0 20px;
         }
-
         #site-title { font-size: 18px; }
-
         #profile-area { position: relative; }
         #profile-button {
             width: 36px; height: 36px; border-radius: 50%;
@@ -48,19 +47,19 @@
         }
         #profile-button:hover { background-color: rgba(255, 255, 255, 0.3); }
         #profile-button svg { width: 24px; height: 24px; color: white; }
-
         #profile-dropdown {
             display: none; position: absolute; top: calc(100% + 10px); right: 0;
             background: white; color: #333; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); min-width: 220px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); min-width: 240px;
             z-index: 101; overflow: hidden;
         }
         .profile-section { padding: 15px; }
         .profile-section-header { text-align: center; }
         .profile-section-header .username { font-size: 16px; font-weight: 600; margin-bottom: 5px; }
+        .profile-section-header .email { font-size: 12px; color: #5f6368; }
         .profile-actions a {
             display: block; padding: 10px 15px; color: #3c4043;
-            text-decoration: none; font-weight: 500;
+            text-decoration: none; font-weight: 500; cursor: pointer;
         }
         .profile-actions a:hover { background-color: #f1f1f1; }
         hr { border: none; border-top: 1px solid #e0e0e0; margin: 0; }
@@ -71,21 +70,87 @@
         .btn-primary { background-color: var(--brand-color); color: white; }
         .btn-secondary { background-color: #e0e0e0; color: #333; }
 
+        /* --- Search Bar --- */
         #top-search-wrapper {
             position: fixed; top: calc(var(--banner-height) + 15px); left: 50%; transform: translateX(-50%); z-index: 60;
             width: 400px; transition: opacity 0.2s ease;
         }
+        #panel-search-placeholder {
+            padding: 15px; background-color: #fff; border-bottom: 1px solid #e0e0e0;
+        }
+        #main-search-container {
+            width: 100%; background: #fff; border-radius: 28px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 0 15px; display: flex; align-items: center; position: relative;
+        }
+        #main-search { width: 100%; border: none; outline: none; background: transparent; height: 48px; font-size: 16px; }
+        .search-icon, .directions-icon { cursor: pointer; opacity: 0.7; margin-left: 10px; }
+        .suggestions-dropdown {
+            position: absolute; background: white; border: 1px solid #ccc;
+            width: 100%; max-height: 200px; overflow-y: auto; border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); z-index: 70; top: 110%; left: 0; display: none;
+        }
+        .suggestions-dropdown .search-result { padding: 12px 15px; cursor: pointer; }
+        .suggestions-dropdown .search-result:hover { background-color: #f0f0f0; }
 
+        /* --- Side Panel --- */
         #side-panel {
-            padding-top: var(--banner-height);
-            /* ... existing styles ... */
             position: fixed; z-index: 55; background: #fff; top: 0; left: -100%;
             width: var(--panel-width); height: 100%; box-shadow: 2px 0 15px rgba(0,0,0,0.1);
             transition: left 0.3s ease-in-out; overflow: hidden; display: flex; flex-direction: column;
+            padding-top: var(--banner-height); /* Push content down to not be hidden by banner */
         }
         #side-panel.open { left: 0; }
-        #close-panel-btn { top: calc(var(--banner-height) + 15px); /* ... existing styles ... */ }
+        #panel-grabber { display: none; }
+        #close-panel-btn {
+            position: fixed; top: calc(var(--banner-height) + 15px); left: calc(var(--panel-width) + 15px); z-index: 60;
+            width: 36px; height: 36px; background: #fff; border: none; border-radius: 50%; cursor: pointer;
+            font-size: 20px; line-height: 36px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            opacity: 0; transform: scale(0.8); transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        #side-panel.open + #close-panel-btn { opacity: 1; transform: scale(1); }
+        .panel-content { flex-grow: 1; overflow-y: auto; }
+        .panel-content .header-image { width: 100%; height: 200px; object-fit: cover; background-color: #e0e0e0; display: block; }
+        .panel-content .info-content-padding { padding: 20px; }
+        .panel-content h3 { margin: 0 0 5px 0; font-size: 24px; }
+        .panel-content .address { color: #5f6368; margin-bottom: 10px; }
+        .panel-content .weather { display: flex; align-items: center; color: #5f6368; margin-bottom: 20px; min-height: 32px; }
+        .action-buttons { display: flex; justify-content: space-around; text-align: center; margin-bottom: 25px; }
+        .action-buttons .btn-wrapper { cursor: pointer; }
+        .action-buttons .icon-circle {
+            width: 44px; height: 44px; border-radius: 50%; background-color: var(--brand-color);
+            color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 5px auto;
+        }
+        .action-buttons .icon-circle svg { width: 24px; height: 24px; }
+        .action-buttons .btn-label { color: var(--brand-color); font-weight: 600; }
+        #quick-facts h4 { border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 10px; }
+        #quick-facts-content { color: #3c4043; line-height: 1.6; }
 
+        /* --- Directions Panel --- */
+        #directions-panel-redesign .dir-input-group { position: relative; }
+        #directions-panel-redesign .dir-input-wrapper { display: flex; align-items: center; margin-bottom: 10px; }
+        #directions-panel-redesign .dir-input-wrapper .input-icon { margin-right: 15px; }
+        #directions-panel-redesign .dir-input-wrapper input {
+            width: 100%; padding: 12px; border: 1px solid #ccc;
+            border-radius: 8px; background-color: #f1f3f4;
+        }
+        #swap-btn {
+            position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin-top: -25px;
+            width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ccc;
+            background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        #directions-panel-redesign .dir-quick-select {
+            display: flex; align-items: center; padding: 12px 0; cursor: pointer;
+            border-bottom: 1px solid #e0e0e0; color: #3c4043;
+        }
+        #directions-panel-redesign .dir-quick-select .icon-wrapper { margin-right: 15px; }
+
+        /* --- Watermark & Layer Switcher --- */
+        #layer-switcher {
+            position: fixed; bottom: 20px; left: 20px; z-index: 40;
+            background-color: white; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; overflow: hidden;
+        }
+        #layer-switcher-icon { width: 64px; height: 64px; display: block; }
         #map-watermark {
             position: absolute; bottom: 10px; left: 50%;
             transform: translateX(-50%); background-color: rgba(255, 255, 255, 0.6);
@@ -93,11 +158,25 @@
             color: #333; z-index: 40; pointer-events: none;
         }
 
-        /* All other existing styles remain unchanged */
-        #panel-search-placeholder { padding: 15px; background-color: #fff; border-bottom: 1px solid #e0e0e0; }
-        #main-search-container { width: 100%; background: #fff; border-radius: 28px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); padding: 0 15px; display: flex; align-items: center; position: relative; }
-        #main-search { width: 100%; border: none; outline: none; background: transparent; height: 48px; font-size: 16px; }
-        /* ... etc. ... */
+        /* --- Mobile Responsive Styles --- */
+        @media (max-width: 768px) and (pointer: coarse) {
+            #top-search-wrapper { width: 90vw; left: 5vw; transform: none; }
+            #side-panel {
+                top: auto; left: 0; width: 100%; height: var(--panel-mobile-height);
+                border-radius: 20px 20px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
+                bottom: -100%; transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+                padding-top: 0; /* Reset padding for mobile view */
+            }
+            #side-panel.peek { bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek))); }
+            #side-panel.open { left: 0; bottom: 0; }
+            #panel-grabber {
+                display: block; width: 40px; height: 5px; background-color: #ccc; border-radius: 2.5px;
+                position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: grab;
+            }
+            #close-panel-btn { display: none !important; }
+            #layer-switcher { bottom: 30px; left: 10px; }
+            #map-watermark { font-size: 12px; bottom: 15px; }
+        }
     </style>
 </head>
 <body>
@@ -106,7 +185,6 @@
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button id="profile-button" aria-label="User Profile">
-                <!-- Default User SVG Icon -->
                 <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </button>
             <div id="profile-dropdown">
@@ -114,51 +192,86 @@
                 <div id="logged-in-view" hidden>
                     <div class="profile-section profile-section-header">
                         <div class="username">TheBoiisMC</div>
-                        <!-- In a real app, this would be the user's email -->
-                        <div class="email" style="font-size: 12px; color: #5f6368;">user@example.com</div>
+                        <div class="email">user@example.com</div>
                     </div>
                     <hr/>
                     <div class="profile-actions">
-                        <a href="#">Saved Places</a>
-                        <a href="#">Settings</a>
+                        <a id="saved-places-btn">Saved Places</a>
                     </div>
                     <hr/>
                     <div class="profile-actions">
-                        <a href="#" id="logout-btn">Log Out</a>
+                        <a id="logout-btn">Log Out</a>
                     </div>
                 </div>
 
                 <!-- Logged-out View (Initially Visible) -->
                 <div id="logged-out-view">
                      <div class="profile-section" style="text-align:center; font-weight: 500; color: #5f6368;">
-                        Sign in to save places and see them on any device.
+                        Sign in to save and view places
                     </div>
                     <hr/>
                     <div class="auth-buttons">
-                        <!-- These links will eventually point to: accounts.theboiismc.com/login etc. -->
                         <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
-                        <a href="#" class="btn btn-secondary">Sign Up</a>
+                        <a href="#" id="signup-btn" class="btn btn-secondary">Sign Up</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- The rest of your HTML body remains the same -->
     <div id="top-search-wrapper">
-        <!-- ... -->
+        <div id="main-search-container">
+            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
+            <svg id="main-search-icon" class="search-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.7955 15.8111L21 21M18 10.5C18 14.6421 14.6421 18 10.5 18C6.35786 18 3 14.6421 3 10.5C3 6.35786 6.35786 3 10.5 3C14.6421 3 18 6.35786 18 10.5Z" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg id="main-directions-icon" class="directions-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 18.36V4.64C13 4.12 13.42 3.7 13.94 3.7H15.5C16.05 3.7 16.5 4.15 16.5 4.7V14.88L18.71 12.67C19.1 12.28 19.73 12.28 20.12 12.67L20.12 12.67C20.51 13.06 20.51 13.69 20.12 14.08L14.46 19.74C13.88 20.32 13 19.85 13 19.08V18.36Z" stroke="#000" stroke-width="1.5" /><path d="M11 5.64V19.36C11 19.88 10.58 20.3 10.06 20.3H8.5C7.95 20.3 7.5 19.85 7.5 19.3V9.12L5.29 11.33C4.9 11.72 4.27 11.72 3.88 11.33L3.88 11.33C3.49 10.94 3.49 10.31 3.88 9.92L9.54 4.26C10.12 3.68 11 4.15 11 4.92V5.64Z" stroke="#000" stroke-width="1.5" /></svg>
+            <div id="main-suggestions" class="suggestions-dropdown"></div>
+        </div>
     </div>
+
     <div id="side-panel">
-        <!-- ... -->
+        <div id="panel-grabber"></div>
+        <div id="panel-search-placeholder" hidden></div>
+        <div class="panel-content">
+            <div id="info-panel-redesign" hidden>
+                <img class="header-image" id="info-image" src="" alt="Image of the location"/>
+                <div class="info-content-padding">
+                    <h3 id="info-name"></h3>
+                    <div class="address" id="info-address"></div>
+                    <div class="weather" id="info-weather"></div>
+                    <div class="action-buttons">
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M22.43,10.59,13.42,1.58a2,2,0,0,0-2.83,0l-9,9a2,2,0,0,0,0,2.83l9,9a2,2,0,0,0,2.83,0l9-9A2,2,0,0,0,22.43,10.59ZM12,18.59,5.41,12,12,5.41,18.59,12Z"></path></svg></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M17,3H7A2,2,0,0,0,5,5V21L12,18L19,21V5A2,2,0,0,0,17,3Z"></path></svg></div><div class="btn-label">Save</div></div>
+                    </div>
+                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
+                </div>
+            </div>
+            <div id="directions-panel-redesign" hidden>
+                 <div class="info-content-padding">
+                    <div class="dir-input-group">
+                        <div class="dir-input-wrapper"><svg class="input-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#000" stroke-width="2"/></svg><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
+                        <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
+                        <div class="dir-input-wrapper"><svg class="input-icon" width="24" height="24" viewBox="0 0 24 24"><path fill="#D83025" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
+                        <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
+                        <button id="swap-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l-4-4m4 4l4-4" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    </div>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12,8A4,4,0,0,1,16,12A4,4,0,0,1,12,16A4,4,0,0,1,8,12A4,4,0,0,1,12,8M12,2A10,10,0,0,0,2,12A10,10,0,0,0,12,22A10,10,0,0,0,22,12A10,10,0,0,0,12,2Z" /></svg></div>Your location</div>
+                    <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
+                </div>
+            </div>
+            <div id="route-section" hidden>
+                <div class="info-content-padding"><h3>Route Steps</h3><button id="exit-route-btn">Back</button><ol id="route-steps"></ol></div>
+            </div>
+        </div>
     </div>
     <button id="close-panel-btn" title="Close Panel">×</button>
+
     <div id="layer-switcher" title="Switch map style">
-        <!-- ... -->
+        <img id="layer-switcher-icon" src="satelite_style.png" alt="Switch to Satellite View">
     </div>
+
     <div id="map">
         <div id="map-watermark">TheBoiisMC</div>
     </div>
     <script src="app.js"></script>
-
 </body>
 </html>
