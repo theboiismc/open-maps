@@ -21,23 +21,16 @@ document.addEventListener('DOMContentLoaded', () => {
         loggedOutView.hidden = isLoggedIn;
     };
 
-    // This listener now ONLY handles toggling the dropdown's visibility.
     profileButton.addEventListener('click', (e) => {
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
     });
 
-    // This listener now handles all "click outside" events to close the menu.
     document.addEventListener('click', (e) => {
-        // If the dropdown is visible AND the click was NOT inside the profile area, then close it.
-        // The `contains()` method checks if the clicked element (e.target) is a descendant of the profileArea.
         if (profileDropdown.style.display === 'block' && !profileArea.contains(e.target)) {
             profileDropdown.style.display = 'none';
         }
     });
-
-
-    // --- Placeholder actions for auth buttons ---
 
     loginBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -69,15 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- END: AUTHENTICATION UI LOGIC ---
 
-
-    // --- All other code remains the same ---
     const STYLES = {
         default: 'https://tiles.openfreemap.org/styles/liberty',
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
-    };
-    const STYLE_ICONS = {
-        default: { src: 'satelite_style.png', alt: 'Switch to Satellite View' },
-        satellite: { src: 'default_style.png', alt: 'Switch to Default View' }
     };
 
     const map = new maplibregl.Map({
@@ -95,8 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const topSearchWrapper = document.getElementById('top-search-wrapper');
     const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
     const closePanelBtn = document.getElementById('close-panel-btn');
-    const layerSwitcher = document.getElementById('layer-switcher');
-    const layerSwitcherIcon = document.getElementById('layer-switcher-icon');
 
     let currentPlace = null;
     let currentRouteGeoJSON = null;
@@ -363,14 +348,71 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { alert(`Error getting route: ${err.message}`); }
     });
 
-    layerSwitcher.addEventListener('click', () => {
-        currentStyle = (currentStyle === 'default') ? 'satellite' : 'default';
-        map.setStyle(STYLES[currentStyle]);
-        const newIcon = STYLE_ICONS[currentStyle];
-        layerSwitcherIcon.src = newIcon.src;
-        layerSwitcherIcon.alt = newIcon.alt;
+    // --- START: NEW SETTINGS MENU LOGIC ---
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsMenu = document.getElementById('settings-menu');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
+
+    function openSettings() {
+        settingsMenu.classList.add('open');
+        if (isMobile) {
+            menuOverlay.classList.add('open');
+        }
+    }
+
+    function closeSettings() {
+        settingsMenu.classList.remove('open');
+        if (isMobile) {
+            menuOverlay.classList.remove('open');
+        }
+    }
+
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevents other click listeners from firing
+        // Toggle menu for desktop view, always open for mobile
+        if (!isMobile && settingsMenu.classList.contains('open')) {
+            closeSettings();
+        } else {
+            openSettings();
+        }
+    });
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    menuOverlay.addEventListener('click', closeSettings);
+
+    // Close desktop menu if clicking outside of it
+    document.addEventListener('click', (e) => {
+        if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
+            closeSettings();
+        }
     });
 
+    styleRadioButtons.forEach(radio => {
+        radio.addEventListener('change', () => {
+            const newStyle = radio.value;
+            if (newStyle !== currentStyle) {
+                currentStyle = newStyle;
+                map.setStyle(STYLES[currentStyle]);
+                // On mobile, close the menu after making a selection
+                if (isMobile) {
+                    setTimeout(closeSettings, 200);
+                }
+            }
+        });
+    });
+
+    // Placeholder for units setting
+    document.querySelectorAll('input[name="map-units"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            alert(`Unit selection ('${radio.value}') is not implemented yet.`);
+             if (isMobile) {
+                setTimeout(closeSettings, 200);
+             }
+        });
+    });
+    // --- END: NEW SETTINGS MENU LOGIC ---
+    
     map.on('styledata', () => {
         if (currentRouteGeoJSON) { addRouteToMap(currentRouteGeoJSON); }
     });
