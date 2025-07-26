@@ -2,7 +2,7 @@
   "name": "TheBoiisMC Maps",
   "short_name": "TBMC Maps",
   "description": "Explore the world with private, modern mapping.",
-  "start_url": "/index.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#00796b",
   "theme_color": "#00796b",
