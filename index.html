@@ -14,7 +14,7 @@
     <!-- Security: Corrected Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' https://unpkg.com;
+        script-src 'self' https://unpkg.com https://npmcdn.com;
         style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
         img-src 'self' data: https:;
         font-src https://fonts.gstatic.com;
@@ -29,9 +29,10 @@
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <!-- MapLibre & Fonts -->
+    <!-- MapLibre, TurfJS & Fonts -->
     <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     <style>
@@ -113,7 +114,7 @@
             position: fixed; z-index: 55; background: #fff; top: 0; left: -100%;
             width: var(--panel-width); height: 100%; box-shadow: 2px 0 15px rgba(0,0,0,0.1);
             transition: left 0.3s ease-in-out; overflow: hidden; display: flex; flex-direction: column;
-            padding-top: var(--banner-height); /* Push content down to not be hidden by banner */
+            padding-top: var(--banner-height);
         }
         #side-panel.open { left: 0; }
         #panel-grabber { display: none; }
@@ -167,17 +168,57 @@
             padding: 5px 10px; border-radius: 5px; font-size: 14px;
             color: #333; z-index: 40; pointer-events: none;
         }
+        
+        /* --- NEW: Navigation Styles --- */
+        .user-location-marker {
+            width: 20px; height: 20px;
+            background-color: #1a73e8;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        #navigation-status {
+            position: fixed;
+            top: calc(var(--banner-height) + 15px);
+            left: 15px;
+            right: 15px;
+            background: white;
+            z-index: 65;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: space-between;
+        }
+        #navigation-instruction {
+            font-size: 16px;
+            font-weight: 500;
+            flex-grow: 1;
+            margin-right: 15px;
+        }
+        #end-navigation-btn {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #end-navigation-btn:hover { background-color: #c9302c; }
+
 
         /* --- Mobile Responsive Styles --- */
         @media (max-width: 768px) and (pointer: coarse) {
             #top-search-wrapper { width: 90vw; left: 5vw; transform: none; }
-            #profile-area { /* Adjust profile area to make space for settings on desktop */ flex-grow: 1; justify-content: flex-end; }
+            #profile-area { flex-grow: 1; justify-content: flex-end; }
             #site-title { flex-grow: 1; }
             #side-panel {
                 top: auto; left: 0; width: 100%; height: var(--panel-mobile-height);
                 border-radius: 20px 20px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
                 bottom: -100%; transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
-                padding-top: 0; /* Reset padding for mobile view */
+                padding-top: 0;
             }
             #side-panel.peek { bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek))); }
             #side-panel.open { left: 0; bottom: 0; }
@@ -187,10 +228,17 @@
             }
             #close-panel-btn { display: none !important; }
             #map-watermark { font-size: 12px; bottom: 15px; }
+            
+            #navigation-status {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            #navigation-instruction { margin-right: 0; margin-bottom: 10px; }
+            #end-navigation-btn { text-align: center; }
         }
 
         /* --- Settings Menu & Button --- */
-        #settings-btn {
+        .js-settings-btn { /* CHANGED from ID to Class */
             position: fixed;
             z-index: 40;
             background-color: white;
@@ -203,10 +251,10 @@
             justify-content: center;
             transition: transform 0.2s ease;
         }
-        #settings-btn:hover {
+        .js-settings-btn:hover {
             transform: scale(1.1);
         }
-        #settings-btn svg {
+        .js-settings-btn svg {
             color: #333;
         }
 
@@ -227,18 +275,17 @@
         #settings-menu {
             background: #fff;
             z-index: 101;
-            display: none; /* Hidden by default */
+            display: none;
         }
 
-        /* --- Mobile First Styles (Bottom Sheet) --- */
         @media (max-width: 768px) and (pointer: coarse) {
-            #settings-btn {
+            .js-settings-btn {
                 bottom: 30px;
                 right: 15px;
                 width: 56px;
                 height: 56px;
             }
-            #settings-btn svg { width: 28px; height: 28px; }
+            .js-settings-btn svg { width: 28px; height: 28px; }
 
             #settings-menu {
                 position: fixed;
@@ -256,23 +303,24 @@
             }
         }
 
-        /* --- Desktop Styles (Dropdown Popover) --- */
         @media (min-width: 769px) {
-            #settings-btn {
-                position: relative; /* Let it sit inside the flex container */
+            #profile-area .js-settings-btn { /* Select only the desktop button */
+                position: relative;
                 width: 36px;
                 height: 36px;
                 background-color: rgba(255, 255, 255, 0.2);
                 box-shadow: none;
-                margin-right: 10px; /* Space between settings and profile */
+                margin-right: 10px;
             }
-            #settings-btn:hover { background-color: rgba(255, 255, 255, 0.3); transform: none; }
-            #settings-btn svg { width: 24px; height: 24px; color: white; }
+            #profile-area .js-settings-btn:hover { background-color: rgba(255, 255, 255, 0.3); transform: none; }
+            #profile-area .js-settings-btn svg { width: 24px; height: 24px; color: white; }
+            
+            #mobile-settings-btn { display: none; } /* Hide mobile button on desktop */
 
             #settings-menu {
                 position: absolute;
                 top: calc(var(--banner-height) + 5px);
-                right: 60px; /* Adjusted to align near the icons */
+                right: 60px;
                 min-width: 280px;
                 border-radius: 8px;
                 box-shadow: 0 4px 15px rgba(0,0,0,0.15);
@@ -287,10 +335,9 @@
                 transform: translateY(0);
                 pointer-events: auto;
             }
-            #menu-overlay { display: none; } /* No overlay on desktop */
+            #menu-overlay { display: none; }
         }
 
-        /* --- General Menu Content Styling --- */
         .settings-menu-header {
             display: flex;
             justify-content: space-between;
@@ -340,7 +387,7 @@
             font-weight: 500;
         }
         .radio-group input[type="radio"] {
-            display: none; /* Hide the actual radio button */
+            display: none;
         }
         .radio-group input[type="radio"]:checked + label {
             background-color: var(--brand-color);
@@ -356,8 +403,7 @@
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
-             <!-- This button is now handled by desktop-specific CSS -->
-            <button id="settings-btn" aria-label="Map Settings">
+            <button class="js-settings-btn" aria-label="Map Settings">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
             </button>
             <button id="profile-button" aria-label="User Profile">
@@ -390,6 +436,12 @@
                 </div>
             </div>
         </div>
+    </div>
+    
+    <!-- NEW Navigation Status Panel -->
+    <div id="navigation-status">
+        <div id="navigation-instruction">Starting navigation...</div>
+        <button id="end-navigation-btn">End Trip</button>
     </div>
 
     <div id="top-search-wrapper">
@@ -438,13 +490,12 @@
     </div>
     <button id="close-panel-btn" title="Close Panel">×</button>
 
-    <!-- Settings Button (for mobile, its position is controlled by CSS) -->
-    <button id="settings-btn" aria-label="Map Settings"></button>
-
-    <!-- Menu Overlay (for mobile) -->
+    <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+    </button>
+    
     <div id="menu-overlay"></div>
 
-    <!-- Settings Menu Panel -->
     <div id="settings-menu">
         <div class="settings-menu-header">
             <h4>Map Settings</h4>
@@ -461,7 +512,6 @@
                 </div>
             </div>
             <hr>
-            <!-- This is a placeholder for future settings -->
             <div class="setting-group">
                 <label class="setting-label">Units</label>
                 <div class="radio-group">
