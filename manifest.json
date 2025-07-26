@@ -4,11 +4,6 @@
   "description": "Explore the world with private, modern mapping.",
   "icons": [
     {
-      "src": "icon-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
       "src": "icons512_rounded.png",
       "type": "image/png",
       "sizes": "512x512"
