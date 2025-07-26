@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- START: AUTHENTICATION UI LOGIC (Corrected) ---
 
-    // DOM element references for auth
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
     const profileDropdown = document.getElementById('profile-dropdown');
@@ -15,70 +14,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     const savedPlacesBtn = document.getElementById('saved-places-btn');
 
-    // This is the frontend auth state. We start as logged out.
     let isLoggedIn = false;
 
-    // Function to update the UI based on login state
     const updateAuthUI = () => {
-        if (isLoggedIn) {
-            loggedInView.hidden = false;
-            loggedOutView.hidden = true;
-        } else {
-            loggedInView.hidden = true;
-            loggedOutView.hidden = false;
-        }
+        loggedInView.hidden = !isLoggedIn;
+        loggedOutView.hidden = isLoggedIn;
     };
 
-    // Toggle dropdown visibility when the profile button is clicked
     profileButton.addEventListener('click', (e) => {
-        e.stopPropagation(); // VERY IMPORTANT: Prevents the document click listener from firing
+        e.stopPropagation();
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
     });
-    
-    // Close the dropdown if the user clicks anywhere else on the page
-    document.addEventListener('click', (e) => {
+
+    document.addEventListener('click', () => {
         if (profileDropdown.style.display === 'block') {
             profileDropdown.style.display = 'none';
         }
     });
-    
-    // Do not close the dropdown if the user clicks inside of it
+
     profileDropdown.addEventListener('click', (e) => {
         e.stopPropagation();
     });
 
-    // --- Placeholder actions for auth buttons ---
-    // You will replace these alerts with redirects or API calls to your backend.
-
     loginBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        // **BACKEND HOOK:** Replace this alert with a redirect to your login page.
-        // window.location.href = 'https://accounts.theboiismc.com/login';
         alert("Redirecting to login page... (Simulation)");
-        // For now, we'll just simulate a successful login to show the UI change.
         isLoggedIn = true;
         updateAuthUI();
         profileDropdown.style.display = 'none';
     });
-    
+
     signupBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        // **BACKEND HOOK:** Replace this alert with a redirect to your sign-up page.
-        // window.location.href = 'https://accounts.theboiismc.com/signup';
         alert("Redirecting to sign-up page... (Simulation)");
         profileDropdown.style.display = 'none';
     });
 
     logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        // **BACKEND HOOK:** Replace this with an API call to your logout endpoint.
         isLoggedIn = false;
         updateAuthUI();
         profileDropdown.style.display = 'none';
         alert("You have been logged out. (Simulation)");
     });
-    
+
     savedPlacesBtn.addEventListener('click', (e) => {
         e.preventDefault();
         alert("Feature 'Saved Places' not yet implemented!");
@@ -87,35 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- END: AUTHENTICATION UI LOGIC ---
 
-
-    // --- Layer/Style Definitions ---
     const STYLES = {
         default: 'https://tiles.openfreemap.org/styles/liberty',
-        satellite: {
-            version: 8,
-            sources: {
-                "esri-world-imagery": {
-                    type: "raster",
-                    tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
-                    tileSize: 256,
-                    attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                }
-            },
-            layers: [{
-                id: "satellite-layer",
-                type: "raster",
-                source: "esri-world-imagery",
-                minzoom: 0,
-                maxzoom: 22
-            }]
-        }
+        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
     const STYLE_ICONS = {
         default: { src: 'satelite_style.png', alt: 'Switch to Satellite View' },
         satellite: { src: 'default_style.png', alt: 'Switch to Default View' }
     };
 
-    // 1) Initialize map
     const map = new maplibregl.Map({
         container: "map",
         style: STYLES.default,
@@ -125,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), "bottom-right");
 
-    // DOM element references
     const sidePanel = document.getElementById("side-panel");
     const mainSearchInput = document.getElementById("main-search");
     const mainSearchContainer = document.getElementById('main-search-container');
@@ -135,29 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const layerSwitcher = document.getElementById('layer-switcher');
     const layerSwitcherIcon = document.getElementById('layer-switcher-icon');
 
-    // State variables
     let currentPlace = null;
     let currentRouteGeoJSON = null;
     let currentStyle = 'default';
 
-    // --- UI & Panel Logic ---
-    function moveSearchBarToPanel() {
-        if (isMobile) return;
-        mainSearchContainer.style.boxShadow = 'none';
-        mainSearchContainer.style.borderRadius = '8px';
-        panelSearchPlaceholder.hidden = false;
-        panelSearchPlaceholder.appendChild(mainSearchContainer);
-        topSearchWrapper.style.opacity = '0';
-    }
-
-    function moveSearchBarToTop() {
-        if (isMobile) return;
-        mainSearchContainer.style.boxShadow = '';
-        mainSearchContainer.style.borderRadius = '';
-        topSearchWrapper.appendChild(mainSearchContainer);
-        panelSearchPlaceholder.hidden = true;
-        topSearchWrapper.style.opacity = '1';
-    }
+    function moveSearchBarToPanel() { if (!isMobile) { mainSearchContainer.style.boxShadow = 'none'; mainSearchContainer.style.borderRadius = '8px'; panelSearchPlaceholder.hidden = false; panelSearchPlaceholder.appendChild(mainSearchContainer); topSearchWrapper.style.opacity = '0'; } }
+    function moveSearchBarToTop() { if (!isMobile) { mainSearchContainer.style.boxShadow = ''; mainSearchContainer.style.borderRadius = ''; topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
 
     function showPanel(viewId) {
         ['info-panel-redesign', 'directions-panel-redesign', 'route-section'].forEach(id => {
@@ -189,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Debounce function
     function debounce(func, delay) {
         let timeout;
         return function(...args) {
@@ -199,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // --- Search & Suggestions Logic ---
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
             if (!query) { suggestionsEl.style.display = "none"; return; }
@@ -218,9 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     suggestionsEl.appendChild(el);
                 });
                 suggestionsEl.style.display = data.length > 0 ? "block" : "none";
-            } catch (e) {
-                console.error("Suggestion fetch failed", e);
-            }
+            } catch (e) { console.error("Suggestion fetch failed", e); }
         };
         const debouncedFetch = debounce(fetchAndDisplaySuggestions, 300);
         inputEl.addEventListener("input", () => debouncedFetch(inputEl.value.trim()));
@@ -238,9 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (data.length > 0) onSelect(data[0]);
             else alert("No results found for your search.");
-        } catch (e) {
-            alert("Search failed. Please check your connection.");
-        }
+        } catch (e) { alert("Search failed. Please check your connection."); }
     }
 
     const mainSuggestions = document.getElementById("main-suggestions");
@@ -250,24 +186,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult);
     });
 
-    const fromInput = document.getElementById('panel-from-input'),
-        fromSuggestions = document.getElementById('panel-from-suggestions');
-    attachSuggestionListener(fromInput, fromSuggestions, (place) => {
-        fromInput.value = place.display_name;
-        fromInput.dataset.coords = `${place.lon},${place.lat}`;
-    });
+    const fromInput = document.getElementById('panel-from-input'), fromSuggestions = document.getElementById('panel-from-suggestions');
+    attachSuggestionListener(fromInput, fromSuggestions, (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
 
-    const toInput = document.getElementById('panel-to-input'),
-        toSuggestions = document.getElementById('panel-to-suggestions');
-    attachSuggestionListener(toInput, toSuggestions, (place) => {
-        toInput.value = place.display_name;
-        toInput.dataset.coords = `${place.lon},${place.lat}`;
-    });
+    const toInput = document.getElementById('panel-to-input'), toSuggestions = document.getElementById('panel-to-suggestions');
+    attachSuggestionListener(toInput, toSuggestions, (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
 
-    // --- Place Info Logic ---
     function processPlaceResult(place) {
         currentPlace = place;
-        currentRouteGeoJSON = null; // Clear old route on new search
+        currentRouteGeoJSON = null;
         if (map.getLayer('route-line')) { map.removeLayer('route-line'); }
         if (map.getSource('route')) { map.removeSource('route'); }
         map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
@@ -275,48 +202,60 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('info-name').textContent = place.display_name.split(',')[0];
         document.getElementById('info-address').textContent = place.display_name;
         const locationName = place.display_name.split(',')[0];
-        fetchAndSetPlaceImage(locationName);
+        // Pass coordinates to the image function now
+        fetchAndSetPlaceImage(locationName, place.lon, place.lat);
         fetchAndSetWeather(place.lat, place.lon);
         fetchAndSetQuickFacts(locationName);
         showPanel('info-panel-redesign');
     }
 
-    async function fetchAndSetPlaceImage(query) {
+    // --- MODIFIED FUNCTION WITH FALLBACK LOGIC ---
+    async function fetchAndSetPlaceImage(query, lon, lat) {
         const imgEl = document.getElementById('info-image');
-        imgEl.src = '';
+        imgEl.src = ''; // Clear previous image
         imgEl.style.backgroundColor = '#e0e0e0';
         imgEl.alt = 'Loading image...';
+        imgEl.onerror = null; // Clear previous error handler
+
+        // --- Attempt 1: Wikipedia API for a real photo ---
         try {
-            const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
-            const res = await fetch(url);
+            const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
+            const res = await fetch(wikipediaUrl);
             const data = await res.json();
             const page = Object.values(data.query.pages)[0];
+            
             if (page.thumbnail && page.thumbnail.source) {
+                // SUCCESS: We found a Wikipedia image
                 imgEl.src = page.thumbnail.source;
-                imgEl.alt = `Image of ${query}`;
-                imgEl.onerror = () => {
-                    imgEl.style.backgroundColor = '#e0e0e0';
-                    imgEl.alt = 'Image not available';
-                };
+                imgEl.alt = `Photograph of ${query}`;
+                return; // Stop the function here
             } else {
-                throw new Error("No image found on Wikipedia for this query.");
+                // No image found, throw an error to trigger the fallback
+                throw new Error("No image found on Wikipedia.");
             }
         } catch (e) {
-            console.error("Image API error:", e);
-            imgEl.alt = 'Image not available'; // This shows when no image is found
+            console.log("Wikipedia image failed:", e.message, "Activating fallback.");
+
+            // --- Attempt 2: OpenStreetMap Static Map as a Fallback ---
+            // Create a bounding box for the map image
+            const offset = 0.005;
+            const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`;
+            // Construct the URL for the key-less OSM static image API
+            const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
+            
+            imgEl.src = fallbackUrl;
+            imgEl.alt = `Map view of ${query}`;
+
+            // Add a final error handler in case the OSM server is also down
+            imgEl.onerror = () => {
+                imgEl.style.backgroundColor = '#e0e0e0';
+                imgEl.alt = 'Image not available';
+            };
         }
     }
 
     function getWeatherDescription(code) {
-        const descriptions = {
-            0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
-            45: 'Fog', 48: 'Depositing rime fog',
-            51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
-            61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
-            71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall',
-            80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
-            95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail'
-        };
+        const descriptions = { 0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', 71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall', 80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers', 95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail' };
         return descriptions[code] || "Weather data unavailable";
     }
 
@@ -333,9 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tempC = Math.round((tempF - 32) * 5 / 9);
                 const description = getWeatherDescription(data.current_weather.weathercode);
                 weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
-            } else {
-                throw new Error("Invalid weather data format.");
-            }
+            } else { throw new Error("Invalid weather data format."); }
         } catch (e) {
             weatherEl.textContent = "Could not load weather data.";
             console.error("Weather fetch/parse error:", e);
@@ -357,7 +294,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Directions Panel & Routing Logic ---
     function openDirectionsPanel() {
         showPanel('directions-panel-redesign');
         if (currentPlace) {
@@ -374,11 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
     document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
     document.getElementById('info-save-btn').addEventListener('click', () => {
-        if (isLoggedIn) {
-             alert("Feature 'Save Place' not yet implemented!");
-        } else {
-             alert("Please log in to save places.");
-        }
+        if (isLoggedIn) { alert("Feature 'Save Place' not yet implemented!"); }
+        else { alert("Please log in to save places."); }
     });
     document.getElementById('swap-btn').addEventListener('click', () => {
         [fromInput.value, toInput.value] = [toInput.value, fromInput.value];
@@ -402,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
         return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
     }
-    
+
     function addRouteToMap(routeGeoJSON) {
         if (map.getSource('route')) {
             map.getSource('route').setData(routeGeoJSON);
@@ -435,12 +368,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 stepsEl.appendChild(li);
             });
             showPanel('route-section');
-        } catch (err) {
-            alert(`Error getting route: ${err.message}`);
-        }
+        } catch (err) { alert(`Error getting route: ${err.message}`); }
     });
 
-    // --- Layer Switcher Logic ---
     layerSwitcher.addEventListener('click', () => {
         currentStyle = (currentStyle === 'default') ? 'satellite' : 'default';
         map.setStyle(STYLES[currentStyle]);
@@ -450,19 +380,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     map.on('styledata', () => {
-        if (currentRouteGeoJSON) {
-            addRouteToMap(currentRouteGeoJSON);
-        }
+        if (currentRouteGeoJSON) { addRouteToMap(currentRouteGeoJSON); }
     });
 
-    // --- Mobile Panel Drag Logic ---
     if (isMobile) {
         const grabber = document.getElementById("panel-grabber");
         let startY;
-        grabber.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].pageY;
-            sidePanel.style.transition = 'none';
-        }, { passive: true });
+        grabber.addEventListener('touchstart', (e) => { startY = e.touches[0].pageY; sidePanel.style.transition = 'none'; }, { passive: true });
         grabber.addEventListener('touchmove', (e) => {
             if (startY === undefined) return;
             const currentY = e.touches[0].pageY;
@@ -487,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sidePanel.style.bottom = '';
         });
     }
-    
-    // --- Initialize UI state on page load ---
+
     updateAuthUI();
 });
