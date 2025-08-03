@@ -138,7 +138,7 @@
             color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 5px auto;
         }
         .action-buttons .icon-circle svg { width: 24px; height: 24px; }
-        .action-buttons .btn-label { color: var(--brand-color); font-weight: 600; }
+        .action-actions .btn-label { color: var(--brand-color); font-weight: 600; }
         #quick-facts h4 { border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 10px; }
         #quick-facts-content { color: #3c4043; line-height: 1.6; }
 
@@ -169,6 +169,7 @@
         #route-section-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; }
         #route-section-header h3 { font-size: 20px; margin: 0; }
         #exit-route-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #5f6368; padding: 0 5px;}
+        #route-summary { padding: 10px 20px; font-weight: 500; border-bottom: 1px solid #e0e0e0; }
         #route-steps { list-style: none; padding: 0; margin: 0; }
         #route-steps li { padding: 15px 20px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
         #route-steps li:last-child { border-bottom: none; }
@@ -249,166 +250,6 @@
             #navigation-instruction { margin-right: 0; margin-bottom: 10px; }
             #end-navigation-btn { text-align: center; }
         }
-
-        /* --- Settings Menu & Button --- */
-        .js-settings-btn { /* CHANGED from ID to Class */
-            position: fixed;
-            z-index: 40;
-            background-color: white;
-            border-radius: 50%;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s ease;
-        }
-        .js-settings-btn:hover {
-            transform: scale(1.1);
-        }
-        .js-settings-btn svg {
-            color: #333;
-        }
-
-        #menu-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4);
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        #menu-overlay.open {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        #settings-menu {
-            background: #fff;
-            z-index: 101;
-            display: none;
-        }
-
-        @media (max-width: 768px) and (pointer: coarse) {
-            .js-settings-btn {
-                bottom: 30px;
-                right: 15px;
-                width: 56px;
-                height: 56px;
-            }
-            .js-settings-btn svg { width: 28px; height: 28px; }
-
-            #settings-menu {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                border-radius: 16px 16px 0 0;
-                box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-                transform: translateY(100%);
-                transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            #settings-menu.open {
-                display: block;
-                transform: translateY(0);
-            }
-        }
-
-        @media (min-width: 769px) {
-            #profile-area .js-settings-btn { /* Select only the desktop button */
-                position: relative;
-                width: 36px;
-                height: 36px;
-                background-color: rgba(255, 255, 255, 0.2);
-                box-shadow: none;
-                margin-right: 10px;
-            }
-            #profile-area .js-settings-btn:hover { background-color: rgba(255, 255, 255, 0.3); transform: none; }
-            #profile-area .js-settings-btn svg { width: 24px; height: 24px; color: white; }
-            
-            #mobile-settings-btn { display: none; } /* Hide mobile button on desktop */
-
-            #settings-menu {
-                position: absolute;
-                top: calc(var(--banner-height) + 5px);
-                right: 60px;
-                min-width: 280px;
-                border-radius: 8px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-                opacity: 0;
-                transform: translateY(-10px);
-                transition: opacity 0.2s ease, transform 0.2s ease;
-                pointer-events: none;
-            }
-            #settings-menu.open {
-                display: block;
-                opacity: 1;
-                transform: translateY(0);
-                pointer-events: auto;
-            }
-            #menu-overlay { display: none; }
-        }
-
-        .settings-menu-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        .settings-menu-header h4 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        #close-settings-btn {
-            background: none;
-            border: none;
-            font-size: 28px;
-            line-height: 1;
-            padding: 0 5px;
-            cursor: pointer;
-            color: #5f6368;
-        }
-        .settings-menu-content {
-            padding: 15px 20px;
-        }
-        .setting-group {
-            margin-bottom: 15px;
-        }
-        .setting-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            color: #5f6368;
-            margin-bottom: 12px;
-        }
-        .radio-group {
-            display: flex;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .radio-group label {
-            flex: 1;
-            text-align: center;
-            padding: 10px 5px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            font-weight: 500;
-        }
-        .radio-group input[type="radio"] {
-            display: none;
-        }
-        .radio-group input[type="radio"]:checked + label {
-            background-color: var(--brand-color);
-            color: white;
-        }
-        .radio-group label:not(:last-of-type) {
-            border-right: 1px solid #ccc;
-        }
     </style>
 </head>
 <body>
@@ -416,14 +257,6 @@
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
-            <button class="js-settings-btn" aria-label="Map Settings">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17-.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19-.15-.24-.42-.12-.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
-            </button>
-            <button id="profile-button" aria-label="User Profile">
-                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </button>
-            <div id="profile-dropdown">
-            </div>
         </div>
     </div>
     
@@ -445,7 +278,7 @@
         <div id="panel-grabber"></div>
         <div class="panel-content">
             <div id="info-panel-redesign" hidden>
-                <!-- Info panel content -->
+                <!-- Info panel content will go here -->
             </div>
             <div id="directions-panel-redesign" hidden>
                  <div class="info-content-padding">
@@ -471,7 +304,7 @@
                     <h3>Route Details</h3>
                     <button id="exit-route-btn" title="Back to inputs">×</button>
                 </div>
-                <div id="route-summary" style="padding: 10px 20px; font-weight: 500; border-bottom: 1px solid #e0e0e0;"></div>
+                <div id="route-summary"></div>
                 <ol id="route-steps"></ol>
             </div>
         </div>
