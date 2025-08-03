@@ -16,6 +16,7 @@ const authService = {
     async getUser() { return userManager.getUser(); },
 };
 
+
 document.addEventListener('DOMContentLoaded', async () => {
 
     // --- AUTHENTICATION CHECK & UI UPDATE ---
@@ -35,7 +36,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
-        const isLoggedIn = !!currentUser;
+        // Your original code used a separate isLoggedIn flag. We now derive this directly from currentUser.
+        const isLoggedIn = !!currentUser; 
         loggedInView.hidden = !isLoggedIn;
         loggedOutView.hidden = isLoggedIn;
         if (isLoggedIn) {
@@ -65,7 +67,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
-    signupBtn.addEventListener('click', (e) => { e.preventDefault(); window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/"; });
+    signupBtn.addEventListener('click', (e) => { 
+        e.preventDefault(); 
+        window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/";
+    });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
     
     // --- YOUR EXISTING STABLE CODE STARTS HERE ---
@@ -73,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const geolocationOptions = { enableHighAccuracy: true, timeout: 120000, maximumAge: 0 };
 
     const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty', // You will replace this
+        default: 'https://tiles.openfreemap.org/styles/liberty', // As requested
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
 
@@ -143,6 +148,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function addRouteToMap(routeGeoJSON) { if (map.getSource('route')) { map.getSource('route').setData(routeGeoJSON); } else { map.addSource('route', { type: 'geojson', data: routeGeoJSON }); map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#0d89ec', 'line-width': 6 } }); } }
     
     // --- EVENT LISTENERS (UNCHANGED) ---
+    closePanelBtn.addEventListener('click', closePanel);
+    map.on('click', (e) => { const targetClasses = e.originalEvent.target.classList; if (!targetClasses.contains('maplibregl-ctrl-icon') && !targetClasses.contains('mapboxgl-ctrl-icon')) { closePanel(); } });
     document.getElementById("main-search-icon").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
     mainSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult); });
     attachSuggestionListener(mainSearchInput, document.getElementById("main-suggestions"), processPlaceResult);
@@ -218,7 +225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const instruction = steps[upcomingStepIndex].maneuver.instruction;
         let displayText = instruction;
-        if (distanceToManeuver !== null) {
+        if (distanceToManeuver !== null && distanceToManeuver > 0) {
             // Create a sub-line for the distance, similar to Google Maps
             displayText += `<br><small style="font-weight: 400;">in ${formatDistance(distanceToManeuver)}</small>`;
         }
@@ -247,9 +254,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             speech.speak("Recalculating route.");
             fromInput.value = "Your Location";
             fromInput.dataset.coords = userLngLat.join(',');
-            await getRoute(); // This will generate a new route
+            await getRoute(); 
             isRerouting = false;
-            upcomingStepIndex = 0; // Reset for the new route
+            upcomingStepIndex = 0; 
             return;
         }
 
@@ -258,7 +265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (turf.distance(userPoint, turf.point(finalDestination), { units: 'meters' }) < 25) {
             speech.speak("You have arrived at your destination.");
-            upcomingStepIndex = steps.length; // Mark as finished
+            upcomingStepIndex = steps.length;
             updateNavigationInstruction();
             setTimeout(stopNavigation, 5000);
             return;
@@ -274,7 +281,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (distanceToManeuver < 30) {
             speech.speak(nextManeuver.instruction);
             upcomingStepIndex++;
-            updateNavigationInstruction(null); // Show the next instruction without a distance
+            updateNavigationInstruction(null); 
         }
     }
     
