@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const map = new maplibregl.Map({
         container: "map",
-        style: STYLES.default,
+        style: 'https://tiles.openfreemap.org/styles/liberty/style.json',
         center: [-95, 39],
         zoom: 4
     });
