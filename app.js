@@ -2,10 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
-    // --- High-accuracy geolocation options ---
+    // --- More forgiving geolocation options for non-Google devices ---
     const geolocationOptions = {
         enableHighAccuracy: true,
-        timeout: 20000,
+        timeout: 120000,          // Give the raw GPS a full 2 minutes (120,000ms) to get a lock.
         maximumAge: 0
     };
 
@@ -184,11 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const toSuggestions = document.getElementById('panel-to-suggestions');
     attachSuggestionListener(toInput, toSuggestions, (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
 
-    // The rest of the functions from your stable code are unchanged...
-    // ...
-    // (Functions like processPlaceResult, fetchAndSetPlaceImage, etc. are identical to your file)
-    // ...
-
     function processPlaceResult(place) {
         currentPlace = place;
         stopNavigation();
@@ -295,12 +290,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
     document.getElementById('info-save-btn').addEventListener('click', () => { if (isLoggedIn) { alert("Feature 'Save Place' not yet implemented!"); } else { alert("Please log in to save places."); } });
     document.getElementById('swap-btn').addEventListener('click', () => { [fromInput.value, toInput.value] = [toInput.value, fromInput.value]; [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords]; });
-    document.getElementById('dir-use-my-location').addEventListener('click', () => { navigator.geolocation.getCurrentPosition(pos => { fromInput.value = "Your Location"; fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; }, () => { alert("Could not get your location. Please ensure location is on and set to 'High Accuracy'."); }, geolocationOptions); });
+    document.getElementById('dir-use-my-location').addEventListener('click', () => {
+        fromInput.value = "Getting your location...";
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                fromInput.value = "Your Location";
+                fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
+            },
+            handlePositionError, // Use our smarter error handler
+            geolocationOptions   // Use our more forgiving options
+        );
+    });
     document.getElementById('back-to-info-btn').addEventListener('click', () => { if (currentPlace) showPanel('info-panel-redesign'); });
     
-    // --- START: MODIFIED/NEW ROUTING LOGIC ---
-
-    // NEW: Helper to clear any previous route from the map
     function clearRouteFromMap() {
         if (map.getLayer('route-line')) {
             map.removeLayer('route-line');
@@ -310,7 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // NEW: Helper to display the list of route steps
     function displayRouteSteps(route) {
         const routeStepsEl = document.getElementById('route-steps');
         routeStepsEl.innerHTML = ''; // Clear previous steps
@@ -322,11 +323,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // MODIFIED: This is the core function that now handles both Planning and Navigation modes.
     async function getRoute() {
         if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
 
-        // Clear any old route before starting
         clearRouteFromMap();
 
         try {
@@ -344,35 +343,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const bounds = new maplibregl.LngLatBounds();
             routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
 
-            // *** THE CRITICAL LOGIC FORK ***
             if (fromInput.value.trim() === "Your Location") {
-                // --- NAVIGATION MODE ---
-                // User wants active turn-by-turn guidance
                 map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
                 closePanel();
                 startNavigation();
             } else {
-                // --- PLANNING MODE ---
-                // User is just viewing a route, not navigating it
                 displayRouteSteps(route);
                 showPanel('route-section');
-                // Fit map with padding for the open side panel on desktop
                 map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
             }
 
         } catch (err) { alert(`Error getting route: ${err.message}`); isRerouting = false; }
     }
 
-    // Connect the new `getRoute` function to the button
     document.getElementById('get-route-btn').addEventListener('click', getRoute);
 
-    // MODIFIED: When exiting the route steps view, also clear the route line from the map
     document.getElementById('exit-route-btn').addEventListener('click', () => {
         clearRouteFromMap();
         showPanel('directions-panel-redesign');
     });
 
-    // UNCHANGED geocode helper function from your code
     async function geocode(inputEl) {
         if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
         const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
@@ -383,7 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
     }
 
-    // UNCHANGED addRouteToMap helper function from your code
     function addRouteToMap(routeGeoJSON) {
         if (map.getSource('route')) {
             map.getSource('route').setData(routeGeoJSON);
@@ -392,12 +381,6 @@ document.addEventListener('DOMContentLoaded', () => {
             map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#0d89ec', 'line-width': 6 } });
         }
     }
-    
-    // --- END: MODIFIED/NEW ROUTING LOGIC ---
-
-
-    // The rest of the file (startNavigation, stopNavigation, handlePositionUpdate, settings, etc.)
-    // remains completely unchanged from your stable version.
     
     function startNavigation() {
         if (!navigator.geolocation) return alert("Geolocation is not supported by your browser.");
@@ -428,7 +411,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handlePositionError(error) {
-        alert(`Geolocation Error: ${error.message}`);
+        let errorMessage = "An unknown geolocation error occurred.";
+        switch (error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = "Geolocation request denied. Please check your browser and site permissions.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable. Try moving to an area with a clearer view of the sky.";
+                break;
+            case error.TIMEOUT:
+                errorMessage = "Geolocation request timed out. Could not get a location fix in a reasonable amount of time. Please try again in an area with a clear view of the sky.";
+                break;
+        }
+        console.error("Geolocation Error Details:", error);
+        alert(errorMessage);
         stopNavigation();
     }
 
@@ -479,7 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- START: SETTINGS MENU LOGIC (Unchanged) ---
     const settingsBtns = document.querySelectorAll('.js-settings-btn');
     const settingsMenu = document.getElementById('settings-menu');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
@@ -495,7 +490,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) { closeSettings(); } });
     styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { const newStyle = radio.value; if (newStyle !== currentStyle) { currentStyle = newStyle; map.setStyle(STYLES[currentStyle]); } if (isMobile) { setTimeout(closeSettings, 200); } }); });
     document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { alert(`Unit selection ('${radio.value}') is not implemented yet.`); if (isMobile) { setTimeout(closeSettings, 200); } }); });
-    // --- END: SETTINGS MENU LOGIC (Unchanged) ---
     
     map.on('styledata', () => {
         if (isNavigating && currentRouteData) {
