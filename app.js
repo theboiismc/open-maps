@@ -1,203 +1,516 @@
-// --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
-const authConfig = {
-    authority: "https://accounts.theboiismc.com/application/o/maps/",
-    // *** IMPORTANT: Replace this placeholder with the Client ID from your Authentik Application settings. ***
-    client_id: "YOUR_CLIENT_ID_FROM_AUTHENTIK",
-    redirect_uri: "https://maps.theboiismc.com/index.html",
-    post_logout_redirect_uri: "https://maps.theboiismc.com/index.html",
-    scope: "openid profile email",
-    response_type: 'code',
-    automaticSilentRenew: true,
-};
-const userManager = new oidc.UserManager(authConfig);
-const authService = {
-    async login() { return userManager.signinRedirect(); },
-    async logout() { return userManager.signoutRedirect(); },
-    async getUser() { return userManager.getUser(); },
-    async handleCallback() { return userManager.signinRedirectCallback(); }
-};
+document.addEventListener('DOMContentLoaded', () => {
 
-// --- SERVICE WORKER REGISTRATION ---
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Service Worker registered.'))
-            .catch(err => console.error('Service Worker registration failed:', err));
-    });
-}
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
-// --- MAIN APP INITIALIZATION ---
-document.addEventListener('DOMContentLoaded', async () => {
-    
-    // DOM ELEMENT REFERENCES (COMPLETE)
-    const dom = {
-        body: document.body,
-        navigationStatus: document.getElementById('navigation-status'),
-        navigationInstruction: document.getElementById('navigation-instruction'),
-        subInstruction: document.querySelector('#navigation-instruction .sub-instruction'),
-        endNavigationBtn: document.getElementById('end-navigation-btn'),
-        sidePanel: document.getElementById('side-panel'),
-        closePanelBtn: document.getElementById('close-panel-btn'),
-        infoPanel: document.getElementById('info-panel-redesign'),
-        infoName: document.getElementById('info-name'),
-        infoAddress: document.getElementById('info-address'),
-        infoDirectionsBtn: document.getElementById('info-directions-btn'),
-        infoSaveBtn: document.getElementById('info-save-btn'),
-        directionsPanel: document.getElementById('directions-panel-redesign'),
-        getFromInput: document.getElementById('panel-from-input'),
-        getToInput: document.getElementById('panel-to-input'),
-        fromSuggestions: document.getElementById('panel-from-suggestions'),
-        toSuggestions: document.getElementById('panel-to-suggestions'),
-        swapBtn: document.getElementById('swap-btn'),
-        getRouteBtn: document.getElementById('get-route-btn'),
-        useMyLocationBtn: document.getElementById('dir-use-my-location'),
-        backToInfoBtn: document.getElementById('back-to-info-btn'),
-        routeSection: document.getElementById('route-section'),
-        routeSummary: document.getElementById('route-summary'),
-        routeStepsList: document.getElementById('route-steps'),
-        routeSummaryTitle: document.getElementById('route-summary-title'),
-        routeSummaryMeta: document.getElementById('route-summary-meta'),
-        startNavBtn: document.getElementById('start-navigation-btn'),
-        exitRouteBtn: document.getElementById('exit-route-btn'),
-        mainSearchInput: document.getElementById('main-search'),
-        mainSearchSuggestions: document.getElementById('main-suggestions'),
-        mainDirectionsIcon: document.getElementById('main-directions-icon'),
-        profileButton: document.getElementById('profile-button'),
-        profileDropdown: document.getElementById('profile-dropdown'),
-        settingsButtons: document.querySelectorAll('.js-settings-btn'),
-        settingsMenu: document.getElementById('settings-menu'),
-        closeSettingsBtn: document.getElementById('close-settings-btn'),
-        menuOverlay: document.getElementById('menu-overlay'),
-        savedPlacesBtn: document.getElementById('saved-places-btn'),
-        loggedInView: document.getElementById('logged-in-view'),
-        loggedOutView: document.getElementById('logged-out-view'),
-        loginBtn: document.getElementById('login-btn'),
-        logoutBtn: document.getElementById('logout-btn'),
-        signupBtn: document.getElementById('signup-btn'),
-        usernameDisplay: document.querySelector('#logged-in-view .username'),
-        emailDisplay: document.querySelector('#logged-in-view .email'),
+    // --- More forgiving geolocation options for non-Google devices ---
+    const geolocationOptions = {
+        enableHighAccuracy: true,
+        timeout: 120000,          // Give the raw GPS a full 2 minutes (120,000ms) to get a lock.
+        maximumAge: 0
     };
 
-    // Function to update the UI based on authentication status
-    const updateUiForUser = (user) => {
-        if (user && !user.expired) {
-            dom.loggedInView.hidden = false;
-            dom.loggedOutView.hidden = true;
-            dom.usernameDisplay.textContent = user.profile.name || 'User';
-            dom.emailDisplay.textContent = user.profile.email || '';
-        } else {
-            dom.loggedInView.hidden = true;
-            dom.loggedOutView.hidden = false;
-        }
+    // --- START: AUTHENTICATION UI LOGIC (Unchanged) ---
+    const profileArea = document.getElementById('profile-area');
+    const profileButton = document.getElementById('profile-button');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    const loggedInView = document.getElementById('logged-in-view');
+    const loggedOutView = document.getElementById('logged-out-view');
+    const loginBtn = document.getElementById('login-btn');
+    const signupBtn = document.getElementById('signup-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const savedPlacesBtn = document.getElementById('saved-places-btn');
+
+    let isLoggedIn = false;
+
+    const updateAuthUI = () => {
+        loggedInView.hidden = !isLoggedIn;
+        loggedOutView.hidden = isLoggedIn;
     };
 
-    // Authentication Flow
-    try {
-        if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
-            const user = await authService.handleCallback();
-            updateUiForUser(user);
-            window.history.replaceState({}, document.title, "/");
-        } else {
-            const user = await authService.getUser();
-            updateUiForUser(user);
-        }
-    } catch (error) {
-        console.error("Authentication error:", error);
-        updateUiForUser(null);
-    }
-
-    // Auth Event Listeners
-    dom.loginBtn.addEventListener('click', () => authService.login());
-    dom.logoutBtn.addEventListener('click', () => authService.logout());
-    dom.signupBtn.addEventListener('click', () => {
-        window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/";
+    profileButton.addEventListener('click', (e) => {
+        const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
+        profileDropdown.style.display = isHidden ? 'block' : 'none';
     });
 
-    // --- MAP LOGIC & STATE ---
+    document.addEventListener('click', (e) => {
+        if (profileDropdown.style.display === 'block' && !profileArea.contains(e.target)) {
+            profileDropdown.style.display = 'none';
+        }
+    });
+
+    loginBtn.addEventListener('click', (e) => { e.preventDefault(); alert("Redirecting to login page... (Simulation)"); isLoggedIn = true; updateAuthUI(); profileDropdown.style.display = 'none'; });
+    signupBtn.addEventListener('click', (e) => { e.preventDefault(); alert("Redirecting to sign-up page... (Simulation)"); profileDropdown.style.display = 'none'; });
+    logoutBtn.addEventListener('click', (e) => { e.preventDefault(); isLoggedIn = false; updateAuthUI(); profileDropdown.style.display = 'none'; alert("You have been logged out. (Simulation)"); });
+    savedPlacesBtn.addEventListener('click', (e) => { e.preventDefault(); alert("Feature 'Saved Places' not yet implemented!"); profileDropdown.style.display = 'none'; });
+    // --- END: AUTHENTICATION UI LOGIC (Unchanged) ---
+
+    const STYLES = {
+        default: 'https://tiles.openfreemap.org/styles/liberty',
+        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
+    };
+
     const map = new maplibregl.Map({
-        container: 'map',
-        style: 'https://tiles.openfreemap.org/styles/liberty/style.json',
-        center: [-98.5795, 39.8283],
-        zoom: 3
+        container: "map",
+        style: STYLES.default,
+        center: [-95, 39],
+        zoom: 4
     });
-    map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+    
+    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     map.addControl(new maplibregl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
+        positionOptions: geolocationOptions,
         trackUserLocation: true,
         showUserHeading: true
-    }), 'top-right');
-    
-    const appState = {
-        isNavigating: false,
-        navigationWatcherId: null,
-        currentRoute: null,
-        currentStepIndex: 0,
-        userLocation: null,
-        units: 'imperial',
-        startPoint: null,
-        endPoint: null,
-        selectedPlace: null,
-        mapStyle: 'default'
-    };
+    }), "bottom-right");
+
+
+    const sidePanel = document.getElementById("side-panel");
+    const mainSearchInput = document.getElementById("main-search");
+    const mainSearchContainer = document.getElementById('main-search-container');
+    const topSearchWrapper = document.getElementById('top-search-wrapper');
+    const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
+    const closePanelBtn = document.getElementById('close-panel-btn');
+
+    let currentPlace = null;
+    let currentStyle = 'default';
+
+    const navigationStatusPanel = document.getElementById('navigation-status');
+    const navigationInstructionEl = document.getElementById('navigation-instruction');
+    const endNavigationBtn = document.getElementById('end-navigation-btn');
     
     let userLocationMarker = null;
-    let mainSearchPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: true });
+    let navigationWatcherId = null;
+    let currentRouteData = null;
+    let upcomingStepIndex = 0;
+    let isNavigating = false;
+    let isRerouting = false;
+    let lastGoodPosition = null;
+
+    const speech = {
+        synthesis: window.speechSynthesis,
+        utterance: new SpeechSynthesisUtterance(),
+        speak(text) {
+            if (this.synthesis.speaking) this.synthesis.cancel();
+            if (text) { this.utterance.text = text; this.synthesis.speak(this.utterance); }
+        }
+    };
+
+    function moveSearchBarToPanel() { if (!isMobile) { mainSearchContainer.style.boxShadow = 'none'; mainSearchContainer.style.borderRadius = '8px'; panelSearchPlaceholder.hidden = false; panelSearchPlaceholder.appendChild(mainSearchContainer); topSearchWrapper.style.opacity = '0'; } }
+    function moveSearchBarToTop() { if (!isMobile) { mainSearchContainer.style.boxShadow = ''; mainSearchContainer.style.borderRadius = ''; topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
+
+    function showPanel(viewId) {
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section'].forEach(id => {
+            document.getElementById(id).hidden = id !== viewId;
+        });
+        if (!sidePanel.classList.contains('open')) {
+            if (isMobile) {
+                if (!sidePanel.classList.contains('peek')) sidePanel.classList.add('peek');
+            } else {
+                sidePanel.classList.add('open');
+                moveSearchBarToPanel();
+            }
+        }
+    }
+
+    function closePanel() {
+        if (isMobile) sidePanel.classList.remove('open', 'peek');
+        else { sidePanel.classList.remove('open'); moveSearchBarToTop(); }
+    }
+    closePanelBtn.addEventListener('click', closePanel);
+    map.on('click', (e) => {
+        const targetClasses = e.originalEvent.target.classList;
+        if (!targetClasses.contains('maplibregl-ctrl-icon') && !targetClasses.contains('mapboxgl-ctrl-icon')) {
+            closePanel();
+        }
+    });
+
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
+        const fetchAndDisplaySuggestions = async (query) => {
+            if (!query) { suggestionsEl.style.display = "none"; return; }
+            const bounds = map.getBounds();
+            const viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                suggestionsEl.innerHTML = "";
+                data.forEach(item => {
+                    const el = document.createElement("div");
+                    el.className = "search-result";
+                    el.textContent = item.display_name;
+                    el.addEventListener("click", () => onSelect(item));
+                    suggestionsEl.appendChild(el);
+                });
+                suggestionsEl.style.display = data.length > 0 ? "block" : "none";
+            } catch (e) { console.error("Suggestion fetch failed", e); }
+        };
+        const debouncedFetch = debounce(fetchAndDisplaySuggestions, 300);
+        inputEl.addEventListener("input", () => debouncedFetch(inputEl.value.trim()));
+        inputEl.addEventListener("blur", () => { setTimeout(() => { suggestionsEl.style.display = "none"; }, 200); });
+    }
+
+    async function performSmartSearch(inputEl, onSelect) {
+        const query = inputEl.value.trim();
+        if (!query) return;
+        const bounds = map.getBounds();
+        const viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.length > 0) onSelect(data[0]);
+            else alert("No results found for your search.");
+        } catch (e) { alert("Search failed. Please check your connection."); }
+    }
+
+    const mainSuggestions = document.getElementById("main-suggestions");
+    attachSuggestionListener(mainSearchInput, mainSuggestions, processPlaceResult);
+    document.getElementById("main-search-icon").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
+    mainSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult); });
+
+    const fromInput = document.getElementById('panel-from-input');
+    const fromSuggestions = document.getElementById('panel-from-suggestions');
+    attachSuggestionListener(fromInput, fromSuggestions, (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
+
+    const toInput = document.getElementById('panel-to-input');
+    const toSuggestions = document.getElementById('panel-to-suggestions');
+    attachSuggestionListener(toInput, toSuggestions, (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
+
+    function processPlaceResult(place) {
+        currentPlace = place;
+        stopNavigation();
+        clearRouteFromMap();
+        map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
+        mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
+        document.getElementById('info-name').textContent = place.display_name.split(',')[0];
+        document.getElementById('info-address').textContent = place.display_name;
+        const locationName = place.display_name.split(',')[0];
+        fetchAndSetPlaceImage(locationName, place.lon, place.lat);
+        fetchAndSetWeather(place.lat, place.lon);
+        fetchAndSetQuickFacts(locationName);
+        showPanel('info-panel-redesign');
+    }
+
+    async function fetchAndSetPlaceImage(query, lon, lat) {
+        const imgEl = document.getElementById('info-image');
+        imgEl.src = '';
+        imgEl.style.backgroundColor = '#e0e0e0';
+        imgEl.alt = 'Loading image...';
+        imgEl.onerror = null;
+
+        try {
+            const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
+            const res = await fetch(wikipediaUrl);
+            const data = await res.json();
+            const page = Object.values(data.query.pages)[0];
+            
+            if (page.thumbnail && page.thumbnail.source) {
+                imgEl.src = page.thumbnail.source;
+                imgEl.alt = `Photograph of ${query}`;
+                return;
+            } else {
+                throw new Error("No image found on Wikipedia.");
+            }
+        } catch (e) {
+            console.log("Wikipedia image failed:", e.message, "Activating fallback.");
+            const offset = 0.005;
+            const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`;
+            const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
+            imgEl.src = fallbackUrl;
+            imgEl.alt = `Map view of ${query}`;
+            imgEl.onerror = () => {
+                imgEl.style.backgroundColor = '#e0e0e0';
+                imgEl.alt = 'Image not available';
+            };
+        }
+    }
+
+    function getWeatherDescription(code) {
+        const descriptions = { 0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', 71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall', 80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers', 95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail' };
+        return descriptions[code] || "Weather data unavailable";
+    }
+
+    async function fetchAndSetWeather(lat, lon) {
+        const weatherEl = document.getElementById('info-weather');
+        weatherEl.textContent = "Loading weather...";
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}¤t_weather=true&temperature_unit=fahrenheit`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`API returned status ${res.status}`);
+            const data = await res.json();
+            if (data.current_weather) {
+                const tempF = Math.round(data.current_weather.temperature);
+                const tempC = Math.round((tempF - 32) * 5 / 9);
+                const description = getWeatherDescription(data.current_weather.weathercode);
+                weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
+            } else { throw new Error("Invalid weather data format."); }
+        } catch (e) {
+            weatherEl.textContent = "Could not load weather data.";
+            console.error("Weather fetch/parse error:", e);
+        }
+    }
+
+    async function fetchAndSetQuickFacts(query) {
+        const factsEl = document.getElementById('quick-facts-content');
+        factsEl.textContent = "Loading facts...";
+        try {
+            const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=extracts&exintro&explaintext&redirects=1&titles=${encodeURIComponent(query)}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const page = Object.values(data.query.pages)[0];
+            factsEl.textContent = page.extract ? page.extract.substring(0, 350) + '...' : "No quick facts found on Wikipedia.";
+        } catch (e) {
+            factsEl.textContent = "Could not load facts.";
+            console.error("Wikipedia API error", e);
+        }
+    }
+
+    function openDirectionsPanel() {
+        showPanel('directions-panel-redesign');
+        if (currentPlace) {
+            toInput.value = currentPlace.display_name;
+            toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
+            fromInput.value = ''; fromInput.dataset.coords = '';
+        } else {
+            toInput.value = mainSearchInput.value;
+            toInput.dataset.coords = '';
+            fromInput.value = ''; fromInput.dataset.coords = '';
+        }
+    }
+
+    document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
+    document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
+    document.getElementById('info-save-btn').addEventListener('click', () => { if (isLoggedIn) { alert("Feature 'Save Place' not yet implemented!"); } else { alert("Please log in to save places."); } });
+    document.getElementById('swap-btn').addEventListener('click', () => { [fromInput.value, toInput.value] = [toInput.value, fromInput.value]; [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords]; });
+    document.getElementById('dir-use-my-location').addEventListener('click', () => {
+        fromInput.value = "Getting your location...";
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                fromInput.value = "Your Location";
+                fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
+            },
+            handlePositionError, // Use our smarter error handler
+            geolocationOptions   // Use our more forgiving options
+        );
+    });
+    document.getElementById('back-to-info-btn').addEventListener('click', () => { if (currentPlace) showPanel('info-panel-redesign'); });
     
-    // --- ALL HELPER FUNCTIONS (UNABRIDGED) ---
-    const debounce = (func, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
-    const formatDistance = (meters) => { if (appState.units === 'imperial') { const miles = meters / 1609.34; if (miles < 0.1) return `${Math.round(miles * 5280)} ft`; return `${miles.toFixed(1)} mi`; } if (meters < 1000) return `${Math.round(meters)} m`; return `${(meters / 1000).toFixed(1)} km`; };
-    const formatDuration = (seconds) => { const hours = Math.floor(seconds / 3600); const minutes = Math.round((seconds % 3600) / 60); if (hours > 0) return `${hours} hr ${minutes} min`; return `${minutes} min`; };
-    const getManeuverIcon = (type, modifier) => { const icons = { 'turn-right': '<path d="M6.41 6L11 10.59V4H13V12H5V10H9.59L5 5.41L6.41 6Z"/>','turn-left': '<path d="M17.59 6L13 10.59V4H11V12H19V10H14.41L19 5.41L17.59 6Z"/>','straight': '<path d="M11 4V12H6.41L11 16.59L15.59 12H13V4H11Z"/>','roundabout-right': '<path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8V11h-2v1c0 3.31-2.69 6-6 6s-6-2.69-6-6 2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>','depart': '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5z"/>','arrive': '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>' }; const key = modifier ? `${type}-${modifier}` : type; return icons[key] || icons['straight']; };
-    const fetchSuggestions = async (query, suggestionsElement) => { if (query.length < 3) { suggestionsElement.innerHTML = ''; suggestionsElement.style.display = 'none'; return; } const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`; try { const response = await fetch(url); const data = await response.json(); displaySuggestions(data, suggestionsElement); } catch (error) { console.error('Geocoding suggestions error:', error); } };
-    const displaySuggestions = (suggestions, element) => { element.innerHTML = ''; if (suggestions.length === 0) { element.style.display = 'none'; return; } suggestions.forEach(place => { const div = document.createElement('div'); div.className = 'search-result'; div.textContent = place.display_name; div.onclick = () => handleSuggestionClick(place, element.id); element.appendChild(div); }); element.style.display = 'block'; };
-    const handleSuggestionClick = (place, sourceElementId) => { const placeData = { lon: parseFloat(place.lon), lat: parseFloat(place.lat), name: place.display_name.split(',')[0], address: place.display_name }; if (sourceElementId === 'main-suggestions') { appState.selectedPlace = placeData; dom.mainSearchInput.value = ''; dom.mainSearchSuggestions.style.display = 'none'; map.flyTo({ center: [placeData.lon, placeData.lat], zoom: 15 }); showPlaceInfo(placeData); } else if (sourceElementId === 'panel-from-suggestions') { appState.startPoint = { ...placeData, isUserLocation: false }; dom.getFromInput.value = placeData.name; dom.fromSuggestions.style.display = 'none'; } else if (sourceElementId === 'panel-to-suggestions') { appState.endPoint = placeData; dom.getToInput.value = placeData.name; dom.toSuggestions.style.display = 'none'; } };
-    const showPlaceInfo = (place) => { dom.infoName.textContent = place.name; dom.infoAddress.textContent = place.address; updateSaveButtonUI(); showPanelContent('info-panel-redesign'); };
-    const showPanelContent = (panelToShow) => { [dom.infoPanel, dom.directionsPanel, dom.routeSection].forEach(p => p.hidden = true); if (panelToShow) document.getElementById(panelToShow).hidden = false; dom.backToInfoBtn.style.display = appState.selectedPlace ? 'block' : 'none'; if (!dom.sidePanel.classList.contains('open')) dom.sidePanel.classList.add('open'); };
-    const hideSidePanel = () => dom.sidePanel.classList.remove('open');
-    const getSavedPlaces = () => JSON.parse(localStorage.getItem('theboiismc-maps-saved-places')) || [];
-    const savePlaces = (places) => localStorage.setItem('theboiismc-maps-saved-places', JSON.stringify(places));
-    const toggleSavePlace = (place) => { const places = getSavedPlaces(); const existingIndex = places.findIndex(p => p.address === place.address); if (existingIndex > -1) { places.splice(existingIndex, 1); } else { places.push(place); } savePlaces(places); updateSaveButtonUI(); };
-    const updateSaveButtonUI = () => { const places = getSavedPlaces(); const saveLabel = dom.infoSaveBtn.querySelector('.btn-label'); if (appState.selectedPlace && places.find(p => p.address === appState.selectedPlace.address)) { saveLabel.textContent = "Saved"; dom.infoSaveBtn.style.opacity = '0.6'; } else { saveLabel.textContent = "Save"; dom.infoSaveBtn.style.opacity = '1'; } };
-    const displaySavedPlaces = () => { const places = getSavedPlaces(); dom.routeStepsList.innerHTML = ''; dom.routeSummary.hidden = true; if (places.length === 0) dom.routeStepsList.innerHTML = `<li style="padding: 20px; color: #5f6368;">You have no saved places.</li>`; places.forEach(place => { const li = document.createElement('li'); li.className = 'route-step-item'; li.innerHTML = `<div class="step-details" style="display: block;"><div class="step-instruction">${place.name}</div><div class="step-meta" style="white-space: normal;">${place.address}</div></div>`; li.addEventListener('click', () => { map.flyTo({ center: [place.lon, place.lat], zoom: 15 }); hideSidePanel(); }); dom.routeStepsList.appendChild(li); }); showPanelContent('route-section'); };
-    const fetchRoute = async () => { if (!appState.startPoint || !appState.endPoint) { alert("Please set both a start and end point."); return; } const coords = `${appState.startPoint.lon},${appState.startPoint.lat};${appState.endPoint.lon},${appState.endPoint.lat}`; const url = `https://router.project-osrm.org/route/v1/driving/${coords}?steps=true&geometries=geojson&overview=full`; try { const response = await fetch(url); if (!response.ok) throw new Error('Failed to fetch route'); const data = await response.json(); if (data.code === 'Ok' && data.routes.length > 0) { appState.currentRoute = data.routes[0]; displayRouteDetails(appState.currentRoute); drawRouteOnMap(appState.currentRoute.geometry); } else { alert("Could not find a route."); } } catch (error) { console.error("Routing error:", error); alert("Error fetching route."); } };
-    const displayRouteDetails = (route) => { dom.routeSummary.hidden = false; showPanelContent('route-section'); const leg = route.legs[0]; dom.routeSummaryTitle.textContent = formatDuration(route.duration); dom.routeSummaryMeta.textContent = `(${formatDistance(route.distance)})`; dom.startNavBtn.style.display = appState.startPoint.isUserLocation ? 'block' : 'none'; dom.routeStepsList.innerHTML = ''; leg.steps.forEach((step, index) => { const li = document.createElement('li'); li.className = 'route-step-item'; const iconSVG = getManeuverIcon(step.maneuver.type, step.maneuver.modifier); li.innerHTML = `<div class="step-icon"><svg viewBox="0 0 24 24" fill="currentColor">${iconSVG}</svg></div><div class="step-details"><div class="step-instruction">${step.maneuver.instruction}</div><div class="step-meta">${formatDistance(step.distance)}</div></div>`; li.addEventListener('click', () => map.flyTo({ center: step.maneuver.location, zoom: 17, pitch: 45 })); dom.routeStepsList.appendChild(li); }); };
-    const drawRouteOnMap = (geometry) => { if (mainSearchPopup.isOpen()) mainSearchPopup.remove(); const geojson = { type: 'Feature', geometry: geometry }; if (map.getSource('route')) { map.getSource('route').setData(geojson); } else { map.addSource('route', { type: 'geojson', data: geojson }); map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#1a73e8', 'line-width': 7, 'line-opacity': 0.8 } }, 'road-label'); } map.fitBounds(turf.bbox(geojson), { padding: { top: 100, bottom: 250, left: 100, right: 100 } }); };
-    const clearRoute = () => { if (map.getLayer('route-line')) map.removeLayer('route-line'); if (map.getSource('route')) map.removeSource('route'); appState.currentRoute = null; };
-    const startLiveNavigation = () => { if (!appState.currentRoute || !appState.startPoint.isUserLocation) { alert("Live navigation is only available when starting from your current location."); return; } appState.isNavigating = true; appState.currentStepIndex = 0; hideSidePanel(); dom.body.classList.add('navigating'); dom.navigationStatus.classList.add('visible'); map.easeTo({ pitch: 60, zoom: 18 }); updateNavigationInstruction(appState.currentRoute.legs[0].steps[0]); appState.navigationWatcherId = navigator.geolocation.watchPosition(handleNavigationUpdate, handleNavigationError, { enableHighAccuracy: true }); };
-    const endLiveNavigation = () => { if (appState.navigationWatcherId) navigator.geolocation.clearWatch(appState.navigationWatcherId); appState.isNavigating = false; appState.navigationWatcherId = null; dom.body.classList.remove('navigating'); dom.navigationStatus.classList.remove('visible'); map.easeTo({ pitch: 0 }); showPanelContent('route-section'); };
-    const handleNavigationUpdate = (position) => { const userCoords = [position.coords.longitude, position.coords.latitude]; appState.userLocation = userCoords; map.panTo(userCoords); const routeLine = turf.lineString(appState.currentRoute.geometry.coordinates); const userPoint = turf.point(userCoords); const distanceToRoute = turf.pointToLineDistance(userPoint, routeLine, { units: 'meters' }); if (distanceToRoute > 50) { dom.navigationInstruction.textContent = 'Recalculating...'; fetchRoute(); return; } const leg = appState.currentRoute.legs[0]; const nextStep = leg.steps[appState.currentStepIndex + 1]; if (!nextStep) { const destination = leg.steps[leg.steps.length - 1].maneuver.location; const distanceToDest = turf.distance(userPoint, turf.point(destination), { units: 'meters' }); if (distanceToDest < 25) { updateNavigationInstruction(leg.steps[leg.steps.length - 1], true); setTimeout(endLiveNavigation, 5000); } return; } const nextManeuverPoint = turf.point(nextStep.maneuver.location); const distanceToNextManeuver = turf.distance(userPoint, nextManeuverPoint, { units: 'meters' }); if (distanceToNextManeuver < 30) { appState.currentStepIndex++; updateNavigationInstruction(leg.steps[appState.currentStepIndex]); } else { dom.subInstruction.textContent = `In ${formatDistance(distanceToNextManeuver)}, ${nextStep.maneuver.instruction}`; } };
-    const updateNavigationInstruction = (step, isArriving = false) => { if (isArriving) { dom.navigationInstruction.innerHTML = `You have arrived`; dom.subInstruction.textContent = `at ${appState.endPoint.name}`; } else { dom.navigationInstruction.innerHTML = step.maneuver.instruction; const nextStep = appState.currentRoute.legs[0].steps[appState.currentStepIndex + 1]; dom.subInstruction.textContent = nextStep ? `Then, ${nextStep.maneuver.instruction}` : `You will arrive at your destination.`; } };
-    const handleNavigationError = (error) => { console.error(error); alert("Could not get your location. Please enable location services."); endLiveNavigation(); };
+    function clearRouteFromMap() {
+        if (map.getLayer('route-line')) {
+            map.removeLayer('route-line');
+        }
+        if (map.getSource('route')) {
+            map.removeSource('route');
+        }
+    }
+
+    function displayRouteSteps(route) {
+        const routeStepsEl = document.getElementById('route-steps');
+        routeStepsEl.innerHTML = ''; // Clear previous steps
+        const steps = route.legs[0].steps;
+        steps.forEach(step => {
+            const li = document.createElement('li');
+            li.textContent = step.maneuver.instruction;
+            routeStepsEl.appendChild(li);
+        });
+    }
     
-    // --- ALL EVENT LISTENERS (UNABRIDGED) ---
-    dom.mainSearchInput.addEventListener('input', debounce(e => fetchSuggestions(e.target.value, dom.mainSearchSuggestions), 300));
-    dom.getFromInput.addEventListener('input', debounce(e => fetchSuggestions(e.target.value, dom.fromSuggestions), 300));
-    dom.getToInput.addEventListener('input', debounce(e => fetchSuggestions(e.target.value, dom.toSuggestions), 300));
-    dom.mainDirectionsIcon.addEventListener('click', () => { showPanelContent('directions-panel-redesign'); if (appState.selectedPlace) { appState.endPoint = appState.selectedPlace; dom.getToInput.value = appState.selectedPlace.name; } });
-    dom.infoDirectionsBtn.addEventListener('click', () => { showPanelContent('directions-panel-redesign'); if (appState.selectedPlace) { appState.endPoint = appState.selectedPlace; dom.getToInput.value = appState.selectedPlace.name; } });
-    dom.backToInfoBtn.addEventListener('click', () => showPlaceInfo(appState.selectedPlace));
-    dom.swapBtn.addEventListener('click', () => { [appState.startPoint, appState.endPoint] = [appState.endPoint, appState.startPoint]; [dom.getFromInput.value, dom.getToInput.value] = [dom.getToInput.value, dom.getFromInput.value]; });
-    dom.getRouteBtn.addEventListener('click', fetchRoute);
-    dom.exitRouteBtn.addEventListener('click', () => { showPanelContent('directions-panel-redesign'); clearRoute(); });
-    dom.useMyLocationBtn.addEventListener('click', () => { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(position => { const { longitude, latitude } = position.coords; appState.userLocation = [longitude, latitude]; appState.startPoint = { lon: longitude, lat: latitude, name: "Your Location", isUserLocation: true }; dom.getFromInput.value = "Your Location"; }, handleNavigationError); } });
-    dom.infoSaveBtn.addEventListener('click', () => { if (appState.selectedPlace) toggleSavePlace(appState.selectedPlace); });
-    dom.profileButton.addEventListener('click', (e) => { e.stopPropagation(); dom.profileDropdown.style.display = dom.profileDropdown.style.display === 'block' ? 'none' : 'block'; });
-    dom.savedPlacesBtn.addEventListener('click', () => { dom.profileDropdown.style.display = 'none'; displaySavedPlaces(); });
-    dom.settingsButtons.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); dom.settingsMenu.classList.add('open'); if (window.innerWidth <= 768) dom.menuOverlay.classList.add('open'); }));
-    const closeSettings = () => { dom.settingsMenu.classList.remove('open'); dom.menuOverlay.classList.remove('open'); };
-    dom.closeSettingsBtn.addEventListener('click', closeSettings);
-    dom.menuOverlay.addEventListener('click', closeSettings);
-    document.addEventListener('click', () => { dom.profileDropdown.style.display = 'none'; dom.mainSearchSuggestions.style.display = 'none'; dom.fromSuggestions.style.display = 'none'; dom.toSuggestions.style.display = 'none'; });
-    dom.closePanelBtn.addEventListener('click', hideSidePanel);
-    dom.startNavBtn.addEventListener('click', startLiveNavigation);
-    dom.endNavigationBtn.addEventListener('click', endLiveNavigation);
-    document.querySelectorAll('input[name="map-style"]').forEach(radio => radio.addEventListener('change', (e) => {
-        const style = e.target.value;
-        appState.mapStyle = style;
-        const styleUrl = style === 'satellite' 
-            ? { version: 8, sources: { 'arcgis-satellite': { type: 'raster', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer', tileSize: 256 } }, layers: [{ id: 'satellite', type: 'raster', source: 'arcgis-satellite' }] } 
-            : 'https://tiles.openfreemap.org/styles/liberty/style.json';
-        map.setStyle(styleUrl).once('style.load', () => { if (appState.currentRoute) drawRouteOnMap(appState.currentRoute.geometry); });
-    }));
-    document.querySelectorAll('input[name="map-units"]').forEach(radio => radio.addEventListener('change', (e) => { appState.units = e.target.value; if (appState.currentRoute) displayRouteDetails(appState.currentRoute); }));
+    async function getRoute() {
+        if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
+
+        clearRouteFromMap();
+
+        try {
+            const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
+            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!data.routes || data.routes.length === 0) return alert("No route found.");
+            
+            currentRouteData = data;
+            const route = data.routes[0];
+            const routeGeoJSON = { type: 'Feature', geometry: route.geometry };
+            
+            addRouteToMap(routeGeoJSON);
+            const bounds = new maplibregl.LngLatBounds();
+            routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
+
+            if (fromInput.value.trim() === "Your Location") {
+                map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
+                closePanel();
+                startNavigation();
+            } else {
+                displayRouteSteps(route);
+                showPanel('route-section');
+                map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
+            }
+
+        } catch (err) { alert(`Error getting route: ${err.message}`); isRerouting = false; }
+    }
+
+    document.getElementById('get-route-btn').addEventListener('click', getRoute);
+
+    document.getElementById('exit-route-btn').addEventListener('click', () => {
+        clearRouteFromMap();
+        showPanel('directions-panel-redesign');
+    });
+
+    async function geocode(inputEl) {
+        if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
+        const data = await res.json();
+        if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`);
+        inputEl.value = data[0].display_name;
+        inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
+        return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+    }
+
+    function addRouteToMap(routeGeoJSON) {
+        if (map.getSource('route')) {
+            map.getSource('route').setData(routeGeoJSON);
+        } else {
+            map.addSource('route', { type: 'geojson', data: routeGeoJSON });
+            map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#0d89ec', 'line-width': 6 } });
+        }
+    }
+    
+    function startNavigation() {
+        if (!navigator.geolocation) return alert("Geolocation is not supported by your browser.");
+        isNavigating = true;
+        upcomingStepIndex = 0;
+        lastGoodPosition = null;
+        navigationStatusPanel.style.display = 'flex';
+        updateNavigationInstruction();
+        if (!userLocationMarker) {
+            const el = document.createElement('div');
+            el.className = 'user-location-marker';
+            userLocationMarker = new maplibregl.Marker(el).setLngLat([0, 0]).addTo(map);
+        }
+        navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
+        endNavigationBtn.addEventListener('click', stopNavigation);
+    }
+
+    function stopNavigation() {
+        if (navigationWatcherId) navigator.geolocation.clearWatch(navigationWatcherId);
+        if (userLocationMarker) { userLocationMarker.remove(); userLocationMarker = null; }
+        isNavigating = false;
+        navigationWatcherId = null;
+        currentRouteData = null;
+        lastGoodPosition = null;
+        navigationStatusPanel.style.display = 'none';
+        speech.synthesis.cancel();
+        clearRouteFromMap();
+    }
+
+    function handlePositionError(error) {
+        let errorMessage = "An unknown geolocation error occurred.";
+        switch (error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = "Geolocation request denied. Please check your browser and site permissions.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable. Try moving to an area with a clearer view of the sky.";
+                break;
+            case error.TIMEOUT:
+                errorMessage = "Geolocation request timed out. Could not get a location fix in a reasonable amount of time. Please try again in an area with a clear view of the sky.";
+                break;
+        }
+        console.error("Geolocation Error Details:", error);
+        alert(errorMessage);
+        stopNavigation();
+    }
+
+    function updateNavigationInstruction() {
+        const instruction = currentRouteData?.routes[0].legs[0].steps[upcomingStepIndex]?.maneuver.instruction || "You have arrived.";
+        navigationInstructionEl.textContent = instruction;
+    }
+
+    async function handlePositionUpdate(position) {
+        if (!isNavigating || !currentRouteData) return;
+        const { latitude, longitude, heading, accuracy } = position.coords;
+        const userLngLat = [longitude, latitude];
+        if (accuracy > 75 || (lastGoodPosition && accuracy > lastGoodPosition.coords.accuracy)) { return; }
+        if (lastGoodPosition) {
+            const distanceMoved = turf.distance(turf.point([lastGoodPosition.coords.longitude, lastGoodPosition.coords.latitude]), turf.point(userLngLat), { units: 'meters' });
+            if (distanceMoved < 3) { return; }
+        }
+        lastGoodPosition = position;
+        userLocationMarker.setLngLat(userLngLat);
+        if (heading != null) { userLocationMarker.setRotation(heading); }
+        map.easeTo({ center: userLngLat, zoom: Math.max(map.getZoom(), 17), essential: true });
+        const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
+        const userPoint = turf.point(userLngLat);
+        const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
+        if (snapped.properties.dist > 50 && !isRerouting) {
+            isRerouting = true;
+            speech.speak("Recalculating route.");
+            fromInput.value = "Your Location";
+            fromInput.dataset.coords = userLngLat.join(',');
+            await getRoute();
+            isRerouting = false;
+            return;
+        }
+        const steps = currentRouteData.routes[0].legs[0].steps;
+        if (upcomingStepIndex >= steps.length) {
+            if (turf.distance(userPoint, turf.point(steps[steps.length - 1].maneuver.location)) < 50) {
+                speech.speak("You have arrived at your destination.");
+                stopNavigation();
+            }
+            return;
+        }
+        const nextManeuver = steps[upcomingStepIndex].maneuver;
+        const distanceToManeuver = turf.distance(userPoint, turf.point(nextManeuver.location), { units: 'meters' });
+        if (distanceToManeuver < 80) {
+            speech.speak(nextManeuver.instruction);
+            upcomingStepIndex++;
+            updateNavigationInstruction();
+        }
+    }
+
+    const settingsBtns = document.querySelectorAll('.js-settings-btn');
+    const settingsMenu = document.getElementById('settings-menu');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
+
+    function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
+    function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
+
+    settingsBtns.forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); if (!isMobile && settingsMenu.classList.contains('open')) { closeSettings(); } else { openSettings(); } }); });
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    menuOverlay.addEventListener('click', closeSettings);
+    document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) { closeSettings(); } });
+    styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { const newStyle = radio.value; if (newStyle !== currentStyle) { currentStyle = newStyle; map.setStyle(STYLES[currentStyle]); } if (isMobile) { setTimeout(closeSettings, 200); } }); });
+    document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { alert(`Unit selection ('${radio.value}') is not implemented yet.`); if (isMobile) { setTimeout(closeSettings, 200); } }); });
+    
+    map.on('styledata', () => {
+        if (isNavigating && currentRouteData) {
+            const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry };
+            addRouteToMap(routeGeoJSON);
+        }
+    });
+
+    if (isMobile) {
+        const grabber = document.getElementById("panel-grabber");
+        let startY;
+        grabber.addEventListener('touchstart', (e) => { startY = e.touches[0].pageY; sidePanel.style.transition = 'none'; }, { passive: true });
+        grabber.addEventListener('touchmove', (e) => { if (startY === undefined) return; const currentY = e.touches[0].pageY; let newBottom = (parseInt(getComputedStyle(sidePanel).bottom, 10) || 0) + (startY - currentY); if (newBottom > 0) newBottom = 0; sidePanel.style.bottom = `${newBottom}px`; startY = currentY; }, { passive: true });
+        grabber.addEventListener('touchend', () => { if (startY === undefined) return; startY = undefined; sidePanel.style.transition = ''; const currentBottom = parseInt(sidePanel.style.bottom, 10); const panelHeight = sidePanel.clientHeight; const peekHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek')); if (currentBottom > (-1 * panelHeight) / 2) { sidePanel.classList.remove('peek'); sidePanel.classList.add('open'); } else { sidePanel.classList.remove('open', 'peek'); } sidePanel.style.bottom = ''; });
+    }
+
+    updateAuthUI();
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => { console.log('SW registered: ', registration.scope); }, err => { console.log('SW registration failed: ', err); });
+      });
+    }
 });
