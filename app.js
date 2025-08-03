@@ -3,7 +3,10 @@ const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/maps/",
     // *** IMPORTANT: Replace this placeholder with the Client ID from your Authentik Application settings. ***
     client_id: "YOUR_CLIENT_ID_FROM_AUTHENTIK",
-    redirect_uri: "https://maps.theboiismc.com/index.html",
+    
+    // --- UPDATED REDIRECT URI ---
+    redirect_uri: "https://maps.theboiismc.com/callback.html",
+    
     post_logout_redirect_uri: "https://maps.theboiismc.com/index.html",
     scope: "openid profile email",
     response_type: 'code',
@@ -14,7 +17,7 @@ const authService = {
     async login() { return userManager.signinRedirect(); },
     async logout() { return userManager.signoutRedirect(); },
     async getUser() { return userManager.getUser(); },
-    async handleCallback() { return userManager.signinRedirectCallback(); }
+    // The handleCallback function is no longer needed here, as callback.html does it.
 };
 
 
@@ -37,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
-        const isLoggedIn = !!currentUser; // Your original code used `isLoggedIn`, we will maintain a version of it.
+        const isLoggedIn = !!currentUser;
         loggedInView.hidden = !isLoggedIn;
         loggedOutView.hidden = isLoggedIn;
         if (isLoggedIn) {
@@ -46,17 +49,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // --- SIMPLIFIED AUTHENTICATION FLOW ---
+    // The app no longer needs to check for "code=" in the URL. It just checks for an existing session.
     try {
-        if (window.location.search.includes("code=") && window.location.search.includes("state=")) {
-            const user = await authService.handleCallback();
-            updateAuthUI(user);
-            window.history.replaceState({}, document.title, "/");
-        } else {
-            const user = await authService.getUser();
-            updateAuthUI(user);
-        }
+        const user = await authService.getUser();
+        updateAuthUI(user);
     } catch (error) {
-        console.error("Authentication process failed:", error);
+        console.error("Authentication check failed:", error);
         updateAuthUI(null);
     }
 
@@ -72,11 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
-    signupBtn.addEventListener('click', (e) => { 
-        e.preventDefault(); 
-        // This is the default sign-up flow path for Authentik. Verify this URL in your instance.
-        window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/";
-    });
+    signupBtn.addEventListener('click', (e) => { e.preventDefault(); window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/"; });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
     // --- END AUTHENTICATION INTEGRATION ---
 
@@ -85,7 +80,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 120000, maximumAge: 0 };
 
-    // --- UPDATED MAP STYLE ---
     const STYLES = {
         default: 'https://tiles.openfreemap.org/styles/liberty',
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
@@ -513,7 +507,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeSettingsBtn.addEventListener('click', closeSettings);
     menuOverlay.addEventListener('click', closeSettings);
     document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) { closeSettings(); } });
-    styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { const newStyle = radio.value; if (newStyle !== currentStyle) { currentStyle = newStyle; map.setStyle(STYLES[currentStyle]); } if (isMobile) { setTimeout(closeSettings, 200); } }); });
+    styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { const newStyle = radio.value; if (newStyle !== currentStyle) { currentStyle = newStyle; map.setStyle(STYLES[newStyle]); } if (isMobile) { setTimeout(closeSettings, 200); } }); });
     document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { alert(`Unit selection ('${radio.value}') is not implemented yet.`); if (isMobile) { setTimeout(closeSettings, 200); } }); });
     
     map.on('styledata', () => {
