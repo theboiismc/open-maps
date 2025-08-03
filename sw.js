@@ -1,76 +1,76 @@
-// sw.js
+// A name for our cache
+const CACHE_NAME = 'theboiismc-maps-cache-v1';
 
-const CORE_CACHE_NAME = 'theboiismc-maps-core-v1';
-const TILE_CACHE_NAME = 'theboiismc-maps-tiles-v1';
-
-const coreAssets = [
-  '/',
-  '/index.html',
-  '/app.js',
-  'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css',
-  'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js',
-  'https://npmcdn.com/@turf/turf.min.js',
-  '/icons512_rounded.png',
-  '/icons512_maskable.png'
+// The list of files to cache on install
+const URLS_TO_CACHE = [
+    '/index.html',
+    '/app.js',
+    '/manifest.json',
+    // We also cache the external libraries for a full offline experience
+    'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css',
+    'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js',
+    'https://npmcdn.com/@turf/turf/turf.min.js',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+    // Note: App icons are implicitly cached via the manifest.
+    // API calls (like to OSRM or Nominatim) are not cached here as they need to be live.
 ];
 
-self.addEventListener('install', event => {
-  console.log('Service Worker: Installing...');
-  event.waitUntil(
-    caches.open(CORE_CACHE_NAME).then(cache => {
-      console.log('Service Worker: Caching core assets');
-      return cache.addAll(coreAssets);
-    })
-  );
-  self.skipWaiting();
+// 1. Install Event: Cache the application shell
+self.addEventListener('install', (event) => {
+    console.log('Service Worker: Installing...');
+    // waitUntil() ensures that the service worker will not install until the code inside has successfully completed.
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then((cache) => {
+                console.log('Service Worker: Caching app shell');
+                return cache.addAll(URLS_TO_CACHE);
+            })
+            .then(() => {
+                console.log('Service Worker: Install complete.');
+                // Immediately activate the new service worker
+                return self.skipWaiting();
+            })
+    );
 });
 
-self.addEventListener('activate', event => {
-  console.log('Service Worker: Activating...');
-  const cacheWhitelist = [CORE_CACHE_NAME, TILE_CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            console.log('Service Worker: Deleting old cache', cacheName);
-            return caches.delete(cacheName);
-          }
+// 2. Activate Event: Clean up old caches
+self.addEventListener('activate', (event) => {
+    console.log('Service Worker: Activating...');
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    // If the cache name is not our current one, delete it
+                    if (cacheName !== CACHE_NAME) {
+                        console.log('Service Worker: Clearing old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        }).then(() => {
+            // Take control of all open clients (tabs)
+            return self.clients.claim();
         })
-      );
-    })
-  );
-  return self.clients.claim();
+    );
 });
 
+// 3. Fetch Event: Serve from cache or fetch from network
+self.addEventListener('fetch', (event) => {
+    // We only want to cache GET requests for our app shell files
+    if (event.request.method !== 'GET') {
+        return;
+    }
 
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
-  const isMapTileRequest = url.hostname.includes('openfreemap.org') || url.hostname.includes('arcgisonline.com');
-  const isApiRequest = url.hostname.includes('nominatim') || url.hostname.includes('project-osrm') || url.hostname.includes('open-meteo');
-
-  if (isMapTileRequest) {
-    // Stale-While-Revalidate strategy for map tiles
     event.respondWith(
-      caches.open(TILE_CACHE_NAME).then(cache => {
-        return cache.match(event.request).then(response => {
-          const fetchPromise = fetch(event.request).then(networkResponse => {
-            cache.put(event.request, networkResponse.clone());
-            return networkResponse;
-          });
-          return response || fetchPromise;
-        });
-      })
+        caches.match(event.request)
+            .then((cachedResponse) => {
+                // If the response is in the cache, return it
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                
+                // If it's not in the cache, fetch it from the network
+                return fetch(event.request);
+            })
     );
-  } else if (isApiRequest) {
-    // Network-only for API calls
-    event.respondWith(fetch(event.request));
-  } else {
-    // Cache-first for core app assets
-    event.respondWith(
-      caches.match(event.request).then(response => {
-        return response || fetch(event.request);
-      })
-    );
-  }
 });
