@@ -1,617 +1,290 @@
 document.addEventListener('DOMContentLoaded', () => {
-
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
-
-    // --- High-accuracy geolocation options ---
-    const geolocationOptions = {
-        enableHighAccuracy: true, // Request the most accurate location possible (GPS)
-        timeout: 20000,           // Give the device 20 seconds to get a location before erroring
-        maximumAge: 0             // CRITICAL: Do not use a cached location. Always get a fresh one.
-    };
-
-    // --- START: AUTHENTICATION UI LOGIC ---
-    const profileArea = document.getElementById('profile-area');
-    const profileButton = document.getElementById('profile-button');
-    const profileDropdown = document.getElementById('profile-dropdown');
-    const loggedInView = document.getElementById('logged-in-view');
-    const loggedOutView = document.getElementById('logged-out-view');
-    const loginBtn = document.getElementById('login-btn');
-    const signupBtn = document.getElementById('signup-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const savedPlacesBtn = document.getElementById('saved-places-btn');
-
-    let isLoggedIn = false;
-
-    const updateAuthUI = () => {
-        loggedInView.hidden = !isLoggedIn;
-        loggedOutView.hidden = isLoggedIn;
-    };
-
-    profileButton.addEventListener('click', (e) => {
-        const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
-        profileDropdown.style.display = isHidden ? 'block' : 'none';
-    });
-
-    document.addEventListener('click', (e) => {
-        if (profileDropdown.style.display === 'block' && !profileArea.contains(e.target)) {
-            profileDropdown.style.display = 'none';
-        }
-    });
-
-    loginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        alert("Redirecting to login page... (Simulation)");
-        isLoggedIn = true;
-        updateAuthUI();
-        profileDropdown.style.display = 'none';
-    });
-
-    signupBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        alert("Redirecting to sign-up page... (Simulation)");
-        profileDropdown.style.display = 'none';
-    });
-
-    logoutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        isLoggedIn = false;
-        updateAuthUI();
-        profileDropdown.style.display = 'none';
-        alert("You have been logged out. (Simulation)");
-    });
-
-    savedPlacesBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        alert("Feature 'Saved Places' not yet implemented!");
-        profileDropdown.style.display = 'none';
-    });
-
-    // --- END: AUTHENTICATION UI LOGIC ---
-
-    const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty',
-        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
-    };
-
+    // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
-        container: "map",
-        style: STYLES.default,
-        center: [-95, 39],
-        zoom: 4
+        container: 'map',
+        style: 'https://tiles.openfreemap.org/styles/osm-bright/style.json',
+        center: [-98.5795, 39.8283], // Center of the US
+        zoom: 3
     });
-    
-    // --- Add controls with high-accuracy options ---
-    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+
+    map.addControl(new maplibregl.NavigationControl());
     map.addControl(new maplibregl.GeolocateControl({
-        positionOptions: geolocationOptions,
-        trackUserLocation: true,
-        showUserHeading: true // Show direction user is facing
-    }), "bottom-right");
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: true
+    }));
 
-
-    const sidePanel = document.getElementById("side-panel");
-    const mainSearchInput = document.getElementById("main-search");
-    const mainSearchContainer = document.getElementById('main-search-container');
-    const topSearchWrapper = document.getElementById('top-search-wrapper');
-    const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
-    const closePanelBtn = document.getElementById('close-panel-btn');
-
-    let currentPlace = null;
-    let currentStyle = 'default';
-
-    // --- NAVIGATION STATE & UI ---
-    const navigationStatusPanel = document.getElementById('navigation-status');
-    const navigationInstructionEl = document.getElementById('navigation-instruction');
-    const endNavigationBtn = document.getElementById('end-navigation-btn');
-    
-    let userLocationMarker = null;
-    let navigationWatcherId = null;
-    let currentRouteData = null;
-    let upcomingStepIndex = 0;
-    let isNavigating = false;
-    let isRerouting = false;
-    let lastGoodPosition = null;
-
-    const speech = {
-        synthesis: window.speechSynthesis,
-        utterance: new SpeechSynthesisUtterance(),
-        speak(text) {
-            if (this.synthesis.speaking) {
-                this.synthesis.cancel();
-            }
-            if (text) {
-                this.utterance.text = text;
-                this.synthesis.speak(this.utterance);
-            }
-        }
+    // --- STATE MANAGEMENT ---
+    let navigationState = {
+        active: false,
+        routeData: null,
     };
+    // Special constant to identify when user selects their location
+    const YOUR_LOCATION_TEXT = "Your Location";
 
-    function moveSearchBarToPanel() { if (!isMobile) { mainSearchContainer.style.boxShadow = 'none'; mainSearchContainer.style.borderRadius = '8px'; panelSearchPlaceholder.hidden = false; panelSearchPlaceholder.appendChild(mainSearchContainer); topSearchWrapper.style.opacity = '0'; } }
-    function moveSearchBarToTop() { if (!isMobile) { mainSearchContainer.style.boxShadow = ''; mainSearchContainer.style.borderRadius = ''; topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
-
-    function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section'].forEach(id => {
-            document.getElementById(id).hidden = id !== viewId;
-        });
-        if (!sidePanel.classList.contains('open')) {
-            if (isMobile) {
-                if (!sidePanel.classList.contains('peek')) sidePanel.classList.add('peek');
-            } else {
-                sidePanel.classList.add('open');
-                moveSearchBarToPanel();
-            }
-        }
-    }
-
-    function closePanel() {
-        if (isMobile) {
-            sidePanel.classList.remove('open', 'peek');
-        } else {
-            sidePanel.classList.remove('open');
-            moveSearchBarToTop();
-        }
-    }
-    closePanelBtn.addEventListener('click', closePanel);
-    map.on('click', (e) => {
-        const targetClasses = e.originalEvent.target.classList;
-        if (!targetClasses.contains('maplibregl-ctrl-icon') && !targetClasses.contains('mapboxgl-ctrl-icon')) {
-            closePanel();
-        }
-    });
-
-    function debounce(func, delay) {
-        let timeout;
-        return function(...args) {
-            const context = this;
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(context, args), delay);
-        };
-    }
-
-    function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
-        const fetchAndDisplaySuggestions = async (query) => {
-            if (!query) { suggestionsEl.style.display = "none"; return; }
-            const bounds = map.getBounds();
-            const viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
-            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
-            try {
-                const res = await fetch(url);
-                const data = await res.json();
-                suggestionsEl.innerHTML = "";
-                data.forEach(item => {
-                    const el = document.createElement("div");
-                    el.className = "search-result";
-                    el.textContent = item.display_name;
-                    el.addEventListener("click", () => onSelect(item));
-                    suggestionsEl.appendChild(el);
-                });
-                suggestionsEl.style.display = data.length > 0 ? "block" : "none";
-            } catch (e) { console.error("Suggestion fetch failed", e); }
-        };
-        const debouncedFetch = debounce(fetchAndDisplaySuggestions, 300);
-        inputEl.addEventListener("input", () => debouncedFetch(inputEl.value.trim()));
-        inputEl.addEventListener("blur", () => { setTimeout(() => { suggestionsEl.style.display = "none"; }, 200); });
-    }
-
-    async function performSmartSearch(inputEl, onSelect) {
-        const query = inputEl.value.trim();
-        if (!query) return;
-        const bounds = map.getBounds();
-        const viewbox = `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`;
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
-        try {
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.length > 0) onSelect(data[0]);
-            else alert("No results found for your search.");
-        } catch (e) { alert("Search failed. Please check your connection."); }
-    }
-
-    const mainSuggestions = document.getElementById("main-suggestions");
-    attachSuggestionListener(mainSearchInput, mainSuggestions, processPlaceResult);
-    document.getElementById("main-search-icon").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
-    mainSearchInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult);
-    });
-
+    // --- DOM ELEMENTS ---
     const fromInput = document.getElementById('panel-from-input');
-    const fromSuggestions = document.getElementById('panel-from-suggestions');
-    attachSuggestionListener(fromInput, fromSuggestions, (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
-
     const toInput = document.getElementById('panel-to-input');
-    const toSuggestions = document.getElementById('panel-to-suggestions');
-    attachSuggestionListener(toInput, toSuggestions, (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
+    const getRouteBtn = document.getElementById('get-route-btn');
+    const sidePanel = document.getElementById('side-panel');
+    const directionsPanel = document.getElementById('directions-panel-redesign');
+    const routeSection = document.getElementById('route-section');
+    const routeStepsList = document.getElementById('route-steps');
+    const exitRouteBtn = document.getElementById('exit-route-btn');
+    const useMyLocationBtn = document.getElementById('dir-use-my-location');
+    const navigationStatus = document.getElementById('navigation-status');
+    const navigationInstruction = document.getElementById('navigation-instruction');
+    const endNavigationBtn = document.getElementById('end-navigation-btn');
+    const mainDirectionsIcon = document.getElementById('main-directions-icon');
 
-    function processPlaceResult(place) {
-        currentPlace = place;
-        stopNavigation();
-        if (map.getLayer('route-line')) { map.removeLayer('route-line'); }
-        if (map.getSource('route')) { map.removeSource('route'); }
-        map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
-        mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
-        document.getElementById('info-name').textContent = place.display_name.split(',')[0];
-        document.getElementById('info-address').textContent = place.display_name;
-        const locationName = place.display_name.split(',')[0];
-        fetchAndSetPlaceImage(locationName, place.lon, place.lat);
-        fetchAndSetWeather(place.lat, place.lon);
-        fetchAndSetQuickFacts(locationName);
-        showPanel('info-panel-redesign');
-    }
-
-    async function fetchAndSetPlaceImage(query, lon, lat) {
-        const imgEl = document.getElementById('info-image');
-        imgEl.src = '';
-        imgEl.style.backgroundColor = '#e0e0e0';
-        imgEl.alt = 'Loading image...';
-        imgEl.onerror = null;
-
-        try {
-            const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
-            const res = await fetch(wikipediaUrl);
-            const data = await res.json();
-            const page = Object.values(data.query.pages)[0];
-            
-            if (page.thumbnail && page.thumbnail.source) {
-                imgEl.src = page.thumbnail.source;
-                imgEl.alt = `Photograph of ${query}`;
-                return;
-            } else {
-                throw new Error("No image found on Wikipedia.");
-            }
-        } catch (e) {
-            console.log("Wikipedia image failed:", e.message, "Activating fallback.");
-            const offset = 0.005;
-            const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`;
-            const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
-            imgEl.src = fallbackUrl;
-            imgEl.alt = `Map view of ${query}`;
-            imgEl.onerror = () => {
-                imgEl.style.backgroundColor = '#e0e0e0';
-                imgEl.alt = 'Image not available';
-            };
-        }
-    }
-
-    function getWeatherDescription(code) {
-        const descriptions = { 0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', 71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall', 80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers', 95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail' };
-        return descriptions[code] || "Weather data unavailable";
-    }
-
-    async function fetchAndSetWeather(lat, lon) {
-        const weatherEl = document.getElementById('info-weather');
-        weatherEl.textContent = "Loading weather...";
-        try {
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}¤t_weather=true&temperature_unit=fahrenheit`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`API returned status ${res.status}`);
-            const data = await res.json();
-            if (data.current_weather) {
-                const tempF = Math.round(data.current_weather.temperature);
-                const tempC = Math.round((tempF - 32) * 5 / 9);
-                const description = getWeatherDescription(data.current_weather.weathercode);
-                weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
-            } else { throw new Error("Invalid weather data format."); }
-        } catch (e) {
-            weatherEl.textContent = "Could not load weather data.";
-            console.error("Weather fetch/parse error:", e);
-        }
-    }
-
-    async function fetchAndSetQuickFacts(query) {
-        const factsEl = document.getElementById('quick-facts-content');
-        factsEl.textContent = "Loading facts...";
-        try {
-            const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=extracts&exintro&explaintext&redirects=1&titles=${encodeURIComponent(query)}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            const page = Object.values(data.query.pages)[0];
-            factsEl.textContent = page.extract ? page.extract.substring(0, 350) + '...' : "No quick facts found on Wikipedia.";
-        } catch (e) {
-            factsEl.textContent = "Could not load facts.";
-            console.error("Wikipedia API error", e);
-        }
-    }
-
-    function openDirectionsPanel() {
-        showPanel('directions-panel-redesign');
-        if (currentPlace) {
-            toInput.value = currentPlace.display_name;
-            toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
-            fromInput.value = ''; fromInput.dataset.coords = '';
-        } else {
-            toInput.value = mainSearchInput.value;
-            toInput.dataset.coords = '';
-            fromInput.value = ''; fromInput.dataset.coords = '';
-        }
-    }
-
-    document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
-    document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
-    document.getElementById('info-save-btn').addEventListener('click', () => {
-        if (isLoggedIn) { alert("Feature 'Save Place' not yet implemented!"); }
-        else { alert("Please log in to save places."); }
-    });
-    document.getElementById('swap-btn').addEventListener('click', () => {
-        [fromInput.value, toInput.value] = [toInput.value, fromInput.value];
-        [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords];
-    });
-    document.getElementById('dir-use-my-location').addEventListener('click', () => {
-        navigator.geolocation.getCurrentPosition(pos => {
-            fromInput.value = "Your Location";
-            fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
-        }, () => {
-            alert("Could not get your location. Please ensure location is on and set to 'High Accuracy'.");
-        }, geolocationOptions);
-    });
-    document.getElementById('back-to-info-btn').addEventListener('click', () => { if (currentPlace) showPanel('info-panel-redesign'); });
-    document.getElementById('exit-route-btn').addEventListener('click', () => showPanel('directions-panel-redesign'));
-
-    async function geocode(inputEl) {
-        if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
-        const data = await res.json();
-        if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`);
-        inputEl.value = data[0].display_name;
-        inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
-        return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
-    }
-
-    function addRouteToMap(routeGeoJSON) {
-        if (map.getSource('route')) {
-            map.getSource('route').setData(routeGeoJSON);
-        } else {
-            map.addSource('route', { type: 'geojson', data: routeGeoJSON });
-            map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#0d89ec', 'line-width': 6 } });
-        }
-    }
+    // --- EVENT LISTENERS ---
     
-    async function getRouteAndNavigate() {
-        if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
-        try {
-            const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
-            const res = await fetch(url);
-            const data = await res.json();
-            if (!data.routes || data.routes.length === 0) return alert("No route found.");
-            
-            currentRouteData = data;
-            const routeGeoJSON = { type: 'Feature', geometry: data.routes[0].geometry };
-            
-            addRouteToMap(routeGeoJSON);
+    // Show directions panel when directions icon is clicked
+    mainDirectionsIcon.addEventListener('click', () => {
+        sidePanel.classList.add('open');
+        // Pre-fill destination if a place was selected (future enhancement)
+    });
 
-            const bounds = new maplibregl.LngLatBounds();
-            routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
-            map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
-
-            closePanel();
-            startNavigation();
-
-        } catch (err) { alert(`Error getting route: ${err.message}`); isRerouting = false; }
-    }
+    // Main "Get Route" button logic
+    getRouteBtn.addEventListener('click', handleGetRoute);
     
-    document.getElementById('get-route-btn').addEventListener('click', getRouteAndNavigate);
+    // Button to exit route steps and return to input fields
+    exitRouteBtn.addEventListener('click', () => {
+        routeSection.hidden = true;
+        directionsPanel.hidden = false;
+        clearRouteFromMap();
+    });
 
-    function startNavigation() {
-        if (!navigator.geolocation) return alert("Geolocation is not supported by your browser.");
-        
-        isNavigating = true;
-        upcomingStepIndex = 0;
-        lastGoodPosition = null; // Reset on new navigation
-        navigationStatusPanel.style.display = 'flex';
-        updateNavigationInstruction();
+    // Button to fill the 'from' input with "Your Location"
+    useMyLocationBtn.addEventListener('click', () => {
+        fromInput.value = YOUR_LOCATION_TEXT;
+    });
+    
+    // Button to end an active navigation session
+    endNavigationBtn.addEventListener('click', endNavigation);
 
-        if (!userLocationMarker) {
-            const el = document.createElement('div');
-            el.className = 'user-location-marker';
-            userLocationMarker = new maplibregl.Marker(el).setLngLat([0, 0]).addTo(map);
-        }
 
-        navigationWatcherId = navigator.geolocation.watchPosition(
-            handlePositionUpdate,
-            handlePositionError,
-            geolocationOptions
-        );
-        endNavigationBtn.addEventListener('click', stopNavigation);
-    }
+    // --- CORE FUNCTIONS ---
 
-    function stopNavigation() {
-        if (navigationWatcherId) navigator.geolocation.clearWatch(navigationWatcherId);
-        if (userLocationMarker) { userLocationMarker.remove(); userLocationMarker = null; }
-        
-        isNavigating = false;
-        navigationWatcherId = null;
-        currentRouteData = null;
-        lastGoodPosition = null;
-        navigationStatusPanel.style.display = 'none';
-        speech.synthesis.cancel();
-        
-        if (map.getLayer('route-line')) map.removeLayer('route-line');
-        if (map.getSource('route')) map.removeSource('route');
-    }
+    /**
+     * Main handler for the "Get Route" button.
+     * Determines whether to start Planning Mode or Navigation Mode.
+     */
+    async function handleGetRoute() {
+        const startQuery = fromInput.value.trim();
+        const endQuery = toInput.value.trim();
 
-    function handlePositionError(error) {
-        alert(`Geolocation Error: ${error.message}`);
-        stopNavigation();
-    }
-
-    function updateNavigationInstruction() {
-        const instruction = currentRouteData?.routes[0].legs[0].steps[upcomingStepIndex]?.maneuver.instruction || "You have arrived.";
-        navigationInstructionEl.textContent = instruction;
-    }
-
-    async function handlePositionUpdate(position) {
-        if (!isNavigating || !currentRouteData) return;
-
-        const { latitude, longitude, heading, accuracy } = position.coords;
-        const userLngLat = [longitude, latitude];
-
-        // --- INTELLIGENT FILTERING ---
-        if (accuracy > 75 || (lastGoodPosition && accuracy > lastGoodPosition.coords.accuracy)) {
-            console.log(`Ignored position update due to low accuracy: ${accuracy}m`);
+        if (!startQuery || !endQuery) {
+            alert("Please enter a starting point and a destination.");
             return;
         }
 
-        if (lastGoodPosition) {
-            const distanceMoved = turf.distance(
-                turf.point([lastGoodPosition.coords.longitude, lastGoodPosition.coords.latitude]),
-                turf.point(userLngLat),
-                { units: 'meters' }
+        getRouteBtn.disabled = true;
+        getRouteBtn.textContent = "Calculating...";
+
+        try {
+            let startCoords, endCoords;
+            const isNavigatingFromCurrent = (startQuery === YOUR_LOCATION_TEXT);
+            
+            // Get coordinates for start and end points
+            endCoords = await geocodeAddress(endQuery);
+            if (!endCoords) throw new Error(`Could not find location: ${endQuery}`);
+
+            if (isNavigatingFromCurrent) {
+                startCoords = await getUserLocation();
+                if (!startCoords) throw new Error("Could not get your current location.");
+            } else {
+                startCoords = await geocodeAddress(startQuery);
+                if (!startCoords) throw new Error(`Could not find location: ${startQuery}`);
+            }
+
+            // Fetch the route data from OSRM
+            const routeData = await fetchRoute(startCoords, endCoords);
+            if (!routeData || routeData.routes.length === 0) {
+                throw new Error("Could not find a route between these locations.");
+            }
+
+            // Fork logic based on whether we are navigating or planning
+            if (isNavigatingFromCurrent) {
+                initializeNavigationMode(routeData);
+            } else {
+                initializePlanningMode(routeData);
+            }
+
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+            console.error(error);
+        } finally {
+            getRouteBtn.disabled = false;
+            getRouteBtn.textContent = "Get Route";
+        }
+    }
+
+    /**
+     * Enters PLANNING mode. Displays route and step-by-step list in the side panel.
+     */
+    function initializePlanningMode(routeData) {
+        const route = routeData.routes[0];
+        console.log("Entering Planning Mode.", route);
+
+        drawRouteOnMap(route.geometry);
+        
+        // Populate the route steps list
+        routeStepsList.innerHTML = ''; // Clear previous steps
+        const steps = route.legs[0].steps;
+        steps.forEach(step => {
+            const li = document.createElement('li');
+            li.textContent = step.maneuver.instruction;
+            routeStepsList.appendChild(li);
+        });
+
+        // Show the route steps panel
+        directionsPanel.hidden = true;
+        routeSection.hidden = false;
+
+        // Fit map to the route
+        const bounds = turf.bbox(turf.feature(route.geometry));
+        map.fitBounds(bounds, { padding: 50 });
+    }
+
+    /**
+     * Enters NAVIGATION mode. Hides panel, shows top navigation bar with first instruction.
+     */
+    function initializeNavigationMode(routeData) {
+        const route = routeData.routes[0];
+        console.log("Entering Navigation Mode.", route);
+        
+        navigationState.active = true;
+        navigationState.routeData = routeData;
+
+        drawRouteOnMap(route.geometry);
+
+        // **FIX**: Show the FIRST instruction, not "You have arrived".
+        const firstStep = route.legs[0].steps[0].maneuver.instruction;
+        navigationInstruction.textContent = firstStep;
+        
+        // Hide the side panel and show the top navigation bar
+        sidePanel.classList.remove('open');
+        navigationStatus.style.display = 'flex';
+        
+        // Fit map to the route to start
+        const bounds = turf.bbox(turf.feature(route.geometry));
+        map.fitBounds(bounds, { padding: { top: 150, bottom: 50, left: 50, right: 50 } });
+
+        // In a real app, you would now start a geolocation watchPosition()
+        // to track the user's progress along navigationState.routeData.
+    }
+    
+    /**
+     * Ends the active navigation session and resets the UI.
+     */
+    function endNavigation() {
+        navigationState.active = false;
+        navigationState.routeData = null;
+
+        navigationStatus.style.display = 'none';
+        clearRouteFromMap();
+        
+        // Show the main search bar again (optional)
+        // document.getElementById('top-search-wrapper').style.display = 'block';
+        console.log("Navigation ended.");
+    }
+
+
+    // --- API & MAP UTILITY FUNCTIONS ---
+
+    /**
+     * Converts an address string to [lng, lat] coordinates using Nominatim.
+     */
+    async function geocodeAddress(query) {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.length > 0) {
+                return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+            }
+            return null;
+        } catch (error) {
+            console.error("Geocoding error:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Gets the user's current GPS location as [lng, lat].
+     */
+    function getUserLocation() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                return reject("Geolocation is not supported by your browser.");
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve([position.coords.longitude, position.coords.latitude]);
+                },
+                () => {
+                    reject("Unable to retrieve your location.");
+                }
             );
-            if (distanceMoved < 3) {
-                return;
-            }
-        }
-        
-        lastGoodPosition = position;
-
-        userLocationMarker.setLngLat(userLngLat);
-        if (heading != null) {
-            userLocationMarker.setRotation(heading);
-        }
-        
-        map.easeTo({ center: userLngLat, zoom: Math.max(map.getZoom(), 17), essential: true });
-
-        const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
-        const userPoint = turf.point(userLngLat);
-        
-        const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
-        if (snapped.properties.dist > 50 && !isRerouting) {
-            console.log("User is off-route. Rerouting...");
-            isRerouting = true;
-            speech.speak("Recalculating route.");
-            fromInput.value = "Your Location";
-            fromInput.dataset.coords = userLngLat.join(',');
-            await getRouteAndNavigate();
-            isRerouting = false;
-            return;
-        }
-
-        const steps = currentRouteData.routes[0].legs[0].steps;
-        if (upcomingStepIndex >= steps.length) {
-            if (turf.distance(userPoint, turf.point(steps[steps.length - 1].maneuver.location)) < 50) {
-                speech.speak("You have arrived at your destination.");
-                stopNavigation();
-            }
-            return;
-        }
-        const nextManeuver = steps[upcomingStepIndex].maneuver;
-        const distanceToManeuver = turf.distance(userPoint, turf.point(nextManeuver.location), { units: 'meters' });
-        if (distanceToManeuver < 80) {
-            speech.speak(nextManeuver.instruction);
-            upcomingStepIndex++;
-            updateNavigationInstruction();
-        }
-    }
-
-    // --- START: SETTINGS MENU LOGIC ---
-    const settingsBtns = document.querySelectorAll('.js-settings-btn');
-    const settingsMenu = document.getElementById('settings-menu');
-    const closeSettingsBtn = document.getElementById('close-settings-btn');
-    const menuOverlay = document.getElementById('menu-overlay');
-    const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
-
-    function openSettings() {
-        settingsMenu.classList.add('open');
-        if (isMobile) {
-            menuOverlay.classList.add('open');
-        }
-    }
-
-    function closeSettings() {
-        settingsMenu.classList.remove('open');
-        if (isMobile) {
-            menuOverlay.classList.remove('open');
-        }
-    }
-
-    settingsBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!isMobile && settingsMenu.classList.contains('open')) {
-                closeSettings();
-            } else {
-                openSettings();
-            }
-        });
-    });
-    closeSettingsBtn.addEventListener('click', closeSettings);
-    menuOverlay.addEventListener('click', closeSettings);
-
-    document.addEventListener('click', (e) => {
-        if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) {
-            closeSettings();
-        }
-    });
-
-    styleRadioButtons.forEach(radio => {
-        radio.addEventListener('change', () => {
-            const newStyle = radio.value;
-            if (newStyle !== currentStyle) {
-                currentStyle = newStyle;
-                map.setStyle(STYLES[currentStyle]);
-            }
-            if (isMobile) {
-                setTimeout(closeSettings, 200);
-            }
-        });
-    });
-
-    document.querySelectorAll('input[name="map-units"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-            alert(`Unit selection ('${radio.value}') is not implemented yet.`);
-             if (isMobile) {
-                setTimeout(closeSettings, 200);
-             }
-        });
-    });
-    // --- END: SETTINGS MENU LOGIC ---
-    
-    map.on('styledata', () => {
-        if (isNavigating && currentRouteData) {
-            const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry };
-            addRouteToMap(routeGeoJSON);
-        }
-    });
-
-    if (isMobile) {
-        const grabber = document.getElementById("panel-grabber");
-        let startY;
-        grabber.addEventListener('touchstart', (e) => { startY = e.touches[0].pageY; sidePanel.style.transition = 'none'; }, { passive: true });
-        grabber.addEventListener('touchmove', (e) => {
-            if (startY === undefined) return;
-            const currentY = e.touches[0].pageY;
-            let newBottom = (parseInt(getComputedStyle(sidePanel).bottom, 10) || 0) + (startY - currentY);
-            if (newBottom > 0) newBottom = 0;
-            sidePanel.style.bottom = `${newBottom}px`;
-            startY = currentY;
-        }, { passive: true });
-        grabber.addEventListener('touchend', () => {
-            if (startY === undefined) return;
-            startY = undefined;
-            sidePanel.style.transition = '';
-            const currentBottom = parseInt(sidePanel.style.bottom, 10);
-            const panelHeight = sidePanel.clientHeight;
-            const peekHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek'));
-            if (currentBottom > (-1 * panelHeight) / 2) {
-                sidePanel.classList.remove('peek');
-                sidePanel.classList.add('open');
-            } else {
-                sidePanel.classList.remove('open', 'peek');
-            }
-            sidePanel.style.bottom = '';
         });
     }
 
-    updateAuthUI();
+    /**
+     * Fetches route data from Project OSRM.
+     */
+    async function fetchRoute(startCoords, endCoords) {
+        const coordsString = `${startCoords.join(',')};${endCoords.join(',')}`;
+        const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?steps=true&geometries=geojson&overview=full`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Routing error:", error);
+            return null;
+        }
+    }
 
-    // --- PWA Service Worker Registration ---
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, err => {
-          console.log('ServiceWorker registration failed: ', err);
+    /**
+     * Clears any existing route from the map.
+     */
+    function clearRouteFromMap() {
+        if (map.getLayer('route')) {
+            map.removeLayer('route');
+        }
+        if (map.getSource('route')) {
+            map.removeSource('route');
+        }
+    }
+
+    /**
+     * Draws a route geometry on the map.
+     */
+    function drawRouteOnMap(geometry) {
+        clearRouteFromMap(); // Clear old route first
+
+        map.addSource('route', {
+            'type': 'geojson',
+            'data': {
+                'type': 'Feature',
+                'properties': {},
+                'geometry': geometry
+            }
         });
-      });
+
+        map.addLayer({
+            'id': 'route',
+            'type': 'line',
+            'source': 'route',
+            'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': '#00796b',
+                'line-width': 6,
+                'line-opacity': 0.8
+            }
+        });
     }
 });
