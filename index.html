@@ -49,36 +49,84 @@
         * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
         html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
         #map { position: fixed; top: 0; left: 0; }
-        #top-banner { position: fixed; top: 0; left: 0; width: 100%; height: var(--banner-height); background-color: var(--brand-color); color: white; display: flex; align-items: center; justify-content: space-between; z-index: 100; font-weight: 600; padding: 0 20px; }
+
+        /* --- Banner and Profile --- */
+        #top-banner {
+            position: fixed; top: 0; left: 0; width: 100%;
+            height: var(--banner-height); background-color: var(--brand-color);
+            color: white; display: flex; align-items: center; justify-content: space-between;
+            z-index: 100; font-weight: 600; padding: 0 20px;
+        }
         #site-title { font-size: 18px; }
         #profile-area { position: relative; display: flex; align-items: center; }
-        #profile-button { width: 36px; height: 36px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.2); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background-color 0.2s; }
+        #profile-button {
+            width: 36px; height: 36px; border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2); border: none;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            padding: 0; transition: background-color 0.2s;
+        }
         #profile-button:hover { background-color: rgba(255, 255, 255, 0.3); }
         #profile-button svg { width: 24px; height: 24px; color: white; }
-        #profile-dropdown { display: none; position: absolute; top: calc(100% + 10px); right: 0; background: white; color: #333; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); min-width: 240px; z-index: 101; overflow: hidden; }
+        #profile-dropdown {
+            display: none; position: absolute; top: calc(100% + 10px); right: 0;
+            background: white; color: #333; border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); min-width: 240px;
+            z-index: 101; overflow: hidden;
+        }
         .profile-section { padding: 15px; }
         .profile-section-header { text-align: center; }
         .profile-section-header .username { font-size: 16px; font-weight: 600; margin-bottom: 5px; }
         .profile-section-header .email { font-size: 12px; color: #5f6368; }
-        .profile-actions a { display: block; padding: 10px 15px; color: #3c4043; text-decoration: none; font-weight: 500; cursor: pointer; }
+        .profile-actions a {
+            display: block; padding: 10px 15px; color: #3c4043;
+            text-decoration: none; font-weight: 500; cursor: pointer;
+        }
         .profile-actions a:hover { background-color: #f1f1f1; }
         hr { border: none; border-top: 1px solid #e0e0e0; margin: 0; }
         .auth-buttons { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .auth-buttons .btn { text-align: center; padding: 8px 12px; border-radius: 5px; text-decoration: none; }
+        .auth-buttons .btn {
+            text-align: center; padding: 8px 12px; border-radius: 5px; text-decoration: none;
+        }
         .btn-primary { background-color: var(--brand-color); color: white; }
         .btn-secondary { background-color: #e0e0e0; color: #333; }
-        #top-search-wrapper { position: fixed; top: calc(var(--banner-height) + 15px); left: 50%; transform: translateX(-50%); z-index: 60; width: 400px; transition: opacity 0.2s ease; }
-        #panel-search-placeholder { padding: 15px; background-color: #fff; border-bottom: 1px solid #e0e0e0; }
-        #main-search-container { width: 100%; background: #fff; border-radius: 28px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); padding: 0 15px; display: flex; align-items: center; position: relative; }
+
+        /* --- Search Bar --- */
+        #top-search-wrapper {
+            position: fixed; top: calc(var(--banner-height) + 15px); left: 50%; transform: translateX(-50%); z-index: 60;
+            width: 400px; transition: opacity 0.2s ease;
+        }
+        #panel-search-placeholder {
+            padding: 15px; background-color: #fff; border-bottom: 1px solid #e0e0e0;
+        }
+        #main-search-container {
+            width: 100%; background: #fff; border-radius: 28px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 0 15px; display: flex; align-items: center; position: relative;
+        }
         #main-search { width: 100%; border: none; outline: none; background: transparent; height: 48px; font-size: 16px; }
         .search-icon, .directions-icon { cursor: pointer; opacity: 0.7; margin-left: 10px; }
-        .suggestions-dropdown { position: absolute; background: white; border: 1px solid #ccc; width: 100%; max-height: 200px; overflow-y: auto; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); z-index: 70; top: 110%; left: 0; display: none; }
+        .suggestions-dropdown {
+            position: absolute; background: white; border: 1px solid #ccc;
+            width: 100%; max-height: 200px; overflow-y: auto; border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); z-index: 70; top: 110%; left: 0; display: none;
+        }
         .suggestions-dropdown .search-result { padding: 12px 15px; cursor: pointer; }
         .suggestions-dropdown .search-result:hover { background-color: #f0f0f0; }
-        #side-panel { position: fixed; z-index: 55; background: #fff; top: 0; left: -100%; width: var(--panel-width); height: 100%; box-shadow: 2px 0 15px rgba(0,0,0,0.1); transition: left 0.3s ease-in-out; overflow: hidden; display: flex; flex-direction: column; padding-top: var(--banner-height); }
+
+        /* --- Side Panel --- */
+        #side-panel {
+            position: fixed; z-index: 55; background: #fff; top: 0; left: -100%;
+            width: var(--panel-width); height: 100%; box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+            transition: left 0.3s ease-in-out; overflow: hidden; display: flex; flex-direction: column;
+            padding-top: var(--banner-height);
+        }
         #side-panel.open { left: 0; }
         #panel-grabber { display: none; }
-        #close-panel-btn { position: fixed; top: calc(var(--banner-height) + 15px); left: calc(var(--panel-width) + 15px); z-index: 60; width: 36px; height: 36px; background: #fff; border: none; border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 36px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); opacity: 0; transform: scale(0.8); transition: opacity 0.2s ease, transform 0.2s ease; }
+        #close-panel-btn {
+            position: fixed; top: calc(var(--banner-height) + 15px); left: calc(var(--panel-width) + 15px); z-index: 60;
+            width: 36px; height: 36px; background: #fff; border: none; border-radius: 50%; cursor: pointer;
+            font-size: 20px; line-height: 36px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            opacity: 0; transform: scale(0.8); transition: opacity 0.2s ease, transform 0.2s ease;
+        }
         #side-panel.open + #close-panel-btn { opacity: 1; transform: scale(1); }
         .panel-content { flex-grow: 1; overflow-y: auto; }
         .panel-content .header-image { width: 100%; height: 200px; object-fit: cover; background-color: #e0e0e0; display: block; }
@@ -88,70 +136,269 @@
         .panel-content .weather { display: flex; align-items: center; color: #5f6368; margin-bottom: 20px; min-height: 32px; }
         .action-buttons { display: flex; justify-content: space-around; text-align: center; margin-bottom: 25px; }
         .action-buttons .btn-wrapper { cursor: pointer; }
-        .action-buttons .icon-circle { width: 44px; height: 44px; border-radius: 50%; background-color: var(--brand-color); color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 5px auto; }
+        .action-buttons .icon-circle {
+            width: 44px; height: 44px; border-radius: 50%; background-color: var(--brand-color);
+            color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 5px auto;
+        }
         .action-buttons .icon-circle svg { width: 24px; height: 24px; }
         .action-buttons .btn-label { color: var(--brand-color); font-weight: 600; }
         #quick-facts h4 { border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 10px; }
         #quick-facts-content { color: #3c4043; line-height: 1.6; }
+
+        /* --- Directions Panel --- */
         #directions-panel-redesign .dir-input-group { position: relative; }
         #directions-panel-redesign .dir-input-wrapper { display: flex; align-items: center; margin-bottom: 10px; }
         #directions-panel-redesign .dir-input-wrapper .input-icon { margin-right: 15px; }
-        #directions-panel-redesign .dir-input-wrapper input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; background-color: #f1f3f4; }
-        #swap-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin-top: -25px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ccc; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        #directions-panel-redesign .dir-quick-select { display: flex; align-items: center; padding: 12px 0; cursor: pointer; border-bottom: 1px solid #e0e0e0; color: #3c4043; }
+        #directions-panel-redesign .dir-input-wrapper input {
+            width: 100%; padding: 12px; border: 1px solid #ccc;
+            border-radius: 8px; background-color: #f1f3f4;
+        }
+        #swap-btn {
+            position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin-top: -25px;
+            width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ccc;
+            background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        #directions-panel-redesign .dir-quick-select {
+            display: flex; align-items: center; padding: 12px 0; cursor: pointer;
+            border-bottom: 1px solid #e0e0e0; color: #3c4043;
+        }
         #directions-panel-redesign .dir-quick-select .icon-wrapper { margin-right: 15px; }
-        #map-watermark { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background-color: rgba(255, 255, 255, 0.6); padding: 5px 10px; border-radius: 5px; font-size: 14px; color: #333; z-index: 40; pointer-events: none; }
-        .user-location-marker { width: 20px; height: 20px; background-color: #1a73e8; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.3); }
-        #navigation-status { position: fixed; top: calc(var(--banner-height) + 15px); left: 15px; right: 15px; background: white; z-index: 65; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; align-items: center; justify-content: space-between; }
-        #navigation-instruction { font-size: 16px; font-weight: 500; flex-grow: 1; margin-right: 15px; }
-        #end-navigation-btn { background-color: #d9534f; color: white; border: none; padding: 10px 15px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+
+        /* --- Watermark --- */
+        #map-watermark {
+            position: absolute; bottom: 10px; left: 50%;
+            transform: translateX(-50%); background-color: rgba(255, 255, 255, 0.6);
+            padding: 5px 10px; border-radius: 5px; font-size: 14px;
+            color: #333; z-index: 40; pointer-events: none;
+        }
+        
+        /* --- NEW: Navigation Styles --- */
+        .user-location-marker {
+            width: 20px; height: 20px;
+            background-color: #1a73e8;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        #navigation-status {
+            position: fixed;
+            top: calc(var(--banner-height) + 15px);
+            left: 15px;
+            right: 15px;
+            background: white;
+            z-index: 65;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: space-between;
+        }
+        #navigation-instruction {
+            font-size: 16px;
+            font-weight: 500;
+            flex-grow: 1;
+            margin-right: 15px;
+        }
+        #end-navigation-btn {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+        }
         #end-navigation-btn:hover { background-color: #c9302c; }
+
+
+        /* --- Mobile Responsive Styles --- */
         @media (max-width: 768px) and (pointer: coarse) {
             #top-search-wrapper { width: 90vw; left: 5vw; transform: none; }
             #profile-area { flex-grow: 1; justify-content: flex-end; }
             #site-title { flex-grow: 1; }
-            #side-panel { top: auto; left: 0; width: 100%; height: var(--panel-mobile-height); border-radius: 20px 20px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,0.1); bottom: -100%; transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1); padding-top: 0; }
+            #side-panel {
+                top: auto; left: 0; width: 100%; height: var(--panel-mobile-height);
+                border-radius: 20px 20px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
+                bottom: -100%; transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+                padding-top: 0;
+            }
             #side-panel.peek { bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek))); }
             #side-panel.open { left: 0; bottom: 0; }
-            #panel-grabber { display: block; width: 40px; height: 5px; background-color: #ccc; border-radius: 2.5px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: grab; }
+            #panel-grabber {
+                display: block; width: 40px; height: 5px; background-color: #ccc; border-radius: 2.5px;
+                position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: grab;
+            }
             #close-panel-btn { display: none !important; }
             #map-watermark { font-size: 12px; bottom: 15px; }
-            #navigation-status { flex-direction: column; align-items: stretch; }
+            
+            #navigation-status {
+                flex-direction: column;
+                align-items: stretch;
+            }
             #navigation-instruction { margin-right: 0; margin-bottom: 10px; }
             #end-navigation-btn { text-align: center; }
         }
-        .js-settings-btn { position: fixed; z-index: 40; background-color: white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease; }
-        .js-settings-btn:hover { transform: scale(1.1); }
-        .js-settings-btn svg { color: #333; }
-        #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-        #menu-overlay.open { opacity: 1; pointer-events: auto; }
-        #settings-menu { background: #fff; z-index: 101; display: none; }
-        @media (max-width: 768px) and (pointer: coarse) {
-            .js-settings-btn { bottom: 30px; right: 15px; width: 56px; height: 56px; }
-            .js-settings-btn svg { width: 28px; height: 28px; }
-            #settings-menu { position: fixed; bottom: 0; left: 0; width: 100%; border-radius: 16px 16px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
-            #settings-menu.open { display: block; transform: translateY(0); }
+
+        /* --- Settings Menu & Button --- */
+        .js-settings-btn { /* CHANGED from ID to Class */
+            position: fixed;
+            z-index: 40;
+            background-color: white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
         }
+        .js-settings-btn:hover {
+            transform: scale(1.1);
+        }
+        .js-settings-btn svg {
+            color: #333;
+        }
+
+        #menu-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #menu-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #settings-menu {
+            background: #fff;
+            z-index: 101;
+            display: none;
+        }
+
+        @media (max-width: 768px) and (pointer: coarse) {
+            .js-settings-btn {
+                bottom: 30px;
+                right: 15px;
+                width: 56px;
+                height: 56px;
+            }
+            .js-settings-btn svg { width: 28px; height: 28px; }
+
+            #settings-menu {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                border-radius: 16px 16px 0 0;
+                box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+                transform: translateY(100%);
+                transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            #settings-menu.open {
+                display: block;
+                transform: translateY(0);
+            }
+        }
+
         @media (min-width: 769px) {
-            #profile-area .js-settings-btn { position: relative; width: 36px; height: 36px; background-color: rgba(255, 255, 255, 0.2); box-shadow: none; margin-right: 10px; }
+            #profile-area .js-settings-btn { /* Select only the desktop button */
+                position: relative;
+                width: 36px;
+                height: 36px;
+                background-color: rgba(255, 255, 255, 0.2);
+                box-shadow: none;
+                margin-right: 10px;
+            }
             #profile-area .js-settings-btn:hover { background-color: rgba(255, 255, 255, 0.3); transform: none; }
             #profile-area .js-settings-btn svg { width: 24px; height: 24px; color: white; }
-            #mobile-settings-btn { display: none; }
-            #settings-menu { position: absolute; top: calc(var(--banner-height) + 5px); right: 60px; min-width: 280px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); opacity: 0; transform: translateY(-10px); transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none; }
-            #settings-menu.open { display: block; opacity: 1; transform: translateY(0); pointer-events: auto; }
+            
+            #mobile-settings-btn { display: none; } /* Hide mobile button on desktop */
+
+            #settings-menu {
+                position: absolute;
+                top: calc(var(--banner-height) + 5px);
+                right: 60px;
+                min-width: 280px;
+                border-radius: 8px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+                opacity: 0;
+                transform: translateY(-10px);
+                transition: opacity 0.2s ease, transform 0.2s ease;
+                pointer-events: none;
+            }
+            #settings-menu.open {
+                display: block;
+                opacity: 1;
+                transform: translateY(0);
+                pointer-events: auto;
+            }
             #menu-overlay { display: none; }
         }
-        .settings-menu-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; border-bottom: 1px solid #e0e0e0; }
-        .settings-menu-header h4 { margin: 0; font-size: 18px; font-weight: 600; }
-        #close-settings-btn { background: none; border: none; font-size: 28px; line-height: 1; padding: 0 5px; cursor: pointer; color: #5f6368; }
-        .settings-menu-content { padding: 15px 20px; }
-        .setting-group { margin-bottom: 15px; }
-        .setting-label { display: block; font-size: 14px; font-weight: 500; color: #5f6368; margin-bottom: 12px; }
-        .radio-group { display: flex; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
-        .radio-group label { flex: 1; text-align: center; padding: 10px 5px; cursor: pointer; transition: background-color 0.2s; font-weight: 500; }
-        .radio-group input[type="radio"] { display: none; }
-        .radio-group input[type="radio"]:checked + label { background-color: var(--brand-color); color: white; }
-        .radio-group label:not(:last-of-type) { border-right: 1px solid #ccc; }
+
+        .settings-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .settings-menu-header h4 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        #close-settings-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            line-height: 1;
+            padding: 0 5px;
+            cursor: pointer;
+            color: #5f6368;
+        }
+        .settings-menu-content {
+            padding: 15px 20px;
+        }
+        .setting-group {
+            margin-bottom: 15px;
+        }
+        .setting-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #5f6368;
+            margin-bottom: 12px;
+        }
+        .radio-group {
+            display: flex;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .radio-group label {
+            flex: 1;
+            text-align: center;
+            padding: 10px 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: 500;
+        }
+        .radio-group input[type="radio"] {
+            display: none;
+        }
+        .radio-group input[type="radio"]:checked + label {
+            background-color: var(--brand-color);
+            color: white;
+        }
+        .radio-group label:not(:last-of-type) {
+            border-right: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -160,10 +407,10 @@
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button class="js-settings-btn" aria-label="Map Settings">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
             </button>
             <button id="profile-button" aria-label="User Profile">
-                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c.2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </button>
             <div id="profile-dropdown">
                 <div id="logged-in-view" hidden>
@@ -285,4 +532,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
