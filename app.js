@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const map = new maplibregl.Map({
         container: 'map',
         style: 'https://tiles.openfreemap.org/styles/osm-bright/style.json',
-        center: [-98.5795, 39.8283], // Center of the US
+        center: [-98.5795, 39.8283],
         zoom: 3
     });
 
@@ -13,68 +13,139 @@ document.addEventListener('DOMContentLoaded', () => {
         trackUserLocation: true
     }));
 
-    // --- STATE MANAGEMENT ---
-    let navigationState = {
-        active: false,
-        routeData: null,
+    // --- STATE & CONSTANTS ---
+    let appState = {
+        fromCoords: null,
+        toCoords: null,
+        currentMarker: null,
+        debounceTimer: null
     };
-    // Special constant to identify when user selects their location
     const YOUR_LOCATION_TEXT = "Your Location";
 
     // --- DOM ELEMENTS ---
+    const mainSearchInput = document.getElementById('main-search');
     const fromInput = document.getElementById('panel-from-input');
     const toInput = document.getElementById('panel-to-input');
-    const getRouteBtn = document.getElementById('get-route-btn');
+    const mainSuggestions = document.getElementById('main-suggestions');
+    const fromSuggestions = document.getElementById('panel-from-suggestions');
+    const toSuggestions = document.getElementById('panel-to-suggestions');
+    const mainDirectionsIcon = document.getElementById('main-directions-icon');
     const sidePanel = document.getElementById('side-panel');
     const directionsPanel = document.getElementById('directions-panel-redesign');
+    const getRouteBtn = document.getElementById('get-route-btn');
+    const useMyLocationBtn = document.getElementById('dir-use-my-location');
     const routeSection = document.getElementById('route-section');
     const routeStepsList = document.getElementById('route-steps');
+    const routeSummary = document.getElementById('route-summary');
     const exitRouteBtn = document.getElementById('exit-route-btn');
-    const useMyLocationBtn = document.getElementById('dir-use-my-location');
     const navigationStatus = document.getElementById('navigation-status');
     const navigationInstruction = document.getElementById('navigation-instruction');
     const endNavigationBtn = document.getElementById('end-navigation-btn');
-    const mainDirectionsIcon = document.getElementById('main-directions-icon');
+    const swapBtn = document.getElementById('swap-btn');
 
     // --- EVENT LISTENERS ---
-    
-    // Show directions panel when directions icon is clicked
-    mainDirectionsIcon.addEventListener('click', () => {
-        sidePanel.classList.add('open');
-        // Pre-fill destination if a place was selected (future enhancement)
-    });
 
-    // Main "Get Route" button logic
+    // Search input listeners
+    mainSearchInput.addEventListener('input', (e) => handleSearchInput(e, mainSuggestions));
+    fromInput.addEventListener('input', (e) => handleSearchInput(e, fromSuggestions, 'from'));
+    toInput.addEventListener('input', (e) => handleSearchInput(e, toSuggestions, 'to'));
+
+    // UI interaction listeners
+    mainDirectionsIcon.addEventListener('click', showDirectionsPanel);
+    useMyLocationBtn.addEventListener('click', setFromToMyLocation);
     getRouteBtn.addEventListener('click', handleGetRoute);
-    
-    // Button to exit route steps and return to input fields
-    exitRouteBtn.addEventListener('click', () => {
-        routeSection.hidden = true;
-        directionsPanel.hidden = false;
-        clearRouteFromMap();
-    });
-
-    // Button to fill the 'from' input with "Your Location"
-    useMyLocationBtn.addEventListener('click', () => {
-        fromInput.value = YOUR_LOCATION_TEXT;
-    });
-    
-    // Button to end an active navigation session
+    exitRouteBtn.addEventListener('click', exitRouteView);
     endNavigationBtn.addEventListener('click', endNavigation);
+    swapBtn.addEventListener('click', swapDirections);
 
+    // Close suggestions when clicking elsewhere
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.suggestions-dropdown') && !e.target.closest('input[type="text"]')) {
+            hideAllSuggestions();
+        }
+    });
 
-    // --- CORE FUNCTIONS ---
+    // --- SEARCH & SUGGESTIONS LOGIC ---
 
-    /**
-     * Main handler for the "Get Route" button.
-     * Determines whether to start Planning Mode or Navigation Mode.
-     */
+    function handleSearchInput(event, suggestionsContainer, type = null) {
+        const query = event.target.value;
+        clearTimeout(appState.debounceTimer);
+        appState.debounceTimer = setTimeout(() => {
+            if (query.length < 3) {
+                suggestionsContainer.style.display = 'none';
+                return;
+            }
+            fetchSuggestions(query, suggestionsContainer, type);
+        }, 300); // Debounce for 300ms
+    }
+
+    async function fetchSuggestions(query, container, type) {
+        const results = await geocodeAddress(query, 5); // Get up to 5 results
+        if (results) {
+            container.innerHTML = '';
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = 'search-result';
+                div.textContent = result.display_name;
+                div.onclick = () => selectSuggestion(result, container, type);
+                container.appendChild(div);
+            });
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function selectSuggestion(result, container, type) {
+        const coords = [parseFloat(result.lon), parseFloat(result.lat)];
+        const displayName = result.display_name;
+        container.style.display = 'none';
+
+        if (type === 'from') {
+            fromInput.value = displayName;
+            appState.fromCoords = coords;
+        } else if (type === 'to') {
+            toInput.value = displayName;
+            appState.toCoords = coords;
+        } else {
+            // Main search bar case
+            mainSearchInput.value = displayName;
+            flyToLocation(coords);
+            showLocationMarker(coords);
+        }
+    }
+
+    function hideAllSuggestions() {
+        mainSuggestions.style.display = 'none';
+        fromSuggestions.style.display = 'none';
+        toSuggestions.style.display = 'none';
+    }
+
+    // --- ROUTING & NAVIGATION LOGIC ---
+
+    function showDirectionsPanel() {
+        directionsPanel.hidden = false;
+        routeSection.hidden = true;
+        sidePanel.classList.add('open');
+        // Pre-fill destination from main search if a location is selected
+        if (mainSearchInput.value && appState.currentMarker) {
+            toInput.value = mainSearchInput.value;
+            appState.toCoords = appState.currentMarker.getLngLat().toArray();
+        }
+    }
+
+    function setFromToMyLocation() {
+        fromInput.value = YOUR_LOCATION_TEXT;
+        appState.fromCoords = null; // Mark as "to be determined"
+    }
+
     async function handleGetRoute() {
+        hideAllSuggestions();
         const startQuery = fromInput.value.trim();
         const endQuery = toInput.value.trim();
 
         if (!startQuery || !endQuery) {
-            alert("Please enter a starting point and a destination.");
+            alert("Please provide a starting point and a destination.");
             return;
         }
 
@@ -82,28 +153,27 @@ document.addEventListener('DOMContentLoaded', () => {
         getRouteBtn.textContent = "Calculating...";
 
         try {
-            let startCoords, endCoords;
+            let startCoords;
             const isNavigatingFromCurrent = (startQuery === YOUR_LOCATION_TEXT);
             
-            // Get coordinates for start and end points
-            endCoords = await geocodeAddress(endQuery);
-            if (!endCoords) throw new Error(`Could not find location: ${endQuery}`);
+            // Resolve 'To' coordinates first
+            if (!appState.toCoords) appState.toCoords = (await geocodeAddress(endQuery))[0].coords;
+            if (!appState.toCoords) throw new Error(`Could not find destination: ${endQuery}`);
 
+            // Resolve 'From' coordinates
             if (isNavigatingFromCurrent) {
                 startCoords = await getUserLocation();
-                if (!startCoords) throw new Error("Could not get your current location.");
             } else {
-                startCoords = await geocodeAddress(startQuery);
-                if (!startCoords) throw new Error(`Could not find location: ${startQuery}`);
+                if (!appState.fromCoords) appState.fromCoords = (await geocodeAddress(startQuery))[0].coords;
+                startCoords = appState.fromCoords;
             }
+            if (!startCoords) throw new Error(`Could not find starting point: ${startQuery}`);
 
-            // Fetch the route data from OSRM
-            const routeData = await fetchRoute(startCoords, endCoords);
+            const routeData = await fetchRoute(startCoords, appState.toCoords);
             if (!routeData || routeData.routes.length === 0) {
-                throw new Error("Could not find a route between these locations.");
+                throw new Error("Could not find a route.");
             }
-
-            // Fork logic based on whether we are navigating or planning
+            
             if (isNavigatingFromCurrent) {
                 initializeNavigationMode(routeData);
             } else {
@@ -112,179 +182,132 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             alert(`Error: ${error.message}`);
-            console.error(error);
         } finally {
             getRouteBtn.disabled = false;
             getRouteBtn.textContent = "Get Route";
         }
     }
-
-    /**
-     * Enters PLANNING mode. Displays route and step-by-step list in the side panel.
-     */
-    function initializePlanningMode(routeData) {
-        const route = routeData.routes[0];
-        console.log("Entering Planning Mode.", route);
-
+    
+    function initializePlanningMode(data) {
+        const route = data.routes[0];
         drawRouteOnMap(route.geometry);
+        displayRouteSteps(route);
+        directionsPanel.hidden = true;
+        routeSection.hidden = false;
+        const bounds = turf.bbox(turf.feature(route.geometry));
+        map.fitBounds(bounds, { padding: { top: 50, bottom: 50, left: 450, right: 50 }});
+    }
+
+    function initializeNavigationMode(data) {
+        const route = data.routes[0];
+        drawRouteOnMap(route.geometry);
+        navigationInstruction.textContent = route.legs[0].steps[0].maneuver.instruction;
+        sidePanel.classList.remove('open');
+        navigationStatus.style.display = 'flex';
+        const bounds = turf.bbox(turf.feature(route.geometry));
+        map.fitBounds(bounds, { padding: { top: 150, bottom: 50, left: 50, right: 50 }});
+    }
+
+    function endNavigation() {
+        navigationStatus.style.display = 'none';
+        clearRouteFromMap();
+        showLocationMarker(null); // Clear marker
+    }
+
+    function exitRouteView() {
+        routeSection.hidden = true;
+        directionsPanel.hidden = false;
+        clearRouteFromMap();
+    }
+    
+    function swapDirections() {
+        // Swap input values
+        const tempValue = fromInput.value;
+        fromInput.value = toInput.value;
+        toInput.value = tempValue;
         
-        // Populate the route steps list
-        routeStepsList.innerHTML = ''; // Clear previous steps
-        const steps = route.legs[0].steps;
-        steps.forEach(step => {
+        // Swap stored coordinates
+        const tempCoords = appState.fromCoords;
+        appState.fromCoords = appState.toCoords;
+        appState.toCoords = tempCoords;
+    }
+
+    function displayRouteSteps(route) {
+        const leg = route.legs[0];
+        routeSummary.textContent = `Distance: ${(leg.distance / 1000).toFixed(1)} km, Duration: ${Math.round(leg.duration / 60)} min`;
+        routeStepsList.innerHTML = '';
+        leg.steps.forEach(step => {
             const li = document.createElement('li');
             li.textContent = step.maneuver.instruction;
             routeStepsList.appendChild(li);
         });
-
-        // Show the route steps panel
-        directionsPanel.hidden = true;
-        routeSection.hidden = false;
-
-        // Fit map to the route
-        const bounds = turf.bbox(turf.feature(route.geometry));
-        map.fitBounds(bounds, { padding: 50 });
     }
 
-    /**
-     * Enters NAVIGATION mode. Hides panel, shows top navigation bar with first instruction.
-     */
-    function initializeNavigationMode(routeData) {
-        const route = routeData.routes[0];
-        console.log("Entering Navigation Mode.", route);
-        
-        navigationState.active = true;
-        navigationState.routeData = routeData;
+    // --- MAP UTILITY FUNCTIONS ---
 
-        drawRouteOnMap(route.geometry);
+    function flyToLocation(coords) {
+        map.flyTo({
+            center: coords,
+            zoom: 14,
+            speed: 1.5
+        });
+    }
 
-        // **FIX**: Show the FIRST instruction, not "You have arrived".
-        const firstStep = route.legs[0].steps[0].maneuver.instruction;
-        navigationInstruction.textContent = firstStep;
-        
-        // Hide the side panel and show the top navigation bar
-        sidePanel.classList.remove('open');
-        navigationStatus.style.display = 'flex';
-        
-        // Fit map to the route to start
-        const bounds = turf.bbox(turf.feature(route.geometry));
-        map.fitBounds(bounds, { padding: { top: 150, bottom: 50, left: 50, right: 50 } });
+    function showLocationMarker(coords) {
+        if (appState.currentMarker) {
+            appState.currentMarker.remove();
+        }
+        if (coords) {
+            appState.currentMarker = new maplibregl.Marker({ color: '#D83025' })
+                .setLngLat(coords)
+                .addTo(map);
+        }
+    }
 
-        // In a real app, you would now start a geolocation watchPosition()
-        // to track the user's progress along navigationState.routeData.
+    function drawRouteOnMap(geometry) {
+        clearRouteFromMap();
+        map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: geometry }});
+        map.addLayer({
+            id: 'route', type: 'line', source: 'route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-color': '#00796b', 'line-width': 6, 'line-opacity': 0.8 }
+        });
     }
     
-    /**
-     * Ends the active navigation session and resets the UI.
-     */
-    function endNavigation() {
-        navigationState.active = false;
-        navigationState.routeData = null;
-
-        navigationStatus.style.display = 'none';
-        clearRouteFromMap();
-        
-        // Show the main search bar again (optional)
-        // document.getElementById('top-search-wrapper').style.display = 'block';
-        console.log("Navigation ended.");
+    function clearRouteFromMap() {
+        if (map.getLayer('route')) map.removeLayer('route');
+        if (map.getSource('route')) map.removeSource('route');
     }
 
+    // --- API UTILITY FUNCTIONS ---
 
-    // --- API & MAP UTILITY FUNCTIONS ---
-
-    /**
-     * Converts an address string to [lng, lat] coordinates using Nominatim.
-     */
-    async function geocodeAddress(query) {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+    async function geocodeAddress(query, limit = 1) {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=${limit}`;
         try {
             const response = await fetch(url);
             const data = await response.json();
             if (data.length > 0) {
-                return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+                // Return full data for suggestions, or just coords for single geocode
+                return limit > 1 ? data : [{ display_name: data[0].display_name, coords: [parseFloat(data[0].lon), parseFloat(data[0].lat)] }];
             }
             return null;
-        } catch (error) {
-            console.error("Geocoding error:", error);
-            return null;
-        }
+        } catch (error) { console.error("Geocoding error:", error); return null; }
     }
 
-    /**
-     * Gets the user's current GPS location as [lng, lat].
-     */
     function getUserLocation() {
         return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-                return reject("Geolocation is not supported by your browser.");
-            }
             navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve([position.coords.longitude, position.coords.latitude]);
-                },
-                () => {
-                    reject("Unable to retrieve your location.");
-                }
+                pos => resolve([pos.coords.longitude, pos.coords.latitude]),
+                () => reject("Unable to retrieve location.")
             );
         });
     }
 
-    /**
-     * Fetches route data from Project OSRM.
-     */
     async function fetchRoute(startCoords, endCoords) {
-        const coordsString = `${startCoords.join(',')};${endCoords.join(',')}`;
-        const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?steps=true&geometries=geojson&overview=full`;
+        const url = `https://router.project-osrm.org/route/v1/driving/${startCoords.join(',')};${endCoords.join(',')}?steps=true&geometries=geojson&overview=full`;
         try {
             const response = await fetch(url);
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error("Routing error:", error);
-            return null;
-        }
+            return await response.json();
+        } catch (error) { console.error("Routing error:", error); return null; }
     }
-
-    /**
-     * Clears any existing route from the map.
-     */
-    function clearRouteFromMap() {
-        if (map.getLayer('route')) {
-            map.removeLayer('route');
-        }
-        if (map.getSource('route')) {
-            map.removeSource('route');
-        }
-    }
-
-    /**
-     * Draws a route geometry on the map.
-     */
-    function drawRouteOnMap(geometry) {
-        clearRouteFromMap(); // Clear old route first
-
-        map.addSource('route', {
-            'type': 'geojson',
-            'data': {
-                'type': 'Feature',
-                'properties': {},
-                'geometry': geometry
-            }
-        });
-
-        map.addLayer({
-            'id': 'route',
-            'type': 'line',
-            'source': 'route',
-            'layout': {
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': '#00796b',
-                'line-width': 6,
-                'line-opacity': 0.8
-            }
-        });
-    }
-});
+});```
