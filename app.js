@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- UPDATED MAP STYLE ---
     const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty/style.json',
+        default: 'https://tiles.openfreemap.org/styles/liberty',
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
 
