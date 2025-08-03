@@ -1,53 +1,76 @@
-// A name for our cache
-const CACHE_NAME = 'theboiismc-maps-cache-v4'; // Incremented version to force update
+// sw.js
 
-// The list of core files to cache on install
-const APP_SHELL_URLS = [
-    '/',
-    '/index.html',
-    '/app.js',
-    '/manifest.json',
-    'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css',
-    'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js',
-    'https://npmcdn.com/@turf/turf/turf.min.js'
+const CORE_CACHE_NAME = 'theboiismc-maps-core-v1';
+const TILE_CACHE_NAME = 'theboiismc-maps-tiles-v1';
+
+const coreAssets = [
+  '/',
+  '/index.html',
+  '/app.js',
+  'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css',
+  'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js',
+  'https://npmcdn.com/@turf/turf.min.js',
+  '/icons512_rounded.png',
+  '/icons512_maskable.png'
 ];
 
-// Install Event: Cache the application shell
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(APP_SHELL_URLS))
-            .then(() => self.skipWaiting())
-    );
+self.addEventListener('install', event => {
+  console.log('Service Worker: Installing...');
+  event.waitUntil(
+    caches.open(CORE_CACHE_NAME).then(cache => {
+      console.log('Service Worker: Caching core assets');
+      return cache.addAll(coreAssets);
+    })
+  );
+  self.skipWaiting();
 });
 
-// Activate Event: Clean up old caches
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
-            );
-        }).then(() => self.clients.claim())
-    );
+self.addEventListener('activate', event => {
+  console.log('Service Worker: Activating...');
+  const cacheWhitelist = [CORE_CACHE_NAME, TILE_CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            console.log('Service Worker: Deleting old cache', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  return self.clients.claim();
 });
 
-// Fetch Event: Smartly serve from cache or network
-self.addEventListener('fetch', (event) => {
-    const url = new URL(event.request.url);
 
-    // For app shell files, use a Cache First strategy.
-    // We check if the request URL is one of our cached assets.
-    if (APP_SHELL_URLS.some(appUrl => url.href.endsWith(appUrl))) {
-        event.respondWith(
-            caches.match(event.request).then(cachedResponse => {
-                return cachedResponse || fetch(event.request);
-            })
-        );
-        return;
-    }
-    
-    // For all other requests (API calls, map tiles), go Network First.
-    // This ensures the map and any API data is always fresh.
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  const isMapTileRequest = url.hostname.includes('openfreemap.org') || url.hostname.includes('arcgisonline.com');
+  const isApiRequest = url.hostname.includes('nominatim') || url.hostname.includes('project-osrm') || url.hostname.includes('open-meteo');
+
+  if (isMapTileRequest) {
+    // Stale-While-Revalidate strategy for map tiles
+    event.respondWith(
+      caches.open(TILE_CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(response => {
+          const fetchPromise = fetch(event.request).then(networkResponse => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+          return response || fetchPromise;
+        });
+      })
+    );
+  } else if (isApiRequest) {
+    // Network-only for API calls
     event.respondWith(fetch(event.request));
+  } else {
+    // Cache-first for core app assets
+    event.respondWith(
+      caches.match(event.request).then(response => {
+        return response || fetch(event.request);
+      })
+    );
+  }
 });
