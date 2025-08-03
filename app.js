@@ -458,47 +458,80 @@ document.addEventListener('DOMContentLoaded', async () => {
         navigationInstructionEl.textContent = instruction;
     }
 
+    // --- START: BUG FIX - UPDATED FUNCTION ---
     async function handlePositionUpdate(position) {
         if (!isNavigating || !currentRouteData) return;
+
         const { latitude, longitude, heading, accuracy } = position.coords;
         const userLngLat = [longitude, latitude];
-        if (accuracy > 75 || (lastGoodPosition && accuracy > lastGoodPosition.coords.accuracy)) { return; }
+
+        // Ignore low-quality GPS signals or if the user hasn't moved.
+        if (accuracy > 75) { 
+            console.warn(`Ignoring low accuracy GPS update: ${accuracy}m`);
+            return; 
+        }
         if (lastGoodPosition) {
             const distanceMoved = turf.distance(turf.point([lastGoodPosition.coords.longitude, lastGoodPosition.coords.latitude]), turf.point(userLngLat), { units: 'meters' });
             if (distanceMoved < 3) { return; }
         }
         lastGoodPosition = position;
+
+        // Update the user's location marker on the map
         userLocationMarker.setLngLat(userLngLat);
         if (heading != null) { userLocationMarker.setRotation(heading); }
         map.easeTo({ center: userLngLat, zoom: Math.max(map.getZoom(), 17), essential: true });
+
         const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
         const userPoint = turf.point(userLngLat);
         const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
+
+        // Check if user is off-route and needs recalculation
         if (snapped.properties.dist > 50 && !isRerouting) {
             isRerouting = true;
             speech.speak("Recalculating route.");
             fromInput.value = "Your Location";
             fromInput.dataset.coords = userLngLat.join(',');
-            await getRoute();
+            await getRoute(); // This will fetch a new route and reset navigation state
             isRerouting = false;
             return;
         }
+
         const steps = currentRouteData.routes[0].legs[0].steps;
+
+        // Check for arrival at the final destination
         if (upcomingStepIndex >= steps.length) {
-            if (turf.distance(userPoint, turf.point(steps[steps.length - 1].maneuver.location)) < 50) {
+            const destination = turf.point(steps[steps.length - 1].maneuver.location);
+            if (turf.distance(userPoint, destination, { units: 'meters' }) < 50) {
                 speech.speak("You have arrived at your destination.");
                 stopNavigation();
             }
-            return;
+            return; // End of navigation logic
         }
+
         const nextManeuver = steps[upcomingStepIndex].maneuver;
         const distanceToManeuver = turf.distance(userPoint, turf.point(nextManeuver.location), { units: 'meters' });
-        if (distanceToManeuver < 80) {
+
+        // Determine the starting point of the CURRENT step
+        let startOfCurrentStepLocation;
+        if (upcomingStepIndex === 0) {
+            // For the first step, the start is the beginning of the whole route.
+            startOfCurrentStepLocation = currentRouteData.routes[0].geometry.coordinates[0];
+        } else {
+            // For subsequent steps, the start is the location of the previous maneuver.
+            startOfCurrentStepLocation = steps[upcomingStepIndex - 1].maneuver.location;
+        }
+        const distanceFromStepStart = turf.distance(userPoint, turf.point(startOfCurrentStepLocation), { units: 'meters' });
+
+        // **THE FIX**: Advance to the next step only if we are close to the next turn
+        // AND we have traveled a minimum distance away from the start of the current step.
+        // This prevents instantly completing a step upon starting navigation.
+        if (distanceToManeuver < 80 && distanceFromStepStart > 10) {
             speech.speak(nextManeuver.instruction);
             upcomingStepIndex++;
             updateNavigationInstruction();
         }
     }
+    // --- END: BUG FIX - UPDATED FUNCTION ---
 
     const settingsBtns = document.querySelectorAll('.js-settings-btn');
     const settingsMenu = document.getElementById('settings-menu');
