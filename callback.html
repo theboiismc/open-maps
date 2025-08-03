@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Authenticating...</title>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
+    <script>
+        // This script is run when Authentik redirects the user back to your app.
+        // It processes the authentication response from the URL,
+        // stores the user's session, and then closes this popup/redirect window.
+        new oidc.UserManager({ response_mode: "query" })
+            .signinRedirectCallback()
+            .catch((err) => {
+                console.error(err);
+                // Optionally display an error message to the user here.
+            });
+    </script>
+</body>
+</html>
