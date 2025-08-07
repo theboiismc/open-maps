@@ -2,7 +2,7 @@
 const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/theboiismc/",
     // *** IMPORTANT: Remember to replace this with your actual Client ID from Authentik. ***
-    client_id: "MA8UF8AMFlBWFYeytrhX8iGNEM54m7bjJO5MuWKd", 
+    client_id: "9hWmWrA1CS2pLgPANKYXfxExoCMHYu0xg60XdTkB", 
     redirect_uri: "https://maps.theboiismc.com/callback.html",
     post_logout_redirect_uri: "https://maps.theboiismc.com",
     response_type: 'code',
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
     signupBtn.addEventListener('click', (e) => { 
         e.preventDefault();
-        window.location.href = "https://accounts.theboiismc.com/if/flow/login/";
+        window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/";
     });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
     // --- END AUTHENTICATION ---
