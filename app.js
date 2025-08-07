@@ -1,8 +1,4 @@
-To ensure both the login and signup flows work correctly and securely with your Authentik server, the `oidc-client-ts` library should be used for both actions. This involves adding a `signup` method to your `authService` and updating the `signupBtn` event listener to call that method.
 
-Here is your full `app.js` file with only the necessary changes applied to make both buttons work with OpenID Connect.
-
-```javascript
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
 const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/theboiismc/",
