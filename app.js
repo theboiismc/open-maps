@@ -1,86 +1,5 @@
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authenticating...</title>
-    <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-            color: #333;
-        }
-        .container {
-            text-align: center;
-            padding: 2rem;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #5a5a5a;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Logging In...</h1>
-        <p>Please wait while we securely log you in to your account.</p>
-    </div>
-
-    <!-- The oidc-client-ts library is required to process the callback -->
-    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
-    <!-- Your new dedicated callback script -->
-    <script src="/callback.js"></script>
-</body>
-</html>
-```
-
------
-
-### `callback.js`
-
-```javascript
-// This file is loaded by callback.html to handle the OIDC redirect.
-
-// Use an IIFE (Immediately Invoked Function Expression) to avoid global scope pollution.
-(async () => {
-    // These settings MUST exactly match the configuration in your app.js file.
-    const settings = {
-        authority: "https://accounts.theboiismc.com/application/o/maps/",
-        client_id: "MA8UF8AMFlBWFYeytrhX8iGNEM54m7bjJO5MuWKd",
-        redirect_uri: "https://maps.theboiismc.com/callback.html",
-        response_type: 'code',
-        scope: 'openid profile',
-    };
-
-    const userManager = new oidc.UserManager(settings);
-
-    try {
-        // This function processes the token from the URL and completes the login.
-        await userManager.signinRedirectCallback();
-        console.log("Login successful! Redirecting to the main page.");
-        // Redirect back to the main page after a successful login.
-        window.location.href = "/";
-    } catch (error) {
-        // Log any errors that occur during the process.
-        console.error("OIDC Signin callback error:", error);
-    }
-})();
-```
-
------
-
-### `app.js`
-
-```javascript
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
+// This configuration tells the OIDC client how to connect to your Authentik instance.
 const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/maps/",
     // *** IMPORTANT: Remember to replace this with your actual Client ID from Authentik. ***
@@ -88,16 +7,18 @@ const authConfig = {
     redirect_uri: "https://maps.theboiismc.com/callback.html",
     post_logout_redirect_uri: "https://maps.theboiismc.com",
     response_type: 'code',
+    scope: 'openid profile', // Requesting basic user information
     automaticSilentRenew: true,
 };
 const userManager = new oidc.UserManager(authConfig);
 const authService = {
+    // This function handles the login process by redirecting to Authentik
     async login() { return userManager.signinRedirect(); },
+    // This function handles the logout process
     async logout() { return userManager.signoutRedirect(); },
+    // This function retrieves the currently logged-in user's data
     async getUser() { return userManager.getUser(); },
-    // This handleCallback function is no longer needed since it's now in callback.js
-    // I've left it here for reference but your main app logic doesn't call it anymore.
-    async handleCallback() { return userManager.signinRedirectCallback(); } 
+    // The handleCallback function is no longer needed in app.js as it's now in callback.js
 };
 
 
@@ -118,6 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let currentUser = null;
 
+    // A function to update the UI based on the user's authentication status
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
         const isLoggedIn = !!currentUser;
@@ -129,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // Check for a logged-in user on page load
     try {
         const user = await authService.getUser();
         updateAuthUI(user);
@@ -137,21 +60,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateAuthUI(null);
     }
 
+    // Event listener for the profile dropdown button
     profileButton.addEventListener('click', (e) => {
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
     });
 
+    // Close the dropdown if the user clicks anywhere else on the page
     document.addEventListener('click', (e) => {
         if (profileDropdown.style.display === 'block' && !profileArea.contains(e.target)) {
             profileDropdown.style.display = 'none';
         }
     });
 
+    // Event listeners for login, signup, and logout buttons
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
     signupBtn.addEventListener('click', (e) => { 
         e.preventDefault();
-        // Updated URL to the correct authentication flow for login/signup
+        // This is the CORRECT URL for the default login/signup flow in Authentik
         window.location.href = "https://accounts.theboiismc.com/if/flow/default-authentication-flow/";
     });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
@@ -262,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel); document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel); document.getElementById('info-save-btn').addEventListener('click', () => { if (currentUser) { alert("Feature 'Save Place' not yet implemented!"); } else { alert("Please log in to save places."); } }); document.getElementById('swap-btn').addEventListener('click', () => { [fromInput.value, toInput.value] = [toInput.value, fromInput.value]; [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords]; }); document.getElementById('dir-use-my-location').addEventListener('click', () => { fromInput.value = "Getting your location..."; navigator.geolocation.getCurrentPosition( pos => { fromInput.value = "Your Location"; fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; }, handlePositionError, geolocationOptions ); }); document.getElementById('back-to-info-btn').addEventListener('click', () => { if (currentPlace) showPanel('info-panel-redesign'); });
     function clearRouteFromMap() { if (map.getLayer('route-line')) map.removeLayer('route-line'); if (map.getSource('route')) map.removeSource('route'); if (map.getLayer(highlightedSegmentLayerId)) map.removeLayer(highlightedSegmentLayerId); if (map.getSource(highlightedSegmentLayerId)) map.removeSource(highlightedSegmentLayerId); }
     function displayRouteSteps(route) { const routeStepsEl = document.getElementById('route-steps'); routeStepsEl.innerHTML = ''; const steps = route.legs[0].steps; steps.forEach(step => { const li = document.createElement('li'); li.textContent = step.maneuver.instruction; routeStepsEl.appendChild(li); }); }
-    async function getRoute() { if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points."); clearRouteFromMap(); try { const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]; const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`; const res = await fetch(url); const data = await res.json(); if (!data.routes || data.routes.length === 0 || !data.routes[0].legs || !data.routes[0].legs[0].steps || data.routes[0].legs[0].steps.length === 0) { return alert("A route could not be found. Please try a different location."); } currentRouteData = data; const route = data.routes[0]; const routeGeoJSON = { type: 'Feature', geometry: route.geometry }; addRouteToMap(routeGeoJSON); const bounds = new maplibregl.LngLatBounds(); routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord)); if (fromInput.value.trim() === "Your Location") { map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 }); closePanel(); startNavigation(); } else { displayRouteSteps(route); showPanel('route-section'); map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } }); } } catch (err) { alert(`Error getting route: ${err.message}`); navigationState.isRerouting = false; } }
+    async function getRoute() { if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points."); clearRouteFromMap(); try { const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]); const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`; const res = await fetch(url); const data = await res.json(); if (!data.routes || data.routes.length === 0 || !data.routes[0].legs || !data.routes[0].legs[0].steps || data.routes[0].legs[0].steps.length === 0) { return alert("A route could not be found. Please try a different location."); } currentRouteData = data; const route = data.routes[0]; const routeGeoJSON = { type: 'Feature', geometry: route.geometry }; addRouteToMap(routeGeoJSON); const bounds = new maplibregl.LngLatBounds(); routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord)); if (fromInput.value.trim() === "Your Location") { map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 }); closePanel(); startNavigation(); } else { displayRouteSteps(route); showPanel('route-section'); map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } }); } } catch (err) { alert(`Error getting route: ${err.message}`); navigationState.isRerouting = false; } }
     document.getElementById('get-route-btn').addEventListener('click', getRoute); document.getElementById('exit-route-btn').addEventListener('click', () => { clearRouteFromMap(); showPanel('directions-panel-redesign'); });
     async function geocode(inputEl) { if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number); const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`); const data = await res.json(); if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`); inputEl.value = data[0].display_name; inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`; return [parseFloat(data[0].lon), parseFloat(data[0].lat)]; }
     function addRouteToMap(routeGeoJSON) { if (map.getSource('route')) { map.getSource('route').setData(routeGeoJSON); } else { map.addSource('route', { type: 'geojson', data: routeGeoJSON }); map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0d89ec', 'line-width': 8, 'line-opacity': 0.7 } }); } }
@@ -459,4 +385,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isMobile) { const grabber = document.getElementById("panel-grabber"); let startY; grabber.addEventListener('touchstart', (e) => { startY = e.touches[0].pageY; sidePanel.style.transition = 'none'; }, { passive: true }); grabber.addEventListener('touchmove', (e) => { if (startY === undefined) return; const currentY = e.touches[0].pageY; let newBottom = (parseInt(getComputedStyle(sidePanel).bottom, 10) || 0) + (startY - currentY); if (newBottom > 0) newBottom = 0; sidePanel.style.bottom = `${newBottom}px`; startY = currentY; }, { passive: true }); grabber.addEventListener('touchend', () => { if (startY === undefined) return; startY = undefined; sidePanel.style.transition = ''; const currentBottom = parseInt(sidePanel.style.bottom, 10); const panelHeight = sidePanel.clientHeight; const peekHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek')); if (currentBottom > (-1 * panelHeight) / 2) { sidePanel.classList.remove('peek'); sidePanel.classList.add('open'); } else { sidePanel.classList.remove('open', 'peek'); } sidePanel.style.bottom = ''; }); }
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(registration => { console.log('SW registered: ', registration.scope); }, err => { console.log('SW registration failed: ', err); }); }); }
 });
-```
