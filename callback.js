@@ -1,8 +1,5 @@
-// This file is loaded by callback.html to handle the OIDC redirect.
 
-// Use an IIFE (Immediately Invoked Function Expression) to avoid global scope pollution.
 (async () => {
-    // These settings MUST exactly match the configuration in your app.js file.
     const settings = {
         authority: "https://accounts.theboiismc.com/application/o/maps/",
         client_id: "MA8UF8AMFlBWFYeytrhX8iGNEM54m7bjJO5MuWKd",
