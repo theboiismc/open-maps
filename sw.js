@@ -1,13 +1,16 @@
-const CACHE_NAME = 'theboiismc-maps-cache-v1';
+const CACHE_NAME = 'theboiismc-maps-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/app.js',
+  '/callback.html',
+  '/callback.js',
   '/manifest.json',
   '/favicon.ico',
   '/icon-192x192.png',
   '/icon512_rounded.png',
   '/icon512_maskable.png',
+  'https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js',
   'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css',
   'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js',
   'https://unpkg.com/@turf/turf@6.5.0/turf.min.js',
@@ -35,7 +38,10 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  if (event.request.method !== 'GET' || event.request.url.startsWith('https://accounts.theboiismc.com')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request);
