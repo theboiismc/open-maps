@@ -102,85 +102,10 @@
         #directions-panel-redesign .dir-quick-select .icon-wrapper { margin-right: 15px; }
         #map-watermark { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background-color: rgba(255, 255, 255, 0.6); padding: 5px 10px; border-radius: 5px; font-size: 14px; color: #333; z-index: 40; pointer-events: none; }
         .user-location-marker { width: 20px; height: 20px; background-color: #1a73e8; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.3); }
-
-        #navigation-status {
-            position: fixed;
-            top: calc(var(--banner-height) + 15px);
-            left: 15px;
-            right: 15px;
-            background: white;
-            z-index: 65;
-            padding: 10px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: none;
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        #instruction-container {
-            background-color: #00796b;
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        #navigation-instruction {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        #instruction-progress-bar {
-            width: 100%;
-            height: 5px;
-            background-color: rgba(255, 255, 255, 0.4);
-            border-radius: 2.5px;
-            overflow: hidden;
-        }
-        #instruction-progress-bar::after {
-            content: '';
-            display: block;
-            height: 100%;
-            width: 100%;
-            background-color: #fff;
-            border-radius: 2.5px;
-            transform-origin: left;
-            transition: transform 0.2s linear;
-        }
-        #trip-stats-container {
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            margin-bottom: 10px;
-        }
-        .stat-item {
-            text-align: center;
-        }
-        #stat-speed, #stat-eta, #stat-time-remaining {
-            font-size: 22px;
-            font-weight: 600;
-            display: block;
-        }
-        .stat-label {
-            font-size: 12px;
-            color: #5f6368;
-            text-transform: uppercase;
-        }
-        #end-navigation-btn {
-            background-color: #d9534f;
-            color: white;
-            border: none;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        #end-navigation-btn:hover {
-            background-color: #c9302c;
-        }
-
+        #navigation-status { position: fixed; top: calc(var(--banner-height) + 15px); left: 15px; right: 15px; background: white; z-index: 65; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; align-items: center; justify-content: space-between; }
+        #navigation-instruction { font-size: 16px; font-weight: 500; flex-grow: 1; margin-right: 15px; }
+        #end-navigation-btn { background-color: #d9534f; color: white; border: none; padding: 10px 15px; font-weight: 600; border-radius: 8px; cursor: pointer; }
+        #end-navigation-btn:hover { background-color: #c9302c; }
         @media (max-width: 768px) and (pointer: coarse) {
             #top-search-wrapper { width: 90vw; left: 5vw; transform: none; }
             #profile-area { flex-grow: 1; justify-content: flex-end; }
@@ -191,11 +116,8 @@
             #panel-grabber { display: block; width: 40px; height: 5px; background-color: #ccc; border-radius: 2.5px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: grab; }
             #close-panel-btn { display: none !important; }
             #map-watermark { font-size: 12px; bottom: 15px; }
-            #navigation-status {
-                left: 5px;
-                right: 5px;
-                border-radius: 15px;
-            }
+            #navigation-status { flex-direction: column; align-items: stretch; }
+            #navigation-instruction { margin-right: 0; margin-bottom: 10px; }
             #end-navigation-btn { text-align: center; }
         }
         .js-settings-btn { position: fixed; z-index: 40; background-color: white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease; }
@@ -238,7 +160,7 @@
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button class="js-settings-btn" aria-label="Map Settings">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12-.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
             </button>
             <button id="profile-button" aria-label="User Profile">
                 <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -273,24 +195,7 @@
     </div>
     
     <div id="navigation-status">
-        <div id="instruction-container">
-            <div id="navigation-instruction">Starting navigation...</div>
-            <div id="instruction-progress-bar"></div>
-        </div>
-        <div id="trip-stats-container">
-            <div class="stat-item">
-                <span id="stat-speed">--</span>
-                <span class="stat-label">mph</span>
-            </div>
-            <div class="stat-item">
-                <span id="stat-eta">--:--</span>
-                <span class="stat-label">ETA</span>
-            </div>
-            <div class="stat-item">
-                <span id="stat-time-remaining">-- min</span>
-                <span class="stat-label">Time</span>
-            </div>
-        </div>
+        <div id="navigation-instruction">Starting navigation...</div>
         <button id="end-navigation-btn">End Trip</button>
     </div>
 
@@ -341,7 +246,7 @@
     <button id="close-panel-btn" title="Close Panel"></button>
 
     <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12-.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12-.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
     </button>
     
     <div id="menu-overlay"></div>
