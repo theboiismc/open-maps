@@ -1,24 +1,18 @@
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
-// This configuration tells the OIDC client how to connect to your Authentik instance.
 const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/maps/",
-    // *** IMPORTANT: Remember to replace this with your actual Client ID from Authentik. ***
-    client_id: "MA8UF8AMFlBWFYeytrhX8iGNEM54m7bjJO5MuWKd", 
+    client_id: "MA8UF8AMFlBWFYeytrhX8iGNEM54m7bjJO5MuWKd",
     redirect_uri: "https://maps.theboiismc.com/callback.html",
     post_logout_redirect_uri: "https://maps.theboiismc.com",
     response_type: 'code',
-    scope: 'openid profile', // Requesting basic user information
+    scope: 'openid profile',
     automaticSilentRenew: true,
 };
 const userManager = new oidc.UserManager(authConfig);
 const authService = {
-    // This function handles the login process by redirecting to Authentik
     async login() { return userManager.signinRedirect(); },
-    // This function handles the logout process
     async logout() { return userManager.signoutRedirect(); },
-    // This function retrieves the currently logged-in user's data
     async getUser() { return userManager.getUser(); },
-    // The handleCallback function is no longer needed in app.js as it's now in callback.js
 };
 
 
@@ -27,6 +21,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- AUTHENTICATION CHECK & UI UPDATE ---
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
+    const profileImg = document.getElementById('profile-img');
+    const profileIcon = document.getElementById('profile-icon');
     const profileDropdown = document.getElementById('profile-dropdown');
     const loggedInView = document.getElementById('logged-in-view');
     const loggedOutView = document.getElementById('logged-out-view');
@@ -39,19 +35,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let currentUser = null;
 
-    // A function to update the UI based on the user's authentication status
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
         const isLoggedIn = !!currentUser;
         loggedInView.hidden = !isLoggedIn;
         loggedOutView.hidden = isLoggedIn;
+        
         if (isLoggedIn) {
             usernameDisplay.textContent = currentUser.profile.name || 'User';
             emailDisplay.textContent = currentUser.profile.email || '';
+            
+            // Check for profile picture from Authentik and update UI
+            if (currentUser.profile.picture) {
+                profileImg.src = currentUser.profile.picture;
+                profileImg.hidden = false;
+                profileIcon.hidden = true;
+            } else {
+                profileImg.hidden = true;
+                profileIcon.hidden = false;
+            }
+        } else {
+            profileImg.hidden = true;
+            profileIcon.hidden = false;
         }
     };
 
-    // Check for a logged-in user on page load
     try {
         const user = await authService.getUser();
         updateAuthUI(user);
@@ -60,28 +68,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateAuthUI(null);
     }
 
-    // Event listener for the profile dropdown button
     profileButton.addEventListener('click', (e) => {
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
     });
 
-    // Close the dropdown if the user clicks anywhere else on the page
     document.addEventListener('click', (e) => {
         if (profileDropdown.style.display === 'block' && !profileArea.contains(e.target)) {
             profileDropdown.style.display = 'none';
         }
     });
 
-    // Event listeners for login, signup, and logout buttons
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
-    signupBtn.addEventListener('click', (e) => { 
+    signupBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        // This is the CORRECT URL for the default login/signup flow in Authentik
         window.location.href = "https://accounts.theboiismc.com/if/flow/default-authentication-flow/";
     });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
-    // --- END AUTHENTICATION ---
 
 
     // --- MAP INITIALIZATION & CONTROLS ---
@@ -153,7 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             isWrongWay: false
         };
     }
-    resetNavigationState(); // Initialize
+    resetNavigationState();
     
     // --- NAVIGATION UI ELEMENTS ---
     const navigationStatusPanel = document.getElementById('navigation-status');
@@ -180,208 +183,247 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fromInput = document.getElementById('panel-from-input'); const fromSuggestions = document.getElementById('panel-from-suggestions'); attachSuggestionListener(fromInput, fromSuggestions, (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
     const toInput = document.getElementById('panel-to-input'); const toSuggestions = document.getElementById('panel-to-suggestions'); attachSuggestionListener(toInput, toSuggestions, (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
     function processPlaceResult(place) { currentPlace = place; stopNavigation(); clearRouteFromMap(); map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 }); mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(','); document.getElementById('info-name').textContent = place.display_name.split(',')[0]; document.getElementById('info-address').textContent = place.display_name; const locationName = place.display_name.split(',')[0]; fetchAndSetPlaceImage(locationName, place.lon, place.lat); fetchAndSetWeather(place.lat, place.lon); fetchAndSetQuickFacts(locationName); showPanel('info-panel-redesign'); }
-    async function fetchAndSetPlaceImage(query, lon, lat) { const imgEl = document.getElementById('info-image'); imgEl.src = ''; imgEl.style.backgroundColor = '#e0e0e0'; imgEl.alt = 'Loading image...'; imgEl.onerror = null; try { const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`; const res = await fetch(wikipediaUrl); const data = await res.json(); const page = Object.values(data.query.pages)[0]; if (page.thumbnail && page.thumbnail.source) { imgEl.src = page.thumbnail.source; imgEl.alt = `Photograph of ${query}`; return; } else { throw new Error("No image found on Wikipedia."); } } catch (e) { console.log("Wikipedia image failed:", e.message, "Activating fallback."); const offset = 0.005; const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`; const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`; imgEl.src = fallbackUrl; imgEl.alt = `Map view of ${query}`; imgEl.onerror = () => { imgEl.style.backgroundColor = '#e0e0e0'; imgEl.alt = 'Image not available'; }; } }
-    function getWeatherDescription(code) { const descriptions = { 0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', 71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall', 80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers', 95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail' }; return descriptions[code] || "Weather data unavailable"; }
-    async function fetchAndSetWeather(lat, lon) { const weatherEl = document.getElementById('info-weather'); weatherEl.textContent = "Loading weather..."; try { const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}¤t_weather=true&temperature_unit=fahrenheit`; const res = await fetch(url); if (!res.ok) throw new Error(`API returned status ${res.status}`); const data = await res.json(); if (data.current_weather) { const tempF = Math.round(data.current_weather.temperature); const tempC = Math.round((tempF - 32) * 5 / 9); const description = getWeatherDescription(data.current_weather.weathercode); weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`; } else { throw new Error("Invalid weather data format."); } } catch (e) { weatherEl.textContent = "Could not load weather data."; console.error("Weather fetch/parse error:", e); } }
-    async function fetchAndSetQuickFacts(query) { const factsEl = document.getElementById('quick-facts-content'); factsEl.textContent = "Loading facts..."; try { const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=extracts&exintro&explaintext&redirects=1&titles=${encodeURIComponent(query)}`; const res = await fetch(url); const data = await res.json(); const page = Object.values(data.query.pages)[0]; factsEl.textContent = page.extract ? page.extract.substring(0, 350) + '...' : "No quick facts found on Wikipedia."; } catch (e) { factsEl.textContent = "Could not load facts."; console.error("Wikipedia API error", e); } }
-    function openDirectionsPanel() { showPanel('directions-panel-redesign'); if (currentPlace) { toInput.value = currentPlace.display_name; toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`; fromInput.value = ''; fromInput.dataset.coords = ''; } else { toInput.value = mainSearchInput.value; toInput.dataset.coords = ''; fromInput.value = ''; fromInput.dataset.coords = ''; } }
-    document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel); document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel); document.getElementById('info-save-btn').addEventListener('click', () => { if (currentUser) { alert("Feature 'Save Place' not yet implemented!"); } else { alert("Please log in to save places."); } }); document.getElementById('swap-btn').addEventListener('click', () => { [fromInput.value, toInput.value] = [toInput.value, fromInput.value]; [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords]; }); document.getElementById('dir-use-my-location').addEventListener('click', () => { fromInput.value = "Getting your location..."; navigator.geolocation.getCurrentPosition( pos => { fromInput.value = "Your Location"; fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; }, handlePositionError, geolocationOptions ); }); document.getElementById('back-to-info-btn').addEventListener('click', () => { if (currentPlace) showPanel('info-panel-redesign'); });
-    function clearRouteFromMap() { if (map.getLayer('route-line')) map.removeLayer('route-line'); if (map.getSource('route')) map.removeSource('route'); if (map.getLayer(highlightedSegmentLayerId)) map.removeLayer(highlightedSegmentLayerId); if (map.getSource(highlightedSegmentLayerId)) map.removeSource(highlightedSegmentLayerId); }
-    function displayRouteSteps(route) { const routeStepsEl = document.getElementById('route-steps'); routeStepsEl.innerHTML = ''; const steps = route.legs[0].steps; steps.forEach(step => { const li = document.createElement('li'); li.textContent = step.maneuver.instruction; routeStepsEl.appendChild(li); }); }
-    async function getRoute() { if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points."); clearRouteFromMap(); try { const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]); const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`; const res = await fetch(url); const data = await res.json(); if (!data.routes || data.routes.length === 0 || !data.routes[0].legs || !data.routes[0].legs[0].steps || data.routes[0].legs[0].steps.length === 0) { return alert("A route could not be found. Please try a different location."); } currentRouteData = data; const route = data.routes[0]; const routeGeoJSON = { type: 'Feature', geometry: route.geometry }; addRouteToMap(routeGeoJSON); const bounds = new maplibregl.LngLatBounds(); routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord)); if (fromInput.value.trim() === "Your Location") { map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 }); closePanel(); startNavigation(); } else { displayRouteSteps(route); showPanel('route-section'); map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } }); } } catch (err) { alert(`Error getting route: ${err.message}`); navigationState.isRerouting = false; } }
-    document.getElementById('get-route-btn').addEventListener('click', getRoute); document.getElementById('exit-route-btn').addEventListener('click', () => { clearRouteFromMap(); showPanel('directions-panel-redesign'); });
-    async function geocode(inputEl) { if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number); const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`); const data = await res.json(); if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`); inputEl.value = data[0].display_name; inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`; return [parseFloat(data[0].lon), parseFloat(data[0].lat)]; }
-    function addRouteToMap(routeGeoJSON) { if (map.getSource('route')) { map.getSource('route').setData(routeGeoJSON); } else { map.addSource('route', { type: 'geojson', data: routeGeoJSON }); map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0d89ec', 'line-width': 8, 'line-opacity': 0.7 } }); } }
-    
-    // --- ADVANCED NAVIGATION FUNCTIONS ---
-    
-    // Helper Functions
-    function toRadians(degrees) { return degrees * Math.PI / 180; }
-    function toDegrees(radians) { return radians * 180 / Math.PI; }
+    async function fetchAndSetPlaceImage(query, lon, lat) { const imgEl = document.getElementById('info-image'); imgEl.src = ''; imgEl.style.backgroundColor = '#e0e0e0'; imgEl.alt = 'Loading image...'; imgEl.onerror = null; try { const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`; const res = await fetch(wikipediaUrl); const data = await res.json(); const page = Object.values(data.query.pages)[0]; if (page.thumbnail && page.thumbnail.source) { imgEl.src = page.thumbnail.source; imgEl.alt = `Photograph of ${query}`; return; } else { throw new Error("No image found."); } } catch (e) { console.error("Error fetching image:", e); imgEl.src = `https://placehold.co/800x200/cccccc/333333?text=${query}`; imgEl.alt = 'Image not available'; } }
+    async function fetchAndSetWeather(lat, lon) { const weatherEl = document.getElementById('info-weather'); weatherEl.textContent = 'Loading...'; try { const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=1`); const data = await res.json(); if (data.current_weather) { const { temperature, windspeed, weathercode } = data.current_weather; weatherEl.textContent = `${temperature}°F, ${windspeed} mph wind`; } else { weatherEl.textContent = 'N/A'; } } catch (e) { weatherEl.textContent = 'N/A'; console.error('Weather fetch failed', e); } }
+    async function fetchAndSetQuickFacts(query) { const factsEl = document.getElementById('quick-facts-content'); factsEl.innerHTML = 'Loading...'; try { const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=extracts&exlimit=1&explaintext=1&exintro=1&titles=${encodeURIComponent(query)}`; const res = await fetch(wikipediaUrl); const data = await res.json(); const page = Object.values(data.query.pages)[0]; if (page.extract) { factsEl.textContent = page.extract; } else { factsEl.textContent = 'No quick facts available.'; } } catch (e) { console.error('Quick facts fetch failed', e); factsEl.textContent = 'Error fetching facts.'; } }
 
-    function getBearing(startPoint, endPoint) {
-        const startLat = toRadians(startPoint.geometry.coordinates[1]);
-        const startLng = toRadians(startPoint.geometry.coordinates[0]);
-        const endLat = toRadians(endPoint.geometry.coordinates[1]);
-        const endLng = toRadians(endPoint.geometry.coordinates[0]);
-        const dLng = endLng - startLng;
-        const y = Math.sin(dLng) * Math.cos(endLat);
-        const x = Math.cos(startLat) * Math.sin(endLat) - Math.sin(startLat) * Math.cos(endLat) * Math.cos(dLng);
-        let brng = toDegrees(Math.atan2(y, x));
-        return (brng + 360) % 360;
-    }
-    
-    function formatEta(date) {
-        if (!date) return "--:--";
-        let hours = date.getHours();
-        let minutes = date.getMinutes();
-        const ampm = hours >= 12 ? 'pm' : 'am';
-        hours = hours % 12;
-        hours = hours ? hours : 12; // the hour '0' should be '12'
-        minutes = minutes < 10 ? '0'+minutes : minutes;
-        return `${hours}:${minutes} ${ampm}`;
-    }
-    
-    // UI Update Functions
-    function updateNavigationUI() {
-        const remainingTime = (navigationState.totalTripTime / 60).toFixed(0);
-        statTimeRemainingEl.textContent = `${remainingTime} min`;
-        statEtaEl.textContent = formatEta(navigationState.estimatedArrivalTime);
-        statSpeedEl.textContent = navigationState.userSpeed.toFixed(0);
-        instructionProgressBar.transform = `scaleX(${1 - navigationState.progressAlongStep})`;
-    }
-    
-    function updateHighlightedSegment(step) {
-        if (map.getLayer(highlightedSegmentLayerId)) map.removeLayer(highlightedSegmentLayerId);
-        if (map.getSource(highlightedSegmentLayerId)) map.removeSource(highlightedSegmentLayerId);
-        if (!step || !step.geometry) return;
 
-        map.addSource(highlightedSegmentLayerId, { type: 'geojson', data: step.geometry });
-        map.addLayer({
-            id: highlightedSegmentLayerId,
-            type: 'line',
-            source: highlightedSegmentLayerId,
-            paint: { 'line-color': '#0055ff', 'line-width': 9, 'line-opacity': 0.9 }
-        }, 'route-line');
+    // --- DIRECTIONS & ROUTING LOGIC ---
+    document.getElementById('info-directions-btn').addEventListener('click', () => { toInput.value = currentPlace.display_name; toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`; showPanel('directions-panel-redesign'); });
+    document.getElementById('back-to-info-btn').addEventListener('click', () => { showPanel('info-panel-redesign'); });
+    document.getElementById('get-route-btn').addEventListener('click', getRoute);
+    document.getElementById('swap-btn').addEventListener('click', () => { [fromInput.value, toInput.value] = [toInput.value, fromInput.value]; [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords]; });
+    document.getElementById('dir-use-my-location').addEventListener('click', () => {
+        if ('geolocation' in navigator) {
+            fromInput.value = 'My Location';
+            geolocateControl.trigger();
+            geolocateControl.on('geolocate', (e) => { fromInput.dataset.coords = `${e.coords.longitude},${e.coords.latitude}`; });
+        } else { alert('Geolocation is not supported by your browser.'); }
+    });
+
+    async function getRoute() {
+        if (!fromInput.dataset.coords || !toInput.dataset.coords) { alert("Please enter both a start and end location."); return; }
+        const [fromLon, fromLat] = fromInput.dataset.coords.split(',').map(Number);
+        const [toLon, toLat] = toInput.dataset.coords.split(',').map(Number);
+        const url = `https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=full&geometries=geojson&steps=true`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.routes && data.routes.length > 0) {
+                currentRouteData = data.routes[0];
+                drawRoute(currentRouteData);
+                listRouteSteps(currentRouteData);
+                map.fitBounds(turf.bbox(currentRouteData.geometry), { padding: 50 });
+                showPanel('route-section');
+                startNavigation();
+            } else { alert("Could not find a route."); }
+        } catch (e) { console.error("Routing error:", e); alert("Failed to get a route."); }
     }
-    
-    // Core Navigation Lifecycle
+
+    function drawRoute(route) {
+        if (map.getLayer('route')) { map.removeLayer('route'); }
+        if (map.getSource('route')) { map.removeSource('route'); }
+        if (map.getLayer(highlightedSegmentLayerId)) { map.removeLayer(highlightedSegmentLayerId); }
+        if (map.getSource(highlightedSegmentLayerId)) { map.removeSource(highlightedSegmentLayerId); }
+
+        map.addSource('route', { type: 'geojson', data: route.geometry });
+        map.addLayer({ id: 'route', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0d89ec', 'line-width': 6, 'line-opacity': 0.75 } });
+    }
+
+    function listRouteSteps(route) {
+        const stepsList = document.getElementById('route-steps');
+        stepsList.innerHTML = '';
+        route.legs[0].steps.forEach((step, index) => {
+            const li = document.createElement('li');
+            li.textContent = `${index + 1}. ${step.maneuver.instruction} (${Math.round(step.distance / 1609.34)} mi)`;
+            stepsList.appendChild(li);
+        });
+    }
+
+    function clearRouteFromMap() {
+        if (map.getLayer('route')) { map.removeLayer('route'); }
+        if (map.getSource('route')) { map.removeSource('route'); }
+        if (map.getLayer(highlightedSegmentLayerId)) { map.removeLayer(highlightedSegmentLayerId); }
+        if (map.getSource(highlightedSegmentLayerId)) { map.removeSource(highlightedSegmentLayerId); }
+    }
+
+
+    // --- NAVIGATION LOGIC ---
     function startNavigation() {
-        if (!navigator.geolocation) return alert("Geolocation is not supported by your browser.");
-        
         resetNavigationState();
         navigationState.isActive = true;
-        navigationState.totalTripTime = currentRouteData.routes[0].duration;
-        
-        const firstStep = currentRouteData.routes[0].legs[0].steps[0];
-        navigationInstructionEl.textContent = firstStep.maneuver.instruction;
-        updateHighlightedSegment(firstStep);
-        updateNavigationUI();
-        
+        navigationState.totalTripTime = currentRouteData.duration;
         navigationStatusPanel.style.display = 'flex';
-        speech.speak(`Starting route. ${firstStep.maneuver.instruction}`, true);
-
-        if (!userLocationMarker) {
-            const el = document.createElement('div');
-            el.className = 'user-location-marker';
-            userLocationMarker = new maplibregl.Marker(el).setLngLat([0, 0]).addTo(map);
-        }
-        
-        map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
-        
-        navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
         endNavigationBtn.addEventListener('click', stopNavigation);
+        geolocateControl.on('geolocate', onUserLocationUpdate);
+        
+        // Initial instruction
+        updateNavigationUI(currentRouteData.legs[0].steps[0]);
     }
 
     function stopNavigation() {
-        if (navigationWatcherId) navigator.geolocation.clearWatch(navigationWatcherId);
-        if (userLocationMarker) { userLocationMarker.remove(); userLocationMarker = null; }
-        
-        clearRouteFromMap();
-        resetNavigationState();
-        
+        navigationState.isActive = false;
         navigationStatusPanel.style.display = 'none';
+        geolocateControl.off('geolocate', onUserLocationUpdate);
+        clearRouteFromMap();
+        closePanel();
         speech.synthesis.cancel();
-        
-        map.easeTo({ pitch: 0, bearing: 0 });
-    }
-
-    function handlePositionError(error) {
-        console.error("Geolocation Error:", error.message);
-        alert(`Geolocation error: ${error.message}. Navigation stopped.`);
-        stopNavigation();
     }
     
-    // --- THE NAVIGATION BRAIN: handlePositionUpdate ---
-    async function handlePositionUpdate(position) {
+    function onUserLocationUpdate(e) {
         if (!navigationState.isActive || navigationState.isRerouting) return;
 
-        const { latitude, longitude, heading, speed, accuracy } = position.coords;
-        if (accuracy > 40) return;
-
-        const userPoint = turf.point([longitude, latitude]);
-        const steps = currentRouteData.routes[0].legs[0].steps;
-
-        // 1. Update State & UI
-        navigationState.userSpeed = (speed || 0) * 2.23694; // m/s to mph
-        const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
-        const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
+        const userPoint = turf.point([e.coords.longitude, e.coords.latitude]);
+        const currentStep = currentRouteData.legs[0].steps[navigationState.currentStepIndex];
+        const stepLine = turf.lineString(currentStep.geometry.coordinates);
+        const snapped = turf.pointToLineDistance(userPoint, stepLine, { units: 'miles' });
         
-        userLocationMarker.setLngLat(snapped.geometry.coordinates);
-        if (heading != null) {
-            userLocationMarker.setRotation(heading);
-            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: 18, duration: 500 });
-        } else {
-            map.easeTo({ center: snapped.geometry.coordinates, zoom: 18, duration: 500 });
-        }
-        
-        // 2. Rerouting Logic (Off-route & Wrong Way)
-        const currentStep = steps[navigationState.currentStepIndex];
-        const stepStartPoint = turf.point(currentStep.geometry.coordinates[0]);
-        const stepEndPoint = turf.point(currentStep.geometry.coordinates[currentStep.geometry.coordinates.length - 1]);
-        const stepBearing = getBearing(stepStartPoint, stepEndPoint);
-        const headingDifference = Math.abs(heading - stepBearing);
+        // Update user speed
+        navigationState.userSpeed = Math.round(e.coords.speed * 2.23694) || 0; // m/s to mph
+        statSpeedEl.textContent = navigationState.userSpeed;
 
-        if (snapped.properties.dist > 50) {
-            navigationState.isRerouting = true;
-            speech.speak("Off route. Recalculating.", true);
-            await getRoute();
-            return;
-        }
-        
-        if (heading != null && headingDifference > 90 && headingDifference < 270 && navigationState.userSpeed > 5 && !navigationState.isWrongWay) {
-             navigationState.isWrongWay = true;
-             speech.speak("Wrong way. Recalculating.", true);
-             await getRoute();
-             return;
-        }
-        navigationState.isWrongWay = false;
-
-        // 3. Progress Calculation (Map Matching)
-        const currentStepLine = turf.lineString(currentStep.geometry.coordinates);
-        const totalStepDistance = turf.length(currentStepLine, { units: 'meters' });
-        navigationState.distanceToNextManeuver = turf.distance(userPoint, stepEndPoint, { units: 'meters' });
-        navigationState.progressAlongStep = Math.max(0, 1 - (navigationState.distanceToNextManeuver / totalStepDistance));
-        
-        const tripDurationSeconds = currentRouteData.routes[0].duration;
-        const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
-        const remainingTimeSeconds = tripDurationSeconds - timeElapsed;
-        navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
-        navigationState.totalTripTime = remainingTimeSeconds;
-
-        updateNavigationUI();
-
-        // 4. Audio Cues
-        const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
-        if (distanceMiles > 0.9 && distanceMiles < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
-            speech.speak(`In 1 mile, ${currentStep.maneuver.instruction}`);
-            navigationState.lastAnnouncedDistance = 1;
-        } else if (distanceMiles > 0.24 && distanceMiles < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
-            speech.speak(`In a quarter mile, ${currentStep.maneuver.instruction}`);
-            navigationState.lastAnnouncedDistance = 0.25;
+        // Check if user is off-route
+        if (snapped > 0.1 && !navigationState.isWrongWay) { // 0.1 miles off-route
+            console.warn("Off-route detected. Initiating re-route.");
+            navigationState.isWrongWay = true;
+            speech.speak("Recalculating route.", true);
+            recalculateRoute(userPoint.geometry.coordinates);
+        } else if (snapped <= 0.1 && navigationState.isWrongWay) {
+            console.log("Back on route.");
+            navigationState.isWrongWay = false;
         }
 
-        // 5. Step Advancement Logic
-        if (navigationState.distanceToNextManeuver < 50) {
+        // Project user's position onto the route line
+        const nearestPointOnRoute = turf.nearestPointOnLine(stepLine, userPoint);
+        const progress = nearestPointOnRoute.properties.location;
+        const totalDistance = turf.length(stepLine, { units: 'miles' });
+        const distanceRemaining = totalDistance - nearestPointOnRoute.properties.dist;
+        
+        // Update progress bar
+        const progressPercentage = (progress / totalDistance) * 100;
+        instructionProgressBar.transform = `scaleX(${progressPercentage / 100})`;
+
+        // Check for next maneuver
+        const nextManeuverDistance = turf.distance(userPoint, turf.point(currentStep.maneuver.location), { units: 'miles' });
+        navigationState.distanceToNextManeuver = nextManeuverDistance;
+        
+        // Announce turn instructions
+        announceManeuver(currentStep, nextManeuverDistance);
+        
+        // Update time remaining
+        updateTimeRemaining(distanceRemaining);
+
+        // Check if maneuver is passed
+        if (nextManeuverDistance < 0.05 && navigationState.currentStepIndex < currentRouteData.legs[0].steps.length - 1) {
             navigationState.currentStepIndex++;
-            if (navigationState.currentStepIndex >= steps.length) {
-                speech.speak("You have arrived at your destination.", true);
-                stopNavigation();
+            const nextStep = currentRouteData.legs[0].steps[navigationState.currentStepIndex];
+            updateNavigationUI(nextStep);
+            speech.speak(nextStep.maneuver.instruction, true);
+        } else if (navigationState.currentStepIndex === currentRouteData.legs[0].steps.length - 1 && nextManeuverDistance < 0.05) {
+            // Reached destination
+            speech.speak("You have arrived at your destination.", true);
+            stopNavigation();
+        }
+    }
+
+    function updateNavigationUI(step) {
+        navigationInstructionEl.textContent = step.maneuver.instruction;
+        instructionProgressBar.transform = 'scaleX(0)';
+        highlightCurrentRouteSegment(step.geometry.coordinates);
+    }
+    
+    function highlightCurrentRouteSegment(coords) {
+        if (map.getLayer(highlightedSegmentLayerId)) { map.removeLayer(highlightedSegmentLayerId); }
+        if (map.getSource(highlightedSegmentLayerId)) { map.removeSource(highlightedSegmentLayerId); }
+        
+        map.addSource(highlightedSegmentLayerId, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } });
+        map.addLayer({ id: highlightedSegmentLayerId, type: 'line', source: highlightedSegmentLayerId, layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#ff4500', 'line-width': 8, 'line-opacity': 1 } });
+    }
+
+    function announceManeuver(step, distance) {
+        const instruction = step.maneuver.instruction;
+        const distances = [1, 0.5, 0.25]; // miles
+        
+        for (const dist of distances) {
+            if (distance < dist && navigationState.lastAnnouncedDistance > dist) {
+                speech.speak(`In ${dist} miles, ${instruction}`);
+                navigationState.lastAnnouncedDistance = dist;
                 return;
             }
-            const nextStep = steps[navigationState.currentStepIndex];
-            navigationInstructionEl.textContent = nextStep.maneuver.instruction;
-            updateHighlightedSegment(nextStep);
-            speech.speak(nextStep.maneuver.instruction, true);
-            navigationState.lastAnnouncedDistance = Infinity;
         }
     }
     
-    // --- SETTINGS & OTHER UI LOGIC ---
-    const settingsBtns = document.querySelectorAll('.js-settings-btn'); const settingsMenu = document.getElementById('settings-menu'); const closeSettingsBtn = document.getElementById('close-settings-btn'); const menuOverlay = document.getElementById('menu-overlay'); const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
-    function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } } function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
-    settingsBtns.forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); if (!isMobile && settingsMenu.classList.contains('open')) { closeSettings(); } else { openSettings(); } }); }); closeSettingsBtn.addEventListener('click', closeSettings); menuOverlay.addEventListener('click', closeSettings); document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) { closeSettings(); } }); styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { const newStyle = radio.value; map.setStyle(STYLES[newStyle]); if (isMobile) { setTimeout(closeSettings, 200); } }); }); document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
-    map.on('styledata', () => { if (navigationState.isActive && currentRouteData) { const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry }; addRouteToMap(routeGeoJSON); updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]); } });
-    if (isMobile) { const grabber = document.getElementById("panel-grabber"); let startY; grabber.addEventListener('touchstart', (e) => { startY = e.touches[0].pageY; sidePanel.style.transition = 'none'; }, { passive: true }); grabber.addEventListener('touchmove', (e) => { if (startY === undefined) return; const currentY = e.touches[0].pageY; let newBottom = (parseInt(getComputedStyle(sidePanel).bottom, 10) || 0) + (startY - currentY); if (newBottom > 0) newBottom = 0; sidePanel.style.bottom = `${newBottom}px`; startY = currentY; }, { passive: true }); grabber.addEventListener('touchend', () => { if (startY === undefined) return; startY = undefined; sidePanel.style.transition = ''; const currentBottom = parseInt(sidePanel.style.bottom, 10); const panelHeight = sidePanel.clientHeight; const peekHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek')); if (currentBottom > (-1 * panelHeight) / 2) { sidePanel.classList.remove('peek'); sidePanel.classList.add('open'); } else { sidePanel.classList.remove('open', 'peek'); } sidePanel.style.bottom = ''; }); }
-    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(registration => { console.log('SW registered: ', registration.scope); }, err => { console.log('SW registration failed: ', err); }); }); }
+    function updateTimeRemaining(distance) {
+        const averageSpeed = 30; // mph
+        const remainingTimeMinutes = Math.round(distance / averageSpeed * 60);
+        statTimeRemainingEl.textContent = `${remainingTimeMinutes} min`;
+        
+        // Update ETA (a bit simplified)
+        const now = new Date();
+        const eta = new Date(now.getTime() + remainingTimeMinutes * 60000);
+        statEtaEl.textContent = eta.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function recalculateRoute(userCoords) {
+        navigationState.isRerouting = true;
+        
+        const [toLon, toLat] = toInput.dataset.coords.split(',').map(Number);
+        const url = `https://router.project-osrm.org/route/v1/driving/${userCoords[0]},${userCoords[1]};${toLon},${toLat}?overview=full&geometries=geojson&steps=true`;
+        
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.routes && data.routes.length > 0) {
+                currentRouteData = data.routes[0];
+                drawRoute(currentRouteData);
+                listRouteSteps(currentRouteData);
+                navigationState.currentStepIndex = 0;
+                navigationState.lastAnnouncedDistance = Infinity;
+                updateNavigationUI(currentRouteData.legs[0].steps[0]);
+                navigationState.isRerouting = false;
+                console.log("Route re-calculated successfully.");
+            }
+        } catch (e) {
+            console.error("Re-routing failed", e);
+            navigationState.isRerouting = false;
+        }
+    }
+    
+
+    // --- SETTINGS LOGIC ---
+    const settingsMenu = document.getElementById('settings-menu');
+    const settingsBtn = document.querySelector('.js-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const menuOverlay = document.getElementById('menu-overlay');
+
+    settingsBtn.addEventListener('click', () => {
+        settingsMenu.classList.add('open');
+        if (isMobile) { menuOverlay.classList.add('open'); }
+    });
+    
+    closeSettingsBtn.addEventListener('click', () => {
+        settingsMenu.classList.remove('open');
+        if (isMobile) { menuOverlay.classList.remove('open'); }
+    });
+
+    menuOverlay.addEventListener('click', () => {
+        settingsMenu.classList.remove('open');
+        menuOverlay.classList.remove('open');
+    });
+
+    const mapStyleRadios = document.querySelectorAll('input[name="map-style"]');
+    mapStyleRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const styleName = e.target.value;
+            map.setStyle(STYLES[styleName]);
+        });
+    });
+
+    const mapUnitsRadios = document.querySelectorAll('input[name="map-units"]');
+    mapUnitsRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            // Unit change logic would go here
+            // e.g., re-render distances with different units
+        });
+    });
 });
