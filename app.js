@@ -2,7 +2,7 @@
 const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/maps/",
     // *** IMPORTANT: Remember to replace this with your actual Client ID from Authentik. ***
-    client_id: "YOUR_CLIENT_ID_FROM_AUTHENTIK", 
+    client_id: "MA8UF8AMFlBWFYeytrhX8iGNEM54m7bjJO5MuWKd", 
     redirect_uri: "https://maps.theboiismc.com/callback.html",
     post_logout_redirect_uri: "https://maps.theboiismc.com",
     scope: "openid profile email",
