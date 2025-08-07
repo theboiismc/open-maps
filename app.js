@@ -1,10 +1,4 @@
-I've updated the `app.js` file to fix the sign-up button. The previous link was for a user settings flow, which is only accessible after a user is already logged in. I've changed it to redirect to the correct default authentication flow, which will present the user with a login screen that also has the option to sign up for a new account.
 
-Here are all three of your files with the corrected code.
-
-### `callback.html`
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
