@@ -1,10 +1,11 @@
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
 const authConfig = {
-    authority: "https://accounts.theboiismc.com/application/o/theboiismc/",
+    authority: "https://accounts.theboiismc.com/application/o/maps/",
     // *** IMPORTANT: Remember to replace this with your actual Client ID from Authentik. ***
-    client_id: "9hWmWrA1CS2pLgPANKYXfxExoCMHYu0xg60XdTkB", 
+    client_id: "YOUR_CLIENT_ID_FROM_AUTHENTIK", 
     redirect_uri: "https://maps.theboiismc.com/callback.html",
     post_logout_redirect_uri: "https://maps.theboiismc.com",
+    scope: "openid profile email",
     response_type: 'code',
     automaticSilentRenew: true,
 };
