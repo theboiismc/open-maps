@@ -1,185 +1,763 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>theboiismc.com | Maps</title>
+    <!-- Maplibre GL CSS and Custom Fonts -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     
-    <title>TheBoiisMC Maps</title>
-    <meta name="description" content="Explore the world with private, modern mapping." />
-    <meta name="theme-color" content="#00796b" />
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon512_rounded.png">
+    <style>
+        :root {
+            --primary-color: #0d89ec;
+            --secondary-color: #2e4053;
+            --background-color: #f3f4f6;
+            --panel-background: #ffffff;
+            --text-color: #1f2937;
+            --light-text-color: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow-color: rgba(0, 0, 0, 0.05);
+            --transition-speed: 0.3s;
+            --panel-mobile-peek: 110px; /* Height of the peeked mobile panel */
+        }
+        
+        /* Dark Mode Variables */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background-color: #1a1a1a;
+                --panel-background: #2d2d2d;
+                --text-color: #e5e7eb;
+                --light-text-color: #a0a0a0;
+                --border-color: #4a4a4a;
+                --shadow-color: rgba(255, 255, 255, 0.05);
+            }
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+        
+        #map {
+            flex-grow: 1;
+            position: relative;
+        }
 
-    <meta http-equiv="Content-Security-Policy" content="
-        default-src 'self';
-        script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
-        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
-        img-src 'self' data: https:;
-        font-src https://fonts.gstatic.com;
-        connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com;
-        worker-src 'self' blob: https://unpkg.com;
-    ">
+        /* Top Bar */
+        #top-search-wrapper {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: clamp(200px, 90%, 500px);
+            z-index: 10;
+            transition: opacity var(--transition-speed);
+        }
+        #main-search-container {
+            display: flex;
+            align-items: center;
+            background-color: var(--panel-background);
+            border-radius: 9999px;
+            box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color);
+            transition: all var(--transition-speed);
+        }
+        #main-search {
+            flex-grow: 1;
+            padding: 0.75rem 1.25rem;
+            border: none;
+            background: transparent;
+            outline: none;
+            color: var(--text-color);
+        }
+        #main-search-container button {
+            background: transparent;
+            border: none;
+            padding: 0.75rem;
+            cursor: pointer;
+            color: var(--light-text-color);
+        }
+        #main-search-container button i { font-size: 1.25rem; }
+        
+        /* Suggestions Dropdown */
+        #main-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--panel-background);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px var(--shadow-color);
+            margin-top: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .search-result {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            color: var(--text-color);
+        }
+        .search-result:last-child { border-bottom: none; }
+        .search-result:hover { background-color: var(--border-color); }
+        
+        /* Side Panel */
+        #side-panel {
+            position: absolute;
+            top: 0;
+            right: -420px; /* Hidden state */
+            width: 400px;
+            max-width: 90vw;
+            height: 100%;
+            background-color: var(--panel-background);
+            box-shadow: -4px 0 10px var(--shadow-color);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            transition: right var(--transition-speed);
+        }
+        #side-panel.open { right: 0; }
 
-    <meta property="og:title" content="TheBoiisMC Maps" />
-    <meta property="og:description" content="Explore the world with private, modern mapping." />
-    <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
-    <meta property="og:url" content="https://maps.theboiismc.com" />
-    <meta name="twitter:card" content="summary_large_image" />
+        /* Panel Header */
+        #panel-header {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        #close-panel-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--light-text-color);
+            font-size: 1.5rem;
+            line-height: 1;
+        }
 
-    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
+        /* Panel Content - Shared */
+        .panel-content-scroll {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        .panel-content { display: none; }
+        .panel-content:not([hidden]) { display: block; }
+        
+        /* Info Panel */
+        #info-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        #info-name { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+        #info-address { font-size: 0.875rem; color: var(--light-text-color); margin-bottom: 1rem; }
+        .info-actions { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .info-actions button {
+            flex-grow: 1;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+        .info-actions button:hover { background-color: var(--border-color); }
+        .info-actions button i { margin-right: 0.5rem; }
+        .info-details { margin-top: 1rem; }
+        .info-details h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .info-details p { font-size: 0.875rem; line-height: 1.5; color: var(--light-text-color); }
+        .pill {
+            display: inline-block;
+            background-color: var(--border-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+        
+        /* Directions Panel */
+        .directions-form .input-group {
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        .directions-form input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--background-color);
+            color: var(--text-color);
+            outline: none;
+        }
+        .directions-form .input-group .swap-btn {
+            position: absolute;
+            top: 50%;
+            right: 0.75rem;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--light-text-color);
+            font-size: 1.25rem;
+        }
+        .directions-form .input-group .use-location-btn {
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.75rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--light-text-color);
+            font-size: 1rem;
+        }
+        .directions-form .submit-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--primary-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color var(--transition-speed);
+        }
+        .directions-form .submit-btn:hover { background-color: #0c75c7; }
+        #route-steps {
+            list-style: none;
+            padding: 0;
+            margin-top: 1rem;
+        }
+        #route-steps li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+        }
 
-    <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
-    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
-    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    
-    <link rel="stylesheet" href="styles.css">
+        /* Route Section */
+        #route-section {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .route-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .route-header button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--light-text-color);
+            font-size: 1.5rem;
+        }
+        #route-steps-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0 1rem;
+        }
+
+        /* Settings and Profile Buttons */
+        .map-buttons-container {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .map-buttons-container button {
+            width: 44px;
+            height: 44px;
+            border-radius: 9999px;
+            background-color: var(--panel-background);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px var(--shadow-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            color: var(--text-color);
+            font-size: 1.25rem;
+        }
+        .map-buttons-container button:hover { transform: scale(1.05); }
+
+        /* Settings Menu */
+        #settings-menu {
+            position: absolute;
+            bottom: 1rem;
+            left: -320px; /* Hidden state */
+            width: 300px;
+            padding: 1rem;
+            background-color: var(--panel-background);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px var(--shadow-color);
+            z-index: 20;
+            transition: left var(--transition-speed);
+        }
+        #settings-menu.open { left: 1rem; }
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .settings-header h2 { font-size: 1.25rem; font-weight: 600; margin: 0; }
+        .settings-header button { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--light-text-color); }
+        .settings-section { margin-bottom: 1.5rem; }
+        .settings-section h3 { font-size: 1rem; font-weight: 500; margin-bottom: 0.75rem; }
+        .radio-group { display: flex; gap: 1rem; }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        .radio-group input { margin-right: 0.5rem; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            #side-panel {
+                top: auto;
+                left: 0;
+                right: 0;
+                bottom: calc(-100% + var(--panel-mobile-peek));
+                width: 100%;
+                height: 95%;
+                border-top-left-radius: 1rem;
+                border-top-right-radius: 1rem;
+                box-shadow: 0 -4px 10px var(--shadow-color);
+                transition: bottom var(--transition-speed);
+                display: flex;
+                flex-direction: column;
+            }
+            #side-panel.peek { bottom: 0; height: var(--panel-mobile-peek); }
+            #side-panel.open { bottom: 0; height: 95vh; }
+            #side-panel.open #panel-grabber { display: none; }
+            
+            #panel-grabber {
+                height: 1.5rem;
+                width: 100%;
+                background-color: transparent;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding-top: 0.5rem;
+                cursor: grab;
+            }
+            #panel-grabber::after {
+                content: '';
+                display: block;
+                width: 40px;
+                height: 4px;
+                background-color: var(--light-text-color);
+                border-radius: 2px;
+            }
+            
+            #top-search-wrapper { width: 90%; }
+            #main-search-container { border-radius: 0.5rem; }
+            
+            .map-buttons-container {
+                left: auto;
+                right: 1rem;
+                flex-direction: row;
+                bottom: var(--panel-mobile-peek);
+                transform: translateY(50%);
+            }
+            .map-buttons-container button {
+                width: 50px;
+                height: 50px;
+            }
+            
+            #settings-menu {
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 100%;
+                border-radius: 0;
+                transition: left var(--transition-speed), transform var(--transition-speed);
+                transform: translateX(-100%);
+            }
+            #settings-menu.open { transform: translateX(0); }
+            #close-settings-btn { display: block; }
+            #menu-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 15;
+                display: none;
+            }
+            #menu-overlay.open { display: block; }
+        }
+        
+        .user-location-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform: translate(-50%, -50%);
+            position: relative;
+        }
+        .user-location-marker::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1.5);
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.7; }
+            50% { transform: translate(-50%, -50%) scale(2); opacity: 0.3; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.7; }
+        }
+        
+        /* Navigation UI */
+        #navigation-status {
+            display: none; /* Initially hidden */
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--panel-mobile-peek);
+            background: var(--panel-background);
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+            box-shadow: 0 -4px 10px var(--shadow-color);
+            z-index: 25;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+        }
+        #navigation-status .nav-instruction {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            max-width: 90%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #navigation-status .progress-bar-container {
+            width: 80%;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        #navigation-status .progress-bar-fill {
+            height: 100%;
+            background: var(--primary-color);
+            transform-origin: left;
+            transition: transform 0.5s linear;
+        }
+        #navigation-stats {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            font-size: 0.875rem;
+        }
+        #end-navigation-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--secondary-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 9999px;
+            width: 32px;
+            height: 32px;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+
+        /* Profile Dropdown */
+        #profile-area {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 30;
+        }
+        #profile-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: var(--panel-background);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 1px 3px var(--shadow-color);
+            overflow: hidden; /* Ensure image is contained */
+        }
+        #profile-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #profile-button i {
+            font-size: 1.5rem;
+            color: var(--text-color);
+        }
+        #profile-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            width: 250px;
+            background-color: var(--panel-background);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px var(--shadow-color);
+            padding: 1rem;
+            display: none;
+        }
+        #profile-dropdown .logged-out-view,
+        #profile-dropdown .logged-in-view {
+            text-align: center;
+        }
+        #profile-dropdown h4 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        #profile-dropdown .info p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: var(--light-text-color);
+        }
+        #profile-dropdown button {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-color);
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: all var(--transition-speed);
+        }
+        #profile-dropdown button:hover { background-color: var(--border-color); }
+        #profile-dropdown .login-btn {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            border: none;
+        }
+        #profile-dropdown .login-btn:hover { background-color: #0c75c7; }
+        #profile-dropdown .divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 1rem 0;
+        }
+    </style>
 </head>
 <body>
+    <div id="map"></div>
 
-    <div id="top-banner">
-        <span id="site-title">TheBoiisMC Maps</span>
-        <div id="profile-area">
-            <button class="js-settings-btn" aria-label="Map Settings">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12-.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
-            </button>
-            <button id="profile-button" aria-label="User Profile">
-                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </button>
-            <div id="profile-dropdown">
-                <div id="logged-in-view" hidden>
-                    <div class="profile-section profile-section-header">
-                        <div class="username">TheBoiisMC</div>
-                        <div class="email">user@example.com</div>
-                    </div>
-                    <hr/>
-                    <div class="profile-actions">
-                        <a id="saved-places-btn">Saved Places</a>
-                    </div>
-                    <hr/>
-                    <div class="profile-actions">
-                        <a id="logout-btn">Log Out</a>
-                    </div>
-                </div>
-                <div id="logged-out-view" hidden>
-                    <div class="profile-section" style="text-align:center; font-weight: 500; color: #5f6368;">
-                        Sign in to save and view places
-                    </div>
-                    <hr/>
-                    <div class="auth-buttons">
-                        <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
-                        <a href="#" id="signup-btn" class="btn btn-secondary">Sign Up</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="navigation-status">
-        <div id="instruction-container">
-            <div id="navigation-instruction">Starting navigation...</div>
-            <div id="instruction-progress-bar"></div>
-        </div>
-        <div id="trip-stats-container">
-            <div class="stat-item">
-                <span id="stat-speed">--</span>
-                <span class="stat-label">mph</span>
-            </div>
-            <div class="stat-item">
-                <span id="stat-eta">--:--</span>
-                <span class="stat-label">ETA</span>
-            </div>
-            <div class="stat-item">
-                <span id="stat-time-remaining">-- min</span>
-                <span class="stat-label">Time</span>
-            </div>
-        </div>
-        <button id="end-navigation-btn">End Trip</button>
-    </div>
-
+    <!-- Top search bar (desktop & initial view) -->
     <div id="top-search-wrapper">
         <div id="main-search-container">
-            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
-            <svg id="main-search-icon" class="search-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.7955 15.8111L21 21M18 10.5C18 14.6421 14.6421 18 10.5 18C6.35786 18 3 14.6421 3 10.5C3 6.35786 6.35786 3 10.5 3C14.6421 3 18 6.35786 18 10.5Z" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <svg id="main-directions-icon" class="directions-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 18.36V4.64C13 4.12 13.42 3.7 13.94 3.7H15.5C16.05 3.7 16.5 4.15 16.5 4.7V14.88L18.71 12.67C19.1 12.28 19.73 12.28 20.12 12.67L20.12 12.67C20.51 13.06 20.51 13.69 20.12 14.08L14.46 19.74C13.88 20.32 13 19.85 13 19.08V18.36Z" stroke="#000" stroke-width="1.5" /><path d="M11 5.64V19.36C11 19.88 10.58 20.3 10.06 20.3H8.5C7.95 20.3 7.5 19.85 7.5 19.3V9.12L5.29 11.33C4.9 11.72 4.27 11.72 3.88 11.33L3.88 11.33C3.49 10.94 3.49 10.31 3.88 9.92L9.54 4.26C10.12 3.68 11 4.15 11 4.92V5.64Z" stroke="#000" stroke-width="1.5" /></svg>
-            <div id="main-suggestions" class="suggestions-dropdown"></div>
+            <input type="text" id="main-search" placeholder="Search for a place...">
+            <button id="main-directions-icon" title="Get Directions">
+                <i class="fa-solid fa-route"></i>
+            </button>
+            <button id="main-search-icon" title="Search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </div>
+        <div id="main-suggestions"></div>
+    </div>
+    
+    <!-- Profile and Authentication Area -->
+    <div id="profile-area">
+        <button id="profile-button">
+            <!-- This will be populated by the JS -->
+            <img id="profile-img" src="" alt="Profile picture" hidden>
+            <i id="profile-icon" class="fa-solid fa-user"></i>
+        </button>
+        <div id="profile-dropdown">
+            <div id="logged-out-view" class="logged-out-view" hidden>
+                <h4>Welcome!</h4>
+                <p>Log in or sign up to save places and more.</p>
+                <button id="login-btn" class="login-btn">Log In</button>
+                <button id="signup-btn" class="signup-btn">Sign Up</button>
+            </div>
+            <div id="logged-in-view" class="logged-in-view" hidden>
+                <p>Logged in as:</p>
+                <div class="info">
+                    <p class="username font-semibold"></p>
+                    <p class="email text-sm"></p>
+                </div>
+                <div class="divider"></div>
+                <button id="saved-places-btn">
+                    <i class="fa-solid fa-bookmark"></i>
+                    Saved Places
+                </button>
+                <button id="logout-btn">Log Out</button>
+            </div>
         </div>
     </div>
 
+    <!-- Map controls and settings buttons -->
+    <div class="map-buttons-container">
+        <button class="js-settings-btn" title="Settings"><i class="fa-solid fa-gear"></i></button>
+    </div>
+    
+    <!-- Settings menu (off-screen by default) -->
+    <div id="menu-overlay" class="menu-overlay"></div>
+    <div id="settings-menu" class="settings-menu">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            <button id="close-settings-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="settings-section">
+            <h3>Map Style</h3>
+            <div class="radio-group">
+                <label><input type="radio" name="map-style" value="default" checked>Default</label>
+                <label><input type="radio" name="map-style" value="satellite">Satellite</label>
+            </div>
+        </div>
+        <div class="settings-section">
+            <h3>Units</h3>
+            <div class="radio-group">
+                <label><input type="radio" name="map-units" value="imperial" checked>Imperial (mi)</label>
+                <label><input type="radio" name="map-units" value="metric">Metric (km)</label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main side panel for search results and directions -->
     <div id="side-panel">
         <div id="panel-grabber"></div>
-        <div id="panel-search-placeholder" hidden></div>
-        <div class="panel-content">
-            <div id="info-panel-redesign" hidden>
-                <img class="header-image" id="info-image" src="" alt="Image of the location"/>
-                <div class="info-content-padding">
-                    <h3 id="info-name"></h3>
-                    <div class="address" id="info-address"></div>
-                    <div class="weather" id="info-weather"></div>
-                    <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M22.43,10.59,13.42,1.58a2,2,0,0,0-2.83,0l-9,9a2,2,0,0,0,0,2.83l9,9a2,2,0,0,0,2.83,0l9-9A2,2,0,0,0,22.43,10.59ZM12,18.59,5.41,12,12,5.41,18.59,12Z"></path></svg></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M17,3H7A2,2,0,0,0,5,5V21L12,18L19,21V5A2,2,0,0,0,17,3Z"></path></svg></div><div class="btn-label">Save</div></div>
-                    </div>
-                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
+        <div id="panel-header">
+            <div id="panel-search-placeholder" class="w-full" hidden></div>
+            <button id="close-panel-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <!-- Info Panel (search results) -->
+        <div id="info-panel-redesign" class="panel-content-scroll panel-content" hidden>
+            <img id="info-image" alt="Place image">
+            <h2 id="info-name"></h2>
+            <p id="info-address"></p>
+            <div class="info-actions">
+                <button id="info-directions-btn"><i class="fa-solid fa-route"></i>Directions</button>
+                <button id="info-save-btn"><i class="fa-solid fa-bookmark"></i>Save</button>
+            </div>
+            <div class="info-details">
+                <h3>Quick Facts</h3>
+                <p id="quick-facts-content"></p>
+            </div>
+            <div class="info-details">
+                <h3>Weather</h3>
+                <span class="pill" id="info-weather"></span>
+            </div>
+        </div>
+        
+        <!-- Directions Panel -->
+        <div id="directions-panel-redesign" class="panel-content-scroll panel-content" hidden>
+            <div class="directions-form">
+                <div class="input-group">
+                    <input type="text" id="panel-from-input" placeholder="Your location or address">
+                    <div id="panel-from-suggestions"></div>
+                    <button id="dir-use-my-location" class="use-location-btn" title="Use my location">
+                        <i class="fa-solid fa-location-crosshairs"></i>
+                    </button>
                 </div>
+                <div class="input-group">
+                    <input type="text" id="panel-to-input" placeholder="Destination">
+                    <div id="panel-to-suggestions"></div>
+                    <button id="swap-btn" class="swap-btn" title="Swap start and end">
+                        <i class="fa-solid fa-arrow-up-arrow-down"></i>
+                    </button>
+                </div>
+                <button id="get-route-btn" class="submit-btn">Get Directions</button>
             </div>
-            <div id="directions-panel-redesign" hidden>
-                    <div class="info-content-padding">
-                        <div class="dir-input-group">
-                            <div class="dir-input-wrapper"><svg class="input-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="#000" stroke-width="2"/></svg><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
-                            <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                            <div class="dir-input-wrapper"><svg class="input-icon" width="24" height="24" viewBox="0 0 24 24"><path fill="#D83025" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
-                            <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                            <button id="swap-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l-4-4m4 4l4-4" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                        </div>
-                        <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12,8A4,4,0,0,1,16,12A4,4,0,0,1,12,16A4,4,0,0,1,8,12A4,4,0,0,1,12,8M12,2A10,10,0,0,0,2,12A10,10,0,0,0,12,22A10,10,0,0,0,22,12A10,10,0,0,0,12,2Z" /></svg></div>Your location</div>
-                        <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
-                    </div>
+            <div id="back-to-info-btn" style="text-align: center; margin-top: 1rem; cursor: pointer; color: var(--primary-color);">
+                <i class="fa-solid fa-arrow-left"></i> Back to place info
             </div>
-            <div id="route-section" hidden>
-                <div class="info-content-padding"><h3>Route Steps</h3><button id="exit-route-btn">Back</button><ol id="route-steps"></ol></div>
+        </div>
+        
+        <!-- Route Steps Panel -->
+        <div id="route-section" class="panel-content" hidden>
+            <div class="route-header">
+                <button id="exit-route-btn"><i class="fa-solid fa-arrow-left"></i></button>
+                <p>Route Details</p>
+                <span></span>
+            </div>
+            <div id="route-steps-container">
+                <ul id="route-steps"></ul>
             </div>
         </div>
     </div>
-    <button id="close-panel-btn" title="Close Panel"></button>
-
-    <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12-.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49-1c.23-.09.49 0 .61.22l2 3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
-    </button>
     
-    <div id="menu-overlay"></div>
-
-    <div id="settings-menu">
-        <div class="settings-menu-header">
-            <h4>Map Settings</h4>
-            <button id="close-settings-btn" aria-label="Close Settings">×</button>
+    <!-- Navigation Status Panel (Visible during active navigation) -->
+    <div id="navigation-status">
+        <div id="navigation-instruction" class="nav-instruction"></div>
+        <div class="progress-bar-container">
+            <div id="instruction-progress-bar" class="progress-bar-fill"></div>
         </div>
-        <div class="settings-menu-content">
-            <div class="setting-group">
-                <label class="setting-label">Map Style</label>
-                <div class="radio-group">
-                    <input type="radio" id="style-default" name="map-style" value="default" checked>
-                    <label for="style-default">Default</label>
-                    <input type="radio" id="style-satellite" name="map-style" value="satellite">
-                    <label for="style-satellite">Satellite</label>
-                </div>
+        <div id="navigation-stats">
+            <div class="stat-item">
+                <div id="stat-eta">--:--</div>
+                <div class="text-sm">ETA</div>
             </div>
-            <hr>
-            <div class="setting-group">
-                <label class="setting-label">Units</label>
-                <div class="radio-group">
-                    <input type="radio" id="units-imperial" name="map-units" value="imperial" checked>
-                    <label for="units-imperial">Imperial</label>
-                    <input type="radio" id="units-metric" name="map-units" value="metric">
-                    <label for="units-metric">Metric</label>
-                </div>
+            <div class="stat-item">
+                <div id="stat-speed">0</div>
+                <div class="text-sm">MPH</div>
+            </div>
+            <div class="stat-item">
+                <div id="stat-time-remaining">0 min</div>
+                <div class="text-sm">TIME</div>
             </div>
         </div>
+        <button id="end-navigation-btn"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
-    <div id="map">
-        <div id="map-watermark">TheBoiisMC</div>
-    </div>
-    <script src="app.js"></script>
+    <!-- Maplibre GL JS, OIDC, Turf.js, and your app script -->
+    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
+    <script src="./app.js"></script>
 </body>
 </html>
