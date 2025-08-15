@@ -469,7 +469,7 @@ hr {
     background-color: #006056;
 }
 
-#back-to-info-btn, #exit-route-btn {
+#back-to-info-btn, #exit-route-btn, #back-to-directions-btn {
     background: none;
     border: none;
     color: #5f6368;
@@ -501,6 +501,29 @@ hr {
 
 #route-steps li:last-child {
     border-bottom: none;
+}
+
+#route-preview-panel .route-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 0;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 20px;
+}
+
+#route-preview-panel .route-summary h3 {
+    font-size: 48px;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+}
+
+#route-preview-panel .route-summary div {
+    font-size: 18px;
+    color: #5f6368;
+    margin-top: 5px;
 }
 
 #map-watermark {
