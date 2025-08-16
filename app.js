@@ -74,6 +74,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
     // --- END AUTHENTICATION ---
 
+    // --- GEOAPIFY API KEY ---
+    // Get your free API key from https://www.geoapify.com/
+    const GEOAPIFY_API_KEY = "YOUR_GEOAPIFY_API_KEY";
+    if (GEOAPIFY_API_KEY === "YOUR_GEOAPIFY_API_KEY") {
+        console.error("Please replace YOUR_GEOAPIFY_API_KEY with your actual API key.");
+    }
+    
     // --- MAP INITIALIZATION & CONTROLS ---
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
@@ -104,6 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
     const closePanelBtn = document.getElementById('close-panel-btn');
     const closeInfoBtn = document.getElementById('close-info-btn');
+    const errorBar = document.getElementById('error-bar');
     
     let currentPlace = null;
     let currentRouteData = null;
@@ -186,27 +194,59 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // --- Caching and Error Handling ---
+    async function getOrFetch(url, cacheName) {
+        const cache = await caches.open(cacheName);
+        const cachedResponse = await cache.match(url);
+        if (cachedResponse) {
+            fetch(url).then(response => {
+                if (response.ok) { cache.put(url, response); }
+            });
+            return cachedResponse;
+        }
+        const networkResponse = await fetch(url);
+        if (networkResponse.ok) { cache.put(url, networkResponse.clone()); }
+        return networkResponse;
+    }
+
+    function handleError(message, error) {
+        console.error(message, error);
+        errorBar.textContent = message;
+        errorBar.classList.add('show');
+        setTimeout(() => {
+            errorBar.classList.remove('show');
+        }, 5000);
+    }
+    
     function debounce(func, delay) { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; }
+    
+    // --- Geoapify Search and Geocoding ---
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
             if (!query) { suggestionsEl.style.display = "none"; return; }
-            const bounds = map.getBounds();
-            const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
             try {
-                const res = await fetch(url);
+                const mapCenter = map.getCenter();
+                const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&bias=proximity:${mapCenter.lng},${mapCenter.lat}&limit=5&format=json&apiKey=${GEOAPIFY_API_KEY}`;
+                const res = await getOrFetch(url, 'search-cache');
                 const data = await res.json();
-                suggestionsEl.innerHTML = "";
-                data.forEach(item => {
-                    const el = document.createElement("div");
-                    el.className = "search-result";
-                    el.textContent = item.display_name;
-                    el.addEventListener("click", () => onSelect(item));
-                    suggestionsEl.appendChild(el);
-                });
-                suggestionsEl.style.display = data.length > 0 ? "block" : "none";
+                
+                if (data.features && data.features.length > 0) {
+                    suggestionsEl.innerHTML = "";
+                    data.features.forEach(item => {
+                        const el = document.createElement("div");
+                        el.className = "search-result";
+                        el.textContent = item.properties.formatted;
+                        el.dataset.lat = item.properties.lat;
+                        el.dataset.lon = item.properties.lon;
+                        el.addEventListener("click", () => onSelect(item));
+                        suggestionsEl.appendChild(el);
+                    });
+                    suggestionsEl.style.display = "block";
+                } else {
+                    suggestionsEl.style.display = "none";
+                }
             } catch (e) {
-                console.error("Suggestion fetch failed", e);
+                handleError("Search failed. Check your internet connection.", e);
             }
         };
         const debouncedFetch = debounce(fetchAndDisplaySuggestions, 300);
@@ -218,17 +258,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function performSmartSearch(inputEl, onSelect) {
         const query = inputEl.value.trim();
-        if (!query) return;
-        const bounds = map.getBounds();
-        const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
+        if (!query) { return; }
+        
         try {
-            const res = await fetch(url);
+            const mapCenter = map.getCenter();
+            const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&bias=proximity:${mapCenter.lng},${mapCenter.lat}&limit=1&format=json&apiKey=${GEOAPIFY_API_KEY}`;
+            const res = await getOrFetch(url, 'search-cache');
             const data = await res.json();
-            if (data.length > 0) onSelect(data[0]);
-            else alert("No results found for your search.");
+            
+            if (data.features && data.features.length > 0) {
+                onSelect(data.features[0]);
+            } else {
+                handleError("No results found for your search.", null);
+            }
         } catch (e) {
-            alert("Search failed. Please check your connection.");
+            handleError("Search failed. Please check your connection.", e);
         }
     }
 
@@ -242,33 +286,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fromInput = document.getElementById('panel-from-input');
     const fromSuggestions = document.getElementById('panel-from-suggestions');
     attachSuggestionListener(fromInput, fromSuggestions, (place) => {
-        fromInput.value = place.display_name;
-        fromInput.dataset.coords = `${place.lon},${place.lat}`;
+        fromInput.value = place.properties.formatted;
+        fromInput.dataset.coords = `${place.properties.lon},${place.properties.lat}`;
     });
 
     const toInput = document.getElementById('panel-to-input');
     const toSuggestions = document.getElementById('panel-to-suggestions');
     attachSuggestionListener(toInput, toSuggestions, (place) => {
-        toInput.value = place.display_name;
-        toInput.dataset.coords = `${place.lon},${place.lat}`;
+        toInput.value = place.properties.formatted;
+        toInput.dataset.coords = `${place.properties.lon},${place.properties.lat}`;
     });
 
     function processPlaceResult(place) {
-        currentPlace = place;
+        currentPlace = place.properties;
         stopNavigation();
         clearRouteFromMap();
-        map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
-        mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
-        document.getElementById('info-name').textContent = place.display_name.split(',')[0];
-        document.getElementById('info-address').textContent = place.display_name;
-        const locationName = place.display_name.split(',')[0];
-        fetchAndSetPlaceImage(locationName, place.lon, place.lat);
-        fetchAndSetWeather(place.lat, place.lon);
+        map.flyTo({ center: [parseFloat(currentPlace.lon), parseFloat(currentPlace.lat)], zoom: 14 });
+        mainSearchInput.value = currentPlace.formatted;
+        document.getElementById('info-name').textContent = currentPlace.name || currentPlace.formatted.split(',')[0];
+        document.getElementById('info-address').textContent = currentPlace.formatted;
+        const locationName = currentPlace.name || currentPlace.formatted.split(',')[0];
+        fetchAndSetPlaceImage(locationName);
+        fetchAndSetWeather(currentPlace.lat, currentPlace.lon);
         fetchAndSetQuickFacts(locationName);
         showPanel('info-panel-redesign');
     }
 
-    async function fetchAndSetPlaceImage(query, lon, lat) {
+    async function fetchAndSetPlaceImage(query) {
         const imgEl = document.getElementById('info-image');
         imgEl.src = '';
         imgEl.style.backgroundColor = '#e0e0e0';
@@ -276,7 +320,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         imgEl.onerror = null;
         try {
             const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
-            const res = await fetch(wikipediaUrl);
+            const res = await getOrFetch(wikipediaUrl, 'wikipedia-cache');
             const data = await res.json();
             const page = Object.values(data.query.pages)[0];
             if (page.thumbnail && page.thumbnail.source) {
@@ -289,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {
             console.log("Wikipedia image failed:", e.message, "Activating fallback.");
             const offset = 0.005;
-            const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`;
+            const bbox = `${currentPlace.lon - offset},${currentPlace.lat - offset},${currentPlace.lon + offset},${currentPlace.lat + offset}`;
             const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
             imgEl.src = fallbackUrl;
             imgEl.alt = `Map view of ${query}`;
@@ -310,7 +354,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         weatherEl.textContent = "Loading weather...";
         try {
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}¤t_weather=true&temperature_unit=fahrenheit`;
-            const res = await fetch(url);
+            const res = await getOrFetch(url, 'weather-cache');
             if (!res.ok) throw new Error(`API returned status ${res.status}`);
             const data = await res.json();
             if (data.current_weather) {
@@ -323,7 +367,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (e) {
             weatherEl.textContent = "Could not load weather data.";
-            console.error("Weather fetch/parse error:", e);
+            handleError("Failed to fetch weather data.", e);
         }
     }
 
@@ -332,20 +376,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         factsEl.textContent = "Loading facts...";
         try {
             const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=extracts&exintro&explaintext&redirects=1&titles=${encodeURIComponent(query)}`;
-            const res = await fetch(url);
+            const res = await getOrFetch(url, 'wikipedia-cache');
             const data = await res.json();
             const page = Object.values(data.query.pages)[0];
             factsEl.textContent = page.extract ? page.extract.substring(0, 350) + '...' : "No quick facts found on Wikipedia.";
         } catch (e) {
             factsEl.textContent = "Could not load facts.";
-            console.error("Wikipedia API error", e);
+            handleError("Failed to fetch quick facts.", e);
         }
     }
 
     function openDirectionsPanel() {
         showPanel('directions-panel-redesign');
         if (currentPlace) {
-            toInput.value = currentPlace.display_name;
+            toInput.value = currentPlace.formatted;
             toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
             fromInput.value = '';
             fromInput.dataset.coords = '';
@@ -361,9 +405,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
     document.getElementById('info-save-btn').addEventListener('click', () => {
         if (currentUser) {
-            alert("Feature 'Save Place' not yet implemented!");
+            handleError("Feature 'Save Place' not yet implemented!", null);
         } else {
-            alert("Please log in to save places.");
+            handleError("Please log in to save places.", null);
         }
     });
 
@@ -379,7 +423,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 fromInput.value = "Your Location";
                 fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
             },
-            handlePositionError,
+            (error) => handleError("Could not get your location.", error),
             geolocationOptions
         );
     });
@@ -419,16 +463,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function getRoute() {
-        if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
+        if (!fromInput.dataset.coords || !toInput.dataset.coords) {
+            handleError("Please select a location from the search suggestions.", null);
+            return;
+        }
         clearRouteFromMap();
+        
         try {
-            const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
-            const res = await fetch(url);
+            const startCoords = fromInput.dataset.coords.split(',').map(Number);
+            const endCoords = toInput.dataset.coords.split(',').map(Number);
+            
+            const url = `https://router.project-osrm.org/route/v1/driving/${startCoords.join(',')};${endCoords.join(',')}?overview=full&geometries=geojson&steps=true`;
+            const res = await getOrFetch(url, 'route-cache');
             const data = await res.json();
+            
             if (!data.routes || data.routes.length === 0 || !data.routes[0].legs || !data.routes[0].legs[0].steps || data.routes[0].legs[0].steps.length === 0) {
-                return alert("A route could not be found. Please try a different location.");
+                throw new Error("A route could not be found. Please try a different location.");
             }
+            
             currentRouteData = data;
             const route = data.routes[0];
             const routeGeoJSON = { type: 'Feature', geometry: route.geometry };
@@ -445,7 +497,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
             }
         } catch (err) {
-            alert(`Error getting route: ${err.message}`);
+            handleError(`Error getting route: ${err.message}`, err);
             navigationState.isRerouting = false;
         }
     }
@@ -474,14 +526,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     url: url.toString()
                 });
             } catch (error) {
-                console.error('Error sharing:', error);
+                handleError('Error sharing route:', error);
             }
         } else {
             navigator.clipboard.writeText(url.toString()).then(() => {
-                alert("Route link copied to clipboard!");
+                handleError("Route link copied to clipboard!", null);
             }).catch(err => {
-                console.error('Could not copy link: ', err);
-                alert("Could not copy link. Please manually copy the URL from the address bar.");
+                handleError('Could not copy link: ', err);
             });
         }
     });
@@ -491,16 +542,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearRouteFromMap();
         showPanel('directions-panel-redesign');
     });
-
-    async function geocode(inputEl) {
-        if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
-        const data = await res.json();
-        if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`);
-        inputEl.value = data[0].display_name;
-        inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
-        return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
-    }
 
     function addRouteToMap(routeGeoJSON) {
         if (map.getSource('route')) {
@@ -562,7 +603,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Core Navigation Lifecycle
     function startNavigation() {
-        if (!navigator.geolocation) return alert("Geolocation is not supported by your browser.");
+        if (!navigator.geolocation) {
+            handleError("Geolocation is not supported by your browser.", null);
+            return;
+        }
         
         resetNavigationState();
         navigationState.isActive = true;
@@ -583,7 +627,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
 
-        navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
+        navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, (error) => handleError("Geolocation error during navigation.", error), geolocationOptions);
         endNavigationBtn.addEventListener('click', stopNavigation);
     }
 
@@ -600,24 +644,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         map.easeTo({ pitch: 0, bearing: 0 });
     }
 
-    function handlePositionError(error) {
-        console.error("Geolocation Error:", error.message);
-        alert(`Geolocation error: ${error.message}. Navigation stopped.`);
-        stopNavigation();
-    }
-
-    // --- THE NAVIGATION BRAIN: handlePositionUpdate ---
-    async function handlePositionUpdate(position) {
+    function handlePositionUpdate(position) {
         if (!navigationState.isActive || navigationState.isRerouting) return;
         const { latitude, longitude, heading, speed, accuracy } = position.coords;
 
-        // **MODIFIED:** Increased accuracy threshold to 80m for better performance while moving.
         if (accuracy > 80) return;
 
         const userPoint = turf.point([longitude, latitude]);
         const steps = currentRouteData.routes[0].legs[0].steps;
 
-        // 1. Update State & UI
         navigationState.userSpeed = (speed || 0) * 2.23694; // m/s to mph
         const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
         const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
@@ -630,7 +665,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             map.easeTo({ center: snapped.geometry.coordinates, zoom: 18, duration: 500 });
         }
 
-        // 2. Rerouting Logic (Off-route & Wrong Way)
         const currentStep = steps[navigationState.currentStepIndex];
         const stepStartPoint = turf.point(currentStep.geometry.coordinates[0]);
         const stepEndPoint = turf.point(currentStep.geometry.coordinates[currentStep.geometry.coordinates.length - 1]);
@@ -640,19 +674,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (snapped.properties.dist > 50) {
             navigationState.isRerouting = true;
             speech.speak("Off route. Recalculating.", true);
-            await getRoute();
+            getRoute();
             return;
         }
         
         if (heading != null && headingDifference > 90 && headingDifference < 270 && navigationState.userSpeed > 5 && !navigationState.isWrongWay) {
              navigationState.isWrongWay = true;
              speech.speak("Wrong way. Recalculating.", true);
-             await getRoute();
+             getRoute();
              return;
         }
         navigationState.isWrongWay = false;
 
-        // 3. Progress Calculation (Map Matching)
         const currentStepLine = turf.lineString(currentStep.geometry.coordinates);
         const totalStepDistance = turf.length(currentStepLine, { units: 'meters' });
         navigationState.distanceToNextManeuver = turf.distance(userPoint, stepEndPoint, { units: 'meters' });
@@ -665,7 +698,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         navigationState.totalTripTime = remainingTimeSeconds;
         updateNavigationUI();
 
-        // 4. Audio Cues
         const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
         if (distanceMiles > 0.9 && distanceMiles < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
             speech.speak(`In 1 mile, ${currentStep.maneuver.instruction}`);
@@ -675,7 +707,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             navigationState.lastAnnouncedDistance = 0.25;
         }
 
-        // 5. Step Advancement Logic
         if (navigationState.distanceToNextManeuver < 50) {
             navigationState.currentStepIndex++;
             if (navigationState.currentStepIndex >= steps.length) {
