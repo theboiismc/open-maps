@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function moveSearchBarToTop() { if (!isMobile) { mainSearchContainer.style.boxShadow = ''; mainSearchContainer.style.borderRadius = ''; topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
 
     function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel'].forEach(id => { document.getElementById(id).hidden = id !== viewId; });
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section'].forEach(id => { document.getElementById(id).hidden = id !== viewId; });
         if (!sidePanel.classList.contains('open')) {
             if (isMobile) {
                 if (!sidePanel.classList.contains('peek')) sidePanel.classList.add('peek');
@@ -387,10 +387,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('back-to-info-btn').addEventListener('click', () => {
         if (currentPlace) showPanel('info-panel-redesign');
     });
-    
-    document.getElementById('back-to-directions-btn').addEventListener('click', () => {
-        showPanel('directions-panel-redesign');
-    });
 
     function clearRouteFromMap() {
         if (map.getLayer('route-line')) map.removeLayer('route-line');
@@ -408,14 +404,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             li.textContent = step.maneuver.instruction;
             routeStepsEl.appendChild(li);
         });
-    }
-    
-    function displayRoutePreview(route) {
-        const durationMinutes = Math.round(route.duration / 60);
-        const distanceMiles = (route.distance / 1609.34).toFixed(1);
-        document.getElementById('route-summary-time').textContent = `${durationMinutes} min`;
-        document.getElementById('route-summary-distance').textContent = `${distanceMiles} mi`;
-        showPanel('route-preview-panel');
     }
 
     async function getRoute() {
@@ -435,13 +423,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             addRouteToMap(routeGeoJSON);
             const bounds = new maplibregl.LngLatBounds();
             routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
-
             if (fromInput.value.trim() === "Your Location") {
                 map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
                 closePanel();
                 startNavigation();
             } else {
-                displayRoutePreview(route);
+                displayRouteSteps(route);
+                showPanel('route-section');
                 map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
             }
         } catch (err) {
@@ -449,42 +437,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             navigationState.isRerouting = false;
         }
     }
-    
-    const startNavigationBtn = document.getElementById('start-navigation-btn');
-    startNavigationBtn.addEventListener('click', startNavigation);
-
-    const shareRouteBtn = document.getElementById('share-route-btn');
-    shareRouteBtn.addEventListener('click', async () => {
-        const fromName = fromInput.value;
-        const toName = toInput.value;
-        const fromCoords = fromInput.dataset.coords;
-        const toCoords = toInput.dataset.coords;
-        const shareText = `Check out this route from ${fromName} to ${toName}!`;
-        const url = new URL(window.location.href);
-        url.searchParams.set('from', fromCoords);
-        url.searchParams.set('to', toCoords);
-        url.searchParams.set('fromName', fromName);
-        url.searchParams.set('toName', toName);
-
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: 'TheBoiisMC Maps Route',
-                    text: shareText,
-                    url: url.toString()
-                });
-            } catch (error) {
-                console.error('Error sharing:', error);
-            }
-        } else {
-            navigator.clipboard.writeText(url.toString()).then(() => {
-                alert("Route link copied to clipboard!");
-            }).catch(err => {
-                console.error('Could not copy link: ', err);
-                alert("Could not copy link. Please manually copy the URL from the address bar.");
-            });
-        }
-    });
 
     document.getElementById('get-route-btn').addEventListener('click', getRoute);
     document.getElementById('exit-route-btn').addEventListener('click', () => {
