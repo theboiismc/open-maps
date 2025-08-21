@@ -38,6 +38,9 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- (Most of the body is the same) -->
+    
+    <!-- ... (All top banner, navigation, search wrapper divs are unchanged) ... -->
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
@@ -116,21 +119,45 @@
             <div id="info-panel-redesign" hidden>
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location"/>
-                    <button id="close-info-btn">
-                        <span class="material-symbols-outlined">arrow_back</span>
-                    </button>
+                    <!-- SKELETON LOADER for image -->
+                    <div id="info-image-skeleton" class="skeleton skeleton-image"></div>
                 </div>
                 <div class="info-content-padding">
-                    <h3 id="info-name"></h3>
-                    <div class="address" id="info-address"></div>
-                    <div class="weather" id="info-weather"></div>
+                    <!-- SKELETON LOADER for title/address -->
+                    <div id="info-details-skeleton">
+                        <div class="skeleton skeleton-text skeleton-title"></div>
+                        <div class="skeleton skeleton-text skeleton-subtitle"></div>
+                    </div>
+                    <!-- Actual content (initially hidden) -->
+                    <div id="info-details-content" hidden>
+                        <h3 id="info-name"></h3>
+                        <div class="address" id="info-address"></div>
+                    </div>
+
+                    <!-- SKELETON LOADER for weather -->
+                    <div id="info-weather-skeleton" class="skeleton skeleton-text" style="width: 60%;"></div>
+                    <!-- Actual content (initially hidden) -->
+                    <div class="weather" id="info-weather" hidden></div>
+                    
                     <div class="action-buttons">
                         <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
                         <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></div>
                     </div>
-                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
+                    
+                    <div id="quick-facts">
+                        <h4>Quick facts</h4>
+                        <!-- SKELETON LOADER for facts -->
+                        <div id="quick-facts-skeleton">
+                            <div class="skeleton skeleton-text"></div>
+                            <div class="skeleton skeleton-text"></div>
+                            <div class="skeleton skeleton-text" style="width: 80%;"></div>
+                        </div>
+                        <!-- Actual content (initially hidden) -->
+                        <p id="quick-facts-content" hidden></p>
+                    </div>
                 </div>
             </div>
+            <!-- ... (The other panel views are unchanged) ... -->
             <div id="directions-panel-redesign" hidden>
                 <div class="info-content-padding">
                     <div class="dir-input-group">
@@ -209,6 +236,10 @@
     <div id="map">
         <div id="map-watermark">TheBoiisMC</div>
     </div>
+
+    <!-- NEW: Toast Notification Container -->
+    <div id="toast-container"></div>
+
     <script src="app.js"></script>
 </body>
 </html>
