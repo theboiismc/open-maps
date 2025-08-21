@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
     signupBtn.addEventListener('click', (e) => { e.preventDefault(); window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/"; });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
-    
+
     // --- MAP INITIALIZATION & CONTROLS ---
     const MAPTILER_KEY = 'YOUR_MAPTILER_API_KEY';
 
@@ -80,32 +80,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         hybrid: `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`,
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
-    
-    let map;
-    function initializeMap(center = [-95, 39], zoom = 4) {
-        map = new maplibregl.Map({
-            container: "map",
-            style: STYLES.default,
-            center: center,
-            zoom: zoom
-        });
-        
-        map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-        const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
-        map.addControl(geolocateControl, "bottom-right");
-        map.on('load', () => geolocateControl.trigger());
-        
-        attachMapEventListeners();
-    }
 
-    navigator.geolocation.getCurrentPosition(
-        (pos) => initializeMap([pos.coords.longitude, pos.coords.latitude], 12),
-        (err) => {
-            console.warn(`Could not get user location: ${err.message}. Defaulting to center.`);
-            initializeMap();
-        },
-        geolocationOptions
-    );
+    // Initialize map synchronously
+    const map = new maplibregl.Map({
+        container: "map",
+        style: STYLES.default,
+        center: [-95, 39], // Default center
+        zoom: 4
+    });
+
+    // Add controls
+    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+    const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
+    map.addControl(geolocateControl, "bottom-right");
+
+    // Center on user after map loads
+    map.on('load', () => {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 12 }),
+            (err) => console.warn(`Could not get user location: ${err.message}.`),
+            geolocationOptions
+        );
+    });
 
     // --- GLOBAL VARIABLES & UI ELEMENTS ---
     const sidePanel = document.getElementById("side-panel");
@@ -119,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const speech = {
         synthesis: window.speechSynthesis,
-        utterance: new SpeechSynthesisUtterance(),
+        utterance: new SpeechSynthesisUtterterance(),
         speak(text, priority = false) {
             if (priority && this.synthesis.speaking) this.synthesis.cancel();
             if (!this.synthesis.speaking && text) {
@@ -153,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         moveSearchBarToTop();
     }
     closeInfoBtn.addEventListener('click', closePanel);
-    
+
     // --- SKELETON LOADER UI ELEMENTS ---
     const infoDetailsSkeleton = document.getElementById('info-details-skeleton');
     const infoDetailsContent = document.getElementById('info-details-content');
@@ -423,65 +419,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic', TRAFFIC_LAYER_ID = 'traffic-lines';
     const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
     const trafficLayer = { id: TRAFFIC_LAYER_ID, type: 'line', source: TRAFFIC_SOURCE_ID, 'source-layer': 'traffic', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 2, 'line-color': ['match',['get','congestion'],'low','#30c83a','moderate','#ff9a00','heavy','#ff3d3d','severe','#a00000','#a0a0a0'] } };
-    function addTrafficLayer() { if (map && !map.getSource(TRAFFIC_SOURCE_ID)) { map.addSource(TRAFFIC_SOURCE_ID, trafficSource); map.addLayer(trafficLayer, 'route-line'); } }
-    function removeTrafficLayer() { if (map && map.getSource(TRAFFIC_SOURCE_ID)) { map.removeLayer(TRAFFIC_LAYER_ID); map.removeSource(TRAFFIC_SOURCE_ID); } }
+    function addTrafficLayer() { if (!map.getSource(TRAFFIC_SOURCE_ID)) { map.addSource(TRAFFIC_SOURCE_ID, trafficSource); map.addLayer(trafficLayer, 'route-line'); } }
+    function removeTrafficLayer() { if (map.getSource(TRAFFIC_SOURCE_ID)) { map.removeLayer(TRAFFIC_LAYER_ID); map.removeSource(TRAFFIC_SOURCE_ID); } }
 
     const settingsMenu = document.getElementById('settings-menu');
     const menuOverlay = document.getElementById('menu-overlay');
     function openSettings() { settingsMenu.classList.add('open'); if (isMobile) menuOverlay.classList.add('open'); }
     function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) menuOverlay.classList.remove('open'); }
     
-    function attachAllEventListeners() {
-        const fromInput = document.getElementById('panel-from-input');
-        attachSuggestionListener(fromInput, document.getElementById('panel-from-suggestions'), (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
-        const toInput = document.getElementById('panel-to-input');
-        attachSuggestionListener(toInput, document.getElementById('panel-to-suggestions'), (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
-        
-        attachSuggestionListener(mainSearchInput, document.getElementById("main-suggestions"), processPlaceResult);
-        document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
-        mainSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult); });
-        
-        document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
-        document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
-        document.getElementById('info-save-btn').addEventListener('click', () => showToast(currentUser ? "Save feature not implemented." : "Please log in to save places.", currentUser ? 'info' : 'error'));
-        document.getElementById('swap-btn').addEventListener('click', () => { [fromInput.value, toInput.value] = [toInput.value, fromInput.value]; [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords]; });
-        document.getElementById('dir-use-my-location').addEventListener('click', () => navigator.geolocation.getCurrentPosition(p => { fromInput.value = "Your Location"; fromInput.dataset.coords = `${p.coords.longitude},${p.coords.latitude}`; }, handlePositionError, geolocationOptions));
-        document.getElementById('back-to-info-btn').addEventListener('click', () => showPanel('info-panel-redesign'));
-        document.getElementById('back-to-directions-btn').addEventListener('click', () => showPanel('directions-panel-redesign'));
-        document.getElementById('start-navigation-btn').addEventListener('click', startNavigation);
-        document.getElementById('get-route-btn').addEventListener('click', getRoute);
-        document.getElementById('exit-route-btn').addEventListener('click', () => { clearRouteFromMap(); showPanel('directions-panel-redesign'); });
+    // --- ATTACH ALL EVENT LISTENERS ---
+    const fromInput = document.getElementById('panel-from-input');
+    attachSuggestionListener(fromInput, document.getElementById('panel-from-suggestions'), (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
+    const toInput = document.getElementById('panel-to-input');
+    attachSuggestionListener(toInput, document.getElementById('panel-to-suggestions'), (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
+    
+    attachSuggestionListener(mainSearchInput, document.getElementById("main-suggestions"), processPlaceResult);
+    document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
+    mainSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult); });
+    
+    document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
+    document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
+    document.getElementById('info-save-btn').addEventListener('click', () => showToast(currentUser ? "Save feature not implemented." : "Please log in to save places.", currentUser ? 'info' : 'error'));
+    document.getElementById('swap-btn').addEventListener('click', () => { [fromInput.value, toInput.value] = [toInput.value, fromInput.value]; [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords]; });
+    document.getElementById('dir-use-my-location').addEventListener('click', () => navigator.geolocation.getCurrentPosition(p => { fromInput.value = "Your Location"; fromInput.dataset.coords = `${p.coords.longitude},${p.coords.latitude}`; }, handlePositionError, geolocationOptions));
+    document.getElementById('back-to-info-btn').addEventListener('click', () => showPanel('info-panel-redesign'));
+    document.getElementById('back-to-directions-btn').addEventListener('click', () => showPanel('directions-panel-redesign'));
+    document.getElementById('start-navigation-btn').addEventListener('click', startNavigation);
+    document.getElementById('get-route-btn').addEventListener('click', getRoute);
+    document.getElementById('exit-route-btn').addEventListener('click', () => { clearRouteFromMap(); showPanel('directions-panel-redesign'); });
 
-        document.querySelectorAll('.js-settings-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); openSettings(); }));
-        document.getElementById('close-settings-btn').addEventListener('click', closeSettings);
-        menuOverlay.addEventListener('click', closeSettings);
-        document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) closeSettings(); });
-        document.querySelectorAll('input[name="map-style"]').forEach(radio => radio.addEventListener('change', () => map.setStyle(STYLES[radio.value])));
-        document.getElementById('traffic-toggle').addEventListener('change', (e) => e.target.checked ? addTrafficLayer() : removeTrafficLayer());
-    }
+    document.querySelectorAll('.js-settings-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); openSettings(); }));
+    document.getElementById('close-settings-btn').addEventListener('click', closeSettings);
+    menuOverlay.addEventListener('click', closeSettings);
+    document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) closeSettings(); });
+    document.querySelectorAll('input[name="map-style"]').forEach(radio => radio.addEventListener('change', () => map.setStyle(STYLES[radio.value])));
+    document.getElementById('traffic-toggle').addEventListener('change', (e) => e.target.checked ? addTrafficLayer() : removeTrafficLayer());
 
-    function attachMapEventListeners() {
-        map.on('click', async (e) => {
-            if (e.originalEvent.target.closest('.maplibregl-ctrl, #side-panel')) return;
-            const { lng, lat } = e.lngLat;
-            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                if (data && data.display_name) {
-                    if (clickMarker) clickMarker.remove();
-                    clickMarker = new maplibregl.Marker().setLngLat([data.lon, data.lat]).addTo(map);
-                    processPlaceResult(data);
-                }
-            } catch (error) { console.error("Reverse geocoding failed:", error); }
-        });
-        map.on('styledata', () => {
-            if (currentRouteData) addRouteToMap({ type: 'Feature', geometry: currentRouteData.routes[0].geometry });
-            if (document.getElementById('traffic-toggle').checked) addTrafficLayer();
-        });
-    }
-
-    attachAllEventListeners();
+    map.on('click', async (e) => {
+        if (e.originalEvent.target.closest('.maplibregl-ctrl, #side-panel')) return;
+        const { lng, lat } = e.lngLat;
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data && data.display_name) {
+                if (clickMarker) clickMarker.remove();
+                clickMarker = new maplibregl.Marker().setLngLat([data.lon, data.lat]).addTo(map);
+                processPlaceResult(data);
+            }
+        } catch (error) { console.error("Reverse geocoding failed:", error); }
+    });
+    map.on('styledata', () => {
+        if (currentRouteData) addRouteToMap({ type: 'Feature', geometry: currentRouteData.routes[0].geometry });
+        if (document.getElementById('traffic-toggle').checked) addTrafficLayer();
+    });
 
     if (isMobile) {
         const panelHeader = document.querySelector(".panel-header");
