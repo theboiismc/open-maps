@@ -4,186 +4,133 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TheBoiisMC Maps</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" />
     <link rel="stylesheet" href="styles.css">
-    <script src="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.1.0/dist/browser/oidc-client-ts.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/oidc-client/dist/oidc-client.min.js"></script>
 </head>
 <body>
-    <header id="top-banner">
+
+    <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
-            <button class="js-settings-btn material-symbols-outlined" aria-label="Settings">settings</button>
-            <button id="profile-button" aria-label="Profile">
-                <span class="material-symbols-outlined">person</span>
+            <button id="mobile-settings-btn" class="map-control-btn">
+                <span class="material-symbols-outlined">settings</span>
             </button>
-            <div id="profile-dropdown">
-                <div id="logged-in-view" class="profile-section" hidden>
-                    <div class="profile-section-header">
-                        <div class="username">Username</div>
-                        <div class="email">user@example.com</div>
-                    </div>
-                    <hr>
-                    <div class="profile-actions">
-                        <a href="#" id="saved-places-btn" class="material-symbols-outlined">star_rate_half Saved Places</a>
-                        <a href="#" id="logout-btn" class="material-symbols-outlined">logout Log Out</a>
-                    </div>
-                </div>
-                <div id="logged-out-view" class="profile-section">
-                    <div class="auth-buttons">
-                        <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
-                        <a href="#" id="signup-btn" class="btn btn-secondary">Sign Up</a>
-                    </div>
-                </div>
+            <div id="logged-out-view">
+                <a href="#" id="login-btn" class="auth-btn">Log In</a>
+                <a href="#" id="signup-btn" class="auth-btn">Sign Up</a>
             </div>
-            <div id="settings-menu">
-                <div class="settings-menu-header">
-                    <h4>Map Settings</h4>
-                    <button id="close-settings-btn" aria-label="Close Settings">&times;</button>
+            <div id="logged-in-view" hidden>
+                <div id="profile-button">
+                    <span class="material-symbols-outlined">person</span>
                 </div>
-                <div class="settings-menu-content">
-                    <div class="setting-group">
-                        <label class="setting-label">Map Style</label>
-                        <div class="radio-group">
-                            <input type="radio" id="style-streets" name="map-style" value="streets" checked>
-                            <label for="style-streets">Streets</label>
-                            <input type="radio" id="style-satellite" name="map-style" value="satellite">
-                            <label for="style-satellite">Satellite</label>
-                            <input type="radio" id="style-hybrid" name="map-style" value="hybrid">
-                            <label for="style-hybrid">Hybrid</label>
+                <div id="profile-dropdown">
+                    <div class="profile-section">
+                        <div class="profile-section-header">
+                            <div class="username"></div>
+                            <div class="email"></div>
                         </div>
                     </div>
-                    <hr>
-                    <div class="setting-group">
-                        <label class="setting-label">Live Traffic</label>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="traffic-toggle" name="map-traffic">
-                            <label for="traffic-toggle"></label>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="setting-group">
-                        <label class="setting-label">Units</label>
-                        <div class="radio-group">
-                            <input type="radio" id="units-imperial" name="map-units" value="imperial" checked>
-                            <label for="units-imperial">Imperial</label>
-                            <input type="radio" id="units-metric" name="map-units" value="metric">
-                            <label for="units-metric">Metric</label>
-                        </div>
+                    <div class="profile-actions">
+                        <a href="#" id="saved-places-btn"><span class="material-symbols-outlined icon">star</span> Saved Places</a>
+                        <a href="#" id="logout-btn"><span class="material-symbols-outlined icon">logout</span> Sign out</a>
                     </div>
                 </div>
             </div>
         </div>
-    </header>
+    </div>
+
+    <div id="map"></div>
+    <div id="map-watermark">Powered by MapTiler and OpenStreetMap</div>
 
     <div id="top-search-wrapper">
         <div id="main-search-container">
             <span class="material-symbols-outlined search-icon">search</span>
             <input type="text" id="main-search" placeholder="Search for a place...">
-            <span class="material-symbols-outlined mic-icon" id="main-mic-btn">mic</span>
+            <button id="main-mic-btn" class="mic-button"><span class="material-symbols-outlined">mic</span></button>
+            <div id="main-suggestions" class="suggestions-dropdown"></div>
         </div>
-        <div class="suggestions-dropdown" id="main-suggestions"></div>
     </div>
-
-    <div id="map"></div>
-    <div id="map-watermark">Map data © OpenStreetMap contributors</div>
 
     <aside id="side-panel">
         <div id="panel-grabber"></div>
         <div id="panel-search-placeholder" hidden></div>
-        <div class="panel-content">
-            <div id="info-panel-redesign" hidden>
-                <div class="header-image-container">
-                    <img class="header-image" src="" alt="Place header image">
-                    <button id="close-info-btn" class="material-symbols-outlined" aria-label="Close Info Panel">close</button>
+
+        <div id="info-panel-redesign" class="panel-content">
+            <div class="header-image-container">
+                <img src="" alt="Place header image" class="header-image">
+                <button id="close-info-btn"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <div class="info-content-padding">
+                <h3 id="info-name"></h3>
+                <div id="info-address" class="address"></div>
+                <div id="info-weather" class="weather"></div>
+
+                <div class="action-buttons">
+                    <div class="btn-wrapper" id="directions-btn">
+                        <div class="icon-circle">
+                            <span class="material-symbols-outlined">directions</span>
+                        </div>
+                        <div class="btn-label">Directions</div>
+                    </div>
                 </div>
-                <div class="info-content-padding">
-                    <h3 id="info-name"></h3>
-                    <div id="info-address" class="address"></div>
-                    <div id="info-weather" class="weather"></div>
-                    <div class="action-buttons">
-                        <div class="btn-wrapper" id="directions-btn">
-                            <div class="icon-circle material-symbols-outlined">directions_car</div>
-                            <div class="btn-label">Directions</div>
-                        </div>
-                        <div class="btn-wrapper" id="save-btn">
-                            <div class="icon-circle material-symbols-outlined">bookmark</div>
-                            <div class="btn-label">Save</div>
-                        </div>
-                        <div class="btn-wrapper" id="share-btn">
-                            <div class="icon-circle material-symbols-outlined">share</div>
-                            <div class="btn-label">Share</div>
-                        </div>
-                    </div>
-                    <div id="quick-facts">
-                        <h4>Quick Facts</h4>
-                        <div id="quick-facts-content"></div>
-                    </div>
+                <div id="quick-facts">
+                    <h4>Quick Facts</h4>
+                    <div id="quick-facts-content"></div>
                 </div>
             </div>
+        </div>
 
-            <div id="directions-panel-redesign" hidden>
-                <div class="info-content-padding">
-                    <div class="dir-input-group">
-                        <div class="dir-input-wrapper">
-                            <span class="material-symbols-outlined">my_location</span>
-                            <input type="text" id="panel-from-input" placeholder="Your location">
-                            <button id="swap-btn" aria-label="Swap locations" class="material-symbols-outlined">swap_vert</button>
-                        </div>
-                        <div class="suggestions-dropdown" id="panel-from-suggestions"></div>
+        <div id="directions-panel-redesign" class="panel-content" hidden>
+            <div class="info-content-padding">
+                <div class="dir-input-group">
+                    <div class="dir-input-wrapper">
+                        <span class="material-symbols-outlined">my_location</span>
+                        <input type="text" id="panel-from-input" placeholder="Your Location">
+                        <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
                     </div>
-                    <div class="dir-input-group">
-                        <div class="dir-input-wrapper">
-                            <span class="material-symbols-outlined">location_on</span>
-                            <input type="text" id="panel-to-input" placeholder="Choose destination">
-                        </div>
-                        <div class="suggestions-dropdown" id="panel-to-suggestions"></div>
+                    <div class="dir-input-wrapper">
+                        <span class="material-symbols-outlined">place</span>
+                        <input type="text" id="panel-to-input" placeholder="Choose destination">
+                        <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
                     </div>
-                    <div class="dir-quick-select">
-                        <span class="icon-wrapper material-symbols-outlined">star</span>
-                        <span>Saved places</span>
-                    </div>
-                    <div class="dir-quick-select">
-                        <span class="icon-wrapper material-symbols-outlined">work</span>
-                        <span>Work</span>
-                    </div>
-                    <div class="dir-quick-select">
-                        <span class="icon-wrapper material-symbols-outlined">home</span>
-                        <span>Home</span>
-                    </div>
-                    <button id="get-route-btn">Get Route</button>
+                    <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
                 </div>
+                <button id="get-route-btn">Get Route</button>
+                <button id="back-to-info-btn">Back to Place Info</button>
             </div>
+        </div>
 
-            <div id="route-preview-panel" hidden>
-                <div class="info-content-padding">
-                    <button id="back-to-info-btn">← Back to Info</button>
-                    <div class="route-summary">
-                        <h3 id="route-summary-time"></h3>
-                        <div id="route-summary-distance"></div>
-                    </div>
-                    <button id="start-navigation-btn" class="btn btn-primary">Start Navigation</button>
-                    <button id="show-route-steps-btn">Show Steps</button>
+        <div id="route-preview-panel" class="panel-content" hidden>
+            <div class="info-content-padding">
+                <div class="route-summary">
+                    <h3 id="route-summary-time"></h3>
+                    <div id="route-summary-distance"></div>
                 </div>
+                <button id="start-navigation-btn" class="primary-action-btn">Start Navigation</button>
+                <button id="show-route-steps-btn" class="secondary-action-btn">Show steps</button>
+                <button id="back-to-directions-btn">Back to Directions</button>
             </div>
+        </div>
 
-            <div id="route-section" hidden>
-                <div class="info-content-padding">
-                    <h3>Directions</h3>
-                    <ul id="route-steps"></ul>
-                    <button id="back-to-directions-btn">← Back to Directions</button>
-                </div>
+        <div id="route-steps-panel" class="panel-content" hidden>
+            <div class="info-content-padding">
+                <button id="back-to-route-preview-btn">Back to Route</button>
+                <h3>Steps</h3>
+                <ol id="route-steps"></ol>
             </div>
-
         </div>
     </aside>
 
-    <div id="navigation-status" hidden>
+    <div id="navigation-status">
         <div id="instruction-container">
-            <div id="instruction-icon"></div>
-            <div id="navigation-instruction">Next instruction goes here</div>
+            <span id="instruction-icon" class="material-symbols-outlined"></span>
+            <div id="navigation-instruction"></div>
             <div id="instruction-progress-bar"></div>
         </div>
         <div id="trip-stats-container">
@@ -192,20 +139,44 @@
                 <span class="stat-label">mph</span>
             </div>
             <div class="stat-item">
-                <span id="stat-eta">--:--</span>
-                <span class="stat-label">eta</span>
+                <span id="stat-eta"></span>
+                <span class="stat-label">ETA</span>
             </div>
             <div class="stat-item">
-                <span id="stat-time-remaining">--</span>
-                <span class="stat-label">min</span>
+                <span id="stat-time-remaining"></span>
+                <span class="stat-label">time</span>
             </div>
         </div>
         <button id="end-navigation-btn">End Navigation</button>
     </div>
 
-    <button id="mobile-settings-btn" class="material-symbols-outlined">settings</button>
-
     <div id="menu-overlay"></div>
+    <div id="settings-menu" class="settings-menu-container">
+        <div class="settings-menu-header">
+            <h4>Settings</h4>
+            <button id="close-settings-btn"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="settings-menu-content">
+            <div class="setting-group">
+                <span class="setting-label">Map Style</span>
+                <div class="radio-group">
+                    <input type="radio" id="style-streets" name="map-style" value="streets" checked>
+                    <label for="style-streets">Streets</label>
+                    <input type="radio" id="style-satellite" name="map-style" value="satellite">
+                    <label for="style-satellite">Satellite</label>
+                    <input type="radio" id="style-hybrid" name="map-style" value="hybrid">
+                    <label for="style-hybrid">Hybrid</label>
+                </div>
+            </div>
+            <div class="setting-group">
+                <span class="setting-label">Traffic Layer</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="traffic-toggle">
+                    <span></span>
+                </label>
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
