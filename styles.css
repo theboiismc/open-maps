@@ -369,9 +369,32 @@ hr {
 .panel-content .weather {
     display: flex;
     align-items: center;
+    gap: 10px;
     color: #5f6368;
     margin-bottom: 20px;
     min-height: 32px;
+}
+
+.weather-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.weather-info .temperature {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
+.weather-info .description {
+    font-size: 14px;
+    color: #5f6368;
+    text-transform: capitalize;
+}
+
+.weather-icon {
+    width: 50px;
+    height: 50px;
 }
 
 .action-buttons {
@@ -716,9 +739,14 @@ hr {
     pointer-events: auto;
 }
 
+/* FIX: Change display from 'none' to 'block' and control with .open class */
 #settings-menu {
     background: #fff;
     z-index: 101;
+}
+
+/* Add a new rule to control visibility based on the 'open' class */
+#settings-menu:not(.open) {
     display: none;
 }
 
@@ -923,6 +951,9 @@ hr {
     #settings-menu.open {
         display: block;
         transform: translateY(0);
+    }
+    #menu-overlay {
+        display: none;
     }
 }
 
