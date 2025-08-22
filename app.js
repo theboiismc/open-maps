@@ -140,6 +140,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
     const closePanelBtn = document.getElementById('close-panel-btn');
     const closeInfoBtn = document.getElementById('close-info-btn');
+    const directionsBtn = document.getElementById('directions-btn');
+    const mainMicBtn = document.getElementById('main-mic-btn');
     let currentPlace = null;
     let currentRouteData = null;
     let userLocationMarker = null;
@@ -254,7 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const item = document.createElement("div");
                 item.className = "search-result";
                 item.innerHTML = `<strong>${result.name || result.address.amenity || result.address.building || result.display_name}</strong><br><small>${result.display_name}</small>`;
-                item.onclick = () => { onSelect(result); };
+                item.onclick = () => { onSelect(result); suggestionsEl.style.display = 'none'; };
                 suggestionsEl.appendChild(item);
             });
             suggestionsEl.style.display = "block";
@@ -300,6 +302,74 @@ document.addEventListener('DOMContentLoaded', async () => {
         panelToInput.value = place.display_name;
         toPlace = place;
     });
+
+    directionsBtn.addEventListener('click', () => {
+        showPanel('directions-panel-redesign');
+        if (currentPlace) {
+            panelToInput.value = currentPlace.display_name;
+            toPlace = currentPlace;
+        }
+        // Use Geolocation API to get the user's current location and pre-populate the 'from' field
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+                try {
+                    const response = await fetch(url, { headers: { 'User-Agent': 'TheBoiisMC Maps' } });
+                    const data = await response.json();
+                    if (data && data.display_name) {
+                        panelFromInput.value = data.display_name;
+                        fromPlace = { lat: latitude.toString(), lon: longitude.toString(), display_name: data.display_name };
+                    }
+                } catch (error) {
+                    console.error("Reverse geocoding failed:", error);
+                }
+            }, (error) => {
+                console.warn(`Geolocation error: ${error.message}`);
+                panelFromInput.value = 'Your Location';
+                fromPlace = null; // No specific place found
+            }, geolocationOptions);
+        }
+    });
+
+    // --- VOICE SEARCH IMPLEMENTATION ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        mainMicBtn.addEventListener('click', () => {
+            recognition.start();
+            mainSearchInput.placeholder = 'Speak now...';
+            mainMicBtn.classList.add('active');
+        });
+
+        recognition.addEventListener('result', (event) => {
+            const transcript = event.results[0][0].transcript;
+            mainSearchInput.value = transcript;
+            mainMicBtn.classList.remove('active');
+            mainSearchInput.placeholder = 'Search for a place...';
+            const inputEvent = new Event('input', { bubbles: true });
+            mainSearchInput.dispatchEvent(inputEvent);
+        });
+
+        recognition.addEventListener('end', () => {
+            mainMicBtn.classList.remove('active');
+            mainSearchInput.placeholder = 'Search for a place...';
+        });
+
+        recognition.addEventListener('error', (event) => {
+            console.error('Speech recognition error:', event.error);
+            mainMicBtn.classList.remove('active');
+            mainSearchInput.placeholder = 'Search for a place...';
+        });
+    } else {
+        mainMicBtn.style.display = 'none';
+        console.warn('Web Speech API is not supported in this browser.');
+    }
 
     // --- DIRECTIONS & ROUTING LOGIC ---
     let directionsSource = null;
