@@ -74,14 +74,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- END AUTHENTICATION ---
 
     // --- MAP INITIALIZATION & CONTROLS ---
-    // NEW: Add your MapTiler API Key here
-    const MAPTILER_KEY = 'YOUR_MAPTILER_API_KEY';
+    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty',
-        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
+        default: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
+        satellite: `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`
     };
     const map = new maplibregl.Map({
         container: "map",
@@ -193,20 +192,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fetchAndDisplaySuggestions = async (query) => {
             if (!query) { suggestionsEl.style.display = "none"; return; }
             const bounds = map.getBounds();
-            const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
+            const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?proximity=${map.getCenter().lng},${map.getCenter().lat}&bbox=${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}&language=en&autocomplete=true&key=${MAPTILER_KEY}`;
             try {
                 const res = await fetch(url);
                 const data = await res.json();
                 suggestionsEl.innerHTML = "";
-                data.forEach(item => {
+                data.features.forEach(item => {
                     const el = document.createElement("div");
                     el.className = "search-result";
-                    el.textContent = item.display_name;
+                    el.textContent = item.place_name;
                     el.addEventListener("click", () => onSelect(item));
                     suggestionsEl.appendChild(el);
                 });
-                suggestionsEl.style.display = data.length > 0 ? "block" : "none";
+                suggestionsEl.style.display = data.features.length > 0 ? "block" : "none";
             } catch (e) {
                 console.error("Suggestion fetch failed", e);
             }
@@ -222,12 +220,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const query = inputEl.value.trim();
         if (!query) return;
         const bounds = map.getBounds();
-        const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?proximity=${map.getCenter().lng},${map.getCenter().lat}&bbox=${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}&limit=1&language=en&key=${MAPTILER_KEY}`;
         try {
             const res = await fetch(url);
             const data = await res.json();
-            if (data.length > 0) onSelect(data[0]);
+            if (data.features.length > 0) onSelect(data.features[0]);
             else alert("No results found for your search.");
         } catch (e) {
             alert("Search failed. Please check your connection.");
@@ -244,28 +241,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fromInput = document.getElementById('panel-from-input');
     const fromSuggestions = document.getElementById('panel-from-suggestions');
     attachSuggestionListener(fromInput, fromSuggestions, (place) => {
-        fromInput.value = place.display_name;
-        fromInput.dataset.coords = `${place.lon},${place.lat}`;
+        fromInput.value = place.place_name;
+        fromInput.dataset.coords = `${place.geometry.coordinates[0]},${place.geometry.coordinates[1]}`;
     });
 
     const toInput = document.getElementById('panel-to-input');
     const toSuggestions = document.getElementById('panel-to-suggestions');
     attachSuggestionListener(toInput, toSuggestions, (place) => {
-        toInput.value = place.display_name;
-        toInput.dataset.coords = `${place.lon},${place.lat}`;
+        toInput.value = place.place_name;
+        toInput.dataset.coords = `${place.geometry.coordinates[0]},${place.geometry.coordinates[1]}`;
     });
 
     function processPlaceResult(place) {
         currentPlace = place;
         stopNavigation();
         clearRouteFromMap();
-        map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
-        mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
-        document.getElementById('info-name').textContent = place.display_name.split(',')[0];
-        document.getElementById('info-address').textContent = place.display_name;
-        const locationName = place.display_name.split(',')[0];
-        fetchAndSetPlaceImage(locationName, place.lon, place.lat);
-        fetchAndSetWeather(place.lat, place.lon);
+        map.flyTo({ center: place.geometry.coordinates, zoom: 14 });
+        mainSearchInput.value = place.text;
+        document.getElementById('info-name').textContent = place.text;
+        document.getElementById('info-address').textContent = place.place_name;
+        const locationName = place.text;
+        fetchAndSetPlaceImage(locationName, place.geometry.coordinates[0], place.geometry.coordinates[1]);
+        fetchAndSetWeather(place.geometry.coordinates[1], place.geometry.coordinates[0]);
         fetchAndSetQuickFacts(locationName);
         showPanel('info-panel-redesign');
     }
@@ -347,8 +344,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function openDirectionsPanel() {
         showPanel('directions-panel-redesign');
         if (currentPlace) {
-            toInput.value = currentPlace.display_name;
-            toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
+            toInput.value = currentPlace.place_name;
+            toInput.dataset.coords = `${currentPlace.geometry.coordinates[0]},${currentPlace.geometry.coordinates[1]}`;
             fromInput.value = '';
             fromInput.dataset.coords = '';
         } else {
@@ -414,7 +411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
+            const url = `https://api.maptiler.com/directions/v1/driving/${start.join(',')};${end.join(',')}?key=${MAPTILER_KEY}`;
             const res = await fetch(url);
             const data = await res.json();
             if (!data.routes || data.routes.length === 0 || !data.routes[0].legs || !data.routes[0].legs[0].steps || data.routes[0].legs[0].steps.length === 0) {
@@ -485,12 +482,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function geocode(inputEl) {
         if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
+        const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(inputEl.value)}.json?limit=1&key=${MAPTILER_KEY}`);
         const data = await res.json();
-        if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`);
-        inputEl.value = data[0].display_name;
-        inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
-        return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+        if (!data.features[0]) throw new Error(`Could not find location: ${inputEl.value}`);
+        inputEl.value = data.features[0].place_name;
+        inputEl.dataset.coords = `${data.features[0].geometry.coordinates[0]},${data.features[0].geometry.coordinates[1]}`;
+        return data.features[0].geometry.coordinates;
     }
 
     function addRouteToMap(routeGeoJSON) {
@@ -593,168 +590,168 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert(`Geolocation error: ${error.message}. Navigation stopped.`);
         stopNavigation();
     }
+    
+    // --- UTILITY FUNCTIONS FOR NAVIGATION ---
+    const bearingTolerance = 25; // degrees
+    const rerouteDistance = 250; // meters
+    const turnAnnounceDistances = [2000, 1000, 500, 200, 100, 50, 25];
 
-    async function handlePositionUpdate(position) {
-        if (!navigationState.isActive || navigationState.isRerouting) return;
-        const { latitude, longitude, heading, speed, accuracy } = position.coords;
+    function calculateRerouteNeeded(userPosition, routeGeoJSON) {
+        const userPoint = turf.point([userPosition.coords.longitude, userPosition.coords.latitude]);
+        const line = turf.feature(routeGeoJSON.geometry);
+        const snapped = turf.pointOnLine(line, userPoint);
+        const distanceToRoute = turf.distance(userPoint, snapped, { units: 'meters' });
+        if (distanceToRoute > rerouteDistance) {
+            return true;
+        }
+        return false;
+    }
 
-        if (accuracy > 80) return;
+    function handlePositionUpdate(position) {
+        if (!navigationState.isActive) return;
+        const userLngLat = [position.coords.longitude, position.coords.latitude];
+        const userHeading = position.coords.heading;
+        const userSpeedMps = position.coords.speed || 0;
+        navigationState.userSpeed = userSpeedMps * 2.23694; // Convert m/s to mph
 
-        const userPoint = turf.point([longitude, latitude]);
-        const steps = currentRouteData.routes[0].legs[0].steps;
-
-        navigationState.userSpeed = (speed || 0) * 2.23694;
-        const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
-        const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
-
-        userLocationMarker.setLngLat(snapped.geometry.coordinates);
-        if (heading != null) {
-            userLocationMarker.setRotation(heading);
-            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: 18, duration: 500 });
-        } else {
-            map.easeTo({ center: snapped.geometry.coordinates, zoom: 18, duration: 500 });
+        if (userLocationMarker) {
+            userLocationMarker.setLngLat(userLngLat);
+            map.flyTo({ center: userLngLat, speed: 0.5, curve: 1, easing: (t) => t, essential: true });
+        }
+        if (userHeading !== null) {
+            map.setBearing(userHeading);
         }
 
-        const currentStep = steps[navigationState.currentStepIndex];
-        const stepStartPoint = turf.point(currentStep.geometry.coordinates[0]);
-        const stepEndPoint = turf.point(currentStep.geometry.coordinates[currentStep.geometry.coordinates.length - 1]);
-        const stepBearing = getBearing(stepStartPoint, stepEndPoint);
-        const headingDifference = Math.abs(heading - stepBearing);
+        if (!currentRouteData) { stopNavigation(); return; }
 
-        if (snapped.properties.dist > 50) {
+        // Rerouting logic
+        const routeLine = { type: 'Feature', geometry: currentRouteData.routes[0].geometry };
+        if (calculateRerouteNeeded(position, routeLine) && !navigationState.isRerouting) {
             navigationState.isRerouting = true;
-            speech.speak("Off route. Recalculating.", true);
-            await getRoute();
+            speech.speak("Recalculating route.", true);
+            alert("Rerouting...");
+            getRoute();
             return;
         }
+        if (navigationState.isRerouting) return;
+
+        const currentLeg = currentRouteData.routes[0].legs[0];
+        const currentStep = currentLeg.steps[navigationState.currentStepIndex];
         
-        if (heading != null && headingDifference > 90 && headingDifference < 270 && navigationState.userSpeed > 5 && !navigationState.isWrongWay) {
-             navigationState.isWrongWay = true;
-             speech.speak("Wrong way. Recalculating.", true);
-             await getRoute();
-             return;
+        // Find closest point on current step
+        const stepLine = turf.lineString(currentStep.geometry.coordinates);
+        const userPoint = turf.point(userLngLat);
+        const snappedPoint = turf.pointOnLine(stepLine, userPoint);
+        const distanceToManeuver = turf.distance(userPoint, turf.point(currentStep.maneuver.location), { units: 'meters' });
+        
+        const progressAlongStep = snappedPoint.properties.location / turf.length(stepLine, { units: 'meters' });
+        navigationState.progressAlongStep = progressAlongStep;
+        
+        const remainingStepDistance = turf.length(stepLine, { units: 'meters' }) - snappedPoint.properties.location;
+        let remainingRouteDistance = remainingStepDistance;
+        for (let i = navigationState.currentStepIndex + 1; i < currentLeg.steps.length; i++) {
+            remainingRouteDistance += turf.length(turf.lineString(currentLeg.steps[i].geometry.coordinates), { units: 'meters' });
         }
-        navigationState.isWrongWay = false;
-
-        const currentStepLine = turf.lineString(currentStep.geometry.coordinates);
-        const totalStepDistance = turf.length(currentStepLine, { units: 'meters' });
-        navigationState.distanceToNextManeuver = turf.distance(userPoint, stepEndPoint, { units: 'meters' });
-        navigationState.progressAlongStep = Math.max(0, 1 - (navigationState.distanceToNextManeuver / totalStepDistance));
-
-        const tripDurationSeconds = currentRouteData.routes[0].duration;
-        const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
-        const remainingTimeSeconds = tripDurationSeconds - timeElapsed;
-        navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
-        navigationState.totalTripTime = remainingTimeSeconds;
-        updateNavigationUI();
-
-        const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
-        if (distanceMiles > 0.9 && distanceMiles < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
-            speech.speak(`In 1 mile, ${currentStep.maneuver.instruction}`);
-            navigationState.lastAnnouncedDistance = 1;
-        } else if (distanceMiles > 0.24 && distanceMiles < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
-            speech.speak(`In a quarter mile, ${currentStep.maneuver.instruction}`);
-            navigationState.lastAnnouncedDistance = 0.25;
+        
+        // Update total time remaining
+        const speedKph = userSpeedMps * 3.6;
+        if (speedKph > 5) { // Only update if moving
+            const timeRemaining = remainingRouteDistance / userSpeedMps;
+            const eta = new Date(Date.now() + timeRemaining * 1000);
+            navigationState.totalTripTime = timeRemaining;
+            navigationState.estimatedArrivalTime = eta;
         }
 
-        if (navigationState.distanceToNextManeuver < 50) {
-            navigationState.currentStepIndex++;
-            if (navigationState.currentStepIndex >= steps.length) {
-                speech.speak("You have arrived at your destination.", true);
+        // Announce logic
+        const announcedDistance = turnAnnounceDistances.find(d => distanceToManeuver <= d);
+        if (announcedDistance && announcedDistance < navigationState.lastAnnouncedDistance) {
+            speech.speak(currentStep.maneuver.instruction);
+            navigationState.lastAnnouncedDistance = announcedDistance;
+        }
+
+        // Advance to next step
+        if (distanceToManeuver < 20) {
+            if (navigationState.currentStepIndex < currentLeg.steps.length - 1) {
+                navigationState.currentStepIndex++;
+                const nextStep = currentLeg.steps[navigationState.currentStepIndex];
+                navigationInstructionEl.textContent = nextStep.maneuver.instruction;
+                updateHighlightedSegment(nextStep);
+                navigationState.lastAnnouncedDistance = Infinity; // Reset for next turn
+                speech.speak(`In ${Math.round(nextStep.distance)} meters, ${nextStep.maneuver.instruction}`);
+            } else {
+                speech.speak("You have arrived at your destination.");
+                navigationInstructionEl.textContent = "You have arrived.";
                 stopNavigation();
-                return;
             }
-            const nextStep = steps[navigationState.currentStepIndex];
-            navigationInstructionEl.textContent = nextStep.maneuver.instruction;
-            updateHighlightedSegment(nextStep);
-            speech.speak(nextStep.maneuver.instruction, true);
-            navigationState.lastAnnouncedDistance = Infinity;
         }
+        
+        updateNavigationUI();
     }
-
-    // --- NEW: TRAFFIC LAYER LOGIC ---
-    const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
-    const TRAFFIC_LAYER_ID = 'traffic-lines';
-
-    const trafficSource = {
-        type: 'vector',
-        url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}`
-    };
-
-    const trafficLayer = {
-        id: TRAFFIC_LAYER_ID,
-        type: 'line',
-        source: TRAFFIC_SOURCE_ID,
-        'source-layer': 'traffic',
-        layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-        },
-        paint: {
-            'line-width': 2,
-            'line-color': [
-                'match',
-                ['get', 'congestion'],
-                'low', '#30c83a',
-                'moderate', '#ff9a00',
-                'heavy', '#ff3d3d',
-                'severe', '#a00000',
-                '#a0a0a0'
-            ]
-        }
-    };
     
-    function addTrafficLayer() {
-        if (map.getSource(TRAFFIC_SOURCE_ID)) return;
-        map.addSource(TRAFFIC_SOURCE_ID, trafficSource);
-        // The last argument ('route-line') tells the map to draw the traffic layer *before* the route line
-        map.addLayer(trafficLayer, 'route-line');
-    }
-
-    function removeTrafficLayer() {
-        if (!map.getSource(TRAFFIC_SOURCE_ID)) return;
-        map.removeLayer(TRAFFIC_LAYER_ID);
-        map.removeSource(TRAFFIC_SOURCE_ID);
-    }
-    // --- END TRAFFIC LAYER LOGIC ---
-
-    // --- SETTINGS & OTHER UI LOGIC ---
-    const settingsBtns = document.querySelectorAll('.js-settings-btn');
+    // --- SETTINGS MENU LOGIC ---
     const settingsMenu = document.getElementById('settings-menu');
+    const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const menuOverlay = document.getElementById('menu-overlay');
-    const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
-    const trafficToggle = document.getElementById('traffic-toggle'); // NEW
 
-    function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
-    function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
+    function openSettings() {
+        settingsMenu.classList.add('open');
+        menuOverlay.classList.add('open');
+    }
 
-    settingsBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openSettings();
-        });
-    });
+    function closeSettings() {
+        settingsMenu.classList.remove('open');
+        menuOverlay.classList.remove('open');
+    }
 
+    document.querySelectorAll('.js-settings-btn').forEach(btn => btn.addEventListener('click', openSettings));
     closeSettingsBtn.addEventListener('click', closeSettings);
     menuOverlay.addEventListener('click', closeSettings);
 
-    document.addEventListener('click', (e) => {
-        if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) {
-            closeSettings();
-        }
-    });
-
-    styleRadioButtons.forEach(radio => {
-        radio.addEventListener('change', () => {
-            const newStyle = radio.value;
-            map.setStyle(STYLES[newStyle]);
+    const styleRadios = document.querySelectorAll('input[name="map-style"]');
+    styleRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const style = e.target.value;
+            map.setStyle(STYLES[style]);
             if (isMobile) {
                 setTimeout(closeSettings, 200);
             }
         });
     });
-    
+
+    const trafficToggle = document.getElementById('traffic-toggle');
+    function addTrafficLayer() {
+        if (map.getLayer('traffic-flow-layer')) return;
+        map.addSource('traffic-source', {
+            type: 'vector',
+            url: `https://api.maptiler.com/tiles/v3.json?key=${MAPTILER_KEY}`
+        });
+        map.addLayer({
+            'id': 'traffic-flow-layer',
+            'type': 'line',
+            'source': 'traffic-source',
+            'source-layer': 'transportation',
+            'filter': ['==', 'class', 'motorway'],
+            'paint': {
+                'line-color': ['match', ['get', 'traffic'],
+                    'high', '#a00',
+                    'medium', '#fa0',
+                    'low', '#2a2',
+                    '#fff'
+                ],
+                'line-width': 3
+            }
+        });
+    }
+
+    function removeTrafficLayer() {
+        if (map.getLayer('traffic-flow-layer')) {
+            map.removeLayer('traffic-flow-layer');
+            if (map.getSource('traffic-source')) {
+                map.removeSource('traffic-source');
+            }
+        }
+    }
     // NEW: Event listener for the traffic toggle
     trafficToggle.addEventListener('change', () => {
         if (trafficToggle.checked) {
@@ -789,6 +786,80 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (isMobile) {
         // Mobile panel drag logic...
+        let initialY, currentY;
+        let panelState = 'closed';
+        const panelPeekHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek'));
+        const panelHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-height'));
+        const handleTouchStart = (e) => {
+            initialY = e.touches[0].clientY;
+            sidePanel.style.transition = 'none';
+        };
+
+        const handleTouchMove = (e) => {
+            if (!sidePanel.classList.contains('peek') && !sidePanel.classList.contains('open')) return;
+
+            currentY = e.touches[0].clientY;
+            let diffY = currentY - initialY;
+
+            if (panelState === 'open' && diffY < 0) return;
+            if (panelState === 'peek' && diffY > 0) return;
+
+            const newBottom = -1 * (panelHeight - panelPeekHeight - diffY);
+            if (panelState === 'open') {
+                sidePanel.style.transform = `translateY(${diffY}px)`;
+            } else { // peek
+                if (diffY < 0) { // dragging up
+                    sidePanel.style.transform = `translateY(${diffY}px)`;
+                } else {
+                    sidePanel.style.transform = `translateY(${diffY}px)`;
+                }
+            }
+        };
+
+        const handleTouchEnd = (e) => {
+            sidePanel.style.transition = 'bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            const endY = e.changedTouches[0].clientY;
+            const diffY = endY - initialY;
+
+            if (panelState === 'open') {
+                if (diffY > 100) {
+                    sidePanel.classList.remove('open');
+                    sidePanel.classList.add('peek');
+                    panelState = 'peek';
+                } else if (diffY < -100) {
+                    // close completely
+                    sidePanel.classList.remove('open', 'peek');
+                    panelState = 'closed';
+                } else {
+                    sidePanel.classList.add('open');
+                    sidePanel.style.transform = 'translateY(0)';
+                    panelState = 'open';
+                }
+            } else if (panelState === 'peek') {
+                if (diffY < -100) {
+                    sidePanel.classList.add('open');
+                    sidePanel.classList.remove('peek');
+                    panelState = 'open';
+                } else if (diffY > 100) {
+                    sidePanel.classList.remove('open', 'peek');
+                    panelState = 'closed';
+                } else {
+                    sidePanel.classList.add('peek');
+                    sidePanel.style.transform = 'translateY(0)';
+                    panelState = 'peek';
+                }
+            } else { // closed
+                if (diffY < -100) {
+                    sidePanel.classList.add('peek');
+                    panelState = 'peek';
+                }
+                sidePanel.style.transform = 'translateY(0)';
+            }
+        };
+
+        sidePanel.addEventListener('touchstart', handleTouchStart);
+        sidePanel.addEventListener('touchmove', handleTouchMove);
+        sidePanel.addEventListener('touchend', handleTouchEnd);
     }
 
     if ('serviceWorker' in navigator) {
