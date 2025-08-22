@@ -34,7 +34,6 @@ html, body, #map {
     user-select: none;
 }
 
-
 #top-banner {
     position: fixed;
     top: 0;
@@ -207,7 +206,6 @@ hr {
     font-size: 24px;
     color: #5f6368;
 }
-
 
 .suggestions-dropdown {
     position: absolute;
@@ -572,7 +570,7 @@ hr {
 }
 
 #instruction-container {
-    background-color: #00796b;
+    background-color: var(--brand-color);
     color: white;
     padding: 15px;
     border-radius: 10px;
@@ -671,7 +669,6 @@ hr {
 #mobile-settings-btn .material-symbols-outlined {
     color: #333;
 }
-
 
 #menu-overlay {
     position: fixed;
@@ -815,23 +812,19 @@ hr {
     transform: translateX(-100%);
 }
 
-
 @media (max-width: 768px) and (pointer: coarse) {
     #top-search-wrapper {
         width: 90vw;
         left: 5vw;
         transform: none;
     }
-
     #profile-area {
         flex-grow: 1;
         justify-content: flex-end;
     }
-
     #site-title {
         flex-grow: 1;
     }
-
     #side-panel {
         top: auto;
         left: 0;
@@ -843,16 +836,13 @@ hr {
         transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
         padding-top: 0;
     }
-
     #side-panel.peek {
         bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
     }
-
     #side-panel.open {
         left: 0;
         bottom: 0;
     }
-
     #panel-grabber {
         display: block;
         width: 40px;
@@ -865,41 +855,33 @@ hr {
         transform: translateX(-50%);
         cursor: grab;
     }
-
     #close-panel-btn {
         display: none !important;
     }
-
     #map-watermark {
         font-size: 12px;
         bottom: 15px;
     }
-
     #navigation-status {
         left: 5px;
         right: 5px;
         border-radius: 15px;
     }
-
     #end-navigation-btn {
         text-align: center;
     }
-
     #mobile-settings-btn {
         bottom: 30px;
         right: 15px;
         width: 56px;
         height: 56px;
     }
-
     #mobile-settings-btn .material-symbols-outlined {
         font-size: 28px;
     }
-
     #profile-area .js-settings-btn {
         display: none; /* Hide desktop settings button on mobile */
     }
-
     #settings-menu {
         position: fixed;
         bottom: 0;
@@ -910,7 +892,6 @@ hr {
         transform: translateY(100%);
         transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
     #settings-menu.open {
         display: block;
         transform: translateY(0);
@@ -921,7 +902,6 @@ hr {
     #mobile-settings-btn {
         display: none;
     }
-
     #settings-menu {
         position: absolute;
         top: calc(100% + 5px);
@@ -934,14 +914,12 @@ hr {
         transition: opacity 0.2s ease, transform 0.2s ease;
         pointer-events: none;
     }
-
     #settings-menu.open {
         display: block;
         opacity: 1;
         transform: translateY(0);
         pointer-events: auto;
     }
-
     #menu-overlay {
         display: none;
     }
