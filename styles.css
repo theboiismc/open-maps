@@ -26,14 +26,6 @@ html, body, #map {
     left: 0;
 }
 
-/* --- Universal Icon Styling --- */
-.material-symbols-outlined {
-    /* Prevents selecting the icon text */
-    -webkit-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
 #top-banner {
     position: fixed;
     top: 0;
@@ -58,7 +50,6 @@ html, body, #map {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
 }
 
 .js-settings-btn, #profile-button {
@@ -80,9 +71,9 @@ html, body, #map {
     background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Icon style for top banner buttons */
-#profile-area .material-symbols-outlined {
-    font-size: 24px;
+.js-settings-btn svg, #profile-button svg {
+    width: 24px;
+    height: 24px;
     color: white;
 }
 
@@ -199,40 +190,12 @@ hr {
     font-size: 16px;
 }
 
-/* Styles for icons inside search bars */
-#main-search-container .material-symbols-outlined {
+.search-icon, .directions-icon {
     cursor: pointer;
     opacity: 0.7;
-    font-size: 24px;
+    width: 24px;
+    height: 24px;
     color: #5f6368;
-}
-
-#main-search-container .search-icon {
-    order: 1;
-}
-
-#main-search {
-    order: 2;
-}
-
-#main-mic-btn {
-    order: 3;
-    color: var(--brand-color);
-    transition: color 0.2s ease, transform 0.2s ease;
-}
-
-#main-mic-btn:hover {
-    color: #006056;
-}
-
-#main-mic-btn.active {
-    animation: pulse-mic 1s infinite;
-}
-
-@keyframes pulse-mic {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
 }
 
 .suggestions-dropdown {
@@ -348,8 +311,9 @@ hr {
     background-color: rgba(0, 0, 0, 0.6);
 }
 
-#close-info-btn .material-symbols-outlined {
-    font-size: 22px;
+#close-info-btn svg {
+    width: 20px;
+    height: 20px;
 }
 
 .panel-content .info-content-padding {
@@ -369,32 +333,9 @@ hr {
 .panel-content .weather {
     display: flex;
     align-items: center;
-    gap: 10px;
     color: #5f6368;
     margin-bottom: 20px;
     min-height: 32px;
-}
-
-.weather-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.weather-info .temperature {
-    font-size: 24px;
-    font-weight: 600;
-    color: #333;
-}
-
-.weather-info .description {
-    font-size: 14px;
-    color: #5f6368;
-    text-transform: capitalize;
-}
-
-.weather-icon {
-    width: 50px;
-    height: 50px;
 }
 
 .action-buttons {
@@ -420,8 +361,10 @@ hr {
     margin: 0 auto 5px auto;
 }
 
-.action-buttons .icon-circle .material-symbols-outlined {
-    font-size: 24px;
+.action-buttons .icon-circle svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
 }
 
 .action-buttons .btn-label {
@@ -448,13 +391,14 @@ hr {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
-    position: relative; /* For suggestions dropdown */
 }
 
-#directions-panel-redesign .dir-input-wrapper .material-symbols-outlined {
+#directions-panel-redesign .dir-input-wrapper .input-icon {
     margin-right: 15px;
-    font-size: 24px;
+    width: 24px;
+    height: 24px;
     color: #5f6368;
+    stroke: currentColor;
 }
 
 #directions-panel-redesign .dir-input-wrapper input {
@@ -482,8 +426,9 @@ hr {
     justify-content: center;
 }
 
-#swap-btn .material-symbols-outlined {
-    font-size: 22px;
+#swap-btn svg {
+    width: 20px;
+    height: 20px;
     color: #5f6368;
 }
 
@@ -498,12 +443,11 @@ hr {
 
 #directions-panel-redesign .dir-quick-select .icon-wrapper {
     margin-right: 15px;
-    display: flex;
-    align-items: center;
 }
 
-#directions-panel-redesign .dir-quick-select .material-symbols-outlined {
-    font-size: 24px;
+#directions-panel-redesign .dir-quick-select svg {
+    width: 24px;
+    height: 24px;
     color: #5f6368;
 }
 
@@ -621,7 +565,7 @@ hr {
 }
 
 #instruction-container {
-    background-color: var(--brand-color);
+    background-color: #00796b;
     color: white;
     padding: 15px;
     border-radius: 10px;
@@ -699,7 +643,77 @@ hr {
     background-color: #c9302c;
 }
 
-#mobile-settings-btn {
+@media (max-width: 768px) and (pointer: coarse) {
+    #top-search-wrapper {
+        width: 90vw;
+        left: 5vw;
+        transform: none;
+    }
+
+    #profile-area {
+        flex-grow: 1;
+        justify-content: flex-end;
+    }
+
+    #site-title {
+        flex-grow: 1;
+    }
+
+    #side-panel {
+        top: auto;
+        left: 0;
+        width: 100%;
+        height: var(--panel-mobile-height);
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
+        bottom: -100%;
+        transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+        padding-top: 0;
+    }
+
+    #side-panel.peek {
+        bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+    }
+
+    #side-panel.open {
+        left: 0;
+        bottom: 0;
+    }
+
+    #panel-grabber {
+        display: block;
+        width: 40px;
+        height: 5px;
+        background-color: #ccc;
+        border-radius: 2.5px;
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: grab;
+    }
+
+    #close-panel-btn {
+        display: none !important;
+    }
+
+    #map-watermark {
+        font-size: 12px;
+        bottom: 15px;
+    }
+
+    #navigation-status {
+        left: 5px;
+        right: 5px;
+        border-radius: 15px;
+    }
+
+    #end-navigation-btn {
+        text-align: center;
+    }
+}
+
+.js-settings-btn {
     position: fixed;
     z-index: 40;
     background-color: white;
@@ -713,11 +727,11 @@ hr {
     transition: transform 0.2s ease;
 }
 
-#mobile-settings-btn:hover {
+.js-settings-btn:hover {
     transform: scale(1.1);
 }
 
-#mobile-settings-btn .material-symbols-outlined {
+.js-settings-btn svg {
     color: #333;
 }
 
@@ -739,15 +753,90 @@ hr {
     pointer-events: auto;
 }
 
-/* FIX: Change display from 'none' to 'block' and control with .open class */
 #settings-menu {
     background: #fff;
     z-index: 101;
+    display: none;
 }
 
-/* Add a new rule to control visibility based on the 'open' class */
-#settings-menu:not(.open) {
-    display: none;
+@media (max-width: 768px) and (pointer: coarse) {
+    .js-settings-btn {
+        bottom: 30px;
+        right: 15px;
+        width: 56px;
+        height: 56px;
+    }
+
+    .js-settings-btn svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    #settings-menu {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        transform: translateY(100%);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #settings-menu.open {
+        display: block;
+        transform: translateY(0);
+    }
+}
+
+@media (min-width: 769px) {
+    #profile-area .js-settings-btn {
+        position: relative;
+        width: 36px;
+        height: 36px;
+        background-color: rgba(255, 255, 255, 0.2);
+        box-shadow: none;
+        margin-right: 10px;
+    }
+
+    #profile-area .js-settings-btn:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+        transform: none;
+    }
+
+    #profile-area .js-settings-btn svg {
+        width: 24px;
+        height: 24px;
+        color: white;
+    }
+
+    #mobile-settings-btn {
+        display: none;
+    }
+
+    #settings-menu {
+        position: absolute;
+        top: calc(var(--banner-height) + 5px);
+        right: 60px;
+        min-width: 280px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        pointer-events: none;
+    }
+
+    #settings-menu.open {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    #menu-overlay {
+        display: none;
+    }
 }
 
 .settings-menu-header {
@@ -780,10 +869,6 @@ hr {
 
 .setting-group {
     margin-bottom: 15px;
-}
-
-.setting-group:last-child {
-    margin-bottom: 0;
 }
 
 .setting-label {
@@ -821,165 +906,4 @@ hr {
 
 .radio-group label:not(:last-of-type) {
     border-right: 1px solid #ccc;
-}
-
-/* --- NEW: Traffic Toggle Switch Styles --- */
-.setting-group {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.toggle-switch label {
-    cursor: pointer;
-    width: 48px;
-    height: 26px;
-    background: #ccc;
-    display: block;
-    border-radius: 26px;
-    position: relative;
-    transition: background-color 0.2s;
-}
-
-.toggle-switch label:after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 22px;
-    height: 22px;
-    background: #fff;
-    border-radius: 22px;
-    transition: 0.2s;
-}
-
-.toggle-switch input:checked + label {
-    background: var(--brand-color);
-}
-
-.toggle-switch input:checked + label:after {
-    left: calc(100% - 2px);
-    transform: translateX(-100%);
-}
-
-@media (max-width: 768px) and (pointer: coarse) {
-    #top-search-wrapper {
-        width: 90vw;
-        left: 5vw;
-        transform: none;
-    }
-    #profile-area {
-        flex-grow: 1;
-        justify-content: flex-end;
-    }
-    #site-title {
-        flex-grow: 1;
-    }
-    #side-panel {
-        top: auto;
-        left: 0;
-        width: 100%;
-        height: var(--panel-mobile-height);
-        border-radius: 20px 20px 0 0;
-        box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
-        bottom: -100%;
-        transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
-        padding-top: 0;
-    }
-    #side-panel.peek {
-        bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
-    }
-    #side-panel.open {
-        left: 0;
-        bottom: 0;
-    }
-    #panel-grabber {
-        display: block;
-        width: 40px;
-        height: 5px;
-        background-color: #ccc;
-        border-radius: 2.5px;
-        position: absolute;
-        top: 8px;
-        left: 50%;
-        transform: translateX(-50%);
-        cursor: grab;
-    }
-    #close-panel-btn {
-        display: none !important;
-    }
-    #map-watermark {
-        font-size: 12px;
-        bottom: 15px;
-    }
-    #navigation-status {
-        left: 5px;
-        right: 5px;
-        border-radius: 15px;
-    }
-    #end-navigation-btn {
-        text-align: center;
-    }
-    #mobile-settings-btn {
-        bottom: 30px;
-        right: 15px;
-        width: 56px;
-        height: 56px;
-    }
-    #mobile-settings-btn .material-symbols-outlined {
-        font-size: 28px;
-    }
-    #profile-area .js-settings-btn {
-        display: none; /* Hide desktop settings button on mobile */
-    }
-    #settings-menu {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        border-radius: 16px 16px 0 0;
-        box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-        transform: translateY(100%);
-        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    #settings-menu.open {
-        display: block;
-        transform: translateY(0);
-    }
-    #menu-overlay {
-        display: none;
-    }
-}
-
-@media (min-width: 769px) {
-    #mobile-settings-btn {
-        display: none;
-    }
-    #settings-menu {
-        position: absolute;
-        top: calc(100% + 5px);
-        right: 0;
-        min-width: 280px;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        opacity: 0;
-        transform: translateY(-10px);
-        transition: opacity 0.2s ease, transform 0.2s ease;
-        pointer-events: none;
-    }
-    #settings-menu.open {
-        display: block;
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-    }
-    #menu-overlay {
-        display: none;
-    }
 }
