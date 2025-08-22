@@ -207,6 +207,34 @@ hr {
     color: #5f6368;
 }
 
+#main-search-container .search-icon {
+    order: 1;
+}
+
+#main-search {
+    order: 2;
+}
+
+#main-mic-btn {
+    order: 3;
+    color: var(--brand-color);
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+#main-mic-btn:hover {
+    color: #006056;
+}
+
+#main-mic-btn.active {
+    animation: pulse-mic 1s infinite;
+}
+
+@keyframes pulse-mic {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
 .suggestions-dropdown {
     position: absolute;
     background: white;
