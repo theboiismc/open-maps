@@ -13,9 +13,9 @@
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
-        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com https://api.maptiler.com;
+        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
         img-src 'self' data: https:;
-        font-src 'self' https://fonts.gstatic.com https://api.maptiler.com;
+        font-src 'self' https://fonts.gstatic.com;
         connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com;
         worker-src 'self' blob: https://unpkg.com;
     ">
@@ -32,7 +32,9 @@
     <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     
+    <!-- FONTS & ICONS -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- NEW: Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
     <link rel="stylesheet" href="styles.css">
@@ -42,9 +44,11 @@
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button class="js-settings-btn" aria-label="Map Settings">
+                <!-- UPDATED ICON -->
                 <span class="material-symbols-outlined">settings</span>
             </button>
             <button id="profile-button" aria-label="User Profile">
+                <!-- UPDATED ICON -->
                 <span class="material-symbols-outlined">account_circle</span>
             </button>
             <div id="profile-dropdown">
@@ -78,6 +82,7 @@
     
     <div id="navigation-status">
         <div id="instruction-container">
+            <!-- You can add a navigation icon here if you wish, e.g., <span class="material-symbols-outlined">navigation</span> -->
             <div id="navigation-instruction">Starting navigation...</div>
             <div id="instruction-progress-bar"></div>
         </div>
@@ -100,23 +105,24 @@
     
     <div id="top-search-wrapper">
         <div id="main-search-container">
+            <!-- UPDATED ICON -->
             <span id="search-icon-inside" class="material-symbols-outlined">search</span>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
+            <!-- UPDATED ICON -->
             <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
             <div id="main-suggestions" class="suggestions-dropdown"></div>
         </div>
     </div>
     
     <div id="side-panel">
-        <div class="panel-header">
-            <div id="panel-grabber"></div>
-        </div>
+        <div id="panel-grabber"></div>
         <div id="panel-search-placeholder" hidden></div>
         <div class="panel-content">
             <div id="info-panel-redesign" hidden>
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location"/>
                     <button id="close-info-btn">
+                        <!-- UPDATED ICON -->
                         <span class="material-symbols-outlined">arrow_back</span>
                     </button>
                 </div>
@@ -178,14 +184,13 @@
                 <label class="setting-label">Map Style</label>
                 <div class="radio-group">
                     <input type="radio" id="style-default" name="map-style" value="default" checked>
-                    <label for="style-default">Streets</label>
-                    <input type="radio" id="style-hybrid" name="map-style" value="hybrid">
-                    <label for="style-hybrid">Hybrid</label>
+                    <label for="style-default">Default</label>
                     <input type="radio" id="style-satellite" name="map-style" value="satellite">
                     <label for="style-satellite">Satellite</label>
                 </div>
             </div>
             <hr>
+            <!-- NEW: Live Traffic Toggle -->
             <div class="setting-group">
                 <label class="setting-label">Live Traffic</label>
                 <div class="toggle-switch">
