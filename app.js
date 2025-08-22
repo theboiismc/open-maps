@@ -281,6 +281,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // --- FIX 1: Ensure search listener is attached and triggered correctly ---
     attachSuggestionListener(mainSearchInput, document.getElementById('main-suggestions'), async (place) => {
         const [lon, lat] = [parseFloat(place.lon), parseFloat(place.lat)];
         map.flyTo({ center: [lon, lat], zoom: 15 });
