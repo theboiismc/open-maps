@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel'].forEach(id => {
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'route-steps-panel'].forEach(id => {
             document.getElementById(id).hidden = id !== viewId;
         });
         if (!sidePanel.classList.contains('open')) {
