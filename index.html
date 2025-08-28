@@ -1,98 +1,100 @@
-<!DOCTYPE html>
+<!-- index.html -->
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, user-scalable=no"
-  />
-  <title>TheBoiisMC Maps</title>
-  <meta
-    name="description"
-    content="Explore the world with private, modern mapping."
-  />
+  <meta charset="utf-8" />
+  <!-- improved viewport + mobile scaling -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>TheBoiisMC Maps — Private, modern mapping</title>
+  <meta name="description" content="TheBoiisMC Maps — private, privacy-first map interface with routing, live traffic, and a modern mobile experience." />
+  <meta name="keywords" content="maps, privacy, open map, routing, navigation, TheBoiisMC" />
+  <meta name="author" content="TheBoiisMC" />
   <meta name="theme-color" content="#00796b" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon512_rounded.png" />
-
-  <meta
-    http-equiv="Content-Security-Policy"
-    content="
-        default-src 'self';
-        script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
-        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
-        img-src 'self' data: https:;
-        font-src 'self' https://fonts.gstatic.com;
-        connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com;
-        worker-src 'self' blob: https://unpkg.com;
-    "
-  />
-
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icon512_rounded.png" />
+  <!-- Open Graph / Twitter -->
   <meta property="og:title" content="TheBoiisMC Maps" />
-  <meta
-    property="og:description"
-    content="Explore the world with private, modern mapping."
-  />
-  <meta
-    property="og:image"
-    content="https://maps.theboiismc.com/icon512_rounded.png"
-  />
+  <meta property="og:description" content="Private, modern mapping with navigation, search and live traffic." />
+  <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
   <meta property="og:url" content="https://maps.theboiismc.com" />
   <meta name="twitter:card" content="summary_large_image" />
+  <!-- Structured data (basic) -->
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "WebApplication",
+    "name": "TheBoiisMC Maps",
+    "url": "https://maps.theboiismc.com",
+    "description": "Private, modern mapping with navigation and search.",
+    "applicationCategory": "MapsApplication"
+  }
+  </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
+  <!-- Keep your existing CSP; ensure it's compatible with any added external resources -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
+    style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+    img-src 'self' data: https:;
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com;
+    worker-src 'self' blob: https://unpkg.com;
+  ">
 
-  <link
-    href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css"
-    rel="stylesheet"
-  />
-  <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
-  <script src="https://npmcdn.com/@turf/turf/turf.min.js"></script>
+  <!-- libs (same as you used) -->
+  <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
+  <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" defer></script>
+  <script src="https://npmcdn.com/@turf/turf/turf.min.js" defer></script>
 
-  <!-- FONTS & ICONS -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
-  <link
-    rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
-  />
+  <!-- Fonts + icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+  <!-- main styles -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="top-banner">
-    <span id="site-title">TheBoiisMC Maps</span>
-    <div id="profile-area">
-      <button class="js-settings-btn" aria-label="Map Settings">
+  <!-- skip link -->
+  <a href="#main-search" class="sr-only">Jump to search</a>
+
+  <header id="top-banner" role="banner">
+    <div class="left">
+      <button id="open-panel-btn" aria-label="Open panel" class="icon-btn" title="Open panel">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <span id="site-title">TheBoiisMC Maps</span>
+    </div>
+
+    <div class="right" id="profile-area" aria-haspopup="true">
+      <button class="js-settings-btn icon-btn" aria-label="Map Settings" title="Settings">
         <span class="material-symbols-outlined">settings</span>
       </button>
-      <button id="profile-button" aria-label="User Profile">
+      <button id="profile-button" class="icon-btn" aria-expanded="false" aria-controls="profile-dropdown" aria-label="User Profile">
         <span class="material-symbols-outlined">account_circle</span>
       </button>
-      <div id="profile-dropdown">
+
+      <div id="profile-dropdown" role="menu" aria-hidden="true">
         <div id="logged-in-view" hidden>
-          <div class="profile-section profile-section-header">
+          <div class="profile-section profile-section-header" aria-hidden="false">
             <div class="username">TheBoiisMC</div>
             <div class="email">user@example.com</div>
           </div>
-          <hr />
+          <hr/>
           <div class="profile-actions">
-            <a id="saved-places-btn">Saved Places</a>
+            <button id="saved-places-btn" class="menu-item">Saved Places</button>
           </div>
-          <hr />
+          <hr/>
           <div class="profile-actions">
-            <a id="logout-btn">Log Out</a>
+            <button id="logout-btn" class="menu-item">Log Out</button>
           </div>
         </div>
+
         <div id="logged-out-view" hidden>
-          <div
-            class="profile-section"
-            style="text-align:center; font-weight: 500; color: #5f6368;"
-          >
+          <div class="profile-section" style="text-align:center; font-weight: 500; color: #5f6368;">
             Sign in to save and view places
           </div>
-          <hr />
+          <hr/>
           <div class="auth-buttons">
             <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
             <a href="#" id="signup-btn" class="btn btn-secondary">Sign Up</a>
@@ -100,185 +102,220 @@
         </div>
       </div>
     </div>
-  </div>
+  </header>
 
-  <div id="navigation-status">
-    <div id="instruction-container" class="navigation-instruction-box">
-      <div id="navigation-instruction">Starting navigation...</div>
-      <div id="instruction-progress-bar-container">
-        <div id="instruction-progress-bar"></div>
-      </div>
-    </div>
-    <div id="trip-stats-container" class="navigation-stats">
-      <div class="stat-item">
-        <span id="stat-speed">--</span>
-        <span class="stat-label">mph</span>
-      </div>
-      <div class="stat-item">
-        <span id="stat-eta">--:--</span>
-        <span class="stat-label">ETA</span>
-      </div>
-      <div class="stat-item">
-        <span id="stat-time-remaining">-- min</span>
-        <span class="stat-label">Time</span>
-      </div>
-    </div>
-    <button id="end-navigation-btn" class="nav-control-btn">End Trip</button>
-  </div>
-
-  <div id="top-search-wrapper" role="search" aria-label="Map Search">
+  <!-- floating search bar (visible on both) -->
+  <div id="top-search-wrapper" role="search">
     <div id="main-search-container">
-      <span id="search-icon-inside" class="material-symbols-outlined">search</span>
-      <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
-      <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
-      <div id="main-suggestions" class="suggestions-dropdown"></div>
+      <label for="main-search" class="sr-only">Search</label>
+      <button id="search-icon-inside" class="icon-btn" aria-label="Search">
+        <span class="material-symbols-outlined">search</span>
+      </button>
+      <input type="search" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
+      <button id="main-directions-icon" class="icon-btn" aria-label="Directions">
+        <span class="material-symbols-outlined">directions</span>
+      </button>
+      <div id="main-suggestions" class="suggestions-dropdown" role="listbox" aria-label="Search suggestions"></div>
     </div>
   </div>
 
-  <div id="side-panel">
-    <div id="panel-grabber" aria-hidden="true"></div>
+  <!-- map area -->
+  <main id="map" role="application" aria-label="Map view">
+    <div id="map-watermark">TheBoiisMC</div>
+  </main>
+
+  <!-- bottom sheet / side panel -->
+  <aside id="side-panel" role="complementary" aria-hidden="true">
+    <div id="panel-grabber" role="button" aria-label="Drag panel" tabindex="0"></div>
     <div id="panel-search-placeholder" hidden></div>
 
-    <div class="panel-content">
-      <div id="info-panel-redesign" hidden>
+    <div class="panel-content" id="panel-content">
+      <section id="info-panel-redesign" hidden>
         <div class="header-image-container">
-          <img class="header-image" id="info-image" src="" alt="Image of the location"/>
-          <button id="close-info-btn" aria-label="Close details">
+          <img class="header-image" id="info-image" src="" alt="Image of the location" />
+          <button id="close-info-btn" aria-label="Close info" class="icon-btn">
             <span class="material-symbols-outlined">arrow_back</span>
           </button>
         </div>
+
         <div class="info-content-padding">
           <h3 id="info-name"></h3>
           <div class="address" id="info-address"></div>
           <div class="weather" id="info-weather"></div>
+
           <div class="action-buttons">
-            <div class="btn-wrapper" id="info-directions-btn">
+            <div class="btn-wrapper" id="info-directions-btn" role="button" tabindex="0">
               <div class="icon-circle"><span class="material-symbols-outlined">directions</span></div>
               <div class="btn-label">Directions</div>
             </div>
-            <div class="btn-wrapper" id="info-save-btn">
+            <div class="btn-wrapper" id="info-save-btn" role="button" tabindex="0">
               <div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div>
               <div class="btn-label">Save</div>
             </div>
           </div>
+
           <div id="quick-facts">
             <h4>Quick facts</h4>
             <p id="quick-facts-content"></p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div id="directions-panel-redesign" hidden>
+      <section id="directions-panel-redesign" hidden>
         <div class="info-content-padding">
           <div class="dir-input-group">
             <div class="dir-input-wrapper">
               <span class="material-symbols-outlined">trip_origin</span>
               <input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off" />
             </div>
-            <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
+            <div id="panel-from-suggestions" class="suggestions-dropdown" role="listbox"></div>
 
             <div class="dir-input-wrapper">
               <span class="material-symbols-outlined">location_on</span>
               <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off" />
             </div>
-            <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
+            <div id="panel-to-suggestions" class="suggestions-dropdown" role="listbox"></div>
 
             <button id="swap-btn" aria-label="Swap start and destination">
               <span class="material-symbols-outlined">swap_vert</span>
             </button>
           </div>
 
-          <div class="dir-quick-select" id="dir-use-my-location">
+          <div class="dir-quick-select" id="dir-use-my-location" role="button" tabindex="0">
             <div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>
             Your location
           </div>
 
-          <button id="get-route-btn">Get Route</button>
-          <button id="back-to-info-btn">Back</button>
+          <button id="get-route-btn" class="primary-btn">Get Route</button>
+          <button id="back-to-info-btn" class="link-btn">Back</button>
         </div>
-      </div>
+      </section>
 
-      <div id="route-preview-panel" hidden>
+      <section id="route-preview-panel" hidden>
         <div class="info-content-padding">
           <div class="route-summary">
             <h3 id="route-summary-time">--</h3>
             <div id="route-summary-distance"></div>
           </div>
+
           <div class="action-buttons">
             <div class="btn-wrapper" id="start-navigation-btn">
               <div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div>
               <div class="btn-label">Start Trip</div>
             </div>
+
             <div class="btn-wrapper" id="share-route-btn">
               <div class="icon-circle"><span class="material-symbols-outlined">share</span></div>
               <div class="btn-label">Share</div>
             </div>
           </div>
-          <button id="back-to-directions-btn">Back</button>
-        </div>
-      </div>
 
-      <div id="route-section" hidden>
+          <button id="back-to-directions-btn" class="link-btn">Back</button>
+        </div>
+      </section>
+
+      <section id="route-section" hidden>
         <div class="info-content-padding">
           <h3>Route Steps</h3>
-          <button id="exit-route-btn">Back</button>
-          <ol id="route-steps"></ol>
+          <button id="exit-route-btn" class="link-btn">Back</button>
+          <ol id="route-steps" aria-live="polite"></ol>
         </div>
-      </div>
+      </section>
     </div>
-  </div>
+  </aside>
 
-  <!-- Desktop close button for side panel -->
-  <button id="close-panel-btn" aria-label="Close panel">&times;</button>
+  <!-- settings menu -->
+  <div id="menu-overlay" tabindex="-1"></div>
 
-  <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
-    <span class="material-symbols-outlined">layers</span>
-  </button>
-
-  <div id="menu-overlay"></div>
-
-  <div id="settings-menu">
+  <div id="settings-menu" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="settings-menu-header">
       <h4>Map Settings</h4>
       <button id="close-settings-btn" aria-label="Close Settings">&times;</button>
     </div>
+
     <div class="settings-menu-content">
       <div class="setting-group">
         <label class="setting-label">Map Style</label>
         <div class="radio-group">
-          <input type="radio" id="style-default" name="map-style" value="default" checked />
+          <input type="radio" id="style-default" name="map-style" value="default" checked>
           <label for="style-default">Default</label>
-          <input type="radio" id="style-satellite" name="map-style" value="satellite" />
+
+          <input type="radio" id="style-satellite" name="map-style" value="satellite">
           <label for="style-satellite">Satellite</label>
         </div>
       </div>
+
       <hr />
+
       <div class="setting-group">
         <label class="setting-label">Live Traffic</label>
         <div class="toggle-switch">
-          <input type="checkbox" id="traffic-toggle" name="map-traffic" />
-          <label for="traffic-toggle"></label>
+          <input type="checkbox" id="traffic-toggle" name="map-traffic">
+          <label for="traffic-toggle" class="switch" aria-hidden="true"></label>
         </div>
       </div>
+
       <hr />
+
       <div class="setting-group">
         <label class="setting-label">Units</label>
         <div class="radio-group">
-          <input type="radio" id="units-imperial" name="map-units" value="imperial" checked />
+          <input type="radio" id="units-imperial" name="map-units" value="imperial" checked>
           <label for="units-imperial">Imperial</label>
-          <input type="radio" id="units-metric" name="map-units" value="metric" />
+
+          <input type="radio" id="units-metric" name="map-units" value="metric">
           <label for="units-metric">Metric</label>
+        </div>
+      </div>
+
+      <hr />
+
+      <div class="setting-group">
+        <label class="setting-label">Theme</label>
+        <div class="radio-group">
+          <input type="radio" id="theme-system" name="theme-choice" value="system" checked>
+          <label for="theme-system">System</label>
+
+          <input type="radio" id="theme-light" name="theme-choice" value="light">
+          <label for="theme-light">Light</label>
+
+          <input type="radio" id="theme-dark" name="theme-choice" value="dark">
+          <label for="theme-dark">Dark</label>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="map">
-    <div id="map-watermark">TheBoiisMC</div>
+  <!-- mobile settings floating button -->
+  <button id="mobile-settings-btn" class="icon-btn js-settings-btn" aria-label="Open settings">
+    <span class="material-symbols-outlined">layers</span>
+  </button>
+
+  <!-- navigation status (bottom floating when active) -->
+  <div id="navigation-status" aria-hidden="true">
+    <div id="instruction-container" class="navigation-instruction-box">
+      <div id="navigation-instruction">Starting navigation...</div>
+      <div id="instruction-progress-bar"></div>
+    </div>
+
+    <div id="trip-stats-container" class="navigation-stats">
+      <div class="stat-item"><span id="stat-speed">--</span><span class="stat-label">mph</span></div>
+      <div class="stat-item"><span id="stat-eta">--:--</span><span class="stat-label">ETA</span></div>
+      <div class="stat-item"><span id="stat-time-remaining">-- min</span><span class="stat-label">Time</span></div>
+    </div>
+
+    <button id="end-navigation-btn" class="nav-control-btn">End Trip</button>
   </div>
 
+  <!-- toast container -->
   <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="app.js"></script>
+  <!-- SR only helper -->
+  <style>
+    .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  </style>
+
+  <!-- app script -->
+  <script src="app.js" defer></script>
 </body>
 </html>
