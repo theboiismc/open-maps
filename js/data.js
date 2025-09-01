@@ -11,6 +11,6 @@ export async function loadPlaces() {
 }
 
 function renderPlaces(places) {
-    // Implement render logic
     console.log("Places loaded:", places);
+    // Implement DOM rendering logic here
 }
