@@ -808,89 +808,78 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     if (isMobile) {
-        // --- GOOGLE MAPS-LIKE MOBILE PANEL ---
+        // --- MOBILE PANEL: COLLAPSED / HALF / FULL ---
 (function() {
-    const panel = document.getElementById('side-panel');
-    if (!panel) return;
-
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     if (!isMobile) return;
 
+    const panel = document.getElementById('side-panel');
+    const headerHeight = 50; // height of the panel header
     const windowHeight = window.innerHeight;
-    const peekHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-mobile-peek')) || 220;
 
+    // Define the three positions in pixels
     const POSITIONS = {
-        COLLAPSED: peekHeight,
+        COLLAPSED: windowHeight - headerHeight,
         HALF: windowHeight / 2,
-        FULL: windowHeight
+        FULL: 0
     };
 
     let startY = 0;
-    let lastBottom = POSITIONS.COLLAPSED;
+    let currentY = 0;
+    let lastTranslate = POSITIONS.COLLAPSED;
     let isDragging = false;
 
-    // Initialize
-    panel.style.bottom = `${POSITIONS.COLLAPSED}px`;
-    panel.style.transition = 'bottom 0.3s cubic-bezier(0.4,0,0.2,1)';
-    panel.style.touchAction = 'none'; // prevent scroll interference
+    panel.style.transform = `translateY(${POSITIONS.COLLAPSED}px)`;
+    panel.style.transition = 'transform 0.3s ease';
 
-    const setPanelPosition = (pos) => {
-        panel.style.bottom = `${pos}px`;
-        lastBottom = pos;
+    const setPanelPosition = (y) => {
+        panel.style.transform = `translateY(${y}px)`;
+        lastTranslate = y;
     };
 
     const snapToNearest = () => {
-        const distances = Object.values(POSITIONS).map(p => Math.abs(lastBottom - p));
-        const nearest = Object.values(POSITIONS)[distances.indexOf(Math.min(...distances))];
-        setPanelPosition(nearest);
+        const distances = Object.values(POSITIONS).map(pos => Math.abs(lastTranslate - pos));
+        const nearestIndex = distances.indexOf(Math.min(...distances));
+        const nearestPosition = Object.values(POSITIONS)[nearestIndex];
+        setPanelPosition(nearestPosition);
     };
 
-    // Touch events
-    panel.addEventListener('touchstart', e => {
-        isDragging = true;
+    panel.addEventListener('touchstart', (e) => {
         startY = e.touches[0].clientY;
-        panel.style.transition = ''; // remove transition while dragging
+        isDragging = true;
+        panel.style.transition = ''; // disable transition during drag
     });
 
-    panel.addEventListener('touchmove', e => {
+    panel.addEventListener('touchmove', (e) => {
         if (!isDragging) return;
-
-        const currentY = e.touches[0].clientY;
-        const delta = startY - currentY; // swipe up positive
-        let nextBottom = lastBottom + delta;
-
-        // Clamp between 0 (FULL) and COLLAPSED
-        nextBottom = Math.max(POSITIONS.COLLAPSED, Math.min(POSITIONS.FULL, nextBottom));
-
-        panel.style.bottom = `${nextBottom}px`;
+        currentY = e.touches[0].clientY;
+        const delta = currentY - startY;
+        let nextPos = lastTranslate + delta;
+        // constrain within screen
+        nextPos = Math.max(POSITIONS.FULL, Math.min(POSITIONS.COLLAPSED, nextPos));
+        panel.style.transform = `translateY(${nextPos}px)`;
     });
 
     panel.addEventListener('touchend', () => {
         isDragging = false;
-        panel.style.transition = 'bottom 0.3s cubic-bezier(0.4,0,0.2,1)';
-        lastBottom = parseFloat(panel.style.bottom);
+        panel.style.transition = 'transform 0.3s ease';
+        // update lastTranslate
+        const transformValue = parseFloat(panel.style.transform.match(/translateY\((.+)px\)/)[1]);
+        lastTranslate = transformValue;
         snapToNearest();
     });
 
-    // Optional programmatic control
+    // Optional: allow programmatic open/close
     window.mobilePanel = {
         collapse: () => setPanelPosition(POSITIONS.COLLAPSED),
         half: () => setPanelPosition(POSITIONS.HALF),
         full: () => setPanelPosition(POSITIONS.FULL),
-        toggle: () => {
-            if (lastBottom === POSITIONS.COLLAPSED) setPanelPosition(POSITIONS.FULL);
-            else setPanelPosition(POSITIONS.COLLAPSED);
-        }
     };
 
-    // Keep panel visible when interacting with map
-    if (window.map && typeof map.on === 'function') {
-        map.on('click', () => {
-            // Do nothing, panel stays where it is
-        });
-    }
-})();
- 
+    // Keep panel visible on map clicks
+    map.on('click', (e) => {
+        // do nothing, panel stays in current position
+    });
 })();
 
     }
