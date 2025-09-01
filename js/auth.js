@@ -7,10 +7,8 @@ const authConfig = {
     response_type: 'code',
     automaticSilentRenew: true,
 };
-
 const userManager = new oidc.UserManager(authConfig);
-
-export const authService = {
+const authService = {
     async login() { return userManager.signinRedirect(); },
     async logout() { return userManager.signoutRedirect(); },
     async getUser() { return userManager.getUser(); },
