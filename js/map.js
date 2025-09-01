@@ -1,20 +1,22 @@
-// map.js
+import maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.1.0/dist/maplibre-gl.esm.js';
+
 export function initMap() {
     const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
+
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
 
     const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty',
+        default: 'https://tiles.openfreemap.org/styles/liberty/style.json',
         satellite: {
             version: 8,
-            sources: { 
-                "esri-world-imagery": { 
-                    type: "raster", 
-                    tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], 
-                    tileSize: 256, 
-                    attribution: 'Tiles © Esri' 
-                } 
+            sources: {
+                "esri-world-imagery": {
+                    type: "raster",
+                    tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+                    tileSize: 256,
+                    attribution: 'Tiles © Esri'
+                }
             },
             layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }]
         }
@@ -35,12 +37,20 @@ export function initMap() {
         showUserHeading: true
     });
     map.addControl(geolocateControl, "bottom-right");
-    map.on('load', () => geolocateControl.trigger());
 
-    // --- TRAFFIC LAYER LOGIC ---
+    map.on('load', () => {
+        geolocateControl.trigger();
+    });
+
+    // --- TRAFFIC LAYER ---
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
-    const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
+
+    const trafficSource = {
+        type: 'vector',
+        url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}`
+    };
+
     const trafficLayer = {
         id: TRAFFIC_LAYER_ID,
         type: 'line',
