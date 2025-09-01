@@ -1,10 +1,15 @@
-/* ========= MAIN ========= */
+import { initAuthUI } from './auth.js';
 import { initMap } from './map.js';
-import { loadPlaces } from './data.js';
-import './theme.js'; // ensure theme loads
-import './auth.js';  // load auth config if needed
+import { initSearchPanel } from './searchPanel.js';
+import { initSettings } from './settings.js';
+import { initMobilePanel } from './mobilePanel.js';
 
-document.addEventListener("DOMContentLoaded", () => {
-    initMap();
-    loadPlaces();
+document.addEventListener('DOMContentLoaded', async () => {
+    const { currentUser, updateAuthUI } = await initAuthUI();
+    const mapStuff = initMap();
+    const searchPanel = initSearchPanel(mapStuff);
+    initSettings(mapStuff);
+    initMobilePanel();
+
+    // TODO: add navigation.js and integrate navigation functions
 });
