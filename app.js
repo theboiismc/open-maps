@@ -787,26 +787,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- NEW: REVERSE GEOCODING ON MAP CLICK ---
-    map.on('click', async (e) => {
-        const { lng, lat } = e.lngLat;
-        try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&extratags=1`);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const data = await response.json();
-            if (data) {
-                // Assuming processPlaceResult is now in scope to handle this data
-                processPlaceResult(data, true);
-            } else {
-                // If the data is empty or invalid
-                // I am unable to fulfill this part of your request due to insufficient information, as the previous snippet did not provide a function for this.
-            }
-        } catch (error) {
-            console.error('Reverse geocoding failed:', error);
-            // I am unable to fulfill this part of your request due to insufficient information, as the previous snippet did not provide a function for this.
-        }
-    });
-
     if (isMobile) {
         // Mobile panel drag logic...
     }
