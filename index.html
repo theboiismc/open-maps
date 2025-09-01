@@ -19,21 +19,62 @@
         worker-src 'self' blob: https://unpkg.com;
     ">
 
-    <meta property="og:title" content="TheBoiisMC Maps" />
-    <meta property="og:description" content="Explore the world with private, modern mapping." />
-    <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
-    <meta property="og:url" content="https://maps.theboiismc.com" />
-    <meta name="twitter:card" content="summary_large_image" />
-
-    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
     <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
 
-    <!-- FONTS & ICONS -->
+    <!-- Fonts & icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link rel="stylesheet" href="styles.css">
+
+    <!-- INLINE MOBILE DEFAULT PANEL STYLES -->
+    <style>
+        #panel-search-placeholder {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 12px;
+            font-family: 'Inter', sans-serif;
+        }
+        #mobile-default-search {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        #mobile-default-suggestions {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #mobile-default-suggestions div {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        #mobile-default-suggestions div:hover {
+            background-color: #f0f0f0;
+        }
+        #popular-places-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #popular-places-list li {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            margin-bottom: 8px;
+        }
+        #popular-places-list li:hover {
+            background-color: #e0f2f1;
+        }
+    </style>
 </head>
 <body>
     <div id="top-banner">
@@ -74,85 +115,21 @@
         </div>
     </div>
 
-    <div id="navigation-status">
-        <div id="instruction-container">
-            <div id="navigation-instruction">Starting navigation...</div>
-            <div id="instruction-progress-bar"></div>
-        </div>
-        <div id="trip-stats-container">
-            <div class="stat-item">
-                <span id="stat-speed">--</span>
-                <span class="stat-label">mph</span>
-            </div>
-            <div class="stat-item">
-                <span id="stat-eta">--:--</span>
-                <span class="stat-label">ETA</span>
-            </div>
-            <div class="stat-item">
-                <span id="stat-time-remaining">-- min</span>
-                <span class="stat-label">Time</span>
-            </div>
-        </div>
-        <button id="end-navigation-btn">End Trip</button>
-    </div>
-
-    <div id="top-search-wrapper">
-        <div id="main-search-container">
-            <span id="search-icon-inside" class="material-symbols-outlined">search</span>
-            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
-            <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
-            <div id="main-suggestions" class="suggestions-dropdown"></div>
-        </div>
-    </div>
-
+    <!-- SIDE PANEL -->
     <div id="side-panel">
         <div id="panel-grabber"></div>
-
-        <!-- Default Mobile Panel -->
-        <div id="panel-search-placeholder" hidden>
-            <div class="panel-content-padding">
-                <div class="default-search-bar">
-                    <input type="text" id="mobile-default-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
-                    <div id="mobile-default-suggestions" class="suggestions-dropdown"></div>
-                </div>
-                <div id="popular-places">
-                    <h4>Popular Places</h4>
-                    <ul id="popular-places-list"></ul>
-                </div>
-            </div>
+        <div id="panel-search-placeholder">
+            <input type="text" id="mobile-default-search" placeholder="Search places..." />
+            <div id="mobile-default-suggestions"></div>
+            <ul id="popular-places-list"></ul>
         </div>
-
         <div class="panel-content">
-            <div id="info-panel-redesign" hidden>
-                <!-- existing info panel content -->
-            </div>
-            <div id="directions-panel-redesign" hidden>
-                <!-- existing directions panel content -->
-            </div>
-            <div id="route-preview-panel" hidden>
-                <!-- existing route preview content -->
-            </div>
-            <div id="route-section" hidden>
-                <!-- existing route steps content -->
-            </div>
+            <!-- other panels (info, directions, route, etc) hidden by default -->
         </div>
     </div>
 
-    <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
-        <span class="material-symbols-outlined">layers</span>
-    </button>
+    <div id="map"><div id="map-watermark">TheBoiisMC</div></div>
 
-    <div id="menu-overlay"></div>
-
-    <div id="settings-menu">
-        <!-- existing settings menu content -->
-    </div>
-
-    <div id="map">
-        <div id="map-watermark">TheBoiisMC</div>
-    </div>
-
-    <!-- SCRIPTS -->
     <script src="js/auth.js"></script>
     <script src="js/map.js"></script>
     <script src="js/logic.js"></script>
