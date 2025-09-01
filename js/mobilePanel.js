@@ -53,7 +53,7 @@ if (window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches) {
         setPanelPosition(POSITIONS.HALF);
 
         // -------- MAPTILER API SEARCH & POPULAR PLACES --------
-        const MAPTILER_KEY = 'YOUR_MAPTILER_KEY';
+        const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
         const popularPlacesList = document.getElementById('popular-places-list');
         const defaultSearchInput = document.getElementById('mobile-default-search');
         const defaultSuggestions = document.getElementById('mobile-default-suggestions');
