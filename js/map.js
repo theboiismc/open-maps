@@ -1,10 +1,11 @@
 /* ========= MAP ========= */
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { setSheetState } from './bottomSheet.js';
 
 export let map;
 
 export function initMap() {
-    const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
 
     const STYLES = {
@@ -29,24 +30,36 @@ export function initMap() {
         }
     };
 
+    // Ensure container exists
+    const mapContainer = document.getElementById("map");
+    if (!mapContainer) {
+        console.error("Map container (#map) not found!");
+        return;
+    }
+
+    mapContainer.style.width = "100%";
+    mapContainer.style.height = "100vh"; // full viewport height
+
     map = new maplibregl.Map({
-        container: "map",
+        container: mapContainer,
         style: STYLES.default,
         center: [-95, 39],
         zoom: 4
     });
 
-    // Navigation controls
+    // Controls
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-    // Geolocation
     const geolocateControl = new maplibregl.GeolocateControl({
         positionOptions: geolocationOptions,
         trackUserLocation: true,
         showUserHeading: true
     });
     map.addControl(geolocateControl, "bottom-right");
-    map.on('load', () => geolocateControl.trigger());
+
+    map.on('load', () => {
+        geolocateControl.trigger();
+    });
 
     // Map click collapses panel
     map.on('click', () => setSheetState("collapsed"));
