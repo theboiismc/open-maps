@@ -1,6 +1,6 @@
-// --- MAP INITIALIZATION & CONTROLS ---
+  // --- MAP INITIALIZATION & CONTROLS ---
     // NEW: Add your MapTiler API Key here
-    const MAPTILER_KEY = 'YOUR_MAPTILER_API_KEY';
+    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
@@ -78,3 +78,4 @@
     const statEtaEl = document.getElementById('stat-eta');
     const statTimeRemainingEl = document.getElementById('stat-time-remaining');
     const highlightedSegmentLayerId = 'highlighted-route-segment';
+    
