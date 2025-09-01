@@ -1,15 +1,12 @@
-
-    if (isMobile) {
-        // --- MOBILE PANEL: COLLAPSED / HALF / FULL ---
 (function() {
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     if (!isMobile) return;
 
     const panel = document.getElementById('side-panel');
-    const headerHeight = 50; // height of the panel header
-    const windowHeight = window.innerHeight;
+    const headerHeight = 50; // banner height
+    let windowHeight = window.innerHeight;
 
-    // Define the three positions in pixels
+    // Panel positions
     const POSITIONS = {
         COLLAPSED: windowHeight - headerHeight,
         HALF: windowHeight / 2,
@@ -17,10 +14,10 @@
     };
 
     let startY = 0;
-    let currentY = 0;
     let lastTranslate = POSITIONS.COLLAPSED;
     let isDragging = false;
 
+    // Set initial panel position
     panel.style.transform = `translateY(${POSITIONS.COLLAPSED}px)`;
     panel.style.transition = 'transform 0.3s ease';
 
@@ -44,9 +41,10 @@
 
     panel.addEventListener('touchmove', (e) => {
         if (!isDragging) return;
-        currentY = e.touches[0].clientY;
+        const currentY = e.touches[0].clientY;
         const delta = currentY - startY;
         let nextPos = lastTranslate + delta;
+
         // constrain within screen
         nextPos = Math.max(POSITIONS.FULL, Math.min(POSITIONS.COLLAPSED, nextPos));
         panel.style.transform = `translateY(${nextPos}px)`;
@@ -55,13 +53,12 @@
     panel.addEventListener('touchend', () => {
         isDragging = false;
         panel.style.transition = 'transform 0.3s ease';
-        // update lastTranslate
         const transformValue = parseFloat(panel.style.transform.match(/translateY\((.+)px\)/)[1]);
         lastTranslate = transformValue;
         snapToNearest();
     });
 
-    // Optional: allow programmatic open/close
+    // Optional: programmatic controls
     window.mobilePanel = {
         collapse: () => setPanelPosition(POSITIONS.COLLAPSED),
         half: () => setPanelPosition(POSITIONS.HALF),
@@ -69,20 +66,19 @@
     };
 
     // Keep panel visible on map clicks
-    map.on('click', (e) => {
-        // do nothing, panel stays in current position
-    });
-})();
-
-    }
-
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').then(registration => {
-                console.log('SW registered: ', registration.scope);
-            }, err => {
-                console.log('SW registration failed: ', err);
-            });
+    if (window.map) {
+        map.on('click', (e) => {
+            // panel stays in current position
         });
     }
-});
+
+    // Update windowHeight and positions on resize
+    window.addEventListener('resize', () => {
+        windowHeight = window.innerHeight;
+        POSITIONS.COLLAPSED = windowHeight - headerHeight;
+        POSITIONS.HALF = windowHeight / 2;
+        POSITIONS.FULL = 0;
+        snapToNearest();
+    });
+
+})();
