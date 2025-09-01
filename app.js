@@ -821,3 +821,113 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 });
+
+// --- GOOGLE MAPS STYLE MOBILE PANEL BEHAVIOR ---
+(function initMobilePanel() {
+  if (!isMobile) return;
+  const panel = document.getElementById("side-panel");
+  if (!panel) return;
+
+  // States as % of viewport height
+  const states = {
+    collapsed: 0.85, // peek
+    half: 0.4,       // mid
+    full: 0          // top
+  };
+
+  let currentState = "collapsed";
+  let startY = 0, currentY = 0, isDragging = false;
+
+  function setPanel(state, animate = true) {
+    currentState = state;
+    const vh = window.innerHeight;
+    const y = states[state] * vh;
+    panel.style.transition = animate ? "transform 0.3s ease" : "none";
+    panel.style.transform = `translateY(${y}px)`;
+
+    // prevent background scroll when full
+    document.body.style.overflow = state === "full" ? "hidden" : "auto";
+  }
+
+  function nearestState(y) {
+    const vh = window.innerHeight;
+    const ratio = y / vh;
+    return Object.keys(states).reduce((nearest, s) => {
+      return Math.abs(states[s] - ratio) < Math.abs(states[nearest] - ratio)
+        ? s
+        : nearest;
+    }, "collapsed");
+  }
+
+  function startDrag(e) {
+    isDragging = true;
+    startY = e.touches ? e.touches[0].clientY : e.clientY;
+    panel.style.transition = "none";
+
+    document.addEventListener("mousemove", onDrag);
+    document.addEventListener("mouseup", endDrag);
+    document.addEventListener("touchmove", onDrag);
+    document.addEventListener("touchend", endDrag);
+  }
+
+  function onDrag(e) {
+    if (!isDragging) return;
+    currentY = e.touches ? e.touches[0].clientY : e.clientY;
+    const deltaY = currentY - startY;
+    const vh = window.innerHeight;
+    const base = states[currentState] * vh;
+    const newY = Math.max(0, Math.min(vh, base + deltaY));
+    panel.style.transform = `translateY(${newY}px)`;
+  }
+
+  function endDrag() {
+    if (!isDragging) return;
+    isDragging = false;
+
+    const matrix = new WebKitCSSMatrix(getComputedStyle(panel).transform);
+    const y = matrix.m42;
+    setPanel(nearestState(y));
+
+    document.removeEventListener("mousemove", onDrag);
+    document.removeEventListener("mouseup", endDrag);
+    document.removeEventListener("touchmove", onDrag);
+    document.removeEventListener("touchend", endDrag);
+  }
+
+  // use the grabber for drag and tap-to-toggle
+  const grabber = document.getElementById("panel-grabber");
+  if (grabber) {
+    grabber.addEventListener("mousedown", startDrag);
+    grabber.addEventListener("touchstart", startDrag);
+
+    grabber.addEventListener("click", () => {
+      if (currentState === "collapsed") setPanel("half");
+      else if (currentState === "half") setPanel("full");
+      else setPanel("collapsed");
+    });
+  }
+
+  window.addEventListener("resize", () => setPanel(currentState, false));
+
+  // initialize collapsed
+  setPanel("collapsed", false);
+
+  // hook into showPanel to snap open
+  const originalShowPanel = window.showPanel;
+  window.showPanel = function(viewId) {
+    originalShowPanel(viewId);
+
+    if (viewId === "directions-panel-redesign") {
+      setPanel("full");
+    } else {
+      setPanel("half");
+    }
+  };
+
+  // hook into closePanel to collapse
+  const originalClosePanel = window.closePanel;
+  window.closePanel = function() {
+    originalClosePanel();
+    setPanel("collapsed");
+  };
+})();
