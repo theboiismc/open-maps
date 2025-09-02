@@ -1,55 +1,40 @@
 // --- MAP INITIALIZATION & CONTROLS ---
+// NEW: Add your MapTiler API Key here
 const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 
 const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
 const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-
 const STYLES = {
-    default: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
-    satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`
+    default: 'https://tiles.openfreemap.org/styles/liberty',
+    satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
 };
-
-// Initialize MapTiler SDK map
-const map = new maptilersdk.Map({
+const map = new maplibregl.Map({
     container: "map",
     style: STYLES.default,
-    projection: "globe",
-    center: [0, 0],
-    zoom: 0,
-    minZoom: 0,
-    maxZoom: 22,
-    pitch: 0,
-    bearing: 0
+    center: [-95, 39],
+    zoom: 2,
+    pitch: 0, // no tilt
+    bearing: 0,
+    dragRotate: false,      // disable mouse drag rotation
+    touchPitch: false,      // disable pinch-tilt gesture
+    pitchWithRotate: false, // disables right-click+drag tilt
+    renderWorldCopies: false
 });
 
-// Add built-in navigation and geolocate controls
-map.addControl(new maptilersdk.NavigationControl(), "bottom-right");
-map.addControl(new maptilersdk.GeolocateControl({
+
+map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+const geolocateControl = new maplibregl.GeolocateControl({
     positionOptions: geolocationOptions,
     trackUserLocation: true,
     showUserHeading: true
-}), "bottom-right");
-
-// Add atmosphere/fog (MapTiler SDK supports fog like MapLibre)
-map.on('style.load', () => {
-    map.setFog({
-        color: 'rgba(255, 255, 255, 0.8)',
-        'horizon-blend': 0.3,
-        'high-color': '#add8e6',
-        'space-color': '#000000',
-        'star-intensity': 0.15
-    });
 });
+map.addControl(geolocateControl, "bottom-right");
+map.on('load', () => geolocateControl.trigger());
 
-// Trigger geolocation on load
-map.on('load', () => {
-    const geolocateControl = map.getControl(maptilersdk.GeolocateControl);
-    if (geolocateControl) geolocateControl.trigger();
-});
-
-// --- CLICK TO SHOW LOCATION ---
+// NEW: Add a click event listener to the map
 let clickMarker = null;
 map.on('click', (e) => {
+    // Prevent click events from triggering if navigation is active
     if (!navigationState.isActive) {
         showClickedLocation(e.lngLat);
     }
@@ -73,7 +58,9 @@ const speech = {
     synthesis: window.speechSynthesis,
     utterance: new SpeechSynthesisUtterance(),
     speak(text, priority = false) {
-        if (priority && this.synthesis.speaking) this.synthesis.cancel();
+        if (priority && this.synthesis.speaking) {
+            this.synthesis.cancel();
+        }
         if (!this.synthesis.speaking && text) {
             this.utterance.text = text;
             this.synthesis.speak(this.utterance);
@@ -109,7 +96,9 @@ const statEtaEl = document.getElementById('stat-eta');
 const statTimeRemainingEl = document.getElementById('stat-time-remaining');
 const highlightedSegmentLayerId = 'highlighted-route-segment';
 
-// --- CLICK TO GET LOCATION ---
+// --- NEW FUNCTIONS FOR CLICK-TO-GET-LOCATION ---
+
+// Function to handle getting location details from coordinates
 async function reverseGeocode(lngLat) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lngLat.lat}&lon=${lngLat.lng}`;
     try {
@@ -122,41 +111,54 @@ async function reverseGeocode(lngLat) {
     }
 }
 
+// Function to show the location information
 function showClickedLocation(lngLat) {
-    if (clickMarker) clickMarker.remove();
+    if (clickMarker) {
+        clickMarker.remove();
+    }
+    
+    // Animate the map to the clicked location
+    map.flyTo({
+        center: lngLat,
+        zoom: 16, // Zoom in to a street-level view
+        essential: true // This ensures the animation plays even if prefers-reduced-motion is enabled
+    });
 
-    // MapTiler SDK marker
-    clickMarker = new maptilersdk.Marker()
+    clickMarker = new maplibregl.Marker()
         .setLngLat(lngLat)
         .addTo(map);
 
-    map.flyTo({ center: lngLat, zoom: 16, essential: true });
-
     reverseGeocode(lngLat).then(data => {
-        if (data && data.display_name) processPlaceResult(data);
-        else {
+        if (data && data.display_name) {
+            // Call the existing function to process the result and populate the panel
+            processPlaceResult(data);
+        } else {
+            // Friendly message for when no address is found
             mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
             showInfoPanel({
                 name: `Location`,
                 address: `Unable to find an address for this spot.`,
                 coordinates: [lngLat.lng, lngLat.lat],
-                quickFacts: 'This location may be in a remote or unmapped area.'
+                quickFacts: 'This location may be in a remote or unmapped area. You can still use the coordinates for directions.'
             });
         }
     }).catch(error => {
+        // Friendly message for a connection or server error
         console.error("Failed to show location info:", error);
         mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
         showInfoPanel({
             name: `Location`,
-            address: `Error fetching location details.`,
+            address: `We're having trouble getting details for this location right now.`,
             coordinates: [lngLat.lng, lngLat.lat],
-            quickFacts: 'Use the coordinates for directions.'
+            quickFacts: 'Please try again in a moment or use the coordinates provided.'
         });
     });
 }
 
-// --- SHOW INFO PANEL ---
+// NEW FUNCTION: showInfoPanel - centralizes the panel population
 function showInfoPanel(place) {
+    // This is a new function to populate the info panel from any source (search, click, etc.)
+    // It will be added to the ui.js file when we refactor
     currentPlace = {
         display_name: place.name,
         lon: place.coordinates[0],
