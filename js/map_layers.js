@@ -27,39 +27,74 @@ async function getRoute() {
         }
         currentRouteData = data;
         const route = data.routes[0];
-        displayRoutePreview(route);
-        drawRouteOnMap(route);
-    } catch (e) {
-        console.error("Routing error:", e);
-        alert("Failed to find a route. Please check the addresses or try again.");
+        const routeGeoJSON = { type: 'Feature', geometry: route.geometry };
+        addRouteToMap(routeGeoJSON);
+        const bounds = new maplibregl.LngLatBounds();
+        routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
+
+        if (fromInput.value.trim() === "Your Location") {
+            map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
+            closePanel();
+            startNavigation();
+        } else {
+            displayRoutePreview(route);
+            map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
+        }
+    } catch (err) {
+        alert(`Error getting route: ${err.message}`);
+        navigationState.isRerouting = false;
     }
 }
-function drawRouteOnMap(route) {
-    clearRouteFromMap();
-    const routeGeoJSON = {
-        type: 'Feature',
-        geometry: route.geometry
-    };
+
+function addRouteToMap(routeGeoJSON) {
     if (map.getSource('route')) {
         map.getSource('route').setData(routeGeoJSON);
     } else {
-        map.addSource('route', {
-            type: 'geojson',
-            data: routeGeoJSON
-        });
-        map.addLayer({
-            id: 'route-line',
-            type: 'line',
-            source: 'route',
-            layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
-            paint: {
-                'line-color': '#0d89ec',
-                'line-width': 8,
-                'line-opacity': 0.7
-            }
-        });
+        map.addSource('route', { type: 'geojson', data: routeGeoJSON });
+        map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0d89ec', 'line-width': 8, 'line-opacity': 0.7 } });
     }
+}
+
+// --- TRAFFIC LAYER LOGIC ---
+const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
+const TRAFFIC_LAYER_ID = 'traffic-lines';
+
+const trafficSource = {
+    type: 'vector',
+    url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}`
+};
+
+const trafficLayer = {
+    id: TRAFFIC_LAYER_ID,
+    type: 'line',
+    source: TRAFFIC_SOURCE_ID,
+    'source-layer': 'traffic',
+    layout: {
+        'line-join': 'round',
+        'line-cap': 'round'
+    },
+    paint: {
+        'line-width': 2,
+        'line-color': [
+            'match',
+            ['get', 'congestion'],
+            'low', '#30c83a',
+            'moderate', '#ff9a00',
+            'heavy', '#ff3d3d',
+            'severe', '#a00000',
+            '#a0a0a0'
+        ]
+    }
+};
+    
+function addTrafficLayer() {
+    if (map.getSource(TRAFFIC_SOURCE_ID)) return;
+    map.addSource(TRAFFIC_SOURCE_ID, trafficSource);
+    map.addLayer(trafficLayer, 'route-line');
+}
+
+function removeTrafficLayer() {
+    if (!map.getSource(TRAFFIC_SOURCE_ID)) return;
+    map.removeLayer(TRAFFIC_LAYER_ID);
+    map.removeSource(TRAFFIC_SOURCE_ID);
 }
