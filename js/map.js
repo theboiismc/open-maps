@@ -123,17 +123,8 @@ function showClickedLocation(lngLat) {
 
     reverseGeocode(lngLat).then(data => {
         if (data && data.display_name) {
-            const placeName = data.name || data.display_name;
-            const placeAddress = data.address.road ? `${data.address.road}, ${data.address.city}, ${data.address.state}, ${data.address.postcode}` : data.display_name;
-
-            showInfoPanel({
-                name: placeName,
-                address: placeAddress,
-                coordinates: [lngLat.lng, lngLat.lat],
-                type: data.type,
-                quickFacts: `Latitude: ${lngLat.lat.toFixed(6)}<br>Longitude: ${lngLat.lng.toFixed(6)}`
-            });
-
+            // Call the existing function to process the result and populate the panel
+            processPlaceResult(data);
         } else {
             // Friendly message for when no address is found
             mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
@@ -155,4 +146,24 @@ function showClickedLocation(lngLat) {
             quickFacts: 'Please try again in a moment or use the coordinates provided.'
         });
     });
+}
+
+// NEW FUNCTION: showInfoPanel - centralizes the panel population
+function showInfoPanel(place) {
+    // This is a new function to populate the info panel from any source (search, click, etc.)
+    // It will be added to the ui.js file when we refactor
+    currentPlace = {
+        display_name: place.name,
+        lon: place.coordinates[0],
+        lat: place.coordinates[1]
+    };
+    stopNavigation();
+    clearRouteFromMap();
+    document.getElementById('info-name').textContent = place.name.split(',')[0];
+    document.getElementById('info-address').textContent = place.address;
+    const locationName = place.name.split(',')[0];
+    fetchAndSetPlaceImage(locationName, place.coordinates[0], place.coordinates[1]);
+    fetchAndSetWeather(place.coordinates[1], place.coordinates[0]);
+    document.getElementById('quick-facts-content').textContent = place.quickFacts;
+    showPanel('info-panel-redesign');
 }
