@@ -1,3 +1,10 @@
+/**
+ * @file auth.js
+ * @description This file handles user authentication for TheBoiisMC Maps using OIDC (OpenID Connect)
+ * with an Authentik instance. It manages the login, logout, and callback processes,
+ * and updates the UI based on the user's authentication status.
+ */
+
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
 const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/maps/",
@@ -51,6 +58,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (error) {
         console.error("Authentication process failed:", error);
+        
+        // NEW: User-friendly error message for the console
+        console.warn("Could not log in. This might be due to a network issue, an invalid login attempt, or a stale session. Please try logging in again.");
+        
+        // Display an alert or message to the user if needed
+        // For now, we'll just ensure the UI is in a logged-out state
         updateAuthUI(null);
     }
 
