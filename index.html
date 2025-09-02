@@ -10,6 +10,15 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
     
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
+        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+        img-src 'self' data: https:;
+        font-src 'self' https://fonts.gstatic.com;
+        connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com;
+        worker-src 'self' blob: https://unpkg.com;
+    ">
     
     <meta property="og:title" content="TheBoiisMC Maps" />
     <meta property="og:description" content="Explore the world with private, modern mapping." />
@@ -28,7 +37,6 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="message-box" hidden></div>
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
