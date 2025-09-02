@@ -1,27 +1,19 @@
-/**
- * logic.js
- * Full UI wiring for TheBoiisMC Maps (buttons, menus, panels, suggestions, basic routing flow)
- *
- * - Attaches event listeners for all interactive controls in index.html
- * - Makes non-button elements (div.btn-wrapper, .icon-wrapper, svg parents) keyboard-focusable
- * - Handles settings menu overlay, profile dropdown, side-panel navigation flow, search suggestions
- *
- * Drop this file in place of your existing logic.js. It intentionally avoids coupling to your auth/map code:
- * it exposes "hooks" where your app logic can be connected (console.debug placeholders).
- *
- * Author: ChatGPT
- * Date: 2025-09-02
- */
-(() => {
+
+ {
   'use strict';
 
   // ------- tiny DOM helpers -------
-  const $ = (sel, ctx = document) => ctx.querySelector(sel);
+  const $ = (sel, ctx = document) => (ctx || document).querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from((ctx || document).querySelectorAll(sel) || []);
   const on = (el, ev, fn, opts = false) => { if (!el) return; el.addEventListener(ev, fn, opts); };
   const onAll = (sel, ev, fn) => $$(sel).forEach(el => on(el, ev, fn));
+  const once = (el, ev, fn) => {
+    if (!el) return;
+    const wrapped = (e) => { el.removeEventListener(ev, wrapped); fn(e); };
+    el.addEventListener(ev, wrapped);
+  };
 
-  // Initialize when DOM ready
+  // -------- init --------
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
@@ -32,52 +24,131 @@
     initButtonEnhancements();
     initGlobalHandlers();
     initAccessibilityPolyfills();
-    // ready
-    console.debug('logic.js: UI wiring initialized');
+    console.debug('logic.js: initialized');
   }
 
   // ---------------------------
-  // Settings menu + overlay
+  // Settings menu (desktop + mobile)
   // ---------------------------
   function initSettingsMenu() {
-    const settingsBtns = $$('.js-settings-btn');
     const settingsMenu = $('#settings-menu');
     const menuOverlay = $('#menu-overlay');
     const closeBtn = $('#close-settings-btn');
 
-    if (!settingsMenu || !menuOverlay) return;
+    if (!settingsMenu || !menuOverlay) {
+      console.warn('settings-menu or menu-overlay not found in DOM');
+      return;
+    }
 
-    const open = () => {
+    let previouslyFocused = null;
+    let isOpen = false;
+
+    // Ensure visual stacking & pointer events to avoid other elements blocking clicks
+    function styleForOpen() {
+      // these z-index values are conservative; feel free to match your CSS system
+      menuOverlay.style.display = 'block';
+      menuOverlay.style.pointerEvents = 'auto';
+      menuOverlay.style.zIndex = '99990';
+
       settingsMenu.classList.add('open');
       settingsMenu.setAttribute('aria-hidden', 'false');
-      menuOverlay.classList.add('active');
-      menuOverlay.style.display = 'block';
-      document.body.style.overflow = 'hidden'; // prevent background scroll while menu open
-    };
+      settingsMenu.style.zIndex = '99999';
 
-    const close = () => {
+      // trap background scroll (useful on mobile)
+      document.body.style.overflow = 'hidden';
+    }
+
+    function styleForClose() {
+      menuOverlay.style.display = '';
+      menuOverlay.style.pointerEvents = '';
+      menuOverlay.style.zIndex = '';
+
       settingsMenu.classList.remove('open');
       settingsMenu.setAttribute('aria-hidden', 'true');
-      menuOverlay.classList.remove('active');
-      menuOverlay.style.display = '';
+      settingsMenu.style.zIndex = '';
+
       document.body.style.overflow = '';
-    };
+    }
 
-    settingsBtns.forEach(btn => on(btn, 'click', e => { e.stopPropagation(); open(); }));
-    on(closeBtn, 'click', e => { e.stopPropagation(); close(); });
-    on(menuOverlay, 'click', close);
+    function openSettings(triggerEl) {
+      if (isOpen) return;
+      previouslyFocused = document.activeElement;
+      styleForOpen();
+      isOpen = true;
 
-    // Prevent clicks inside menu from bubbling to overlay click handler
-    on(settingsMenu, 'click', e => e.stopPropagation());
+      // focus the close button for keyboard users
+      if (closeBtn) {
+        try { closeBtn.focus({ preventScroll: true }); } catch (e) { closeBtn.focus(); }
+      }
 
-    // Keyboard: close on ESC
-    on(document, 'keydown', (e) => { if (e.key === 'Escape') close(); });
+      console.debug('settings: opened', triggerEl || null);
+    }
 
-    // keep overlay pointer-events in sync (safety)
-    const observer = new MutationObserver(() => {
-      menuOverlay.style.pointerEvents = menuOverlay.classList.contains('active') ? 'auto' : 'none';
+    function closeSettings() {
+      if (!isOpen) return;
+      styleForClose();
+      isOpen = false;
+
+      // restore focus to previous element if still in document
+      if (previouslyFocused && document.contains(previouslyFocused)) {
+        try { previouslyFocused.focus({ preventScroll: true }); } catch (e) { previouslyFocused.focus(); }
+      }
+
+      console.debug('settings: closed');
+    }
+
+    // Primary: event delegation — catches clicks on any current or future .js-settings-btn
+    on(document, 'click', (e) => {
+      const btn = e.target.closest && e.target.closest('.js-settings-btn');
+      if (!btn) return;
+      e.stopPropagation();
+      openSettings(btn);
     });
-    observer.observe(menuOverlay, { attributes: true, attributeFilter: ['class'] });
+
+    // Also listen for touchstart for devices where touchstart fires earlier/higher priority
+    on(document, 'touchstart', (e) => {
+      const btn = e.target.closest && e.target.closest('.js-settings-btn');
+      if (!btn) return;
+      // don't call preventDefault here; just open
+      openSettings(btn);
+    }, { passive: true });
+
+    // Close via overlay or close button
+    on(menuOverlay, 'click', (e) => {
+      e.stopPropagation();
+      closeSettings();
+    });
+    on(closeBtn, 'click', (e) => {
+      e.stopPropagation();
+      closeSettings();
+    });
+
+    // Avoid overlay clicks when clicking inside the menu
+    on(settingsMenu, 'click', (e) => e.stopPropagation());
+
+    // Close on ESC when open
+    on(document, 'keydown', (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        e.preventDefault();
+        closeSettings();
+      }
+    });
+
+    // Make sure any existing .js-settings-btn are keyboard-focusable & accessible
+    $$('.js-settings-btn').forEach(btn => {
+      if (!btn.hasAttribute('tabindex')) btn.setAttribute('tabindex', '0');
+      if (!btn.hasAttribute('role')) btn.setAttribute('role', 'button');
+      // keyboard enter/space support
+      on(btn, 'keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+      });
+    });
+
+    // Safety: ensure overlay receives pointer-events only when active
+    const observer = new MutationObserver(() => {
+      menuOverlay.style.pointerEvents = menuOverlay.style.display === 'block' ? 'auto' : 'none';
+    });
+    observer.observe(menuOverlay, { attributes: true, attributeFilter: ['style', 'class'] });
   }
 
   // ---------------------------
@@ -89,30 +160,23 @@
 
     if (!profileBtn || !profileDropdown) return;
 
-    // Toggle dropdown
     on(profileBtn, 'click', (e) => {
       e.stopPropagation();
       profileDropdown.hidden = !profileDropdown.hidden;
     });
+
     on(profileBtn, 'keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); profileBtn.click(); }
     });
 
-    // Close when clicking outside
     on(document, 'click', () => { profileDropdown.hidden = true; });
-
-    // Stop propagation when interacting with dropdown itself
     on(profileDropdown, 'click', (e) => e.stopPropagation());
 
-    // Hook up profile actions (placeholders for your auth logic)
+    // profile actions (placeholders for integration)
     const savedBtn = $('#saved-places-btn');
     const logoutBtn = $('#logout-btn');
-
-    if (savedBtn) on(savedBtn, 'click', (e) => { e.preventDefault(); profileDropdown.hidden = true; openSavedPlaces(); });
-    if (logoutBtn) on(logoutBtn, 'click', (e) => { e.preventDefault(); profileDropdown.hidden = true; doLogout(); });
-
-    function openSavedPlaces() { console.debug('profile: openSavedPlaces() -> wire to real logic'); }
-    function doLogout() { console.debug('profile: doLogout() -> wire to auth'); }
+    if (savedBtn) on(savedBtn, 'click', (e) => { e.preventDefault(); profileDropdown.hidden = true; console.debug('profile: saved-places clicked'); });
+    if (logoutBtn) on(logoutBtn, 'click', (e) => { e.preventDefault(); profileDropdown.hidden = true; console.debug('profile: logout clicked'); });
   }
 
   // ---------------------------
@@ -138,7 +202,7 @@
       if (panels[name]) panels[name].hidden = false;
       sidePanel.classList.add('open');
 
-      // Move the main search input into the panel placeholder if available (keeps UX coherent)
+      // Move the main search input into the panel placeholder if available
       if (panelSearchPlaceholder && mainSearchContainer && !panelSearchPlaceholder.contains(mainSearchContainer)) {
         panelSearchPlaceholder.hidden = false;
         panelSearchPlaceholder.appendChild(mainSearchContainer);
@@ -147,14 +211,14 @@
 
     function hideSidePanel() {
       sidePanel.classList.remove('open');
-      // move search container back to top wrapper if present
+      // move search container back
       const topWrapper = $('#top-search-wrapper');
       if (topWrapper && mainSearchContainer && !topWrapper.contains(mainSearchContainer)) {
         topWrapper.appendChild(mainSearchContainer);
       }
     }
 
-    // Wire buttons that control panels
+    // Wire buttons
     const infoDirections = $('#info-directions-btn');
     const backToInfo = $('#back-to-info-btn');
     const getRouteBtn = $('#get-route-btn');
@@ -162,16 +226,16 @@
     const backToDirectionsBtn = $('#back-to-directions-btn');
     const exitRouteBtn = $('#exit-route-btn');
 
-    if (infoDirections) on(infoDirections, 'click', e => { e.preventDefault(); showPanel('directions'); });
-    if (backToInfo) on(backToInfo, 'click', e => { e.preventDefault(); showPanel('info'); });
-    if (getRouteBtn) on(getRouteBtn, 'click', e => { e.preventDefault(); generateRoutePreview(); });
-    if (backToDirectionsBtn) on(backToDirectionsBtn, 'click', e => { e.preventDefault(); showPanel('directions'); });
-    if (exitRouteBtn) on(exitRouteBtn, 'click', e => { e.preventDefault(); showPanel('info'); });
-    if (startNav) on(startNav, 'click', e => { e.preventDefault(); startNavigation(); });
+    if (infoDirections) on(infoDirections, 'click', (e) => { e.preventDefault(); showPanel('directions'); });
+    if (backToInfo) on(backToInfo, 'click', (e) => { e.preventDefault(); showPanel('info'); });
+    if (getRouteBtn) on(getRouteBtn, 'click', (e) => { e.preventDefault(); generateRoutePreview(); });
+    if (backToDirectionsBtn) on(backToDirectionsBtn, 'click', (e) => { e.preventDefault(); showPanel('directions'); });
+    if (exitRouteBtn) on(exitRouteBtn, 'click', (e) => { e.preventDefault(); showPanel('info'); });
+    if (startNav) on(startNav, 'click', (e) => { e.preventDefault(); startNavigation(); });
 
-    // end navigation button outside panel
+    // End navigation
     const endNavBtn = $('#end-navigation-btn');
-    if (endNavBtn) on(endNavBtn, 'click', e => { e.preventDefault(); stopNavigation(); });
+    if (endNavBtn) on(endNavBtn, 'click', (e) => { e.preventDefault(); stopNavigation(); });
 
     // Swap origin/destination
     const swapBtn = $('#swap-btn');
@@ -200,7 +264,7 @@
       }
     });
 
-    // Simple grabber toggle for mobile
+    // Panel grabber for mobile
     if (panelGrabber) {
       panelGrabber.style.cursor = 'pointer';
       panelGrabber.setAttribute('role', 'button');
@@ -209,13 +273,12 @@
       on(panelGrabber, 'keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') panelGrabber.click(); });
     }
 
-    // Basic routing preview generator (placeholder logic - wire to real routing service)
+    // simple route preview placeholder
     function generateRoutePreview() {
       const from = panelFrom?.value || '';
       const to = panelTo?.value || '';
       const isMyLoc = (from || '').toLowerCase().includes('my location');
 
-      // crude computation for demo: distance proportional to string lengths
       const distance = Math.max(1, Math.round(((from.length + to.length) / 2) * 0.2));
       const minutes = Math.max(1, Math.round(distance * 3 + (isMyLoc ? 0 : 4)));
 
@@ -246,7 +309,6 @@
     function startNavigation() {
       const navStatus = $('#navigation-status');
       if (navStatus) navStatus.classList.add('active');
-      // hide side panel to give map full space
       sidePanel.classList.remove('open');
       const instruction = $('#navigation-instruction');
       if (instruction) instruction.textContent = 'Navigation started';
@@ -345,7 +407,6 @@
         containerEl.style.display = 'none';
       }
 
-      // simple suggestion generator (replace with real API)
       function generateSuggestions(q) {
         const seed = [
           'Coffee Shop',
@@ -359,7 +420,6 @@
         ];
         const lower = q.toLowerCase();
         const matches = seed.filter(s => s.toLowerCase().includes(lower));
-        // return the typed query first for convenience then up to 5 matches
         return [q, ...matches.filter(m => m.toLowerCase() !== lower).slice(0, 5)];
       }
     }
@@ -396,17 +456,32 @@
 
     // Share route: copy current URL to clipboard
     const shareRoute = $('#share-route-btn');
-    if (shareRoute) on(shareRoute, 'click', (e) => {
+    if (shareRoute) on(shareRoute, 'click', async (e) => {
       e.preventDefault();
       const shareUrl = window.location.href;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shareUrl).then(() => flash('Copied link to clipboard'), () => flash('Copy failed'));
-      } else {
-        flash('Clipboard API unavailable');
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(shareUrl);
+          flash('Copied link to clipboard');
+        } else {
+          // fallback
+          const ta = document.createElement('textarea');
+          ta.value = shareUrl;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          flash('Copied link to clipboard (fallback)');
+        }
+      } catch (err) {
+        console.warn('share: copy failed', err);
+        flash('Copy failed');
       }
     });
 
-    // generic no-op for anchors with href="#" to prevent jumps
+    // Prevent anchor jump for anchors with href="#"
     $$('a[href="#"]').forEach(a => on(a, 'click', (e) => e.preventDefault()));
   }
 
@@ -419,10 +494,15 @@
       const p = svg.parentElement;
       if (!p) return;
       const tag = p.tagName.toLowerCase();
-      if ((tag === 'div' || tag === 'span') && !p.hasAttribute('role')) {
-        p.setAttribute('role', 'button');
+      if ((tag === 'div' || tag === 'span' || tag === 'button') && !p.hasAttribute('role')) {
+        // if parent is a button element, role is implicit; only set for non-button parents
+        if (tag !== 'button') p.setAttribute('role', 'button');
+      }
+      if ((tag === 'div' || tag === 'span') && !p.hasAttribute('tabindex')) {
         p.tabIndex = p.tabIndex || 0;
-        p.style.cursor = 'pointer';
+      }
+      if ((tag === 'div' || tag === 'span')) {
+        p.style.cursor = p.style.cursor || 'pointer';
         on(p, 'keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.click(); } });
       }
     });
@@ -432,7 +512,7 @@
   // Global handlers (escape, etc.)
   // ---------------------------
   function initGlobalHandlers() {
-    // global ESC: close things
+    // global ESC: close things (profile + settings)
     on(document, 'keydown', (e) => {
       if (e.key === 'Escape') {
         const pd = $('#profile-dropdown'); if (pd) pd.hidden = true;
@@ -465,7 +545,6 @@
       clearTimeout(el._t);
       el._t = setTimeout(() => { el.style.opacity = 0; }, duration);
     }
-    // expose flash so other inner functions can call it
     window._mapsFlash = flash;
   }
 
