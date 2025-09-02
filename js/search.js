@@ -2,10 +2,54 @@
 const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 const GEOAPIFY_KEY = 'YOUR_GEOAPIFY_API_KEY'; // IMPORTANT: Add your new Geoapify API key here.
 
+// Function to show a temporary message box
+function showMessage(message, type = 'error') {
+    const messageBox = document.getElementById('message-box');
+    messageBox.textContent = message;
+    messageBox.className = type;
+    messageBox.hidden = false;
+    setTimeout(() => {
+        messageBox.hidden = true;
+    }, 5000); // Hide after 5 seconds
+}
+
+// Main handler for both search suggestions and Enter key search
+async function handleSearchAndNavigate(item) {
+    if (!item || !item.center) {
+        showMessage("Could not find that location. Please try a different search.");
+        return;
+    }
+
+    const [lon, lat] = item.center;
+    const name = item.place_name || item.text;
+
+    try {
+        // Fly to the new location on the map
+        map.flyTo({ center: [lon, lat], zoom: 14 });
+
+        // Show and populate the info panel
+        showPanel('info-panel-redesign');
+        showInfoPanel({
+            name: name,
+            address: `Coordinates: [${lon.toFixed(4)}, ${lat.toFixed(4)}]`,
+            coordinates: [lon, lat],
+            quickFacts: "Loading quick facts..."
+        });
+
+        // Fetch additional data to populate the panel
+        fetchAndSetPlaceImage(name, lon, lat);
+        fetchAndSetWeather(lat, lon);
+        fetchAndSetQuickFacts(name);
+
+    } catch (e) {
+        console.error("Search and navigation failed", e);
+        showMessage("An error occurred. Please try again.");
+    }
+}
+
 function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
     const fetchAndDisplaySuggestions = async (query) => {
         if (!query) { suggestionsEl.style.display = "none"; return; }
-        // NEW: Use MapTiler Geocoding API for suggestions
         const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&limit=5`;
         try {
             const res = await fetch(url);
@@ -15,8 +59,6 @@ function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
                 const el = document.createElement("div");
                 el.className = "search-result";
                 el.textContent = item.place_name;
-                const coords = `${item.center[0]},${item.center[1]}`;
-                el.dataset.coords = coords;
                 el.addEventListener("click", () => onSelect(item));
                 suggestionsEl.appendChild(el);
             });
@@ -32,32 +74,35 @@ function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
     });
 }
 
+// Refactored function to handle search on 'Enter' key press
 async function performSmartSearch() {
     const query = mainSearchInput.value.trim();
-    if (query) {
-        showPanel('info-panel-redesign');
-        try {
-            const coords = await geocode(mainSearchInput);
-            if (coords) {
-                map.flyTo({ center: coords, zoom: 14 });
-                showInfoPanel({
-                    name: mainSearchInput.value,
-                    address: `Coordinates: [${coords.join(', ')}]`,
-                    coordinates: coords,
-                    quickFacts: "Loading quick facts..."
-                });
-                fetchAndSetQuickFacts(mainSearchInput.value);
-            }
-        } catch (e) {
-            console.error("Smart search failed", e);
-            alert("Could not find that location. Please try a different search.");
-            closePanel();
+    if (!query) return;
+
+    try {
+        const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&limit=1`);
+        const data = await res.json();
+        if (data.features.length > 0) {
+            handleSearchAndNavigate(data.features[0]);
+        } else {
+            showMessage("Could not find that location. Please try a different search.");
         }
+    } catch (e) {
+        console.error("Smart search failed", e);
+        showMessage("An error occurred during search. Please try again.");
     }
 }
 
+// Add event listener for the 'Enter' key on the main search input
+document.getElementById('main-search').addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+        performSmartSearch();
+    }
+});
+
+// The rest of the functions remain the same as they were.
 async function fetchAndSetPlaceImage(query, lon, lat) {
-    const imageEl = document.getElementById('place-image');
+    const imageEl = document.getElementById('info-image');
     imageEl.src = "https://via.placeholder.com/200x150.png?text=Image+Not+Found";
     imageEl.alt = "Placeholder image";
     const url = `https://api.geoapify.com/v1/places/search?limit=1&filter=circle:${lon},${lat},500&bias=proximity:${lon},${lat}&apiKey=${GEOAPIFY_KEY}`;
@@ -78,7 +123,7 @@ async function fetchAndSetPlaceImage(query, lon, lat) {
 }
 
 async function fetchAndSetWeather(lat, lon) {
-    const weatherEl = document.getElementById('weather-info');
+    const weatherEl = document.getElementById('info-weather');
     weatherEl.textContent = "Loading weather...";
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
@@ -111,7 +156,8 @@ async function fetchAndSetQuickFacts(query) {
     }
 }
 
-async function geocode(inputEl) {
+function geocode(inputEl) {
+    console.warn("The geocode() function is deprecated. The new `handleSearchAndNavigate` function takes a full place object instead of just a text input.");
     if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
     // NEW: Use MapTiler Geocoding API for the final geocode
     const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(inputEl.value)}.json?key=${MAPTILER_KEY}&limit=1`);
