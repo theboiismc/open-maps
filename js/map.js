@@ -110,6 +110,13 @@ function showClickedLocation(lngLat) {
         clickMarker.remove();
     }
     
+    // Animate the map to the clicked location
+    map.flyTo({
+        center: lngLat,
+        zoom: 16, // Zoom in to a street-level view
+        essential: true // This ensures the animation plays even if prefers-reduced-motion is enabled
+    });
+
     clickMarker = new maplibregl.Marker()
         .setLngLat(lngLat)
         .addTo(map);
