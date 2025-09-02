@@ -9,15 +9,29 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
 
-    <!-- Preload fonts for faster text rendering -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" />
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" as="style" />
-
-    <!-- Preload critical map CSS -->
-    <link rel="preload" href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" as="style" />
-    
-    <!-- Inline critical CSS to avoid render-blocking -->
+    <!-- Inline font definition (Inter) -->
     <style>
+        @font-face {
+            font-family: 'Inter';
+            src: url('fonts/inter-regular.woff2') format('woff2'),
+                 url('fonts/inter-regular.woff') format('woff');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('fonts/inter-medium.woff2') format('woff2'),
+                 url('fonts/inter-medium.woff') format('woff');
+            font-weight: 500;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('fonts/inter-bold.woff2') format('woff2'),
+                 url('fonts/inter-bold.woff') format('woff');
+            font-weight: 700;
+            font-style: normal;
+        }
         body {
             font-family: 'Inter', sans-serif;
             margin: 0;
@@ -27,16 +41,17 @@
         #top-banner, #navigation-status, #search-bar { display: none; }
     </style>
 
+    <!-- Preload critical map CSS -->
+    <link rel="preload" href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" as="style" />
+    
     <!-- Content-Security-Policy for security -->
-    <meta http-equiv="Content-Security-Policy" content="
-        default-src 'self';
-        script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
-        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
-        img-src 'self' data: https:;
-        font-src 'self' https://fonts.gstatic.com;
-        connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com;
-        worker-src 'self' blob: https://unpkg.com;
-    ">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; 
+    script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline'; 
+    style-src 'self' 'unsafe-inline' https://unpkg.com; 
+    img-src 'self' data: https:; 
+    font-src 'self'; 
+    connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com; 
+    worker-src 'self' blob: https://unpkg.com;">
 
     <!-- Open Graph meta tags for better social sharing -->
     <meta property="og:title" content="TheBoiisMC Maps" />
@@ -47,18 +62,19 @@
 
     <!-- External CSS (deferred) -->
     <link href="styles.css" rel="stylesheet" media="none" onload="this.media='all'" />
-
 </head>
-<body>
 
+<body>
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button class="js-settings-btn" aria-label="Map Settings">
-                <span class="material-symbols-outlined">settings</span>
+                <!-- Inline settings icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M19.14 12.936l1.43-1.43-2.16-2.16c.33-.99.52-2.05.52-3.06s-.19-2.07-.52-3.06l2.16-2.16-1.43-1.43-2.16 2.16c-.99-.33-2.05-.52-3.06-.52s-2.07.19-3.06.52l-2.16-2.16-1.43 1.43 2.16 2.16c-.33.99-.52 2.05-.52 3.06s.19 2.07.52 3.06l-2.16 2.16 1.43 1.43 2.16-2.16c.99.33 2.05.52 3.06.52s2.07-.19 3.06-.52l2.16 2.16zM12 16.57c-2.52 0-4.57-2.05-4.57-4.57s2.05-4.57 4.57-4.57 4.57 2.05 4.57 4.57-2.05 4.57-4.57 4.57z"/></svg>
             </button>
             <button id="profile-button" aria-label="User Profile">
-                <span class="material-symbols-outlined">account_circle</span>
+                <!-- Inline account icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-6 2.69-6 6v2h12v-2c0-3.31-2.69-6-6-6z"/></svg>
             </button>
             <div id="profile-dropdown">
                 <div id="logged-in-view" hidden>
@@ -193,7 +209,6 @@
     </button>
 
     <div id="menu-overlay"></div>
-
     <div id="settings-menu">
         <div class="settings-menu-header">
             <h4>Map Settings</h4>
@@ -239,12 +254,9 @@
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
     <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" defer></script>
     <script src="https://npmcdn.com/@turf/turf/turf.min.js" defer></script>
-
-    <!-- Custom Scripts -->
     <script src="js/auth.js" defer></script>
     <script src="js/map.js" defer></script>
     <script src="js/logic.js" defer></script>
     <script src="js/mobilePanel.js" defer></script>
-
 </body>
 </html>
