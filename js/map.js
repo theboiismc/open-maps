@@ -6,7 +6,7 @@ const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').m
 const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
 
 const STYLES = {
-    default: 'https://tiles.openfreemap.org/styles/liberty',
+    default: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
     satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`
 };
 
@@ -15,6 +15,8 @@ const map = new maplibregl.Map({
     style: STYLES.default,
     center: [0, 0], // will be updated by geolocation
     zoom: 2,
+    minZoom: 0,              // allow fully zoomed out globe
+    maxZoom: 22,             // standard max zoom
     pitch: 0,                // lock tilt
     bearing: 0,
     dragRotate: false,       // disable mouse drag rotation
