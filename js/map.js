@@ -89,10 +89,9 @@ const statEtaEl = document.getElementById('stat-eta');
 const statTimeRemainingEl = document.getElementById('stat-time-remaining');
 const highlightedSegmentLayerId = 'highlighted-route-segment';
 
-
 // --- NEW FUNCTIONS FOR CLICK-TO-GET-LOCATION ---
 
-// Function to handle reverse geocoding
+// Function to handle getting location details from coordinates
 async function reverseGeocode(lngLat) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lngLat.lat}&lon=${lngLat.lng}`;
     try {
@@ -100,7 +99,7 @@ async function reverseGeocode(lngLat) {
         const data = await response.json();
         return data;
     } catch (error) {
-        console.error("Reverse geocoding failed:", error);
+        console.error("Geocoding service failed:", error);
         return null;
     }
 }
@@ -129,22 +128,24 @@ function showClickedLocation(lngLat) {
             });
 
         } else {
+            // Friendly message for when no address is found
             mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
             showInfoPanel({
                 name: `Location`,
-                address: `Coordinates: [${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`,
+                address: `Unable to find an address for this spot.`,
                 coordinates: [lngLat.lng, lngLat.lat],
-                quickFacts: 'Reverse geocoding failed for this location.'
+                quickFacts: 'This location may be in a remote or unmapped area. You can still use the coordinates for directions.'
             });
         }
     }).catch(error => {
+        // Friendly message for a connection or server error
         console.error("Failed to show location info:", error);
         mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
         showInfoPanel({
             name: `Location`,
-            address: `Coordinates: [${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`,
+            address: `We're having trouble getting details for this location right now.`,
             coordinates: [lngLat.lng, lngLat.lat],
-            quickFacts: 'An error occurred during reverse geocoding.'
+            quickFacts: 'Please try again in a moment or use the coordinates provided.'
         });
     });
 }
