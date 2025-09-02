@@ -26,15 +26,13 @@
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
     
-    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
     
     <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
-    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
-    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" defer></script>
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js' defer></script>
     
-    <!-- FONTS & ICONS -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <!-- NEW: Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
     <link rel="stylesheet" href="styles.css">
@@ -44,11 +42,9 @@
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button class="js-settings-btn" aria-label="Map Settings">
-                <!-- UPDATED ICON -->
                 <span class="material-symbols-outlined">settings</span>
             </button>
             <button id="profile-button" aria-label="User Profile">
-                <!-- UPDATED ICON -->
                 <span class="material-symbols-outlined">account_circle</span>
             </button>
             <div id="profile-dropdown">
@@ -82,7 +78,6 @@
     
     <div id="navigation-status">
         <div id="instruction-container">
-            <!-- You can add a navigation icon here if you wish, e.g., <span class="material-symbols-outlined">navigation</span> -->
             <div id="navigation-instruction">Starting navigation...</div>
             <div id="instruction-progress-bar"></div>
         </div>
@@ -105,10 +100,8 @@
     
     <div id="top-search-wrapper">
         <div id="main-search-container">
-            <!-- UPDATED ICON -->
             <span id="search-icon-inside" class="material-symbols-outlined">search</span>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
-            <!-- UPDATED ICON -->
             <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
             <div id="main-suggestions" class="suggestions-dropdown"></div>
         </div>
@@ -122,7 +115,6 @@
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location"/>
                     <button id="close-info-btn">
-                        <!-- UPDATED ICON -->
                         <span class="material-symbols-outlined">arrow_back</span>
                     </button>
                 </div>
@@ -190,7 +182,6 @@
                 </div>
             </div>
             <hr>
-            <!-- NEW: Live Traffic Toggle -->
             <div class="setting-group">
                 <label class="setting-label">Live Traffic</label>
                 <div class="toggle-switch">
@@ -214,9 +205,9 @@
     <div id="map">
         <div id="map-watermark">TheBoiisMC</div>
     </div>
-    <script src="js/auth.js"></script>
-    <script src="js/map.js"></script>
-    <script src="js/logic.js"></script>
-    <script src="js/mobilePanel.js"></script>
+    <script src="js/auth.js" defer></script>
+    <script src="js/map.js" defer></script>
+    <script src="js/logic.js" defer></script>
+    <script src="js/mobilePanel.js" defer></script>
 </body>
 </html>
