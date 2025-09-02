@@ -18,6 +18,7 @@ const map = new maplibregl.Map({
     dragRotate: false,      // disable mouse drag rotation
     touchPitch: false,      // disable pinch-tilt gesture
     pitchWithRotate: false, // disables right-click+drag tilt
+    renderWorldCopies: false
 });
 
 
