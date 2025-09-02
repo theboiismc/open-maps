@@ -67,7 +67,6 @@ settingsBtns.forEach(btn => {
         openSettings();
     });
 });
-
 closeSettingsBtn.addEventListener('click', closeSettings);
 menuOverlay.addEventListener('click', closeSettings);
 
@@ -86,7 +85,8 @@ styleRadioButtons.forEach(radio => {
         }
     });
 });
-    
+
+// NEW: Event listener for the traffic toggle
 trafficToggle.addEventListener('change', () => {
     if (trafficToggle.checked) {
         addTrafficLayer();
@@ -112,77 +112,8 @@ map.on('styledata', () => {
         addRouteToMap(routeGeoJSON);
         updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]);
     }
+    // NEW: Re-add traffic layer if it was enabled when map style changes
     if (trafficToggle.checked) {
         addTrafficLayer();
     }
-});
-
-// Event listeners for various buttons
-document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
-document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
-document.getElementById('info-save-btn').addEventListener('click', () => {
-    if (currentUser) {
-        alert("Feature 'Save Place' not yet implemented!");
-    } else {
-        alert("Please log in to save places.");
-    }
-});
-document.getElementById('swap-btn').addEventListener('click', () => {
-    [fromInput.value, toInput.value] = [toInput.value, fromInput.value];
-    [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords];
-});
-document.getElementById('dir-use-my-location').addEventListener('click', () => {
-    fromInput.value = "Getting your location...";
-    navigator.geolocation.getCurrentPosition(
-        pos => {
-            fromInput.value = "Your Location";
-            fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
-        },
-        handlePositionError,
-        geolocationOptions
-    );
-});
-document.getElementById('back-to-info-btn').addEventListener('click', () => {
-    if (currentPlace) showPanel('info-panel-redesign');
-});
-document.getElementById('back-to-directions-btn').addEventListener('click', () => {
-    showPanel('directions-panel-redesign');
-});
-const startNavigationBtn = document.getElementById('start-navigation-btn');
-startNavigationBtn.addEventListener('click', startNavigation);
-const shareRouteBtn = document.getElementById('share-route-btn');
-shareRouteBtn.addEventListener('click', async () => {
-    const fromName = fromInput.value;
-    const toName = toInput.value;
-    const fromCoords = fromInput.dataset.coords;
-    const toCoords = toInput.dataset.coords;
-    const shareText = `Check out this route from ${fromName} to ${toName}!`;
-    const url = new URL(window.location.href);
-    url.searchParams.set('from', fromCoords);
-    url.searchParams.set('to', toCoords);
-    url.searchParams.set('fromName', fromName);
-    url.searchParams.set('toName', toName);
-    if (navigator.share) {
-        try {
-            await navigator.share({
-                title: 'TheBoiisMC Maps Route',
-                text: shareText,
-                url: url.toString()
-            });
-        } catch (error) {
-            console.error('Error sharing:', error);
-        }
-    } else {
-        navigator.clipboard.writeText(url.toString()).then(() => {
-            alert("Route link copied to clipboard!");
-        }).catch(err => {
-            console.error('Could not copy link: ', err);
-            alert("Could not copy link. Please manually copy the URL from the address bar.");
-        });
-    }
-});
-document.getElementById('get-route-btn').addEventListener('click', getRoute);
-document.getElementById('exit-route-btn').addEventListener('click', () => {
-    clearRouteFromMap();
-    showPanel('directions-panel-redesign');
 });
