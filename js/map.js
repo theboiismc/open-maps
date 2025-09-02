@@ -12,7 +12,7 @@ const STYLES = {
 
 const map = new maptilersdk.Map({
     container: "map",
-    style: "https://api.maptiler.com/maps/streets/style.json?key=F3cdRiC1r36tcrNrvrcV",
+    style: STYLES.default,
     projection: "globe",
     center: [0, 0],
     zoom: 0,       // start fully zoomed out
