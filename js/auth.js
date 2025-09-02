@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const usernameDisplay = loggedInView.querySelector('.username');
     const emailDisplay = loggedInView.querySelector('.email');
     let currentUser = null;
-}
+
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
         const isLoggedIn = !!currentUser;
@@ -72,3 +72,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
     // --- END AUTHENTICATION ---
+});
