@@ -76,7 +76,6 @@ async function getRoute() {
             document.getElementById('route-preview-distance').textContent = `${(distance / 1000).toFixed(1)} km / ${(distance * 0.000621371).toFixed(1)} mi`;
             document.getElementById('route-preview-time').textContent = `${(duration / 60).toFixed(0)} min`;
             document.getElementById('spinner').hidden = true;
-            
             drawRouteOnMap(route);
         } else {
             throw new Error("No route found.");
@@ -91,178 +90,161 @@ async function getRoute() {
 function drawRouteOnMap(route) {
     clearRouteFromMap();
     if (map.getSource('route')) {
-        map.getSource('route').setData(route);
+        map.getSource('route').setData(route.geometry);
     } else {
         map.addSource('route', {
-            'type': 'geojson',
-            'data': route
+            type: 'geojson',
+            data: route.geometry
         });
         map.addLayer({
-            'id': 'route',
-            'type': 'line',
-            'source': 'route',
-            'layout': {
+            id: 'route-line',
+            type: 'line',
+            source: 'route',
+            layout: {
                 'line-join': 'round',
                 'line-cap': 'round'
             },
-            'paint': {
-                'line-color': '#00796b',
+            paint: {
+                'line-color': '#0d89ec',
                 'line-width': 8,
-                'line-opacity': 0.8
+                'line-opacity': 0.7
             }
         });
     }
     const bounds = new maplibregl.LngLatBounds();
-    route.geometry.coordinates[0].forEach(point => {
-        bounds.extend(point);
+    route.geometry.coordinates.forEach(coord => {
+        bounds.extend(coord);
     });
-    map.fitBounds(bounds, { padding: 50, duration: 1000 });
+    map.fitBounds(bounds, {
+        padding: 50,
+        bearing: map.getBearing(),
+        pitch: map.getPitch()
+    });
+    const stepsList = document.getElementById('steps-list');
+    stepsList.innerHTML = '';
+    route.properties.legs.forEach(leg => {
+        leg.steps.forEach(step => {
+            const li = document.createElement('li');
+            li.className = 'step-item';
+            li.innerHTML = `<span class="step-icon material-symbols-outlined">${getManeuverIcon(step.maneuver.type)}</span> ${step.instruction.text}`;
+            stepsList.appendChild(li);
+        });
+    });
 }
-
-function clearRouteFromMap() {
-    if (map.getLayer('route')) {
-        map.removeLayer('route');
+function startNavigation() {
+    if (!currentRouteData) {
+        alert("Please get a route first.");
+        return;
     }
-    if (map.getSource('route')) {
-        map.removeSource('route');
-    }
-    // Clear the navigation state
-    navigationState = {
-        currentRoute: null,
-        currentLegIndex: 0,
-        currentStepIndex: 0,
-        distanceToNextManeuver: 0,
-        totalTripDistance: 0,
-        totalTripTime: 0,
-        lastAnnouncedDistance: 99999,
-        estimatedArrivalTime: null
-    };
+    showPanel('route-section');
+    map.setBearing(getBearing(currentRouteData.routes[0].geometry.coordinates[0], currentRouteData.routes[0].geometry.coordinates[1]));
+    navigationState.isActive = true;
+    navigationState.currentRoute = currentRouteData;
+    navigationState.currentLegIndex = 0;
+    navigationState.currentStepIndex = 0;
+    document.getElementById('navigation-instruction').textContent = "Starting...";
+    updateHighlightedSegment(navigationState.currentRoute.properties.legs[0].steps[0]);
+    simulateNavigation();
+}
+function stopNavigation() {
+    navigationState.isActive = false;
     if (navigationInterval) {
         clearInterval(navigationInterval);
         navigationInterval = null;
     }
-    if (mapMarker) {
-        mapMarker.remove();
-        mapMarker = null;
+    if (highlightedSegmentLayerId) {
+        map.removeLayer(highlightedSegmentLayerId);
+        map.removeSource(highlightedSegmentLayerId);
     }
-    stopSpeaking();
-    document.getElementById('nav-info-redesign').hidden = true;
 }
+let navigationInterval;
+const highlightedSegmentLayerId = 'highlighted-segment';
+let navigationState = { isActive: false, currentRoute: null, currentLegIndex: 0, currentStepIndex: 0, lastAnnouncedDistance: 999999, totalTripDistance: 0, totalTripTime: 0, estimatedArrivalTime: null };
 
-function stopNavigation() {
-    clearRouteFromMap();
-    showPanel('info-panel-redesign');
-}
-
-function startNavigation() {
-    if (!navigationState.currentRoute) return;
-    
-    showPanel('route-section');
-    document.getElementById('nav-info-redesign').hidden = false;
-    
-    // Set initial state
-    const firstLeg = navigationState.currentRoute.properties.legs[0];
-    const firstStep = firstLeg.steps[0];
-    
-    navigationState.currentLegIndex = 0;
-    navigationState.currentStepIndex = 0;
-    navigationState.totalTripTime = firstLeg.time;
-    navigationState.totalTripDistance = firstLeg.distance;
-    
-    speech.speak(`Starting navigation. ${firstStep.instruction.text}`);
-    updateNavigationUI();
-    
-    if (navigator.geolocation) {
-        geolocateControl.trigger();
-        navigator.geolocation.watchPosition(handlePositionUpdate, (err) => {
-            console.error('Geolocation error:', err);
-            speech.speak('Failed to get your current location. Navigation will not work.', true);
-        }, geolocationOptions);
+function updateHighlightedSegment(step) {
+    if (map.getLayer(highlightedSegmentLayerId)) {
+        map.removeLayer(highlightedSegmentLayerId);
+        map.removeSource(highlightedSegmentLayerId);
     }
-    
-    // Periodically check for new ETA and traffic updates
-    navigationInterval = setInterval(async () => {
-        if (!navigationState.currentRoute) return;
-        
-        const fromCoords = map.getCenter();
-        const toCoords = navigationState.currentRoute.geometry.coordinates[navigationState.currentRoute.geometry.coordinates.length - 1][0];
-
-        const GEOAPIFY_KEY = 'YOUR_GEOAPIFY_API_KEY';
-        const trafficValue = document.getElementById('traffic-toggle').checked ? 'approximated' : 'free_flow';
-        const units = document.getElementById('units-metric').checked ? 'metric' : 'imperial';
-
-        const url = `https://api.geoapify.com/v1/routing?waypoints=${fromCoords.lat},${fromCoords.lng}|${toCoords[1]},${toCoords[0]}&mode=drive&traffic=${trafficValue}&details=route_details,instruction_details&units=${units}&apiKey=${GEOAPIFY_KEY}`;
-        
-        try {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("API error fetching live data.");
-            const data = await res.json();
-            if (data.features && data.features.length > 0) {
-                const newRoute = data.features[0];
-                const newSummary = newRoute.properties.legs[0];
-                navigationState.totalTripTime = newSummary.time;
-                navigationState.estimatedArrivalTime = new Date(Date.now() + newSummary.time * 1000);
-                updateNavigationUI();
-            }
-        } catch(e) {
-            console.error("Live traffic update failed:", e);
-        }
-    }, 60000); // Update every 60 seconds
+    const geojson = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: step.geometry }] };
+    map.addSource(highlightedSegmentLayerId, { type: 'geojson', data: geojson });
+    map.addLayer({ id: highlightedSegmentLayerId, type: 'line', source: highlightedSegmentLayerId, layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#ff0000', 'line-width': 10, 'line-opacity': 0.8 } });
 }
 
-function handlePositionUpdate(position) {
-    if (!navigationState.currentRoute) return;
-    const currentLocation = turf.point([position.coords.longitude, position.coords.latitude]);
-    const routeLine = turf.lineString(navigationState.currentRoute.geometry.coordinates[0]);
-    
-    // Snap the current location to the nearest point on the route
-    const snapped = turf.nearestPointOnLine(routeLine, currentLocation);
-
-    const steps = navigationState.currentRoute.properties.legs[navigationState.currentLegIndex].steps;
-    const currentStep = steps[navigationState.currentStepIndex];
-    const nextManeuverCoords = currentStep.location;
-    const nextManeuverPoint = turf.point(nextManeuverCoords);
-    
-    // Calculate distance to the next maneuver
-    navigationState.distanceToNextManeuver = turf.distance(currentLocation, nextManeuverPoint, {units: 'meters'});
-
-    // Calculate remaining distance and time
-    const tripDistance = navigationState.currentRoute.properties.legs[0].distance;
+function simulateNavigation() {
+    const routeCoordinates = turf.feature(navigationState.currentRoute.geometry).geometry.coordinates;
+    const routeLine = turf.lineString(routeCoordinates);
+    let currentPosition = turf.point(routeCoordinates[0]);
+    let positionIndex = 0;
+    navigationState.totalTripDistance = turf.length(routeLine, {units: 'meters'});
     const tripDurationSeconds = navigationState.currentRoute.properties.legs[0].time;
-    const traveledDistance = turf.length(turf.lineSlice(routeLine.geometry.coordinates[0], snapped.geometry.coordinates, routeLine.geometry.coordinates[0]), { units: 'meters' });
-    const remainingDistance = tripDistance - traveledDistance;
-    const timeElapsed = tripDurationSeconds * (traveledDistance / tripDistance);
-    const remainingTimeSeconds = tripDurationSeconds - timeElapsed;
+    navigationState.totalTripTime = tripDurationSeconds;
+    navigationState.estimatedArrivalTime = new Date(Date.now() + tripDurationSeconds * 1000);
 
-    navigationState.totalTripDistance = remainingDistance;
-    navigationState.totalTripTime = remainingTimeSeconds;
-    navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
-    updateNavigationUI();
-
-    const distanceUnits = document.getElementById('units-metric').checked ? 'meters' : 'miles';
-    let distanceToNextManeuver = navigationState.distanceToNextManeuver;
-    if (distanceUnits === 'miles') {
-        distanceToNextManeuver *= 0.000621371; // convert to miles
-    }
-
-    if (distanceToNextManeuver > 0.9 && distanceToNextManeuver < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
-        speech.speak(`In 1 mile, ${currentStep.instruction.text}`);
-        navigationState.lastAnnouncedDistance = 1;
-    } else if (distanceToNextManeuver > 0.24 && distanceToNextManeuver < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
-        speech.speak(`In a quarter mile, ${currentStep.instruction.text}`);
-        navigationState.lastAnnouncedDistance = 0.25;
-    }
-
-    if (navigationState.distanceToNextManeuver < 50) {
-        navigationState.currentStepIndex++;
-        if (navigationState.currentStepIndex >= steps.length) {
-            speech.speak("You have arrived at your destination.", true);
-            stopNavigation();
+    navigationInterval = setInterval(() => {
+        if (!navigationState.isActive) {
+            clearInterval(navigationInterval);
             return;
         }
-        const nextStep = steps[navigationState.currentStepIndex];
-        document.getElementById('navigation-instruction').textContent = nextStep.instruction.text;
-        updateHighlightedSegment(nextStep);
-        speech.speak(nextStep.instruction.text);
-    }
+        positionIndex = (positionIndex + 10) % routeCoordinates.length;
+        if (positionIndex === 0) {
+            // Reached the end
+            clearInterval(navigationInterval);
+            return;
+        }
+        currentPosition = turf.point(routeCoordinates[positionIndex]);
+        
+        // Find nearest step
+        const currentStep = navigationState.currentRoute.properties.legs[navigationState.currentLegIndex].steps[navigationState.currentStepIndex];
+        const stepLine = turf.lineString(currentStep.geometry.coordinates);
+        const snapped = turf.nearestPointOnLine(stepLine, currentPosition);
+        navigationState.distanceToNextManeuver = turf.length(turf.lineSlice(snapped, turf.point(stepLine.geometry.coordinates[stepLine.geometry.coordinates.length - 1])), {units: 'meters'});
+        
+        const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
+        const remainingTimeSeconds = tripDurationSeconds - timeElapsed;
+        navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
+        navigationState.totalTripTime = remainingTimeSeconds;
+        updateNavigationUI();
+        const distanceUnits = document.getElementById('units-metric').checked ? 'meters' : 'miles';
+        let distanceToNextManeuver = navigationState.distanceToNextManeuver;
+        if (distanceUnits === 'miles') {
+            distanceToNextManeuver *= 0.000621371; // convert to miles
+        }
+        if (distanceToNextManeuver > 0.9 && distanceToNextManeuver < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
+            speech.speak(`In 1 mile, ${currentStep.instruction.text}`);
+            navigationState.lastAnnouncedDistance = 1;
+        } else if (distanceToNextManeuver > 0.24 && distanceToNextManeuver < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
+            speech.speak(`In a quarter mile, ${currentStep.instruction.text}`);
+            navigationState.lastAnnouncedDistance = 0.25;
+        }
+
+        if (navigationState.distanceToNextManeuver < 50) {
+            navigationState.currentStepIndex++;
+            if (navigationState.currentStepIndex >= steps.length) {
+                speech.speak("You have arrived at your destination.", true);
+                stopNavigation();
+                return;
+            }
+            const nextStep = steps[navigationState.currentStepIndex];
+            document.getElementById('navigation-instruction').textContent = nextStep.instruction.text;
+            updateHighlightedSegment(nextStep);
+            speech.speak(nextStep.instruction.text);
+            navigationState.lastAnnouncedDistance = 999999;
+        }
+    }, 1000);
+}
+
+function getManeuverIcon(type) {
+    const icons = { 'turn': 'turn_left', 'depart': 'directions', 'arrive': 'pin_drop', 'merge': 'merge_type', 'fork': 'alt_route', 'roundabout': 'roundabout_right' };
+    return icons[type] || 'directions';
+}
+let speech = window.speechSynthesis;
+let speechUtterance = new SpeechSynthesisUtterance();
+
+function speak(text, isFinal = false) {
+    if (!speech || !speechUtterance) return;
+    speechUtterance.text = text;
+    speechUtterance.rate = 1.2;
+    speechUtterance.pitch = 1.0;
+    speech.speak(speechUtterance);
 }
