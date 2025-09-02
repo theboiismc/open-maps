@@ -26,130 +26,230 @@ function formatEta(date) {
 
 function updateNavigationUI() {
     const remainingTime = (navigationState.totalTripTime / 60).toFixed(0);
-    statTimeRemainingEl.textContent = `${remainingTime} min`;
-    statEtaEl.textContent = formatEta(navigationState.estimatedArrivalTime);
-    statSpeedEl.textContent = navigationState.userSpeed.toFixed(0);
-    instructionProgressBar.transform = `scaleX(${1 - navigationState.progressAlongStep})`;
-}
-
-function updateHighlightedSegment(step) {
-    if (map.getLayer(highlightedSegmentLayerId)) map.removeLayer(highlightedSegmentLayerId);
-    if (map.getSource(highlightedSegmentLayerId)) map.removeSource(highlightedSegmentLayerId);
-    if (!step || !step.geometry) return;
-    map.addSource(highlightedSegmentLayerId, { type: 'geojson', data: step.geometry });
-    map.addLayer({
-        id: highlightedSegmentLayerId,
-        type: 'line',
-        source: highlightedSegmentLayerId,
-        paint: { 'line-color': '#0055ff', 'line-width': 9, 'line-opacity': 0.9 }
-    }, 'route-line');
-}
-
-function startNavigation() {
-    if (!navigator.geolocation) return alert("Geolocation is not supported by your browser.");
-     
-    resetNavigationState();
-    navigationState.isActive = true;
-    navigationState.totalTripTime = currentRouteData.routes[0].duration;
-
-    const firstStep = currentRouteData.routes[0].legs[0].steps[0];
-    navigationInstructionEl.textContent = firstStep.maneuver.instruction;
-    updateHighlightedSegment(firstStep);
-    updateNavigationUI();
-
-    navigationStatusPanel.style.display = 'flex';
-    speech.speak(`Starting route. ${firstStep.maneuver.instruction}`, true);
-    if (!userLocationMarker) {
-        const el = document.createElement('div');
-        el.className = 'user-location-marker';
-        userLocationMarker = new maplibregl.Marker(el).setLngLat([0, 0]).addTo(map);
+    const remainingDistance = (navigationState.totalTripDistance / 1000).toFixed(1);
+    const units = document.getElementById('units-metric').checked ? 'km' : 'mi';
+    
+    document.getElementById('distance-remaining').textContent = units === 'mi' ? (remainingDistance * 0.621371).toFixed(1) : remainingDistance;
+    document.getElementById('distance-units').textContent = units;
+    document.getElementById('eta-time').textContent = formatEta(navigationState.estimatedArrivalTime);
+    
+    // Update main instruction text
+    const currentStep = navigationState.currentRoute.properties.legs[navigationState.currentLegIndex].steps[navigationState.currentStepIndex];
+    if (currentStep) {
+        document.getElementById('navigation-instruction').textContent = currentStep.instruction.text;
+        document.getElementById('navigation-subinstruction').textContent = `Distance: ${currentStep.distance.toFixed(1)} ${units}`;
     }
+}
 
-    map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
+async function getRoute() {
+    const fromInput = document.getElementById('from-input');
+    const toInput = document.getElementById('to-input');
+    
+    try {
+        showPanel('route-preview-panel');
+        document.getElementById('spinner').hidden = false;
+        
+        const fromCoords = await geocode(fromInput);
+        const toCoords = await geocode(toInput);
 
-    navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
-    endNavigationBtn.addEventListener('click', stopNavigation);
+        const GEOAPIFY_KEY = 'YOUR_GEOAPIFY_API_KEY';
+        const trafficValue = document.getElementById('traffic-toggle').checked ? 'approximated' : 'free_flow';
+        const units = document.getElementById('units-metric').checked ? 'metric' : 'imperial';
+        
+        // NEW: Use Geoapify Routing API
+        const url = `https://api.geoapify.com/v1/routing?waypoints=${fromCoords[1]},${fromCoords[0]}|${toCoords[1]},${toCoords[0]}&mode=drive&traffic=${trafficValue}&details=route_details,instruction_details&units=${units}&apiKey=${GEOAPIFY_KEY}`;
+        
+        const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error(`Geoapify API Error: ${res.statusText}`);
+        }
+        const data = await res.json();
+        
+        if (data.features && data.features.length > 0) {
+            const route = data.features[0];
+            const routeSummary = route.properties.legs[0];
+            navigationState.currentRoute = route;
+            
+            const distance = routeSummary.distance;
+            const duration = routeSummary.time;
+            
+            document.getElementById('route-preview-distance').textContent = `${(distance / 1000).toFixed(1)} km / ${(distance * 0.000621371).toFixed(1)} mi`;
+            document.getElementById('route-preview-time').textContent = `${(duration / 60).toFixed(0)} min`;
+            document.getElementById('spinner').hidden = true;
+            
+            drawRouteOnMap(route);
+        } else {
+            throw new Error("No route found.");
+        }
+    } catch (e) {
+        console.error("Routing error:", e);
+        document.getElementById('spinner').hidden = true;
+        alert("Failed to find a route. Please check the addresses or try again.");
+    }
+}
+
+function drawRouteOnMap(route) {
+    clearRouteFromMap();
+    if (map.getSource('route')) {
+        map.getSource('route').setData(route);
+    } else {
+        map.addSource('route', {
+            'type': 'geojson',
+            'data': route
+        });
+        map.addLayer({
+            'id': 'route',
+            'type': 'line',
+            'source': 'route',
+            'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': '#00796b',
+                'line-width': 8,
+                'line-opacity': 0.8
+            }
+        });
+    }
+    const bounds = new maplibregl.LngLatBounds();
+    route.geometry.coordinates[0].forEach(point => {
+        bounds.extend(point);
+    });
+    map.fitBounds(bounds, { padding: 50, duration: 1000 });
+}
+
+function clearRouteFromMap() {
+    if (map.getLayer('route')) {
+        map.removeLayer('route');
+    }
+    if (map.getSource('route')) {
+        map.removeSource('route');
+    }
+    // Clear the navigation state
+    navigationState = {
+        currentRoute: null,
+        currentLegIndex: 0,
+        currentStepIndex: 0,
+        distanceToNextManeuver: 0,
+        totalTripDistance: 0,
+        totalTripTime: 0,
+        lastAnnouncedDistance: 99999,
+        estimatedArrivalTime: null
+    };
+    if (navigationInterval) {
+        clearInterval(navigationInterval);
+        navigationInterval = null;
+    }
+    if (mapMarker) {
+        mapMarker.remove();
+        mapMarker = null;
+    }
+    stopSpeaking();
+    document.getElementById('nav-info-redesign').hidden = true;
 }
 
 function stopNavigation() {
-    if (navigationWatcherId) navigator.geolocation.clearWatch(navigationWatcherId);
-    if (userLocationMarker) { userLocationMarker.remove(); userLocationMarker = null; }
-
     clearRouteFromMap();
-    resetNavigationState();
-
-    navigationStatusPanel.style.display = 'none';
-    speech.synthesis.cancel();
-
-    map.easeTo({ pitch: 0, bearing: 0 });
+    showPanel('info-panel-redesign');
 }
 
-function handlePositionError(error) {
-    console.error("Geolocation Error:", error.message);
-    alert(`Geolocation error: ${error.message}. Navigation stopped.`);
-    stopNavigation();
-}
-
-async function handlePositionUpdate(position) {
-    if (!navigationState.isActive || navigationState.isRerouting) return;
-    const { latitude, longitude, heading, speed, accuracy } = position.coords;
-
-    if (accuracy > 80) return;
-
-    const userPoint = turf.point([longitude, latitude]);
-    const steps = currentRouteData.routes[0].legs[0].steps;
-
-    navigationState.userSpeed = (speed || 0) * 2.23694;
-    const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
-    const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
-
-    userLocationMarker.setLngLat(snapped.geometry.coordinates);
-    if (heading != null) {
-        userLocationMarker.setRotation(heading);
-        map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: 18, duration: 500 });
-    } else {
-        map.easeTo({ center: snapped.geometry.coordinates, zoom: 18, duration: 500 });
+function startNavigation() {
+    if (!navigationState.currentRoute) return;
+    
+    showPanel('route-section');
+    document.getElementById('nav-info-redesign').hidden = false;
+    
+    // Set initial state
+    const firstLeg = navigationState.currentRoute.properties.legs[0];
+    const firstStep = firstLeg.steps[0];
+    
+    navigationState.currentLegIndex = 0;
+    navigationState.currentStepIndex = 0;
+    navigationState.totalTripTime = firstLeg.time;
+    navigationState.totalTripDistance = firstLeg.distance;
+    
+    speech.speak(`Starting navigation. ${firstStep.instruction.text}`);
+    updateNavigationUI();
+    
+    if (navigator.geolocation) {
+        geolocateControl.trigger();
+        navigator.geolocation.watchPosition(handlePositionUpdate, (err) => {
+            console.error('Geolocation error:', err);
+            speech.speak('Failed to get your current location. Navigation will not work.', true);
+        }, geolocationOptions);
     }
+    
+    // Periodically check for new ETA and traffic updates
+    navigationInterval = setInterval(async () => {
+        if (!navigationState.currentRoute) return;
+        
+        const fromCoords = map.getCenter();
+        const toCoords = navigationState.currentRoute.geometry.coordinates[navigationState.currentRoute.geometry.coordinates.length - 1][0];
 
+        const GEOAPIFY_KEY = 'YOUR_GEOAPIFY_API_KEY';
+        const trafficValue = document.getElementById('traffic-toggle').checked ? 'approximated' : 'free_flow';
+        const units = document.getElementById('units-metric').checked ? 'metric' : 'imperial';
+
+        const url = `https://api.geoapify.com/v1/routing?waypoints=${fromCoords.lat},${fromCoords.lng}|${toCoords[1]},${toCoords[0]}&mode=drive&traffic=${trafficValue}&details=route_details,instruction_details&units=${units}&apiKey=${GEOAPIFY_KEY}`;
+        
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("API error fetching live data.");
+            const data = await res.json();
+            if (data.features && data.features.length > 0) {
+                const newRoute = data.features[0];
+                const newSummary = newRoute.properties.legs[0];
+                navigationState.totalTripTime = newSummary.time;
+                navigationState.estimatedArrivalTime = new Date(Date.now() + newSummary.time * 1000);
+                updateNavigationUI();
+            }
+        } catch(e) {
+            console.error("Live traffic update failed:", e);
+        }
+    }, 60000); // Update every 60 seconds
+}
+
+function handlePositionUpdate(position) {
+    if (!navigationState.currentRoute) return;
+    const currentLocation = turf.point([position.coords.longitude, position.coords.latitude]);
+    const routeLine = turf.lineString(navigationState.currentRoute.geometry.coordinates[0]);
+    
+    // Snap the current location to the nearest point on the route
+    const snapped = turf.nearestPointOnLine(routeLine, currentLocation);
+
+    const steps = navigationState.currentRoute.properties.legs[navigationState.currentLegIndex].steps;
     const currentStep = steps[navigationState.currentStepIndex];
-    const stepStartPoint = turf.point(currentStep.geometry.coordinates[0]);
-    const stepEndPoint = turf.point(currentStep.geometry.coordinates[currentStep.geometry.coordinates.length - 1]);
-    const stepBearing = getBearing(stepStartPoint, stepEndPoint);
-    const headingDifference = Math.abs(heading - stepBearing);
+    const nextManeuverCoords = currentStep.location;
+    const nextManeuverPoint = turf.point(nextManeuverCoords);
+    
+    // Calculate distance to the next maneuver
+    navigationState.distanceToNextManeuver = turf.distance(currentLocation, nextManeuverPoint, {units: 'meters'});
 
-    if (snapped.properties.dist > 50) {
-        navigationState.isRerouting = true;
-        speech.speak("Off route. Recalculating.", true);
-        await getRoute();
-        return;
-    }
-     
-    if (heading != null && headingDifference > 90 && headingDifference < 270 && navigationState.userSpeed > 5 && !navigationState.isWrongWay) {
-        navigationState.isWrongWay = true;
-        speech.speak("Wrong way. Recalculating.", true);
-        await getRoute();
-        return;
-    }
-    navigationState.isWrongWay = false;
-
-    const currentStepLine = turf.lineString(currentStep.geometry.coordinates);
-    const totalStepDistance = turf.length(currentStepLine, { units: 'meters' });
-    navigationState.distanceToNextManeuver = turf.distance(userPoint, stepEndPoint, { units: 'meters' });
-    navigationState.progressAlongStep = Math.max(0, 1 - (navigationState.distanceToNextManeuver / totalStepDistance));
-
-    const tripDurationSeconds = currentRouteData.routes[0].duration;
-    const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
+    // Calculate remaining distance and time
+    const tripDistance = navigationState.currentRoute.properties.legs[0].distance;
+    const tripDurationSeconds = navigationState.currentRoute.properties.legs[0].time;
+    const traveledDistance = turf.length(turf.lineSlice(routeLine.geometry.coordinates[0], snapped.geometry.coordinates, routeLine.geometry.coordinates[0]), { units: 'meters' });
+    const remainingDistance = tripDistance - traveledDistance;
+    const timeElapsed = tripDurationSeconds * (traveledDistance / tripDistance);
     const remainingTimeSeconds = tripDurationSeconds - timeElapsed;
-    navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
+
+    navigationState.totalTripDistance = remainingDistance;
     navigationState.totalTripTime = remainingTimeSeconds;
+    navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
     updateNavigationUI();
 
-    const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
-    if (distanceMiles > 0.9 && distanceMiles < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
-        speech.speak(`In 1 mile, ${currentStep.maneuver.instruction}`);
+    const distanceUnits = document.getElementById('units-metric').checked ? 'meters' : 'miles';
+    let distanceToNextManeuver = navigationState.distanceToNextManeuver;
+    if (distanceUnits === 'miles') {
+        distanceToNextManeuver *= 0.000621371; // convert to miles
+    }
+
+    if (distanceToNextManeuver > 0.9 && distanceToNextManeuver < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
+        speech.speak(`In 1 mile, ${currentStep.instruction.text}`);
         navigationState.lastAnnouncedDistance = 1;
-    } else if (distanceMiles > 0.24 && distanceMiles < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
-        speech.speak(`In a quarter mile, ${currentStep.maneuver.instruction}`);
+    } else if (distanceToNextManeuver > 0.24 && distanceToNextManeuver < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
+        speech.speak(`In a quarter mile, ${currentStep.instruction.text}`);
         navigationState.lastAnnouncedDistance = 0.25;
     }
 
@@ -161,9 +261,8 @@ async function handlePositionUpdate(position) {
             return;
         }
         const nextStep = steps[navigationState.currentStepIndex];
-        navigationInstructionEl.textContent = nextStep.maneuver.instruction;
+        document.getElementById('navigation-instruction').textContent = nextStep.instruction.text;
         updateHighlightedSegment(nextStep);
-        speech.speak(nextStep.maneuver.instruction, true);
-        navigationState.lastAnnouncedDistance = Infinity;
+        speech.speak(nextStep.instruction.text);
     }
 }
