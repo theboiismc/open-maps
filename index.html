@@ -3,78 +3,53 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    
     <title>TheBoiisMC Maps</title>
     <meta name="description" content="Explore the world with private, modern mapping." />
     <meta name="theme-color" content="#00796b" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
-
-    <!-- Inline font definition (Inter) -->
-    <style>
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-regular.woff2') format('woff2'),
-                 url('fonts/inter-regular.woff') format('woff');
-            font-weight: 400;
-            font-style: normal;
-        }
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-medium.woff2') format('woff2'),
-                 url('fonts/inter-medium.woff') format('woff');
-            font-weight: 500;
-            font-style: normal;
-        }
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-bold.woff2') format('woff2'),
-                 url('fonts/inter-bold.woff') format('woff');
-            font-weight: 700;
-            font-style: normal;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        #map { height: 100vh; }
-        #top-banner, #navigation-status, #search-bar { display: none; }
-    </style>
-
-    <!-- Preload critical map CSS -->
-    <link rel="preload" href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" as="style" />
     
-    <!-- Content-Security-Policy for security -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; 
-    script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline'; 
-    style-src 'self' 'unsafe-inline' https://unpkg.com; 
-    img-src 'self' data: https:; 
-    font-src 'self'; 
-    connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com; 
-    worker-src 'self' blob: https://unpkg.com;">
-
-    <!-- Open Graph meta tags for better social sharing -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
+        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+        img-src 'self' data: https:;
+        font-src 'self' https://fonts.gstatic.com;
+        connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com;
+        worker-src 'self' blob: https://unpkg.com;
+    ">
+    
     <meta property="og:title" content="TheBoiisMC Maps" />
     <meta property="og:description" content="Explore the world with private, modern mapping." />
     <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
+    
+    <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    
+    <!-- FONTS & ICONS -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- NEW: Google Material Symbols -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
-    <!-- External CSS (deferred) -->
-    <link href="styles.css" rel="stylesheet" media="none" onload="this.media='all'" />
+    <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button class="js-settings-btn" aria-label="Map Settings">
-                <!-- Inline settings icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M19.14 12.936l1.43-1.43-2.16-2.16c.33-.99.52-2.05.52-3.06s-.19-2.07-.52-3.06l2.16-2.16-1.43-1.43-2.16 2.16c-.99-.33-2.05-.52-3.06-.52s-2.07.19-3.06.52l-2.16-2.16-1.43 1.43 2.16 2.16c-.33.99-.52 2.05-.52 3.06s.19 2.07.52 3.06l-2.16 2.16 1.43 1.43 2.16-2.16c.99.33 2.05.52 3.06.52s2.07-.19 3.06-.52l2.16 2.16zM12 16.57c-2.52 0-4.57-2.05-4.57-4.57s2.05-4.57 4.57-4.57 4.57 2.05 4.57 4.57-2.05 4.57-4.57 4.57z"/></svg>
+                <!-- UPDATED ICON -->
+                <span class="material-symbols-outlined">settings</span>
             </button>
             <button id="profile-button" aria-label="User Profile">
-                <!-- Inline account icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-6 2.69-6 6v2h12v-2c0-3.31-2.69-6-6-6z"/></svg>
+                <!-- UPDATED ICON -->
+                <span class="material-symbols-outlined">account_circle</span>
             </button>
             <div id="profile-dropdown">
                 <div id="logged-in-view" hidden>
@@ -104,9 +79,10 @@
             </div>
         </div>
     </div>
-
+    
     <div id="navigation-status">
         <div id="instruction-container">
+            <!-- You can add a navigation icon here if you wish, e.g., <span class="material-symbols-outlined">navigation</span> -->
             <div id="navigation-instruction">Starting navigation...</div>
             <div id="instruction-progress-bar"></div>
         </div>
@@ -126,16 +102,18 @@
         </div>
         <button id="end-navigation-btn">End Trip</button>
     </div>
-
+    
     <div id="top-search-wrapper">
         <div id="main-search-container">
+            <!-- UPDATED ICON -->
             <span id="search-icon-inside" class="material-symbols-outlined">search</span>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
+            <!-- UPDATED ICON -->
             <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
             <div id="main-suggestions" class="suggestions-dropdown"></div>
         </div>
     </div>
-
+    
     <div id="side-panel">
         <div id="panel-grabber"></div>
         <div id="panel-search-placeholder" hidden></div>
@@ -144,6 +122,7 @@
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location"/>
                     <button id="close-info-btn">
+                        <!-- UPDATED ICON -->
                         <span class="material-symbols-outlined">arrow_back</span>
                     </button>
                 </div>
@@ -152,14 +131,8 @@
                     <div class="address" id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn">
-                            <div class="icon-circle"><span class="material-symbols-outlined">directions</span></div>
-                            <div class="btn-label">Directions</div>
-                        </div>
-                        <div class="btn-wrapper" id="info-save-btn">
-                            <div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div>
-                            <div class="btn-label">Save</div>
-                        </div>
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></div>
                     </div>
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
@@ -173,9 +146,7 @@
                         <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
                         <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
                     </div>
-                    <div class="dir-quick-select" id="dir-use-my-location">
-                        <div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location
-                    </div>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
                     <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
                 </div>
             </div>
@@ -186,14 +157,8 @@
                         <div id="route-summary-distance"></div>
                     </div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn">
-                            <div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div>
-                            <div class="btn-label">Start Trip</div>
-                        </div>
-                        <div class="btn-wrapper" id="share-route-btn">
-                            <div class="icon-circle"><span class="material-symbols-outlined">share</span></div>
-                            <div class="btn-label">Share</div>
-                        </div>
+                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
+                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
                     </div>
                     <button id="back-to-directions-btn">Back</button>
                 </div>
@@ -203,11 +168,11 @@
             </div>
         </div>
     </div>
-
+    
     <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
         <span class="material-symbols-outlined">layers</span>
     </button>
-
+    
     <div id="menu-overlay"></div>
     <div id="settings-menu">
         <div class="settings-menu-header">
@@ -225,6 +190,7 @@
                 </div>
             </div>
             <hr>
+            <!-- NEW: Live Traffic Toggle -->
             <div class="setting-group">
                 <label class="setting-label">Live Traffic</label>
                 <div class="toggle-switch">
@@ -244,19 +210,13 @@
             </div>
         </div>
     </div>
-
-    <!-- Map container -->
+    
     <div id="map">
         <div id="map-watermark">TheBoiisMC</div>
     </div>
-
-    <!-- Scripts: Defer loading after page load -->
-    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
-    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" defer></script>
-    <script src="https://npmcdn.com/@turf/turf/turf.min.js" defer></script>
-    <script src="js/auth.js" defer></script>
-    <script src="js/map.js" defer></script>
-    <script src="js/mobilePanel.js" defer></script>
-    <script src="js/logic.js" defer></script>
+    <script src="js/auth.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/logic.js"></script>
+    <script src="js/mobilePanel.js"></script>
 </body>
 </html>
