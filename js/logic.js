@@ -1,19 +1,21 @@
-
- {
+/**
+ * logic.js
+ * Full UI wiring for TheBoiisMC Maps (buttons, menus, panels, suggestions, basic routing flow)
+ *
+ * Focus: robust settings menu behavior (desktop + mobile) that respects your styles.css.
+ *
+ * Date: 2025-09-02
+ */
+(() => {
   'use strict';
 
-  // ------- tiny DOM helpers -------
+  /* ----------------- tiny DOM helpers ----------------- */
   const $ = (sel, ctx = document) => (ctx || document).querySelector(sel);
-  const $$ = (sel, ctx = document) => Array.from((ctx || document).querySelectorAll(sel) || []);
+  const $$ = (sel, ctx = document) => Array.from((ctx || document).querySelectorAll(sel || ''));
   const on = (el, ev, fn, opts = false) => { if (!el) return; el.addEventListener(ev, fn, opts); };
-  const onAll = (sel, ev, fn) => $$(sel).forEach(el => on(el, ev, fn));
-  const once = (el, ev, fn) => {
-    if (!el) return;
-    const wrapped = (e) => { el.removeEventListener(ev, wrapped); fn(e); };
-    el.addEventListener(ev, wrapped);
-  };
+  const once = (el, ev, fn) => { if (!el) return; const w = (e) => { el.removeEventListener(ev, w); fn(e); }; el.addEventListener(ev, w); };
 
-  // -------- init --------
+  /* ----------------- startup ----------------- */
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
@@ -27,133 +29,203 @@
     console.debug('logic.js: initialized');
   }
 
-  // ---------------------------
-  // Settings menu (desktop + mobile)
-  // ---------------------------
+  /* ----------------- SETTINGS MENU (desktop + mobile) ----------------- */
   function initSettingsMenu() {
+    const settingsBtns = $$('.js-settings-btn'); // should include desktop gear + mobile layers
     const settingsMenu = $('#settings-menu');
     const menuOverlay = $('#menu-overlay');
     const closeBtn = $('#close-settings-btn');
 
-    if (!settingsMenu || !menuOverlay) {
-      console.warn('settings-menu or menu-overlay not found in DOM');
+    if (!settingsMenu) {
+      console.warn('settings-menu not found');
       return;
     }
 
-    let previouslyFocused = null;
+    // small helpers for breakpoint detection using the same media query you used in styles.css
+    const isMobile = () => window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
+    const isDesktop = () => !isMobile();
+
     let isOpen = false;
+    let previouslyFocused = null;
+    let lastTrigger = null;
 
-    // Ensure visual stacking & pointer events to avoid other elements blocking clicks
-    function styleForOpen() {
-      // these z-index values are conservative; feel free to match your CSS system
-      menuOverlay.style.display = 'block';
-      menuOverlay.style.pointerEvents = 'auto';
-      menuOverlay.style.zIndex = '99990';
+    function openMenu(triggerBtn) {
+      if (isOpen) return;
+      lastTrigger = triggerBtn || document.querySelector('.js-settings-btn');
+      previouslyFocused = document.activeElement;
 
+      // Add open class so CSS transforms/opacity apply
       settingsMenu.classList.add('open');
       settingsMenu.setAttribute('aria-hidden', 'false');
-      settingsMenu.style.zIndex = '99999';
 
-      // trap background scroll (useful on mobile)
-      document.body.style.overflow = 'hidden';
-    }
-
-    function styleForClose() {
-      menuOverlay.style.display = '';
-      menuOverlay.style.pointerEvents = '';
-      menuOverlay.style.zIndex = '';
-
-      settingsMenu.classList.remove('open');
-      settingsMenu.setAttribute('aria-hidden', 'true');
-      settingsMenu.style.zIndex = '';
-
-      document.body.style.overflow = '';
-    }
-
-    function openSettings(triggerEl) {
-      if (isOpen) return;
-      previouslyFocused = document.activeElement;
-      styleForOpen();
-      isOpen = true;
-
-      // focus the close button for keyboard users
-      if (closeBtn) {
-        try { closeBtn.focus({ preventScroll: true }); } catch (e) { closeBtn.focus(); }
+      // If mobile: enable overlay (CSS handles transform for mobile)
+      if (menuOverlay) {
+        if (isMobile()) {
+          menuOverlay.classList.add('open');
+          // ensure overlay visible in case media queries hide it via 'display:none'
+          menuOverlay.style.display = 'block';
+        } else {
+          // on desktop we don't want a full-screen overlay; remove the open class
+          menuOverlay.classList.remove('open');
+          menuOverlay.style.display = ''; // clear any inline display we set earlier
+        }
       }
 
-      console.debug('settings: opened', triggerEl || null);
+      // Positioning for desktop: anchor the menu to the trigger button visually
+      if (isDesktop() && lastTrigger) {
+        // Make the menu displayable so offsetWidth/height are measurable
+        settingsMenu.style.visibility = 'hidden';
+        settingsMenu.style.left = '';
+        settingsMenu.style.right = '';
+        settingsMenu.style.top = '';
+        settingsMenu.style.bottom = '';
+        // Force browser to render so offsets are available
+        // (class 'open' already applied so display:block per your CSS)
+        requestAnimationFrame(() => {
+          const rect = lastTrigger.getBoundingClientRect();
+          const menuW = settingsMenu.offsetWidth || 280;
+          const menuH = settingsMenu.offsetHeight || 200;
+          // position top near bottom of the button
+          let top = rect.bottom + 6;
+          let left = rect.right - menuW;
+          // clamp to viewport
+          const pad = 8;
+          if (left < pad) left = pad;
+          if (left + menuW > window.innerWidth - pad) left = Math.max(pad, window.innerWidth - menuW - pad);
+          // If menu would run off bottom, prefer placing above the button
+          if (top + menuH > window.innerHeight - pad) {
+            top = rect.top - menuH - 6;
+            if (top < pad) top = pad;
+          }
+          settingsMenu.style.position = 'absolute';
+          settingsMenu.style.top = `${Math.round(top)}px`;
+          settingsMenu.style.left = `${Math.round(left)}px`;
+          settingsMenu.style.right = 'auto';
+          settingsMenu.style.visibility = 'visible';
+          // focus the close button for keyboard users
+          if (closeBtn) {
+            try { closeBtn.focus({ preventScroll: true }); } catch (e) { closeBtn.focus(); }
+          }
+        });
+      } else {
+        // mobile: let CSS handle bottom sheet layout; focus close button
+        settingsMenu.style.position = '';
+        settingsMenu.style.top = '';
+        settingsMenu.style.left = '';
+        settingsMenu.style.right = '';
+        settingsMenu.style.visibility = 'visible';
+        if (closeBtn) {
+          try { closeBtn.focus({ preventScroll: true }); } catch (e) { closeBtn.focus(); }
+        }
+      }
+
+      // Prevent background scroll on mobile when menu open
+      if (isMobile()) document.documentElement.style.overflow = 'hidden';
+      isOpen = true;
+      console.debug('settings: opened', { trigger: lastTrigger, mobile: isMobile() });
     }
 
-    function closeSettings() {
+    function closeMenu() {
       if (!isOpen) return;
-      styleForClose();
-      isOpen = false;
+      settingsMenu.classList.remove('open');
+      settingsMenu.setAttribute('aria-hidden', 'true');
 
-      // restore focus to previous element if still in document
+      // restore overlay only if we used it
+      if (menuOverlay) {
+        menuOverlay.classList.remove('open');
+        menuOverlay.style.display = '';
+      }
+
+      // clear any inline positioning to let CSS manage layout again
+      settingsMenu.style.position = '';
+      settingsMenu.style.top = '';
+      settingsMenu.style.left = '';
+      settingsMenu.style.right = '';
+      settingsMenu.style.visibility = '';
+
+      // restore scrolling
+      document.documentElement.style.overflow = '';
+
+      // restore focus
       if (previouslyFocused && document.contains(previouslyFocused)) {
         try { previouslyFocused.focus({ preventScroll: true }); } catch (e) { previouslyFocused.focus(); }
       }
-
+      isOpen = false;
+      lastTrigger = null;
       console.debug('settings: closed');
     }
 
-    // Primary: event delegation — catches clicks on any current or future .js-settings-btn
+    // Attach click listeners directly to all .js-settings-btn buttons
+    if (Array.isArray(settingsBtns) && settingsBtns.length) {
+      settingsBtns.forEach(btn => {
+        // ensure it's keyboard-focusable & accessible
+        if (!btn.hasAttribute('tabindex')) btn.setAttribute('tabindex', '0');
+        if (!btn.hasAttribute('role')) btn.setAttribute('role', 'button');
+        on(btn, 'click', (ev) => {
+          ev.stopPropagation(); // prevent document click close race
+          // toggle behavior: reopen if same button clicked (close), else open for new
+          if (isOpen && lastTrigger === btn) {
+            closeMenu();
+          } else {
+            openMenu(btn);
+          }
+        });
+        // keyboard activation
+        on(btn, 'keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+        });
+      });
+    } else {
+      // Fallback: if no buttons found, try delegation (unlikely)
+      on(document, 'click', (e) => {
+        const closest = e.target.closest && e.target.closest('.js-settings-btn');
+        if (closest) {
+          e.stopPropagation();
+          openMenu(closest);
+        }
+      });
+    }
+
+    // Close when clicking outside the menu or pressing Escape
     on(document, 'click', (e) => {
-      const btn = e.target.closest && e.target.closest('.js-settings-btn');
-      if (!btn) return;
-      e.stopPropagation();
-      openSettings(btn);
+      // if click inside menu or on a settings button, ignore (we already handle settings-btn clicks)
+      if (settingsMenu.contains(e.target) || e.target.closest && e.target.closest('.js-settings-btn')) return;
+      closeMenu();
     });
 
-    // Also listen for touchstart for devices where touchstart fires earlier/higher priority
-    on(document, 'touchstart', (e) => {
-      const btn = e.target.closest && e.target.closest('.js-settings-btn');
-      if (!btn) return;
-      // don't call preventDefault here; just open
-      openSettings(btn);
-    }, { passive: true });
-
-    // Close via overlay or close button
-    on(menuOverlay, 'click', (e) => {
-      e.stopPropagation();
-      closeSettings();
-    });
-    on(closeBtn, 'click', (e) => {
-      e.stopPropagation();
-      closeSettings();
-    });
-
-    // Avoid overlay clicks when clicking inside the menu
-    on(settingsMenu, 'click', (e) => e.stopPropagation());
-
-    // Close on ESC when open
     on(document, 'keydown', (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        e.preventDefault();
-        closeSettings();
+      if (e.key === 'Escape') {
+        if (isOpen) {
+          e.preventDefault();
+          closeMenu();
+        }
       }
     });
 
-    // Make sure any existing .js-settings-btn are keyboard-focusable & accessible
-    $$('.js-settings-btn').forEach(btn => {
-      if (!btn.hasAttribute('tabindex')) btn.setAttribute('tabindex', '0');
-      if (!btn.hasAttribute('role')) btn.setAttribute('role', 'button');
-      // keyboard enter/space support
-      on(btn, 'keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+    // overlay click (mainly for mobile)
+    if (menuOverlay) {
+      on(menuOverlay, 'click', (e) => {
+        e.stopPropagation();
+        closeMenu();
       });
-    });
+    }
 
-    // Safety: ensure overlay receives pointer-events only when active
-    const observer = new MutationObserver(() => {
-      menuOverlay.style.pointerEvents = menuOverlay.style.display === 'block' ? 'auto' : 'none';
+    // When window resizes, if menu open re-position properly or close if crossing breakpoints
+    let resizeTO = null;
+    on(window, 'resize', () => {
+      clearTimeout(resizeTO);
+      resizeTO = setTimeout(() => {
+        if (!isOpen) return;
+        // Close and reopen to recalc position for new viewport
+        const trigger = lastTrigger;
+        closeMenu();
+        // small delay to ensure CSS recalcs and media queries settle
+        setTimeout(() => openMenu(trigger), 40);
+      }, 120);
     });
-    observer.observe(menuOverlay, { attributes: true, attributeFilter: ['style', 'class'] });
   }
 
-  // ---------------------------
-  // Profile dropdown
-  // ---------------------------
+  /* ----------------- PROFILE DROPDOWN ----------------- */
   function initProfileDropdown() {
     const profileBtn = $('#profile-button');
     const profileDropdown = $('#profile-dropdown');
@@ -162,26 +234,35 @@
 
     on(profileBtn, 'click', (e) => {
       e.stopPropagation();
-      profileDropdown.hidden = !profileDropdown.hidden;
+      // toggle visibility using attribute (your CSS hides #profile-dropdown by default)
+      const isHidden = profileDropdown.hasAttribute('data-open');
+      // ensure settings menu closes when opening profile
+      const settings = $('#settings-menu');
+      if (settings) settings.classList.remove('open');
+
+      if (isHidden) {
+        profileDropdown.removeAttribute('data-open');
+        profileDropdown.style.display = 'none';
+      } else {
+        profileDropdown.setAttribute('data-open', 'true');
+        profileDropdown.style.display = 'block';
+      }
     });
 
-    on(profileBtn, 'keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); profileBtn.click(); }
+    on(profileBtn, 'keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); profileBtn.click(); } });
+
+    // clicking outside hides dropdown
+    on(document, 'click', (e) => {
+      if (!profileDropdown.contains(e.target) && !e.target.closest('.js-settings-btn') && !e.target.closest('#profile-button')) {
+        profileDropdown.style.display = 'none';
+        profileDropdown.removeAttribute('data-open');
+      }
     });
 
-    on(document, 'click', () => { profileDropdown.hidden = true; });
     on(profileDropdown, 'click', (e) => e.stopPropagation());
-
-    // profile actions (placeholders for integration)
-    const savedBtn = $('#saved-places-btn');
-    const logoutBtn = $('#logout-btn');
-    if (savedBtn) on(savedBtn, 'click', (e) => { e.preventDefault(); profileDropdown.hidden = true; console.debug('profile: saved-places clicked'); });
-    if (logoutBtn) on(logoutBtn, 'click', (e) => { e.preventDefault(); profileDropdown.hidden = true; console.debug('profile: logout clicked'); });
   }
 
-  // ---------------------------
-  // Side panel (info/directions/route) flow
-  // ---------------------------
+  /* ----------------- SIDE PANEL FLOW ----------------- */
   function initSidePanelFlow() {
     const sidePanel = $('#side-panel');
     if (!sidePanel) return;
@@ -201,24 +282,20 @@
       Object.values(panels).forEach(p => { if (p) p.hidden = true; });
       if (panels[name]) panels[name].hidden = false;
       sidePanel.classList.add('open');
-
-      // Move the main search input into the panel placeholder if available
+      // move search into panel placeholder when opened on desktop/mobile
       if (panelSearchPlaceholder && mainSearchContainer && !panelSearchPlaceholder.contains(mainSearchContainer)) {
         panelSearchPlaceholder.hidden = false;
         panelSearchPlaceholder.appendChild(mainSearchContainer);
       }
     }
-
     function hideSidePanel() {
       sidePanel.classList.remove('open');
-      // move search container back
       const topWrapper = $('#top-search-wrapper');
       if (topWrapper && mainSearchContainer && !topWrapper.contains(mainSearchContainer)) {
         topWrapper.appendChild(mainSearchContainer);
       }
     }
 
-    // Wire buttons
     const infoDirections = $('#info-directions-btn');
     const backToInfo = $('#back-to-info-btn');
     const getRouteBtn = $('#get-route-btn');
@@ -233,23 +310,17 @@
     if (exitRouteBtn) on(exitRouteBtn, 'click', (e) => { e.preventDefault(); showPanel('info'); });
     if (startNav) on(startNav, 'click', (e) => { e.preventDefault(); startNavigation(); });
 
-    // End navigation
     const endNavBtn = $('#end-navigation-btn');
     if (endNavBtn) on(endNavBtn, 'click', (e) => { e.preventDefault(); stopNavigation(); });
 
-    // Swap origin/destination
     const swapBtn = $('#swap-btn');
     const panelFrom = $('#panel-from-input');
     const panelTo = $('#panel-to-input');
     if (swapBtn && panelFrom && panelTo) on(swapBtn, 'click', (e) => {
       e.preventDefault();
-      const a = panelFrom.value;
-      panelFrom.value = panelTo.value;
-      panelTo.value = a;
-      panelFrom.focus();
+      const a = panelFrom.value; panelFrom.value = panelTo.value; panelTo.value = a; panelFrom.focus();
     });
 
-    // Use my location
     const useMyLocation = $('#dir-use-my-location');
     if (useMyLocation && panelFrom) on(useMyLocation, 'click', async (e) => {
       e.preventDefault();
@@ -264,7 +335,6 @@
       }
     });
 
-    // Panel grabber for mobile
     if (panelGrabber) {
       panelGrabber.style.cursor = 'pointer';
       panelGrabber.setAttribute('role', 'button');
@@ -273,12 +343,10 @@
       on(panelGrabber, 'keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') panelGrabber.click(); });
     }
 
-    // simple route preview placeholder
     function generateRoutePreview() {
       const from = panelFrom?.value || '';
       const to = panelTo?.value || '';
       const isMyLoc = (from || '').toLowerCase().includes('my location');
-
       const distance = Math.max(1, Math.round(((from.length + to.length) / 2) * 0.2));
       const minutes = Math.max(1, Math.round(distance * 3 + (isMyLoc ? 0 : 4)));
 
@@ -297,9 +365,7 @@
           `Arrive at ${to || 'destination'}`
         ];
         steps.forEach(s => {
-          const li = document.createElement('li');
-          li.textContent = s;
-          stepsList.appendChild(li);
+          const li = document.createElement('li'); li.textContent = s; stepsList.appendChild(li);
         });
       }
 
@@ -314,7 +380,6 @@
       if (instruction) instruction.textContent = 'Navigation started';
       console.debug('navigation: started');
     }
-
     function stopNavigation() {
       const navStatus = $('#navigation-status');
       if (navStatus) navStatus.classList.remove('active');
@@ -323,7 +388,6 @@
       if (instruction) instruction.textContent = 'Navigation stopped';
       console.debug('navigation: stopped');
     }
-
     function getCurrentPosition(options = {}) {
       return new Promise((resolve, reject) => {
         if (!navigator.geolocation) return reject(new Error('geolocation-not-supported'));
@@ -332,9 +396,7 @@
     }
   }
 
-  // ---------------------------
-  // Search suggestions UI
-  // ---------------------------
+  /* ----------------- SEARCH SUGGESTIONS ----------------- */
   function initSearchSuggestions() {
     const mainInput = $('#main-search');
     const mainSug = $('#main-suggestions');
@@ -361,15 +423,11 @@
         const items = generateSuggestions(q);
         render(items);
       });
-
       on(inputEl, 'focus', () => {
         const q = inputEl.value.trim();
         if (q) render(generateSuggestions(q));
       });
-
-      on(inputEl, 'keydown', (e) => {
-        if (e.key === 'Escape') hide();
-      });
+      on(inputEl, 'keydown', (e) => { if (e.key === 'Escape') hide(); });
 
       // prevent blur on mousedown in dropdown so clicks register
       on(containerEl, 'mousedown', e => e.preventDefault());
@@ -388,36 +446,17 @@
           row.tabIndex = 0;
           row.textContent = text;
           row.dataset.value = text;
-
-          on(row, 'click', (ev) => {
-            ev.preventDefault();
-            inputEl.value = text;
-            hide();
-            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-          });
+          on(row, 'click', (ev) => { ev.preventDefault(); inputEl.value = text; hide(); inputEl.dispatchEvent(new Event('change', { bubbles: true })); });
           on(row, 'keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); row.click(); } });
-
           containerEl.appendChild(row);
         });
         containerEl.style.display = items.length ? 'block' : 'none';
       }
 
-      function hide() {
-        containerEl.innerHTML = '';
-        containerEl.style.display = 'none';
-      }
+      function hide() { containerEl.innerHTML = ''; containerEl.style.display = 'none'; }
 
       function generateSuggestions(q) {
-        const seed = [
-          'Coffee Shop',
-          'Gas Station',
-          'Library',
-          'City Hall',
-          'Museum',
-          'Park',
-          'Restaurant',
-          'Hotel'
-        ];
+        const seed = ['Coffee Shop','Gas Station','Library','City Hall','Museum','Park','Restaurant','Hotel'];
         const lower = q.toLowerCase();
         const matches = seed.filter(s => s.toLowerCase().includes(lower));
         return [q, ...matches.filter(m => m.toLowerCase() !== lower).slice(0, 5)];
@@ -425,18 +464,14 @@
     }
   }
 
-  // ---------------------------
-  // Misc button wiring + small features
-  // ---------------------------
+  /* ----------------- MISC BUTTON ENHANCEMENTS ----------------- */
   function initButtonEnhancements() {
-    // Make .btn-wrapper and .icon-wrapper keyboard focusable if they're divs
     $$('.btn-wrapper').forEach(el => {
       if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
       if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
       el.style.cursor = 'pointer';
       on(el, 'keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
     });
-
     $$('.icon-wrapper').forEach(el => {
       if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
       if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
@@ -444,7 +479,6 @@
       on(el, 'keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
     });
 
-    // Info save button toggle
     const infoSave = $('#info-save-btn');
     if (infoSave) on(infoSave, 'click', (e) => {
       e.preventDefault();
@@ -454,7 +488,6 @@
       flash('Saved toggled');
     });
 
-    // Share route: copy current URL to clipboard
     const shareRoute = $('#share-route-btn');
     if (shareRoute) on(shareRoute, 'click', async (e) => {
       e.preventDefault();
@@ -464,43 +497,25 @@
           await navigator.clipboard.writeText(shareUrl);
           flash('Copied link to clipboard');
         } else {
-          // fallback
-          const ta = document.createElement('textarea');
-          ta.value = shareUrl;
-          ta.style.position = 'fixed';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
+          const ta = document.createElement('textarea'); ta.value = shareUrl; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
           flash('Copied link to clipboard (fallback)');
         }
       } catch (err) {
-        console.warn('share: copy failed', err);
-        flash('Copy failed');
+        console.warn('share: copy failed', err); flash('Copy failed');
       }
     });
 
-    // Prevent anchor jump for anchors with href="#"
     $$('a[href="#"]').forEach(a => on(a, 'click', (e) => e.preventDefault()));
   }
 
-  // ---------------------------
-  // Accessibility helpers
-  // ---------------------------
+  /* ----------------- ACCESSIBILITY POLYFILLS ----------------- */
   function initAccessibilityPolyfills() {
-    // ensure svgs inside non-button parents are focusable/clickable
     $$('svg').forEach(svg => {
       const p = svg.parentElement;
       if (!p) return;
       const tag = p.tagName.toLowerCase();
-      if ((tag === 'div' || tag === 'span' || tag === 'button') && !p.hasAttribute('role')) {
-        // if parent is a button element, role is implicit; only set for non-button parents
-        if (tag !== 'button') p.setAttribute('role', 'button');
-      }
-      if ((tag === 'div' || tag === 'span') && !p.hasAttribute('tabindex')) {
-        p.tabIndex = p.tabIndex || 0;
-      }
+      if ((tag === 'div' || tag === 'span') && !p.hasAttribute('role')) p.setAttribute('role', 'button');
+      if ((tag === 'div' || tag === 'span') && !p.hasAttribute('tabindex')) p.tabIndex = p.tabIndex || 0;
       if ((tag === 'div' || tag === 'span')) {
         p.style.cursor = p.style.cursor || 'pointer';
         on(p, 'keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.click(); } });
@@ -508,20 +523,16 @@
     });
   }
 
-  // ---------------------------
-  // Global handlers (escape, etc.)
-  // ---------------------------
+  /* ----------------- GLOBAL HANDLERS ----------------- */
   function initGlobalHandlers() {
-    // global ESC: close things (profile + settings)
     on(document, 'keydown', (e) => {
       if (e.key === 'Escape') {
-        const pd = $('#profile-dropdown'); if (pd) pd.hidden = true;
+        const pd = $('#profile-dropdown'); if (pd) pd.style.display = 'none';
         const sm = $('#settings-menu'); if (sm) sm.classList.remove('open');
-        const mo = $('#menu-overlay'); if (mo) mo.classList.remove('active');
+        const mo = $('#menu-overlay'); if (mo) mo.classList.remove('open');
       }
     });
 
-    // Simple flash snackbar utility
     function flash(msg, duration = 1600) {
       let el = $('#global-flash');
       if (!el) {
@@ -547,8 +558,6 @@
     }
     window._mapsFlash = flash;
   }
-
-  // small local helper to call global flash
   function flash(msg) { if (window._mapsFlash) window._mapsFlash(msg); }
 
 })();
