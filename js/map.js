@@ -11,8 +11,15 @@ const STYLES = {
 };
 
 const map = new maptilersdk.Map({
-	container: "map",
-	projection: "globe", // Use a globe projection
+    container: "map",
+    style: "https://api.maptiler.com/maps/streets/style.json?key=F3cdRiC1r36tcrNrvrcV",
+    projection: "globe",
+    center: [0, 0],
+    zoom: 0,       // start fully zoomed out
+    minZoom: 0,
+    maxZoom: 22,
+    pitch: 0,
+    bearing: 0
 });
 
 // Add Google Maps–style atmosphere
