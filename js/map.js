@@ -1,81 +1,150 @@
-  // --- MAP INITIALIZATION & CONTROLS ---
-    // NEW: Add your MapTiler API Key here
-    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
+// --- MAP INITIALIZATION & CONTROLS ---
+// NEW: Add your MapTiler API Key here
+const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 
-    const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
-    const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-    const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty',
-        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
-    };
-    const map = new maplibregl.Map({
-        container: "map",
-        style: STYLES.default,
-        center: [-95, 39],
-        zoom: 4
-    });
-    
-    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-    const geolocateControl = new maplibregl.GeolocateControl({
-        positionOptions: geolocationOptions,
-        trackUserLocation: true,
-        showUserHeading: true
-    });
-    map.addControl(geolocateControl, "bottom-right");
-    map.on('load', () => geolocateControl.trigger());
-    // --- GLOBAL VARIABLES & UI ELEMENTS ---
-    const sidePanel = document.getElementById("side-panel");
-    const mainSearchInput = document.getElementById("main-search");
-    const mainSearchContainer = document.getElementById('main-search-container');
-    const topSearchWrapper = document.getElementById('top-search-wrapper');
-    const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
-    const closePanelBtn = document.getElementById('close-panel-btn');
-    const closeInfoBtn = document.getElementById('close-info-btn');
-    
-    let currentPlace = null;
-    let currentRouteData = null;
-    let userLocationMarker = null;
-    let navigationWatcherId = null;
+const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
+const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+const STYLES = {
+    default: 'https://tiles.openfreemap.org/styles/liberty',
+    satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
+};
+const map = new maplibregl.Map({
+    container: "map",
+    style: STYLES.default,
+    center: [-95, 39],
+    zoom: 4
+});
 
-    const speech = {
-        synthesis: window.speechSynthesis,
-        utterance: new SpeechSynthesisUtterance(),
-        speak(text, priority = false) {
-            if (priority && this.synthesis.speaking) {
-                this.synthesis.cancel();
-            }
-            if (!this.synthesis.speaking && text) {
-                this.utterance.text = text;
-                this.synthesis.speak(this.utterance);
-            }
-        }
-    };
+map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+const geolocateControl = new maplibregl.GeolocateControl({
+    positionOptions: geolocationOptions,
+    trackUserLocation: true,
+    showUserHeading: true
+});
+map.addControl(geolocateControl, "bottom-right");
+map.on('load', () => geolocateControl.trigger());
 
-    // --- ADVANCED NAVIGATION STATE ---
-    let navigationState = {};
-    function resetNavigationState() {
-        navigationState = {
-            isActive: false,
-            isRerouting: false,
-            currentStepIndex: 0,
-            progressAlongStep: 0,
-            distanceToNextManeuver: Infinity,
-            userSpeed: 0,
-            estimatedArrivalTime: null,
-            totalTripTime: 0,
-            lastAnnouncedDistance: Infinity,
-            isWrongWay: false
-        };
+// NEW: Add a click event listener to the map
+let clickMarker = null;
+map.on('click', (e) => {
+    // Prevent click events from triggering if navigation is active
+    if (!navigationState.isActive) {
+        showClickedLocation(e.lngLat);
     }
-    resetNavigationState();
+});
 
-    // --- NAVIGATION UI ELEMENTS ---
-    const navigationStatusPanel = document.getElementById('navigation-status');
-    const navigationInstructionEl = document.getElementById('navigation-instruction');
-    const instructionProgressBar = document.getElementById('instruction-progress-bar').style;
-    const endNavigationBtn = document.getElementById('end-navigation-btn');
-    const statSpeedEl = document.getElementById('stat-speed');
-    const statEtaEl = document.getElementById('stat-eta');
-    const statTimeRemainingEl = document.getElementById('stat-time-remaining');
-    const highlightedSegmentLayerId = 'highlighted-route-segment';
+// --- GLOBAL VARIABLES & UI ELEMENTS ---
+const sidePanel = document.getElementById("side-panel");
+const mainSearchInput = document.getElementById("main-search");
+const mainSearchContainer = document.getElementById('main-search-container');
+const topSearchWrapper = document.getElementById('top-search-wrapper');
+const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
+const closePanelBtn = document.getElementById('close-panel-btn');
+const closeInfoBtn = document.getElementById('close-info-btn');
+
+let currentPlace = null;
+let currentRouteData = null;
+let userLocationMarker = null;
+let navigationWatcherId = null;
+
+const speech = {
+    synthesis: window.speechSynthesis,
+    utterance: new SpeechSynthesisUtterance(),
+    speak(text, priority = false) {
+        if (priority && this.synthesis.speaking) {
+            this.synthesis.cancel();
+        }
+        if (!this.synthesis.speaking && text) {
+            this.utterance.text = text;
+            this.synthesis.speak(this.utterance);
+        }
+    }
+};
+
+// --- ADVANCED NAVIGATION STATE ---
+let navigationState = {};
+function resetNavigationState() {
+    navigationState = {
+        isActive: false,
+        isRerouting: false,
+        currentStepIndex: 0,
+        progressAlongStep: 0,
+        distanceToNextManeuver: Infinity,
+        userSpeed: 0,
+        estimatedArrivalTime: null,
+        totalTripTime: 0,
+        lastAnnouncedDistance: Infinity,
+        isWrongWay: false
+    };
+}
+resetNavigationState();
+
+// --- NAVIGATION UI ELEMENTS ---
+const navigationStatusPanel = document.getElementById('navigation-status');
+const navigationInstructionEl = document.getElementById('navigation-instruction');
+const instructionProgressBar = document.getElementById('instruction-progress-bar').style;
+const endNavigationBtn = document.getElementById('end-navigation-btn');
+const statSpeedEl = document.getElementById('stat-speed');
+const statEtaEl = document.getElementById('stat-eta');
+const statTimeRemainingEl = document.getElementById('stat-time-remaining');
+const highlightedSegmentLayerId = 'highlighted-route-segment';
+
+
+// --- NEW FUNCTIONS FOR CLICK-TO-GET-LOCATION ---
+
+// Function to handle reverse geocoding
+async function reverseGeocode(lngLat) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lngLat.lat}&lon=${lngLat.lng}`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Reverse geocoding failed:", error);
+        return null;
+    }
+}
+
+// Function to show the location information
+function showClickedLocation(lngLat) {
+    if (clickMarker) {
+        clickMarker.remove();
+    }
     
+    clickMarker = new maplibregl.Marker()
+        .setLngLat(lngLat)
+        .addTo(map);
+
+    reverseGeocode(lngLat).then(data => {
+        if (data && data.display_name) {
+            const placeName = data.name || data.display_name;
+            const placeAddress = data.address.road ? `${data.address.road}, ${data.address.city}, ${data.address.state}, ${data.address.postcode}` : data.display_name;
+
+            showInfoPanel({
+                name: placeName,
+                address: placeAddress,
+                coordinates: [lngLat.lng, lngLat.lat],
+                type: data.type,
+                quickFacts: `Latitude: ${lngLat.lat.toFixed(6)}<br>Longitude: ${lngLat.lng.toFixed(6)}`
+            });
+
+        } else {
+            mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
+            showInfoPanel({
+                name: `Location`,
+                address: `Coordinates: [${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`,
+                coordinates: [lngLat.lng, lngLat.lat],
+                quickFacts: 'Reverse geocoding failed for this location.'
+            });
+        }
+    }).catch(error => {
+        console.error("Failed to show location info:", error);
+        mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
+        showInfoPanel({
+            name: `Location`,
+            address: `Coordinates: [${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`,
+            coordinates: [lngLat.lng, lngLat.lat],
+            quickFacts: 'An error occurred during reverse geocoding.'
+        });
+    });
+}
