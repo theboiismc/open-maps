@@ -1,203 +1,169 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    
-    <title>TheBoiisMC Maps</title>
-    <meta name="description" content="Explore the world with private, modern mapping." />
-    <meta name="theme-color" content="#00796b" />
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon512_rounded.png">
-    
-    <meta http-equiv="Content-Security-Policy" content="
-        default-src 'self';
-        script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
-        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
-        img-src 'self' data: https:;
-        font-src 'self' https://fonts.gstatic.com;
-        connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com;
-        worker-src 'self' blob: https://unpkg.com;
-    ">
-    
-    <meta property="og:title" content="TheBoiisMC Maps" />
-    <meta property="og:description" content="Explore the world with private, modern mapping." />
-    <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
-    <meta property="og:url" content="https://maps.theboiismc.com" />
-    <meta name="twitter:card" content="summary_large_image" />
-    
-    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
-    
-    <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
-    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" defer></script>
-    <script src='https://npmcdn.com/@turf/turf/turf.min.js' defer></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+// --- MAP INITIALIZATION & CONTROLS ---
+// NEW: Add your MapTiler API Key here
+const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div id="top-banner">
-        <span id="site-title">TheBoiisMC Maps</span>
-        <div id="profile-area">
-            <button class="js-settings-btn" aria-label="Map Settings">
-                <span class="material-symbols-outlined">settings</span>
-            </button>
-            <button id="profile-button" aria-label="User Profile">
-                <span class="material-symbols-outlined">account_circle</span>
-            </button>
-            <div id="profile-dropdown">
-                <div id="logged-in-view" hidden>
-                    <div class="profile-section profile-section-header">
-                        <div class="username">TheBoiisMC</div>
-                        <div class="email">user@example.com</div>
-                    </div>
-                    <hr/>
-                    <div class="profile-actions">
-                        <a id="saved-places-btn">Saved Places</a>
-                    </div>
-                    <hr/>
-                    <div class="profile-actions">
-                        <a id="logout-btn">Log Out</a>
-                    </div>
-                </div>
-                <div id="not-logged-in-view">
-                    <div class="profile-actions">
-                        <a id="login-btn">Log In</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
+const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+const STYLES = {
+    default: 'https://tiles.openfreemap.org/styles/liberty',
+    satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
+};
+const map = new maplibregl.Map({
+    container: "map",
+    style: STYLES.default,
+    center: [-95, 39],
+    zoom: 4
+});
+
+map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+const geolocateControl = new maplibregl.GeolocateControl({
+    positionOptions: geolocationOptions,
+    trackUserLocation: true,
+    showUserHeading: true
+});
+map.addControl(geolocateControl, "bottom-right");
+map.on('load', () => geolocateControl.trigger());
+
+// NEW: Add a click event listener to the map
+let clickMarker = null;
+map.on('click', (e) => {
+    // Prevent click events from triggering if navigation is active
+    if (!navigationState.isActive) {
+        showClickedLocation(e.lngLat);
+    }
+});
+
+// --- GLOBAL VARIABLES & UI ELEMENTS ---
+const sidePanel = document.getElementById("side-panel");
+const mainSearchInput = document.getElementById("main-search");
+const mainSearchContainer = document.getElementById('main-search-container');
+const topSearchWrapper = document.getElementById('top-search-wrapper');
+const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
+const closePanelBtn = document.getElementById('close-panel-btn');
+const closeInfoBtn = document.getElementById('close-info-btn');
+
+let currentPlace = null;
+let currentRouteData = null;
+let userLocationMarker = null;
+let navigationWatcherId = null;
+
+const speech = {
+    synthesis: window.speechSynthesis,
+    utterance: new SpeechSynthesisUtterance(),
+    speak(text, priority = false) {
+        if (priority && this.synthesis.speaking) {
+            this.synthesis.cancel();
+        }
+        if (!this.synthesis.speaking && text) {
+            this.utterance.text = text;
+            this.synthesis.speak(this.utterance);
+        }
+    }
+};
+
+// --- ADVANCED NAVIGATION STATE ---
+let navigationState = {};
+function resetNavigationState() {
+    navigationState = {
+        isActive: false,
+        isRerouting: false,
+        currentStepIndex: 0,
+        progressAlongStep: 0,
+        distanceToNextManeuver: Infinity,
+        userSpeed: 0,
+        estimatedArrivalTime: null,
+        totalTripTime: 0,
+        lastAnnouncedDistance: Infinity,
+        isWrongWay: false
+    };
+}
+resetNavigationState();
+
+// --- NAVIGATION UI ELEMENTS ---
+const navigationStatusPanel = document.getElementById('navigation-status');
+const navigationInstructionEl = document.getElementById('navigation-instruction');
+const instructionProgressBar = document.getElementById('instruction-progress-bar').style;
+const endNavigationBtn = document.getElementById('end-navigation-btn');
+const statSpeedEl = document.getElementById('stat-speed');
+const statEtaEl = document.getElementById('stat-eta');
+const statTimeRemainingEl = document.getElementById('stat-time-remaining');
+const highlightedSegmentLayerId = 'highlighted-route-segment';
+
+// --- NEW FUNCTIONS FOR CLICK-TO-GET-LOCATION ---
+
+// Function to handle getting location details from coordinates
+async function reverseGeocode(lngLat) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lngLat.lat}&lon=${lngLat.lng}`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Geocoding service failed:", error);
+        return null;
+    }
+}
+
+// Function to show the location information
+function showClickedLocation(lngLat) {
+    if (clickMarker) {
+        clickMarker.remove();
+    }
     
-    <div id="side-panel" class="closed">
-        <button id="close-panel-btn"><span class="material-symbols-outlined">close</span></button>
-        <div id="panel-search-placeholder"></div>
-        <div id="info-panel-redesign" hidden>
-            <div class="info-image-container">
-                <img id="info-image" src="" alt="Place image" />
-            </div>
-            <div class="info-content-container">
-                <div class="info-header">
-                    <h2 id="info-name"></h2>
-                    <p id="info-address"></p>
-                    <p id="info-weather"></p>
-                </div>
-                <div class="info-body">
-                    <p id="quick-facts-content"></p>
-                    <div class="info-actions">
-                        <button id="get-directions-btn"><span class="material-symbols-outlined">directions_car</span>Get Directions</button>
-                        <button id="save-place-btn"><span class="material-symbols-outlined">favorite</span>Save</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div id="directions-panel-redesign" hidden>
-            <div class="directions-header">
-                <h2>Directions</h2>
-                <div id="directions-inputs">
-                    <input type="text" id="panel-from-input" placeholder="Start location" />
-                    <div id="panel-from-suggestions" class="search-suggestions"></div>
-                    <input type="text" id="panel-to-input" placeholder="Destination" />
-                    <div id="panel-to-suggestions" class="search-suggestions"></div>
-                </div>
-                <button id="get-route-btn">Get Route</button>
-            </div>
-        </div>
-        
-        <div id="route-preview-panel" hidden>
-            <div class="route-summary">
-                <span id="route-summary-time">-- min</span>
-                <span id="route-summary-distance">-- mi</span>
-            </div>
-            <div class="route-actions">
-                <button id="start-navigation-btn" class="primary-action"><span class="material-symbols-outlined">play_arrow</span>Start Navigation</button>
-                <button id="share-route-btn"><span class="material-symbols-outlined">share</span>Share</button>
-            </div>
-            <ul id="steps-list"></ul>
-        </div>
-        
-        <div id="route-section" hidden>
-            <div class="route-header">
-                <button id="exit-route-btn"><span class="material-symbols-outlined">close</span></button>
-                <div class="route-main-info">
-                    <div class="instruction-text">
-                        <p id="navigation-instruction">Driving to destination</p>
-                        <p id="navigation-subinstruction"></p>
-                    </div>
-                    <div class="eta-info">
-                        <span id="eta-time">--:--</span>
-                        <div class="distance-info">
-                            <span id="distance-remaining">--</span>
-                            <span id="distance-units">mi</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="search-container">
-        <div id="top-search-wrapper">
-            <div id="main-search-container">
-                <div class="search-box">
-                    <span id="search-icon-inside" class="material-symbols-outlined">search</span>
-                    <input type="text" id="main-search-input" placeholder="Search for a place" />
-                </div>
-                <div id="main-suggestions" class="search-suggestions"></div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="settings-menu" class="closed">
-        <div class="settings-header">
-            <h3>Map Settings</h3>
-            <button id="close-settings-btn"><span class="material-symbols-outlined">close</span></button>
-        </div>
-        <div class="settings-content">
-            <div class="setting-group">
-                <label class="setting-label">Map Style</label>
-                <div class="radio-group">
-                    <input type="radio" id="style-streets" name="map-style" value="streets" checked>
-                    <label for="style-streets">Streets</label>
-                    <input type="radio" id="style-satellite" name="map-style" value="satellite">
-                    <label for="style-satellite">Satellite</label>
-                </div>
-            </div>
-            <hr>
-            <div class="setting-group">
-                <label class="setting-label">Live Traffic</label>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="traffic-toggle" name="map-traffic">
-                    <label for="traffic-toggle"></label>
-                </div>
-            </div>
-            <hr>
-            <div class="setting-group">
-                <label class="setting-label">Units</label>
-                <div class="radio-group">
-                    <input type="radio" id="units-imperial" name="map-units" value="imperial" checked>
-                    <label for="units-imperial">Imperial</label>
-                    <input type="radio" id="units-metric" name="map-units" value="metric">
-                    <label for="units-metric">Metric</label>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="map">
-        <div id="map-watermark">TheBoiisMC</div>
-    </div>
-    <script src="js/auth.js" defer></script>
-    <script src="js/map.js" defer></script>
-    <script src="js/utils.js" defer ></script>
-    <script src="js/map_layers.js" defer ></script>
-    <script src="js/ui.js" defer></script>
-    <script src="js/search.js" defer></script>
-    <script src="js/navigation.js" defer></script>
-    <script src="js/init.js" defer ></script>
-    <script src="js/logic.js" defer></script>
-</body>
-</html>
+    // Animate the map to the clicked location
+    map.flyTo({
+        center: lngLat,
+        zoom: 16, // Zoom in to a street-level view
+        essential: true // This ensures the animation plays even if prefers-reduced-motion is enabled
+    });
+
+    clickMarker = new maplibregl.Marker()
+        .setLngLat(lngLat)
+        .addTo(map);
+
+    reverseGeocode(lngLat).then(data => {
+        if (data && data.display_name) {
+            // Call the existing function to process the result and populate the panel
+            processPlaceResult(data);
+        } else {
+            // Friendly message for when no address is found
+            mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
+            showInfoPanel({
+                name: `Location`,
+                address: `Unable to find an address for this spot.`,
+                coordinates: [lngLat.lng, lngLat.lat],
+                quickFacts: 'This location may be in a remote or unmapped area. You can still use the coordinates for directions.'
+            });
+        }
+    }).catch(error => {
+        // Friendly message for a connection or server error
+        console.error("Failed to show location info:", error);
+        mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
+        showInfoPanel({
+            name: `Location`,
+            address: `We're having trouble getting details for this location right now.`,
+            coordinates: [lngLat.lng, lngLat.lat],
+            quickFacts: 'Please try again in a moment or use the coordinates provided.'
+        });
+    });
+}
+
+// NEW FUNCTION: showInfoPanel - centralizes the panel population
+function showInfoPanel(place) {
+    // This is a new function to populate the info panel from any source (search, click, etc.)
+    // It will be added to the ui.js file when we refactor
+    currentPlace = {
+        display_name: place.name,
+        lon: place.coordinates[0],
+        lat: place.coordinates[1]
+    };
+    stopNavigation();
+    clearRouteFromMap();
+    document.getElementById('info-name').textContent = place.name.split(',')[0];
+    document.getElementById('info-address').textContent = place.address;
+    const locationName = place.name.split(',')[0];
+    fetchAndSetPlaceImage(locationName, place.coordinates[0], place.coordinates[1]);
+    fetchAndSetWeather(place.coordinates[1], place.coordinates[0]);
+    document.getElementById('quick-facts-content').textContent = place.quickFacts;
+    showPanel('info-panel-redesign');
+}
