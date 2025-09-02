@@ -10,98 +10,190 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
     
-   
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
+        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+        img-src 'self' data: https:;
+        font-src 'self' https://fonts.gstatic.com;
+        connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com;
+        worker-src 'self' blob: https://unpkg.com;
+    ">
     
-    <link rel="stylesheet" href="css/maplibre-gl.css" />
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="css/all.min.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
-    <link rel="apple-touch-icon" href="icon512_rounded.png">
+    <meta property="og:title" content="TheBoiisMC Maps" />
+    <meta property="og:description" content="Explore the world with private, modern mapping." />
+    <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
+    <meta property="og:url" content="https://maps.theboiismc.com" />
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
+    
+    <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" defer></script>
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js' defer></script>
+    
+    <link href="https://fonts.bunny.net/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="side-panel-redesign" class="panel">
-        <div id="panel-controls">
-            <button id="close-panel-btn" class="icon-button"><i class="fa-solid fa-arrow-left-long"></i></button>
-            <div id="panel-search-placeholder"></div>
-        </div>
-
-        <div id="info-panel-redesign">
-            <div id="info-header">
-                <img id="info-image" alt="Place image">
-                <div id="info-details">
-                    <h2 id="info-name"></h2>
-                    <p id="info-address"></p>
-                </div>
-            </div>
-            <div id="info-panel-content">
-                <div class="info-section">
-                    <button id="show-route-btn" class="action-button"><i class="fa-solid fa-route"></i> Get Directions</button>
-                    <button id="share-route-btn" class="action-button"><i class="fa-solid fa-share-nodes"></i> Share</button>
-                </div>
-                <div class="info-section">
-                    <h3>Weather</h3>
-                    <p id="weather-content"></p>
-                </div>
-                <div class="info-section">
-                    <h3>Quick Facts</h3>
-                    <p id="quick-facts-content"></p>
-                </div>
-            </div>
-        </div>
-
-        <div id="directions-panel-redesign" hidden>
-            <div class="directions-inputs">
-                <div class="input-container">
-                    <input type="text" id="from-input" class="search-input" placeholder="Current Location">
-                    <div id="from-suggestions" class="suggestions-container"></div>
-                </div>
-                <div class="input-container">
-                    <input type="text" id="to-input" class="search-input" placeholder="Destination">
-                    <div id="to-suggestions" class="suggestions-container"></div>
-                </div>
-                <button id="get-route-btn" class="action-button"><i class="fa-solid fa-magnifying-glass-location"></i> Find Route</button>
-            </div>
-            <div id="route-preview-panel" class="route-preview" hidden>
-                <p id="route-preview-summary" class="route-summary"></p>
-                <div class="route-details">
-                    <span id="route-preview-distance"></span>
-                    <span id="route-preview-time"></span>
-                </div>
-                <div class="route-actions">
-                    <button id="start-navigation-btn" class="action-button start-button">Start Navigation</button>
-                    <button id="share-route-preview-btn" class="action-button"><i class="fa-solid fa-share-nodes"></i> Share</button>
-                </div>
-            </div>
-            <div id="route-section" class="route-section" hidden>
-                <div class="route-details-header">
-                    <div class="eta-display">
-                        <span id="eta-time">--:--</span>
-                        <span id="eta-label">ETA</span>
+    <div id="top-banner">
+        <span id="site-title">TheBoiisMC Maps</span>
+        <div id="profile-area">
+            <button class="js-settings-btn" aria-label="Map Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33l-.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V15z"></path>
+                </svg>
+            </button>
+            <button id="profile-button" aria-label="User Profile">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </button>
+            <div id="profile-dropdown">
+                <div id="logged-in-view" hidden>
+                    <div class="profile-section profile-section-header">
+                        <div class="username">TheBoiisMC</div>
+                        <div class="email">user@example.com</div>
                     </div>
-                    <div class="distance-display">
-                        <span id="distance-remaining">--</span>
-                        <span id="distance-units">km</span>
+                    <hr/>
+                    <div class="profile-actions">
+                        <a id="saved-places-btn">Saved Places</a>
+                    </div>
+                    <hr/>
+                    <div class="profile-actions">
+                        <a id="logout-btn">Log Out</a>
                     </div>
                 </div>
-                <div class="route-instructions-container">
-                    <ul id="route-instructions"></ul>
-                </div>
-                <div class="navigation-controls">
-                    <button id="exit-route-btn" class="action-button">Exit Route</button>
+                <div id="logged-out-view" hidden>
+                    <div class="profile-section" style="text-align:center; font-weight: 500; color: #5f6368;">
+                        Sign in to save and view places
+                    </div>
+                    <hr/>
+                    <div class="auth-buttons">
+                        <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
+                        <a href="#" id="signup-btn" class="btn btn-secondary">Sign Up</a>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div id="settings-panel-redesign" hidden>
-            <h3>Map Settings</h3>
-            <hr>
+    </div>
+    
+    <div id="navigation-status">
+        <div id="instruction-container">
+            <div id="navigation-instruction">Starting navigation...</div>
+            <div id="instruction-progress-bar"></div>
+        </div>
+        <div id="trip-stats-container">
+            <div class="stat-item">
+                <span id="stat-speed">--</span>
+                <span class="stat-label">mph</span>
+            </div>
+            <div class="stat-item">
+                <span id="stat-eta">--:--</span>
+                <span class="stat-label">ETA</span>
+            </div>
+            <div class="stat-item">
+                <span id="stat-time-remaining">-- min</span>
+                <span class="stat-label">Time</span>
+            </div>
+        </div>
+        <button id="end-navigation-btn">End Trip</button>
+    </div>
+    
+    <div id="top-search-wrapper">
+        <div id="main-search-container">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search" id="search-icon-inside">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-navigation" id="main-directions-icon">
+                <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+            <div id="main-suggestions" class="suggestions-dropdown"></div>
+        </div>
+    </div>
+    
+    <div id="side-panel">
+        <div id="panel-grabber"></div>
+        <div id="panel-search-placeholder" hidden></div>
+        <div class="panel-content">
+            <div id="info-panel-redesign" hidden>
+                <div class="header-image-container">
+                    <img class="header-image" id="info-image" src="" alt="Image of the location"/>
+                    <button id="close-info-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-left">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="info-content-padding">
+                    <h3 id="info-name"></h3>
+                    <div class="address" id="info-address"></div>
+                    <div class="weather" id="info-weather"></div>
+                    <div class="action-buttons">
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bookmark"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg></div><div class="btn-label">Save</div></div>
+                    </div>
+                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
+                </div>
+            </div>
+            <div id="directions-panel-redesign" hidden>
+                <div class="info-content-padding">
+                    <div class="dir-input-group">
+                        <div class="dir-input-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-circle"><circle cx="12" cy="12" r="10"></circle></svg><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
+                        <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
+                        <div class="dir-input-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-map-pin"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
+                        <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
+                        <button id="swap-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.55 18.25a8 8 0 1 1 1.45-14.54"></path></svg></button>
+                    </div>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-crosshair"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="16" y2="12"></line><line x1="8" y1="12" x2="2" y2="12"></line><line x1="12" y1="22" x2="12" y2="16"></line><line x1="12" y1="8" x2="12" y2="2"></line></svg></div>Your location</div>
+                    <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
+                </div>
+            </div>
+            <div id="route-preview-panel" hidden>
+                <div class="info-content-padding">
+                    <div class="route-summary">
+                        <h3 id="route-summary-time">--</h3>
+                        <div id="route-summary-distance"></div>
+                    </div>
+                    <div class="action-buttons">
+                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg></div><div class="btn-label">Start Trip</div></div>
+                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-share-2"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="6" r="3"></circle><line x1="18" y1="18" x2="8.59" y2="13.51"></line><line x1="18" y1="6" x2="8.59" y2="10.49"></line></svg></div><div class="btn-label">Share</div></div>
+                    </div>
+                    <button id="back-to-directions-btn">Back</button>
+                </div>
+            </div>
+            <div id="route-section" hidden>
+                <div class="info-content-padding"><h3>Route Steps</h3><button id="exit-route-btn">Back</button><ol id="route-steps"></ol></div>
+            </div>
+        </div>
+    </div>
+    
+    <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-layers">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+    </button>
+    
+    <div id="menu-overlay"></div>
+    <div id="settings-menu">
+        <div class="settings-menu-header">
+            <h4>Map Settings</h4>
+            <button id="close-settings-btn" aria-label="Close Settings">&times;</button>
+        </div>
+        <div class="settings-menu-content">
             <div class="setting-group">
-                <label class="setting-label">Style</label>
+                <label class="setting-label">Map Style</label>
                 <div class="radio-group">
                     <input type="radio" id="style-default" name="map-style" value="default" checked>
                     <label for="style-default">Default</label>
-                    <input type="radio" id="style-streets" name="map-style" value="streets">
-                    <label for="style-streets">Streets</label>
                     <input type="radio" id="style-satellite" name="map-style" value="satellite">
                     <label for="style-satellite">Satellite</label>
                 </div>
@@ -137,21 +229,7 @@
     <script src="js/ui.js" defer></script>
     <script src="js/search.js" defer></script>
     <script src="js/navigation.js" defer></script>
-    <script src="js/init.js" defer ></script>
-    <div id="search-results-panel" hidden></div>
-    <div id="top-search-wrapper" class="search-bar-wrapper">
-        <div id="main-search-container" class="search-container">
-            <input type="text" id="main-search-input" class="search-input" placeholder="Search for places..." autocomplete="off">
-            <div id="main-search-suggestions" class="suggestions-container"></div>
-            <button id="open-settings-btn" class="icon-button"><i class="fa-solid fa-gear"></i></button>
-            <button id="reset-map-btn" class="icon-button"><i class="fa-solid fa-crosshairs-simple"></i></button>
-        </div>
-    </div>
-    <div id="nav-info-redesign" class="navigation-info-box" hidden>
-        <p id="navigation-instruction" class="instruction-text"></p>
-        <p id="navigation-subinstruction" class="instruction-text"></p>
-        <span id="distance-to-maneuver" class="distance-text"></span>
-    </div>
-    <div id="spinner" class="spinner" hidden></div>
+    <script src="init.js" defer ></script>
+    <script src="js/mobilePanel.js" defer></script>
 </body>
 </html>
