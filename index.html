@@ -62,106 +62,121 @@
                         <a id="logout-btn">Log Out</a>
                     </div>
                 </div>
-                <div id="not-logged-in-view">
-                    <div class="profile-actions">
-                        <a id="login-btn">Log In</a>
+                <div id="logged-out-view" hidden>
+                    <div class="profile-section" style="text-align:center; font-weight: 500; color: #5f6368;">
+                        Sign in to save and view places
+                    </div>
+                    <hr/>
+                    <div class="auth-buttons">
+                        <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
+                        <a href="#" id="signup-btn" class="btn btn-secondary">Sign Up</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div id="side-panel" class="closed">
-        <button id="close-panel-btn"><span class="material-symbols-outlined">close</span></button>
-        <div id="panel-search-placeholder"></div>
-        <div id="info-panel-redesign" hidden>
-            <div class="info-image-container">
-                <img id="info-image" src="" alt="Place image" />
+    <div id="navigation-status">
+        <div id="instruction-container">
+            <div id="navigation-instruction">Starting navigation...</div>
+            <div id="instruction-progress-bar"></div>
+        </div>
+        <div id="trip-stats-container">
+            <div class="stat-item">
+                <span id="stat-speed">--</span>
+                <span class="stat-label">mph</span>
             </div>
-            <div class="info-content-container">
-                <div class="info-header">
-                    <h2 id="info-name"></h2>
-                    <p id="info-address"></p>
-                    <p id="info-weather"></p>
-                </div>
-                <div class="info-body">
-                    <p id="quick-facts-content"></p>
-                    <div class="info-actions">
-                        <button id="get-directions-btn"><span class="material-symbols-outlined">directions_car</span>Get Directions</button>
-                        <button id="save-place-btn"><span class="material-symbols-outlined">favorite</span>Save</button>
-                    </div>
-                </div>
+            <div class="stat-item">
+                <span id="stat-eta">--:--</span>
+                <span class="stat-label">ETA</span>
+            </div>
+            <div class="stat-item">
+                <span id="stat-time-remaining">-- min</span>
+                <span class="stat-label">Time</span>
             </div>
         </div>
-        
-        <div id="directions-panel-redesign" hidden>
-            <div class="directions-header">
-                <h2>Directions</h2>
-                <div id="directions-inputs">
-                    <input type="text" id="panel-from-input" placeholder="Start location" />
-                    <div id="panel-from-suggestions" class="search-suggestions"></div>
-                    <input type="text" id="panel-to-input" placeholder="Destination" />
-                    <div id="panel-to-suggestions" class="search-suggestions"></div>
-                </div>
-                <button id="get-route-btn">Get Route</button>
-            </div>
+        <button id="end-navigation-btn">End Trip</button>
+    </div>
+    
+    <div id="top-search-wrapper">
+        <div id="main-search-container">
+            <span id="search-icon-inside" class="material-symbols-outlined">search</span>
+            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
+            <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
+            <div id="main-suggestions" class="suggestions-dropdown"></div>
         </div>
-        
-        <div id="route-preview-panel" hidden>
-            <div class="route-summary">
-                <span id="route-summary-time">-- min</span>
-                <span id="route-summary-distance">-- mi</span>
-            </div>
-            <div class="route-actions">
-                <button id="start-navigation-btn" class="primary-action"><span class="material-symbols-outlined">play_arrow</span>Start Navigation</button>
-                <button id="share-route-btn"><span class="material-symbols-outlined">share</span>Share</button>
-            </div>
-            <ul id="steps-list"></ul>
-        </div>
-        
-        <div id="route-section" hidden>
-            <div class="route-header">
-                <button id="exit-route-btn"><span class="material-symbols-outlined">close</span></button>
-                <div class="route-main-info">
-                    <div class="instruction-text">
-                        <p id="navigation-instruction">Driving to destination</p>
-                        <p id="navigation-subinstruction"></p>
-                    </div>
-                    <div class="eta-info">
-                        <span id="eta-time">--:--</span>
-                        <div class="distance-info">
-                            <span id="distance-remaining">--</span>
-                            <span id="distance-units">mi</span>
-                        </div>
-                    </div>
+    </div>
+    
+    <div id="side-panel">
+        <div id="panel-grabber"></div>
+        <div id="panel-search-placeholder" hidden></div>
+        <div class="panel-content">
+            <div id="info-panel-redesign" hidden>
+                <div class="header-image-container">
+                    <img class="header-image" id="info-image" src="" alt="Image of the location"/>
+                    <button id="close-info-btn">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                    </button>
                 </div>
+                <div class="info-content-padding">
+                    <h3 id="info-name"></h3>
+                    <div class="address" id="info-address"></div>
+                    <div class="weather" id="info-weather"></div>
+                    <div class="action-buttons">
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></div>
+                    </div>
+                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
+                </div>
+            </div>
+            <div id="directions-panel-redesign" hidden>
+                <div class="info-content-padding">
+                    <div class="dir-input-group">
+                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
+                        <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
+                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
+                        <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
+                        <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
+                    </div>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
+                    <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
+                </div>
+            </div>
+            <div id="route-preview-panel" hidden>
+                <div class="info-content-padding">
+                    <div class="route-summary">
+                        <h3 id="route-summary-time">--</h3>
+                        <div id="route-summary-distance"></div>
+                    </div>
+                    <div class="action-buttons">
+                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
+                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
+                    </div>
+                    <button id="back-to-directions-btn">Back</button>
+                </div>
+            </div>
+            <div id="route-section" hidden>
+                <div class="info-content-padding"><h3>Route Steps</h3><button id="exit-route-btn">Back</button><ol id="route-steps"></ol></div>
             </div>
         </div>
     </div>
     
-    <div id="search-container">
-        <div id="top-search-wrapper">
-            <div id="main-search-container">
-                <div class="search-box">
-                    <span id="search-icon-inside" class="material-symbols-outlined">search</span>
-                    <input type="text" id="main-search-input" placeholder="Search for a place" />
-                </div>
-                <div id="main-suggestions" class="search-suggestions"></div>
-            </div>
-        </div>
-    </div>
+    <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
+        <span class="material-symbols-outlined">layers</span>
+    </button>
     
-    <div id="settings-menu" class="closed">
-        <div class="settings-header">
-            <h3>Map Settings</h3>
-            <button id="close-settings-btn"><span class="material-symbols-outlined">close</span></button>
+    <div id="menu-overlay"></div>
+    <div id="settings-menu">
+        <div class="settings-menu-header">
+            <h4>Map Settings</h4>
+            <button id="close-settings-btn" aria-label="Close Settings">&times;</button>
         </div>
-        <div class="settings-content">
+        <div class="settings-menu-content">
             <div class="setting-group">
                 <label class="setting-label">Map Style</label>
                 <div class="radio-group">
-                    <input type="radio" id="style-streets" name="map-style" value="streets" checked>
-                    <label for="style-streets">Streets</label>
+                    <input type="radio" id="style-default" name="map-style" value="default" checked>
+                    <label for="style-default">Default</label>
                     <input type="radio" id="style-satellite" name="map-style" value="satellite">
                     <label for="style-satellite">Satellite</label>
                 </div>
@@ -198,6 +213,6 @@
     <script src="js/search.js" defer></script>
     <script src="js/navigation.js" defer></script>
     <script src="js/init.js" defer ></script>
-    <script src="js/logic.js" defer></script>
+    <script src="js/mobilePanel.js" defer></script>
 </body>
 </html>
