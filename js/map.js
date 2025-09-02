@@ -6,35 +6,65 @@ const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').m
 const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
 const STYLES = {
     default: 'https://tiles.openfreemap.org/styles/liberty',
-    satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
+    satellite: { 
+        version: 8, 
+        sources: { 
+            "esri-world-imagery": { 
+                type: "raster", 
+                tiles: [
+                    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                ], 
+                tileSize: 256, 
+                attribution: 'Tiles © Esri' 
+            } 
+        }, 
+        layers: [
+            { id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }
+        ] 
+    }
 };
+
 const map = new maplibregl.Map({
     container: "map",
     style: STYLES.default,
-    center: [-95, 39],
+    center: [0, 0], // will be updated by geolocation
     zoom: 2,
-    pitch: 0, // no tilt
+    pitch: 0,                // lock tilt
     bearing: 0,
-    dragRotate: false,      // disable mouse drag rotation
-    touchPitch: false,      // disable pinch-tilt gesture
-    pitchWithRotate: false, // disables right-click+drag tilt
-    renderWorldCopies: false
+    dragRotate: false,       // disable mouse drag rotation
+    touchPitch: false,       // disable pinch-tilt gesture
+    pitchWithRotate: false,  // disables right-click+drag tilt
+    projection: { name: 'globe' } // modern globe projection
 });
 
+// Add Google Maps–style atmosphere
+map.on('style.load', () => {
+    map.setFog({
+        color: 'rgba(255, 255, 255, 0.8)',
+        'horizon-blend': 0.3,
+        'high-color': '#add8e6',
+        'space-color': '#000000',
+        'star-intensity': 0.15
+    });
+});
 
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+
 const geolocateControl = new maplibregl.GeolocateControl({
     positionOptions: geolocationOptions,
     trackUserLocation: true,
     showUserHeading: true
 });
 map.addControl(geolocateControl, "bottom-right");
-map.on('load', () => geolocateControl.trigger());
 
-// NEW: Add a click event listener to the map
+// On load: trigger geolocation and center map
+map.on('load', () => {
+    geolocateControl.trigger();
+});
+
+// --- NEW: Map click event ---
 let clickMarker = null;
 map.on('click', (e) => {
-    // Prevent click events from triggering if navigation is active
     if (!navigationState.isActive) {
         showClickedLocation(e.lngLat);
     }
@@ -97,8 +127,6 @@ const statTimeRemainingEl = document.getElementById('stat-time-remaining');
 const highlightedSegmentLayerId = 'highlighted-route-segment';
 
 // --- NEW FUNCTIONS FOR CLICK-TO-GET-LOCATION ---
-
-// Function to handle getting location details from coordinates
 async function reverseGeocode(lngLat) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lngLat.lat}&lon=${lngLat.lng}`;
     try {
@@ -111,17 +139,15 @@ async function reverseGeocode(lngLat) {
     }
 }
 
-// Function to show the location information
 function showClickedLocation(lngLat) {
     if (clickMarker) {
         clickMarker.remove();
     }
     
-    // Animate the map to the clicked location
     map.flyTo({
         center: lngLat,
-        zoom: 16, // Zoom in to a street-level view
-        essential: true // This ensures the animation plays even if prefers-reduced-motion is enabled
+        zoom: 16,
+        essential: true
     });
 
     clickMarker = new maplibregl.Marker()
@@ -130,10 +156,8 @@ function showClickedLocation(lngLat) {
 
     reverseGeocode(lngLat).then(data => {
         if (data && data.display_name) {
-            // Call the existing function to process the result and populate the panel
             processPlaceResult(data);
         } else {
-            // Friendly message for when no address is found
             mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
             showInfoPanel({
                 name: `Location`,
@@ -143,22 +167,19 @@ function showClickedLocation(lngLat) {
             });
         }
     }).catch(error => {
-        // Friendly message for a connection or server error
         console.error("Failed to show location info:", error);
         mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
         showInfoPanel({
             name: `Location`,
-            address: `We're having trouble getting details for this location right now.`,
+            address: `We\'re having trouble getting details for this location right now.`,
             coordinates: [lngLat.lng, lngLat.lat],
             quickFacts: 'Please try again in a moment or use the coordinates provided.'
         });
     });
 }
 
-// NEW FUNCTION: showInfoPanel - centralizes the panel population
+// NEW FUNCTION: showInfoPanel
 function showInfoPanel(place) {
-    // This is a new function to populate the info panel from any source (search, click, etc.)
-    // It will be added to the ui.js file when we refactor
     currentPlace = {
         display_name: place.name,
         lon: place.coordinates[0],
