@@ -5,9 +5,10 @@ const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
 const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
 const STYLES = {
-    default: 'https://tiles.openfreemap.org/styles/liberty',
-    satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
+    default: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
+    satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`,
 };
+
 const map = new maplibregl.Map({
     container: "map",
     style: STYLES.default,
@@ -22,122 +23,137 @@ const geolocateControl = new maplibregl.GeolocateControl({
     showUserHeading: true
 });
 map.addControl(geolocateControl, "bottom-right");
-map.on('load', () => geolocateControl.trigger());
 
-// NEW: Add a click event listener to the map
-let clickMarker = null;
-map.on('click', (e) => {
-    // Prevent click events from triggering if navigation is active
-    if (!navigationState.isActive) {
-        showClickedLocation(e.lngLat);
+map.on('load', () => {
+    // Add traffic layer on map load
+    map.addSource('traffic', {
+        type: 'vector',
+        url: `https://api.maptiler.com/tiles/v2/traffic-v2.json?key=${MAPTILER_KEY}`
+    });
+
+    map.addLayer({
+        'id': 'traffic-lines',
+        'type': 'line',
+        'source': 'traffic',
+        'source-layer': 'traffic',
+        'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        'paint': {
+            'line-color': [
+                'match',
+                ['get', 'traffic'],
+                'low',
+                '#30c25a',
+                'moderate',
+                '#ebc100',
+                'high',
+                '#de585a',
+                'severe',
+                '#b33671',
+                '#b33671' // Default color
+            ],
+            'line-width': 2,
+            'line-opacity': 0.8
+        },
+        'metadata': {
+            'title': 'Traffic'
+        },
+        'minzoom': 5,
+        'maxzoom': 22
+    });
+
+    // Hide traffic layer by default
+    map.setLayoutProperty('traffic-lines', 'visibility', 'none');
+});
+
+map.on('style.load', () => {
+    // Re-add traffic layer if style changes
+    if (!map.getSource('traffic')) {
+        map.addSource('traffic', {
+            type: 'vector',
+            url: `https://api.maptiler.com/tiles/v2/traffic-v2.json?key=${MAPTILER_KEY}`
+        });
+
+        map.addLayer({
+            'id': 'traffic-lines',
+            'type': 'line',
+            'source': 'traffic',
+            'source-layer': 'traffic',
+            'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': [
+                    'match',
+                    ['get', 'traffic'],
+                    'low',
+                    '#30c25a',
+                    'moderate',
+                    '#ebc100',
+                    'high',
+                    '#de585a',
+                    'severe',
+                    '#b33671',
+                    '#b33671' // Default color
+                ],
+                'line-width': 2,
+                'line-opacity': 0.8
+            },
+            'metadata': {
+                'title': 'Traffic'
+            },
+            'minzoom': 5,
+            'maxzoom': 22
+        });
+
+        const trafficToggle = document.getElementById('traffic-toggle');
+        if (trafficToggle && trafficToggle.checked) {
+            map.setLayoutProperty('traffic-lines', 'visibility', 'visible');
+        } else {
+            map.setLayoutProperty('traffic-lines', 'visibility', 'none');
+        }
     }
 });
 
-// --- GLOBAL VARIABLES & UI ELEMENTS ---
-const sidePanel = document.getElementById("side-panel");
-const mainSearchInput = document.getElementById("main-search");
-const mainSearchContainer = document.getElementById('main-search-container');
-const topSearchWrapper = document.getElementById('top-search-wrapper');
-const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
-const closePanelBtn = document.getElementById('close-panel-btn');
-const closeInfoBtn = document.getElementById('close-info-btn');
+map.on('click', (e) => {
+    // Display the location information for the clicked point
+    showLocationInfo(e.lngLat);
+});
 
-let currentPlace = null;
-let currentRouteData = null;
-let userLocationMarker = null;
-let navigationWatcherId = null;
-
-const speech = {
-    synthesis: window.speechSynthesis,
-    utterance: new SpeechSynthesisUtterance(),
-    speak(text, priority = false) {
-        if (priority && this.synthesis.speaking) {
-            this.synthesis.cancel();
-        }
-        if (!this.synthesis.speaking && text) {
-            this.utterance.text = text;
-            this.synthesis.speak(this.utterance);
-        }
-    }
-};
-
-// --- ADVANCED NAVIGATION STATE ---
-let navigationState = {};
-function resetNavigationState() {
-    navigationState = {
-        isActive: false,
-        isRerouting: false,
-        currentStepIndex: 0,
-        progressAlongStep: 0,
-        distanceToNextManeuver: Infinity,
-        userSpeed: 0,
-        estimatedArrivalTime: null,
-        totalTripTime: 0,
-        lastAnnouncedDistance: Infinity,
-        isWrongWay: false
-    };
-}
-resetNavigationState();
-
-// --- NAVIGATION UI ELEMENTS ---
-const navigationStatusPanel = document.getElementById('navigation-status');
-const navigationInstructionEl = document.getElementById('navigation-instruction');
-const instructionProgressBar = document.getElementById('instruction-progress-bar').style;
-const endNavigationBtn = document.getElementById('end-navigation-btn');
-const statSpeedEl = document.getElementById('stat-speed');
-const statEtaEl = document.getElementById('stat-eta');
-const statTimeRemainingEl = document.getElementById('stat-time-remaining');
-const highlightedSegmentLayerId = 'highlighted-route-segment';
-
-// --- NEW FUNCTIONS FOR CLICK-TO-GET-LOCATION ---
-
-// Function to handle getting location details from coordinates
-async function reverseGeocode(lngLat) {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lngLat.lat}&lon=${lngLat.lng}`;
+// NEW FUNCTION: showLocationInfo - handles reverse geocoding
+async function showLocationInfo(lngLat) {
+    showPanel('info-panel-redesign');
+    document.getElementById('spinner').hidden = false;
+    // NEW: Use MapTiler for reverse geocoding
+    const url = `https://api.maptiler.com/geocoding/${lngLat.lng},${lngLat.lat}.json?key=${MAPTILER_KEY}`;
     try {
-        const response = await fetch(url);
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error("Geocoding service failed:", error);
-        return null;
-    }
-}
-
-// Function to show the location information
-function showClickedLocation(lngLat) {
-    if (clickMarker) {
-        clickMarker.remove();
-    }
-    
-    // Animate the map to the clicked location
-    map.flyTo({
-        center: lngLat,
-        zoom: 16, // Zoom in to a street-level view
-        essential: true // This ensures the animation plays even if prefers-reduced-motion is enabled
-    });
-
-    clickMarker = new maplibregl.Marker()
-        .setLngLat(lngLat)
-        .addTo(map);
-
-    reverseGeocode(lngLat).then(data => {
-        if (data && data.display_name) {
-            // Call the existing function to process the result and populate the panel
-            processPlaceResult(data);
-        } else {
-            // Friendly message for when no address is found
-            mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const place = data.features[0];
+        document.getElementById('spinner').hidden = true;
+        if (place) {
+            const formattedAddress = place.place_name;
+            const placeName = place.text || 'Location';
             showInfoPanel({
-                name: `Location`,
-                address: `Unable to find an address for this spot.`,
+                name: placeName,
+                address: formattedAddress,
                 coordinates: [lngLat.lng, lngLat.lat],
-                quickFacts: 'This location may be in a remote or unmapped area. You can still use the coordinates for directions.'
+                quickFacts: 'Reverse geocoding with MapTiler is way better than old Nominatim. This allows for more specific results and more useful context. You can now get directions or search this location.'
+            });
+        } else {
+            showInfoPanel({
+                name: 'Location',
+                address: `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`,
+                coordinates: [lngLat.lng, lngLat.lat],
+                quickFacts: 'No address information found. You can still get directions for this location or use the coordinates for directions.'
             });
         }
-    }).catch(error => {
-        // Friendly message for a connection or server error
+    } catch (error) {
         console.error("Failed to show location info:", error);
+        document.getElementById('spinner').hidden = true;
         mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
         showInfoPanel({
             name: `Location`,
@@ -145,7 +161,7 @@ function showClickedLocation(lngLat) {
             coordinates: [lngLat.lng, lngLat.lat],
             quickFacts: 'Please try again in a moment or use the coordinates provided.'
         });
-    });
+    }
 }
 
 // NEW FUNCTION: showInfoPanel - centralizes the panel population
@@ -166,4 +182,13 @@ function showInfoPanel(place) {
     fetchAndSetWeather(place.coordinates[1], place.coordinates[0]);
     document.getElementById('quick-facts-content').textContent = place.quickFacts;
     showPanel('info-panel-redesign');
+    
+    // Add a marker for the selected place
+    if (mapMarker) {
+        mapMarker.remove();
+    }
+    mapMarker = new maplibregl.Marker()
+        .setLngLat(place.coordinates)
+        .addTo(map);
+    map.flyTo({ center: place.coordinates, zoom: 14 });
 }
