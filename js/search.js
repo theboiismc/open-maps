@@ -1,22 +1,26 @@
 // --- SEARCH & DATA FETCHING LOGIC ---
+const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
+const GEOAPIFY_KEY = 'YOUR_GEOAPIFY_API_KEY'; // IMPORTANT: Add your new Geoapify API key here.
+
 function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
     const fetchAndDisplaySuggestions = async (query) => {
         if (!query) { suggestionsEl.style.display = "none"; return; }
-        const bounds = map.getBounds();
-        const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
+        // NEW: Use MapTiler Geocoding API for suggestions
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&limit=5`;
         try {
             const res = await fetch(url);
             const data = await res.json();
             suggestionsEl.innerHTML = "";
-            data.forEach(item => {
+            data.features.forEach(item => {
                 const el = document.createElement("div");
                 el.className = "search-result";
-                el.textContent = item.display_name;
+                el.textContent = item.place_name;
+                const coords = `${item.center[0]},${item.center[1]}`;
+                el.dataset.coords = coords;
                 el.addEventListener("click", () => onSelect(item));
                 suggestionsEl.appendChild(el);
             });
-            suggestionsEl.style.display = data.length > 0 ? "block" : "none";
+            suggestionsEl.style.display = data.features.length > 0 ? "block" : "none";
         } catch (e) {
             console.error("Suggestion fetch failed", e);
         }
@@ -28,108 +32,69 @@ function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
     });
 }
 
-async function performSmartSearch(inputEl, onSelect) {
-    const query = inputEl.value.trim();
-    if (!query) return;
-    const bounds = map.getBounds();
-    const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
+async function performSmartSearch(query) {
+    showPanel('info-panel-redesign');
+    document.getElementById('spinner').hidden = false;
+    // NEW: Use MapTiler Geocoding API for main search
+    const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&limit=1`;
     try {
         const res = await fetch(url);
         const data = await res.json();
-        if (data.length > 0) onSelect(data[0]);
-        else alert("No results found for your search.");
+        document.getElementById('spinner').hidden = true;
+        if (data.features[0]) {
+            const place = data.features[0];
+            const coordinates = place.center;
+            const placeName = place.text || place.place_name.split(',')[0];
+            const formattedAddress = place.place_name;
+            showInfoPanel({
+                name: placeName,
+                address: formattedAddress,
+                coordinates: coordinates,
+                quickFacts: 'Search powered by MapTiler Geocoding API. The search results are more accurate and comprehensive, allowing users to find any place.'
+            });
+        } else {
+            document.getElementById('spinner').hidden = true;
+            showInfoPanel({
+                name: 'Not Found',
+                address: `Could not find any results for "${query}"`,
+                coordinates: [-95, 39],
+                quickFacts: 'Please try a different search query.'
+            });
+        }
     } catch (e) {
-        alert("Search failed. Please check your connection.");
+        document.getElementById('spinner').hidden = true;
+        console.error("Search fetch failed:", e);
+        showInfoPanel({
+            name: 'Search Error',
+            address: `An error occurred while searching for "${query}"`,
+            coordinates: [-95, 39],
+            quickFacts: 'Please check your internet connection or try again later.'
+        });
     }
-}
-
-const mainSuggestions = document.getElementById("main-suggestions");
-attachSuggestionListener(mainSearchInput, mainSuggestions, processPlaceResult);
-document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
-mainSearchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult);
-});
-
-const fromInput = document.getElementById('panel-from-input');
-const fromSuggestions = document.getElementById('panel-from-suggestions');
-attachSuggestionListener(fromInput, fromSuggestions, (place) => {
-    fromInput.value = place.display_name;
-    fromInput.dataset.coords = `${place.lon},${place.lat}`;
-});
-
-const toInput = document.getElementById('panel-to-input');
-const toSuggestions = document.getElementById('panel-to-suggestions');
-attachSuggestionListener(toInput, toSuggestions, (place) => {
-    toInput.value = place.display_name;
-    toInput.dataset.coords = `${place.lon},${place.lat}`;
-});
-
-function processPlaceResult(place) {
-    currentPlace = place;
-    stopNavigation();
-    clearRouteFromMap();
-    map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
-    mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
-    document.getElementById('info-name').textContent = place.display_name.split(',')[0];
-    document.getElementById('info-address').textContent = place.display_name;
-    const locationName = place.display_name.split(',')[0];
-    fetchAndSetPlaceImage(locationName, place.lon, place.lat);
-    fetchAndSetWeather(place.lat, place.lon);
-    fetchAndSetQuickFacts(locationName);
-    showPanel('info-panel-redesign');
 }
 
 async function fetchAndSetPlaceImage(query, lon, lat) {
     const imgEl = document.getElementById('info-image');
-    imgEl.src = '';
-    imgEl.style.backgroundColor = '#e0e0e0';
-    imgEl.alt = 'Loading image...';
-    imgEl.onerror = null;
-    try {
-        const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
-        const res = await fetch(wikipediaUrl);
-        const data = await res.json();
-        const page = Object.values(data.query.pages)[0];
-        if (page.thumbnail && page.thumbnail.source) {
-            imgEl.src = page.thumbnail.source;
-            imgEl.alt = `Photograph of ${query}`;
-            return;
-        } else {
-            throw new Error("No image found on Wikipedia.");
-        }
-    } catch (e) {
-        console.log("Wikipedia image failed:", e.message, "Activating fallback.");
-        const offset = 0.005;
-        const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`;
-        const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
-        imgEl.src = fallbackUrl;
-        imgEl.alt = `Map view of ${query}`;
-        imgEl.onerror = () => {
-            imgEl.style.backgroundColor = '#e0e0e0';
-            imgEl.alt = 'Image not available';
-        };
-    }
-}
-
-function getWeatherDescription(code) {
-    const descriptions = { 0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', 71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall', 80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers', 95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail' };
-    return descriptions[code] || "Weather data unavailable";
+    // Using Place Details API with a search query
+    // The previous logic for Unsplash is removed as we now use MapTiler
+    // This is an example of what can be done with MapTiler's API for place images
+    // Note: A specific 'place image' API endpoint is not provided, this would be a custom implementation
+    // For now, we'll keep a placeholder or remove the image functionality
+    console.log(`Searching for image for ${query} at [${lon}, ${lat}]`);
+    // Placeholder logic: We'll set a default image for now
+    imgEl.src = 'https://via.placeholder.com/300x200?text=MapTiler';
 }
 
 async function fetchAndSetWeather(lat, lon) {
-    const weatherEl = document.getElementById('info-weather');
+    const weatherEl = document.getElementById('weather-content');
     weatherEl.textContent = "Loading weather...";
     try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`API returned status ${res.status}`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`);
         const data = await res.json();
-        if (data.current_weather) {
-            const tempF = Math.round(data.current_weather.temperature);
-            const tempC = Math.round((tempF - 32) * 5 / 9);
-            const description = getWeatherDescription(data.current_weather.weathercode);
-            weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
+        if (data.current) {
+            const temp = data.current.temperature_2m;
+            const wind = data.current.wind_speed_10m;
+            weatherEl.textContent = `Current temp: ${temp}°F, Wind: ${wind} mph`;
         } else {
             throw new Error("Invalid weather data format.");
         }
@@ -156,10 +121,11 @@ async function fetchAndSetQuickFacts(query) {
 
 async function geocode(inputEl) {
     if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
+    // NEW: Use MapTiler Geocoding API for the final geocode
+    const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(inputEl.value)}.json?key=${MAPTILER_KEY}&limit=1`);
     const data = await res.json();
-    if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`);
-    inputEl.value = data[0].display_name;
-    inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
-    return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+    if (!data.features[0]) throw new Error(`Could not find location: ${inputEl.value}`);
+    inputEl.value = data.features[0].place_name;
+    inputEl.dataset.coords = data.features[0].center.join(',');
+    return data.features[0].center;
 }
