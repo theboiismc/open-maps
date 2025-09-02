@@ -1,68 +1,22 @@
 // --- SEARCH & DATA FETCHING LOGIC ---
-const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
-const GEOAPIFY_KEY = 'YOUR_GEOAPIFY_API_KEY'; // IMPORTANT: Add your new Geoapify API key here.
-
-// Function to show a temporary message box
-function showMessage(message, type = 'error') {
-    const messageBox = document.getElementById('message-box');
-    messageBox.textContent = message;
-    messageBox.className = type;
-    messageBox.hidden = false;
-    setTimeout(() => {
-        messageBox.hidden = true;
-    }, 5000); // Hide after 5 seconds
-}
-
-// Main handler for both search suggestions and Enter key search
-async function handleSearchAndNavigate(item) {
-    if (!item || !item.center) {
-        showMessage("Could not find that location. Please try a different search.");
-        return;
-    }
-
-    const [lon, lat] = item.center;
-    const name = item.place_name || item.text;
-
-    try {
-        // Fly to the new location on the map
-        map.flyTo({ center: [lon, lat], zoom: 14 });
-
-        // Show and populate the info panel
-        showPanel('info-panel-redesign');
-        showInfoPanel({
-            name: name,
-            address: `Coordinates: [${lon.toFixed(4)}, ${lat.toFixed(4)}]`,
-            coordinates: [lon, lat],
-            quickFacts: "Loading quick facts..."
-        });
-
-        // Fetch additional data to populate the panel
-        fetchAndSetPlaceImage(name, lon, lat);
-        fetchAndSetWeather(lat, lon);
-        fetchAndSetQuickFacts(name);
-
-    } catch (e) {
-        console.error("Search and navigation failed", e);
-        showMessage("An error occurred. Please try again.");
-    }
-}
-
 function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
     const fetchAndDisplaySuggestions = async (query) => {
         if (!query) { suggestionsEl.style.display = "none"; return; }
-        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&limit=5`;
+        const bounds = map.getBounds();
+        const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
         try {
             const res = await fetch(url);
             const data = await res.json();
             suggestionsEl.innerHTML = "";
-            data.features.forEach(item => {
+            data.forEach(item => {
                 const el = document.createElement("div");
                 el.className = "search-result";
-                el.textContent = item.place_name;
+                el.textContent = item.display_name;
                 el.addEventListener("click", () => onSelect(item));
                 suggestionsEl.appendChild(el);
             });
-            suggestionsEl.style.display = data.features.length > 0 ? "block" : "none";
+            suggestionsEl.style.display = data.length > 0 ? "block" : "none";
         } catch (e) {
             console.error("Suggestion fetch failed", e);
         }
@@ -74,64 +28,108 @@ function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
     });
 }
 
-// Refactored function to handle search on 'Enter' key press
-async function performSmartSearch() {
-    const query = mainSearchInput.value.trim();
+async function performSmartSearch(inputEl, onSelect) {
+    const query = inputEl.value.trim();
     if (!query) return;
-
-    try {
-        const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&limit=1`);
-        const data = await res.json();
-        if (data.features.length > 0) {
-            handleSearchAndNavigate(data.features[0]);
-        } else {
-            showMessage("Could not find that location. Please try a different search.");
-        }
-    } catch (e) {
-        console.error("Smart search failed", e);
-        showMessage("An error occurred during search. Please try again.");
-    }
-}
-
-// Add event listener for the 'Enter' key on the main search input
-document.getElementById('main-search').addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') {
-        performSmartSearch();
-    }
-});
-
-// The rest of the functions remain the same as they were.
-async function fetchAndSetPlaceImage(query, lon, lat) {
-    const imageEl = document.getElementById('info-image');
-    imageEl.src = "https://via.placeholder.com/200x150.png?text=Image+Not+Found";
-    imageEl.alt = "Placeholder image";
-    const url = `https://api.geoapify.com/v1/places/search?limit=1&filter=circle:${lon},${lat},500&bias=proximity:${lon},${lat}&apiKey=${GEOAPIFY_KEY}`;
+    const bounds = map.getBounds();
+    const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
     try {
         const res = await fetch(url);
         const data = await res.json();
-        if (data.features && data.features.length > 0) {
-            const place = data.features[0];
-            const name = place.properties.name || "Place";
-            if (place.properties.image) {
-                imageEl.src = place.properties.image;
-                imageEl.alt = `Image of ${name}`;
-            }
+        if (data.length > 0) onSelect(data[0]);
+        else alert("No results found for your search.");
+    } catch (e) {
+        alert("Search failed. Please check your connection.");
+    }
+}
+
+const mainSuggestions = document.getElementById("main-suggestions");
+attachSuggestionListener(mainSearchInput, mainSuggestions, processPlaceResult);
+document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
+mainSearchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult);
+});
+
+const fromInput = document.getElementById('panel-from-input');
+const fromSuggestions = document.getElementById('panel-from-suggestions');
+attachSuggestionListener(fromInput, fromSuggestions, (place) => {
+    fromInput.value = place.display_name;
+    fromInput.dataset.coords = `${place.lon},${place.lat}`;
+});
+
+const toInput = document.getElementById('panel-to-input');
+const toSuggestions = document.getElementById('panel-to-suggestions');
+attachSuggestionListener(toInput, toSuggestions, (place) => {
+    toInput.value = place.display_name;
+    toInput.dataset.coords = `${place.lon},${place.lat}`;
+});
+
+function processPlaceResult(place) {
+    currentPlace = place;
+    stopNavigation();
+    clearRouteFromMap();
+    map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
+    mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
+    document.getElementById('info-name').textContent = place.display_name.split(',')[0];
+    document.getElementById('info-address').textContent = place.display_name;
+    const locationName = place.display_name.split(',')[0];
+    fetchAndSetPlaceImage(locationName, place.lon, place.lat);
+    fetchAndSetWeather(place.lat, place.lon);
+    fetchAndSetQuickFacts(locationName);
+    showPanel('info-panel-redesign');
+}
+
+async function fetchAndSetPlaceImage(query, lon, lat) {
+    const imgEl = document.getElementById('info-image');
+    imgEl.src = '';
+    imgEl.style.backgroundColor = '#e0e0e0';
+    imgEl.alt = 'Loading image...';
+    imgEl.onerror = null;
+    try {
+        const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
+        const res = await fetch(wikipediaUrl);
+        const data = await res.json();
+        const page = Object.values(data.query.pages)[0];
+        if (page.thumbnail && page.thumbnail.source) {
+            imgEl.src = page.thumbnail.source;
+            imgEl.alt = `Photograph of ${query}`;
+            return;
+        } else {
+            throw new Error("No image found on Wikipedia.");
         }
     } catch (e) {
-        console.error("Geoapify image fetch failed", e);
+        console.log("Wikipedia image failed:", e.message, "Activating fallback.");
+        const offset = 0.005;
+        const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`;
+        const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
+        imgEl.src = fallbackUrl;
+        imgEl.alt = `Map view of ${query}`;
+        imgEl.onerror = () => {
+            imgEl.style.backgroundColor = '#e0e0e0';
+            imgEl.alt = 'Image not available';
+        };
     }
+}
+
+function getWeatherDescription(code) {
+    const descriptions = { 0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', 71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall', 80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers', 95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail' };
+    return descriptions[code] || "Weather data unavailable";
 }
 
 async function fetchAndSetWeather(lat, lon) {
     const weatherEl = document.getElementById('info-weather');
     weatherEl.textContent = "Loading weather...";
     try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`;
         const res = await fetch(url);
+        if (!res.ok) throw new Error(`API returned status ${res.status}`);
         const data = await res.json();
-        if (data && data.current_weather) {
-            const temp = document.getElementById('units-imperial').checked ? (data.current_weather.temperature * 9 / 5 + 32).toFixed(1) + '°F' : data.current_weather.temperature.toFixed(1) + '°C';
-            weatherEl.textContent = `Temp: ${temp}, Wind: ${data.current_weather.windspeed} km/h`;
+        if (data.current_weather) {
+            const tempF = Math.round(data.current_weather.temperature);
+            const tempC = Math.round((tempF - 32) * 5 / 9);
+            const description = getWeatherDescription(data.current_weather.weathercode);
+            weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
         } else {
             throw new Error("Invalid weather data format.");
         }
@@ -156,13 +154,12 @@ async function fetchAndSetQuickFacts(query) {
     }
 }
 
-function geocode(inputEl) {
-    console.warn("The geocode() function is deprecated. The new `handleSearchAndNavigate` function takes a full place object instead of just a text input.");
+async function geocode(inputEl) {
     if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
-    // NEW: Use MapTiler Geocoding API for the final geocode
-    const res = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(inputEl.value)}.json?key=${MAPTILER_KEY}&limit=1`);
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
     const data = await res.json();
-    if (!data.features[0]) throw new Error(`Could not find location: ${inputEl.value}`);
-    inputEl.dataset.coords = `${data.features[0].center[0]},${data.features[0].center[1]}`;
-    return data.features[0].center;
+    if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`);
+    inputEl.value = data[0].display_name;
+    inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
+    return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
 }
