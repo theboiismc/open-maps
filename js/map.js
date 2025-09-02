@@ -10,19 +10,9 @@ const STYLES = {
     satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`
 };
 
-const map = new maplibregl.Map({
-    container: "map",
-    style: STYLES.default,
-    center: [0, 0], // will be updated by geolocation
-    zoom: 2,
-    minZoom: 0,              // allow fully zoomed out globe
-    maxZoom: 22,             // standard max zoom
-    pitch: 0,                // lock tilt
-    bearing: 0,
-    dragRotate: false,       // disable mouse drag rotation
-    touchPitch: false,       // disable pinch-tilt gesture
-    pitchWithRotate: false,  // disables right-click+drag tilt
-    projection: { name: 'globe' } // modern globe projection
+const map = new maptilersdk.Map({
+	container: "map",
+	projection: "globe", // Use a globe projection
 });
 
 // Add Google Maps–style atmosphere
