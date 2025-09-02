@@ -19,7 +19,7 @@ const map = new maplibregl.Map({
     touchPitch: false,      // disable pinch-tilt gesture
     pitchWithRotate: false, // disables right-click+drag tilt
 });
-});
+
 
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 const geolocateControl = new maplibregl.GeolocateControl({
