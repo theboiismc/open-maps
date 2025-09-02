@@ -75,85 +75,53 @@ map.on('style.load', () => {
             type: 'vector',
             url: `https://api.maptiler.com/tiles/v2/traffic-v2.json?key=${MAPTILER_KEY}`
         });
-
         map.addLayer({
             'id': 'traffic-lines',
             'type': 'line',
             'source': 'traffic',
             'source-layer': 'traffic',
-            'layout': {
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
+            'layout': { 'line-join': 'round', 'line-cap': 'round' },
             'paint': {
-                'line-color': [
-                    'match',
-                    ['get', 'traffic'],
-                    'low',
-                    '#30c25a',
-                    'moderate',
-                    '#ebc100',
-                    'high',
-                    '#de585a',
-                    'severe',
-                    '#b33671',
-                    '#b33671' // Default color
-                ],
+                'line-color': [ 'match', ['get', 'traffic'], 'low', '#30c25a', 'moderate', '#ebc100', 'high', '#de585a', 'severe', '#b33671', '#b33671' ],
                 'line-width': 2,
                 'line-opacity': 0.8
-            },
-            'metadata': {
-                'title': 'Traffic'
-            },
-            'minzoom': 5,
-            'maxzoom': 22
+            }
         });
-
-        const trafficToggle = document.getElementById('traffic-toggle');
-        if (trafficToggle && trafficToggle.checked) {
-            map.setLayoutProperty('traffic-lines', 'visibility', 'visible');
-        } else {
-            map.setLayoutProperty('traffic-lines', 'visibility', 'none');
-        }
+    }
+    const trafficToggle = document.getElementById('traffic-toggle');
+    if (trafficToggle.checked) {
+        map.setLayoutProperty('traffic-lines', 'visibility', 'visible');
     }
 });
 
-map.on('click', (e) => {
-    // Display the location information for the clicked point
-    showLocationInfo(e.lngLat);
-});
+let mapMarker;
+let currentPlace;
 
-// NEW FUNCTION: showLocationInfo - handles reverse geocoding
-async function showLocationInfo(lngLat) {
-    showPanel('info-panel-redesign');
-    document.getElementById('spinner').hidden = false;
-    // NEW: Use MapTiler for reverse geocoding
-    const url = `https://api.maptiler.com/geocoding/${lngLat.lng},${lngLat.lat}.json?key=${MAPTILER_KEY}`;
+// REPLACED: Updated to use MapTiler Geocoding API for reverse geocoding
+map.on('click', async (e) => {
+    const lngLat = e.lngLat;
+    const url = `https://api.maptiler.com/geocoding/${lngLat.lng},${lngLat.lat}.json?key=${MAPTILER_KEY}&limit=1`;
     try {
         const res = await fetch(url);
         const data = await res.json();
-        const place = data.features[0];
-        document.getElementById('spinner').hidden = true;
-        if (place) {
-            const formattedAddress = place.place_name;
-            const placeName = place.text || 'Location';
+
+        // Check for a valid result from the new API
+        if (data.features && data.features.length > 0) {
+            const place = data.features[0];
+            const address = place.place_name || 'Address not available';
+            const name = place.text || 'Location';
             showInfoPanel({
-                name: placeName,
-                address: formattedAddress,
+                name: name,
+                address: address,
                 coordinates: [lngLat.lng, lngLat.lat],
-                quickFacts: 'Reverse geocoding with MapTiler is way better than old Nominatim. This allows for more specific results and more useful context. You can now get directions or search this location.'
+                quickFacts: 'Tap for directions.'
             });
         } else {
-            showInfoPanel({
-                name: 'Location',
-                address: `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`,
-                coordinates: [lngLat.lng, lngLat.lat],
-                quickFacts: 'No address information found. You can still get directions for this location or use the coordinates for directions.'
-            });
+            throw new Error("No place found at this location.");
         }
     } catch (error) {
+        // Friendly message for a connection or server error
         console.error("Failed to show location info:", error);
-        document.getElementById('spinner').hidden = true;
         mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
         showInfoPanel({
             name: `Location`,
@@ -162,33 +130,4 @@ async function showLocationInfo(lngLat) {
             quickFacts: 'Please try again in a moment or use the coordinates provided.'
         });
     }
-}
-
-// NEW FUNCTION: showInfoPanel - centralizes the panel population
-function showInfoPanel(place) {
-    // This is a new function to populate the info panel from any source (search, click, etc.)
-    // It will be added to the ui.js file when we refactor
-    currentPlace = {
-        display_name: place.name,
-        lon: place.coordinates[0],
-        lat: place.coordinates[1]
-    };
-    stopNavigation();
-    clearRouteFromMap();
-    document.getElementById('info-name').textContent = place.name.split(',')[0];
-    document.getElementById('info-address').textContent = place.address;
-    const locationName = place.name.split(',')[0];
-    fetchAndSetPlaceImage(locationName, place.coordinates[0], place.coordinates[1]);
-    fetchAndSetWeather(place.coordinates[1], place.coordinates[0]);
-    document.getElementById('quick-facts-content').textContent = place.quickFacts;
-    showPanel('info-panel-redesign');
-    
-    // Add a marker for the selected place
-    if (mapMarker) {
-        mapMarker.remove();
-    }
-    mapMarker = new maplibregl.Marker()
-        .setLngLat(place.coordinates)
-        .addTo(map);
-    map.flyTo({ center: place.coordinates, zoom: 14 });
-}
+});
