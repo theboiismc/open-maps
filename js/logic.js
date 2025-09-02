@@ -1,184 +1,632 @@
-// --- CORE PANEL & SEARCH LOGIC ---
-function moveSearchBarToPanel() { if (!isMobile) { mainSearchContainer.style.boxShadow = 'none'; mainSearchContainer.style.borderRadius = '8px'; panelSearchPlaceholder.hidden = false; panelSearchPlaceholder.appendChild(mainSearchContainer); topSearchWrapper.style.opacity = '0'; } }
-function moveSearchBarToTop() { if (!isMobile) { mainSearchContainer.style.boxShadow = ''; mainSearchContainer.style.borderRadius = ''; topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
+    // --- CORE PANEL & SEARCH LOGIC ---
+    function moveSearchBarToPanel() { if (!isMobile) { mainSearchContainer.style.boxShadow = 'none'; mainSearchContainer.style.borderRadius = '8px'; panelSearchPlaceholder.hidden = false; panelSearchPlaceholder.appendChild(mainSearchContainer); topSearchWrapper.style.opacity = '0'; } }
+    function moveSearchBarToTop() { if (!isMobile) { mainSearchContainer.style.boxShadow = ''; mainSearchContainer.style.borderRadius = ''; topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
 
-function showPanel(viewId) {
-    ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel'].forEach(id => { document.getElementById(id).hidden = id !== viewId; });
-    if (!sidePanel.classList.contains('open')) {
-        if (isMobile) {
-            if (!sidePanel.classList.contains('peek')) sidePanel.classList.add('peek');
-        } else {
-            sidePanel.classList.add('open');
-            moveSearchBarToPanel();
+    function showPanel(viewId) {
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel'].forEach(id => { document.getElementById(id).hidden = id !== viewId; });
+        if (!sidePanel.classList.contains('open')) {
+            if (isMobile) {
+                if (!sidePanel.classList.contains('peek')) sidePanel.classList.add('peek');
+            } else {
+                sidePanel.classList.add('open');
+                moveSearchBarToPanel();
+            }
         }
     }
-}
 
-function closePanel() {
-    if (isMobile) sidePanel.classList.remove('open', 'peek');
-    else {
-        sidePanel.classList.remove('open');
-        moveSearchBarToTop();
-    }
-}
-
-if(closePanelBtn) closePanelBtn.addEventListener('click', closePanel);
-closeInfoBtn.addEventListener('click', closePanel);
-
-map.on('click', (e) => {
-    const target = e.originalEvent.target;
-    if (!target.closest('.maplibregl-ctrl') && !target.closest('#side-panel') && !target.closest('.js-settings-btn')) {
-        closePanel();
-    }
-});
-
-function debounce(func, delay) { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; }
-
-const mainSuggestions = document.getElementById("main-suggestions");
-attachSuggestionListener(mainSearchInput, mainSuggestions, processPlaceResult);
-document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput.value));
-mainSearchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") performSmartSearch(mainSearchInput.value);
-});
-
-const fromInput = document.getElementById('panel-from-input');
-const fromSuggestions = document.getElementById('panel-from-suggestions');
-attachSuggestionListener(fromInput, fromSuggestions, (place) => {
-    fromInput.value = place.place_name;
-    fromInput.dataset.coords = `${place.center[0]},${place.center[1]}`;
-});
-
-const toInput = document.getElementById('panel-to-input');
-const toSuggestions = document.getElementById('panel-to-suggestions');
-attachSuggestionListener(toInput, toSuggestions, (place) => {
-    toInput.value = place.place_name;
-    toInput.dataset.coords = `${place.center[0]},${place.center[1]}`;
-});
-
-function processPlaceResult(place) {
-    currentPlace = place;
-    stopNavigation();
-    clearRouteFromMap();
-    map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
-    mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
-    document.getElementById('info-name').textContent = place.display_name.split(',')[0];
-    document.getElementById('info-address').textContent = place.display_name;
-    const locationName = place.display_name.split(',')[0];
-    fetchAndSetPlaceImage(locationName, place.lon, place.lat);
-    fetchAndSetWeather(place.lat, place.lon);
-    fetchAndSetQuickFacts(locationName);
-    showPanel('info-panel-redesign');
-}
-
-async function fetchAndSetPlaceImage(query, lon, lat) {
-    const imgEl = document.getElementById('info-image');
-    imgEl.src = '';
-    imgEl.style.backgroundColor = '#e0e0e0';
-    imgEl.alt = 'Loading image...';
-    imgEl.onerror = null;
-    try {
-        const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
-        const res = await fetch(wikipediaUrl);
-        const data = await res.json();
-        const page = Object.values(data.query.pages)[0];
-        if (page.thumbnail && page.thumbnail.source) {
-            imgEl.src = page.thumbnail.source;
-            imgEl.alt = `Photograph of ${query}`;
-            return;
-        } else {
-            throw new Error("No image found on Wikipedia.");
+    function closePanel() {
+        if (isMobile) sidePanel.classList.remove('open', 'peek');
+        else {
+            sidePanel.classList.remove('open');
+            moveSearchBarToTop();
         }
-    } catch (e) {
-        console.log("Wikipedia image failed:", e.message, "Activating fallback.");
-        const offset = 0.005;
-        const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`;
-        const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
-        imgEl.src = fallbackUrl;
-        imgEl.alt = `Map view of ${query}`;
-        imgEl.onerror = () => {
-            imgEl.style.backgroundColor = '#e0e0e0';
-            imgEl.alt = 'Image not available';
+    }
+
+    if(closePanelBtn) closePanelBtn.addEventListener('click', closePanel);
+    closeInfoBtn.addEventListener('click', closePanel);
+
+    map.on('click', (e) => {
+        const target = e.originalEvent.target;
+        if (!target.closest('.maplibregl-ctrl') && !target.closest('#side-panel') && !target.closest('.js-settings-btn')) {
+            closePanel();
+        }
+    });
+
+    function debounce(func, delay) { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; }
+    function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
+        const fetchAndDisplaySuggestions = async (query) => {
+            if (!query) { suggestionsEl.style.display = "none"; return; }
+            const bounds = map.getBounds();
+            const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                suggestionsEl.innerHTML = "";
+                data.forEach(item => {
+                    const el = document.createElement("div");
+                    el.className = "search-result";
+                    el.textContent = item.display_name;
+                    el.addEventListener("click", () => onSelect(item));
+                    suggestionsEl.appendChild(el);
+                });
+                suggestionsEl.style.display = data.length > 0 ? "block" : "none";
+            } catch (e) {
+                console.error("Suggestion fetch failed", e);
+            }
         };
+        const debouncedFetch = debounce(fetchAndDisplaySuggestions, 300);
+        inputEl.addEventListener("input", () => debouncedFetch(inputEl.value.trim()));
+        inputEl.addEventListener("blur", () => {
+            setTimeout(() => { suggestionsEl.style.display = "none"; }, 200);
+        });
     }
-}
 
-function getWeatherDescription(code) {
-    const descriptions = { 0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', 71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall', 80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers', 95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail' };
-    return descriptions[code] || "Weather data unavailable";
-}
-
-async function fetchAndSetWeather(lat, lon) {
-    const weatherEl = document.getElementById('info-weather');
-    weatherEl.textContent = "Loading weather...";
-    try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`API returned status ${res.status}`);
-        const data = await res.json();
-        if (data.current_weather) {
-            const tempF = Math.round(data.current_weather.temperature);
-            const tempC = Math.round((tempF - 32) * 5 / 9);
-            const description = getWeatherDescription(data.current_weather.weathercode);
-            weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
-        } else {
-            throw new Error("Invalid weather data format.");
+    async function performSmartSearch(inputEl, onSelect) {
+        const query = inputEl.value.trim();
+        if (!query) return;
+        const bounds = map.getBounds();
+        const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.length > 0) onSelect(data[0]);
+            else alert("No results found for your search.");
+        } catch (e) {
+            alert("Search failed. Please check your connection.");
         }
-    } catch (e) {
-        weatherEl.textContent = "Could not load weather data.";
-        console.error("Weather fetch/parse error:", e);
     }
-}
 
-async function fetchAndSetQuickFacts(query) {
-    const factsEl = document.getElementById('quick-facts-content');
-    factsEl.textContent = "Loading facts...";
-    try {
-        const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=extracts&exintro&explaintext&redirects=1&titles=${encodeURIComponent(query)}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        const page = Object.values(data.query.pages)[0];
-        factsEl.textContent = page.extract ? page.extract.substring(0, 350) + '...' : "No quick facts found on Wikipedia.";
-    } catch (e) {
-        factsEl.textContent = "Could not load facts.";
-        console.error("Wikipedia API error", e);
+    const mainSuggestions = document.getElementById("main-suggestions");
+    attachSuggestionListener(mainSearchInput, mainSuggestions, processPlaceResult);
+    document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
+    mainSearchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult);
+    });
+
+    const fromInput = document.getElementById('panel-from-input');
+    const fromSuggestions = document.getElementById('panel-from-suggestions');
+    attachSuggestionListener(fromInput, fromSuggestions, (place) => {
+        fromInput.value = place.display_name;
+        fromInput.dataset.coords = `${place.lon},${place.lat}`;
+    });
+
+    const toInput = document.getElementById('panel-to-input');
+    const toSuggestions = document.getElementById('panel-to-suggestions');
+    attachSuggestionListener(toInput, toSuggestions, (place) => {
+        toInput.value = place.display_name;
+        toInput.dataset.coords = `${place.lon},${place.lat}`;
+    });
+
+    function processPlaceResult(place) {
+        currentPlace = place;
+        stopNavigation();
+        clearRouteFromMap();
+        map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
+        mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
+        document.getElementById('info-name').textContent = place.display_name.split(',')[0];
+        document.getElementById('info-address').textContent = place.display_name;
+        const locationName = place.display_name.split(',')[0];
+        fetchAndSetPlaceImage(locationName, place.lon, place.lat);
+        fetchAndSetWeather(place.lat, place.lon);
+        fetchAndSetQuickFacts(locationName);
+        showPanel('info-panel-redesign');
     }
-}
 
-function openDirectionsPanel() {
-    showPanel('directions-panel-redesign');
-    if (currentPlace) {
-        toInput.value = currentPlace.display_name;
-        toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
-        fromInput.value = '';
-        fromInput.dataset.coords = '';
-    } else {
-        toInput.value = mainSearchInput.value;
+    async function fetchAndSetPlaceImage(query, lon, lat) {
+        const imgEl = document.getElementById('info-image');
+        imgEl.src = '';
+        imgEl.style.backgroundColor = '#e0e0e0';
+        imgEl.alt = 'Loading image...';
+        imgEl.onerror = null;
+        try {
+            const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageimages&pithumbsize=800&titles=${encodeURIComponent(query)}`;
+            const res = await fetch(wikipediaUrl);
+            const data = await res.json();
+            const page = Object.values(data.query.pages)[0];
+            if (page.thumbnail && page.thumbnail.source) {
+                imgEl.src = page.thumbnail.source;
+                imgEl.alt = `Photograph of ${query}`;
+                return;
+            } else {
+                throw new Error("No image found on Wikipedia.");
+            }
+        } catch (e) {
+            console.log("Wikipedia image failed:", e.message, "Activating fallback.");
+            const offset = 0.005;
+            const bbox = `${lon - offset},${lat - offset},${lon + offset},${lat + offset}`;
+            const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
+            imgEl.src = fallbackUrl;
+            imgEl.alt = `Map view of ${query}`;
+            imgEl.onerror = () => {
+                imgEl.style.backgroundColor = '#e0e0e0';
+                imgEl.alt = 'Image not available';
+            };
+        }
     }
-}
-document.getElementById('get-directions-btn').addEventListener('click', openDirectionsPanel);
 
-// Function to handle showing the info panel
-function showInfoPanel(place) {
-    currentPlace = {
-        display_name: place.name,
-        lon: place.coordinates[0],
-        lat: place.coordinates[1]
-    };
-    stopNavigation();
-    clearRouteFromMap();
-    document.getElementById('info-name').textContent = place.name.split(',')[0];
-    document.getElementById('info-address').textContent = place.address;
-    const locationName = place.name.split(',')[0];
-    fetchAndSetPlaceImage(locationName, place.coordinates[0], place.coordinates[1]);
-    fetchAndSetWeather(place.coordinates[1], place.coordinates[0]);
-    document.getElementById('quick-facts-content').textContent = place.quickFacts;
-    showPanel('info-panel-redesign');
+    function getWeatherDescription(code) {
+        const descriptions = { 0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain', 71: 'Slight snow fall', 73: 'Moderate snow fall', 75: 'Heavy snow fall', 80: 'Slight rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers', 95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail' };
+        return descriptions[code] || "Weather data unavailable";
+    }
+
+    async function fetchAndSetWeather(lat, lon) {
+        const weatherEl = document.getElementById('info-weather');
+        weatherEl.textContent = "Loading weather...";
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`API returned status ${res.status}`);
+            const data = await res.json();
+            if (data.current_weather) {
+                const tempF = Math.round(data.current_weather.temperature);
+                const tempC = Math.round((tempF - 32) * 5 / 9);
+                const description = getWeatherDescription(data.current_weather.weathercode);
+                weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
+            } else {
+                throw new Error("Invalid weather data format.");
+            }
+        } catch (e) {
+            weatherEl.textContent = "Could not load weather data.";
+            console.error("Weather fetch/parse error:", e);
+        }
+    }
+
+    async function fetchAndSetQuickFacts(query) {
+        const factsEl = document.getElementById('quick-facts-content');
+        factsEl.textContent = "Loading facts...";
+        try {
+            const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=extracts&exintro&explaintext&redirects=1&titles=${encodeURIComponent(query)}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const page = Object.values(data.query.pages)[0];
+            factsEl.textContent = page.extract ? page.extract.substring(0, 350) + '...' : "No quick facts found on Wikipedia.";
+        } catch (e) {
+            factsEl.textContent = "Could not load facts.";
+            console.error("Wikipedia API error", e);
+        }
+    }
+
+    function openDirectionsPanel() {
+        showPanel('directions-panel-redesign');
+        if (currentPlace) {
+            toInput.value = currentPlace.display_name;
+            toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
+            fromInput.value = '';
+            fromInput.dataset.coords = '';
+        } else {
+            toInput.value = mainSearchInput.value;
+            toInput.dataset.coords = '';
+            fromInput.value = '';
+            fromInput.dataset.coords = '';
+        }
+    }
+
+    document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
+    document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
+    document.getElementById('info-save-btn').addEventListener('click', () => {
+        if (currentUser) {
+            alert("Feature 'Save Place' not yet implemented!");
+        } else {
+            alert("Please log in to save places.");
+        }
+    });
+
+    document.getElementById('swap-btn').addEventListener('click', () => {
+        [fromInput.value, toInput.value] = [toInput.value, fromInput.value];
+        [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords];
+    });
+
+    document.getElementById('dir-use-my-location').addEventListener('click', () => {
+        fromInput.value = "Getting your location...";
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                fromInput.value = "Your Location";
+                fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
+            },
+            handlePositionError,
+            geolocationOptions
+        );
+    });
+
+    document.getElementById('back-to-info-btn').addEventListener('click', () => {
+        if (currentPlace) showPanel('info-panel-redesign');
+    });
     
-    // Add a marker for the selected place
-    if (mapMarker) {
-        mapMarker.remove();
+    document.getElementById('back-to-directions-btn').addEventListener('click', () => {
+        showPanel('directions-panel-redesign');
+    });
+
+    function clearRouteFromMap() {
+        if (map.getLayer('route-line')) map.removeLayer('route-line');
+        if (map.getSource('route')) map.removeSource('route');
+        if (map.getLayer(highlightedSegmentLayerId)) map.removeLayer(highlightedSegmentLayerId);
+        if (map.getSource(highlightedSegmentLayerId)) map.removeSource(highlightedSegmentLayerId);
     }
-    mapMarker = new maplibregl.Marker()
-        .setLngLat(place.coordinates)
-        .addTo(map);
-}
+    
+    function displayRoutePreview(route) {
+        const durationMinutes = Math.round(route.duration / 60);
+        const distanceMiles = (route.distance / 1609.34).toFixed(1);
+        document.getElementById('route-summary-time').textContent = `${durationMinutes} min`;
+        document.getElementById('route-summary-distance').textContent = `${distanceMiles} mi`;
+        showPanel('route-preview-panel');
+    }
+
+    async function getRoute() {
+        if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
+        clearRouteFromMap();
+        try {
+            const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
+            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!data.routes || data.routes.length === 0 || !data.routes[0].legs || !data.routes[0].legs[0].steps || data.routes[0].legs[0].steps.length === 0) {
+                return alert("A route could not be found. Please try a different location.");
+            }
+            currentRouteData = data;
+            const route = data.routes[0];
+            const routeGeoJSON = { type: 'Feature', geometry: route.geometry };
+            addRouteToMap(routeGeoJSON);
+            const bounds = new maplibregl.LngLatBounds();
+            routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
+
+            if (fromInput.value.trim() === "Your Location") {
+                map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
+                closePanel();
+                startNavigation();
+            } else {
+                displayRoutePreview(route);
+                map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
+            }
+        } catch (err) {
+            alert(`Error getting route: ${err.message}`);
+            navigationState.isRerouting = false;
+        }
+    }
+    
+    const startNavigationBtn = document.getElementById('start-navigation-btn');
+    startNavigationBtn.addEventListener('click', startNavigation);
+
+    const shareRouteBtn = document.getElementById('share-route-btn');
+    shareRouteBtn.addEventListener('click', async () => {
+        const fromName = fromInput.value;
+        const toName = toInput.value;
+        const fromCoords = fromInput.dataset.coords;
+        const toCoords = toInput.dataset.coords;
+        const shareText = `Check out this route from ${fromName} to ${toName}!`;
+        const url = new URL(window.location.href);
+        url.searchParams.set('from', fromCoords);
+        url.searchParams.set('to', toCoords);
+        url.searchParams.set('fromName', fromName);
+        url.searchParams.set('toName', toName);
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'TheBoiisMC Maps Route',
+                    text: shareText,
+                    url: url.toString()
+                });
+            } catch (error) {
+                console.error('Error sharing:', error);
+            }
+        } else {
+            navigator.clipboard.writeText(url.toString()).then(() => {
+                alert("Route link copied to clipboard!");
+            }).catch(err => {
+                console.error('Could not copy link: ', err);
+                alert("Could not copy link. Please manually copy the URL from the address bar.");
+            });
+        }
+    });
+
+    document.getElementById('get-route-btn').addEventListener('click', getRoute);
+    document.getElementById('exit-route-btn').addEventListener('click', () => {
+        clearRouteFromMap();
+        showPanel('directions-panel-redesign');
+    });
+
+    async function geocode(inputEl) {
+        if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
+        const data = await res.json();
+        if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`);
+        inputEl.value = data[0].display_name;
+        inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
+        return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+    }
+
+    function addRouteToMap(routeGeoJSON) {
+        if (map.getSource('route')) {
+            map.getSource('route').setData(routeGeoJSON);
+        } else {
+            map.addSource('route', { type: 'geojson', data: routeGeoJSON });
+            map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0d89ec', 'line-width': 8, 'line-opacity': 0.7 } });
+        }
+    }
+
+    // --- ADVANCED NAVIGATION FUNCTIONS ---
+    function toRadians(degrees) { return degrees * Math.PI / 180; }
+    function toDegrees(radians) { return radians * 180 / Math.PI; }
+    function getBearing(startPoint, endPoint) {
+        const startLat = toRadians(startPoint.geometry.coordinates[1]);
+        const startLng = toRadians(startPoint.geometry.coordinates[0]);
+        const endLat = toRadians(endPoint.geometry.coordinates[1]);
+        const endLng = toRadians(endPoint.geometry.coordinates[0]);
+        const dLng = endLng - startLng;
+        const y = Math.sin(dLng) * Math.cos(endLat);
+        const x = Math.cos(startLat) * Math.sin(endLat) - Math.sin(startLat) * Math.cos(endLat) * Math.cos(dLng);
+        let brng = toDegrees(Math.atan2(y, x));
+        return (brng + 360) % 360;
+    }
+
+    function formatEta(date) {
+        if (!date) return "--:--";
+        let hours = date.getHours();
+        let minutes = date.getMinutes();
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        minutes = minutes < 10 ? '0'+minutes : minutes;
+        return `${hours}:${minutes} ${ampm}`;
+    }
+
+    function updateNavigationUI() {
+        const remainingTime = (navigationState.totalTripTime / 60).toFixed(0);
+        statTimeRemainingEl.textContent = `${remainingTime} min`;
+        statEtaEl.textContent = formatEta(navigationState.estimatedArrivalTime);
+        statSpeedEl.textContent = navigationState.userSpeed.toFixed(0);
+        instructionProgressBar.transform = `scaleX(${1 - navigationState.progressAlongStep})`;
+    }
+
+    function updateHighlightedSegment(step) {
+        if (map.getLayer(highlightedSegmentLayerId)) map.removeLayer(highlightedSegmentLayerId);
+        if (map.getSource(highlightedSegmentLayerId)) map.removeSource(highlightedSegmentLayerId);
+        if (!step || !step.geometry) return;
+        map.addSource(highlightedSegmentLayerId, { type: 'geojson', data: step.geometry });
+        map.addLayer({
+            id: highlightedSegmentLayerId,
+            type: 'line',
+            source: highlightedSegmentLayerId,
+            paint: { 'line-color': '#0055ff', 'line-width': 9, 'line-opacity': 0.9 }
+        }, 'route-line');
+    }
+
+    function startNavigation() {
+        if (!navigator.geolocation) return alert("Geolocation is not supported by your browser.");
+        
+        resetNavigationState();
+        navigationState.isActive = true;
+        navigationState.totalTripTime = currentRouteData.routes[0].duration;
+
+        const firstStep = currentRouteData.routes[0].legs[0].steps[0];
+        navigationInstructionEl.textContent = firstStep.maneuver.instruction;
+        updateHighlightedSegment(firstStep);
+        updateNavigationUI();
+
+        navigationStatusPanel.style.display = 'flex';
+        speech.speak(`Starting route. ${firstStep.maneuver.instruction}`, true);
+        if (!userLocationMarker) {
+            const el = document.createElement('div');
+            el.className = 'user-location-marker';
+            userLocationMarker = new maplibregl.Marker(el).setLngLat([0, 0]).addTo(map);
+        }
+
+        map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
+
+        navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
+        endNavigationBtn.addEventListener('click', stopNavigation);
+    }
+
+    function stopNavigation() {
+        if (navigationWatcherId) navigator.geolocation.clearWatch(navigationWatcherId);
+        if (userLocationMarker) { userLocationMarker.remove(); userLocationMarker = null; }
+
+        clearRouteFromMap();
+        resetNavigationState();
+
+        navigationStatusPanel.style.display = 'none';
+        speech.synthesis.cancel();
+
+        map.easeTo({ pitch: 0, bearing: 0 });
+    }
+
+    function handlePositionError(error) {
+        console.error("Geolocation Error:", error.message);
+        alert(`Geolocation error: ${error.message}. Navigation stopped.`);
+        stopNavigation();
+    }
+
+    async function handlePositionUpdate(position) {
+        if (!navigationState.isActive || navigationState.isRerouting) return;
+        const { latitude, longitude, heading, speed, accuracy } = position.coords;
+
+        if (accuracy > 80) return;
+
+        const userPoint = turf.point([longitude, latitude]);
+        const steps = currentRouteData.routes[0].legs[0].steps;
+
+        navigationState.userSpeed = (speed || 0) * 2.23694;
+        const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
+        const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
+
+        userLocationMarker.setLngLat(snapped.geometry.coordinates);
+        if (heading != null) {
+            userLocationMarker.setRotation(heading);
+            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: 18, duration: 500 });
+        } else {
+            map.easeTo({ center: snapped.geometry.coordinates, zoom: 18, duration: 500 });
+        }
+
+        const currentStep = steps[navigationState.currentStepIndex];
+        const stepStartPoint = turf.point(currentStep.geometry.coordinates[0]);
+        const stepEndPoint = turf.point(currentStep.geometry.coordinates[currentStep.geometry.coordinates.length - 1]);
+        const stepBearing = getBearing(stepStartPoint, stepEndPoint);
+        const headingDifference = Math.abs(heading - stepBearing);
+
+        if (snapped.properties.dist > 50) {
+            navigationState.isRerouting = true;
+            speech.speak("Off route. Recalculating.", true);
+            await getRoute();
+            return;
+        }
+        
+        if (heading != null && headingDifference > 90 && headingDifference < 270 && navigationState.userSpeed > 5 && !navigationState.isWrongWay) {
+             navigationState.isWrongWay = true;
+             speech.speak("Wrong way. Recalculating.", true);
+             await getRoute();
+             return;
+        }
+        navigationState.isWrongWay = false;
+
+        const currentStepLine = turf.lineString(currentStep.geometry.coordinates);
+        const totalStepDistance = turf.length(currentStepLine, { units: 'meters' });
+        navigationState.distanceToNextManeuver = turf.distance(userPoint, stepEndPoint, { units: 'meters' });
+        navigationState.progressAlongStep = Math.max(0, 1 - (navigationState.distanceToNextManeuver / totalStepDistance));
+
+        const tripDurationSeconds = currentRouteData.routes[0].duration;
+        const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
+        const remainingTimeSeconds = tripDurationSeconds - timeElapsed;
+        navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
+        navigationState.totalTripTime = remainingTimeSeconds;
+        updateNavigationUI();
+
+        const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
+        if (distanceMiles > 0.9 && distanceMiles < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
+            speech.speak(`In 1 mile, ${currentStep.maneuver.instruction}`);
+            navigationState.lastAnnouncedDistance = 1;
+        } else if (distanceMiles > 0.24 && distanceMiles < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
+            speech.speak(`In a quarter mile, ${currentStep.maneuver.instruction}`);
+            navigationState.lastAnnouncedDistance = 0.25;
+        }
+
+        if (navigationState.distanceToNextManeuver < 50) {
+            navigationState.currentStepIndex++;
+            if (navigationState.currentStepIndex >= steps.length) {
+                speech.speak("You have arrived at your destination.", true);
+                stopNavigation();
+                return;
+            }
+            const nextStep = steps[navigationState.currentStepIndex];
+            navigationInstructionEl.textContent = nextStep.maneuver.instruction;
+            updateHighlightedSegment(nextStep);
+            speech.speak(nextStep.maneuver.instruction, true);
+            navigationState.lastAnnouncedDistance = Infinity;
+        }
+    }
+
+    // --- NEW: TRAFFIC LAYER LOGIC ---
+    const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
+    const TRAFFIC_LAYER_ID = 'traffic-lines';
+
+    const trafficSource = {
+        type: 'vector',
+        url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}`
+    };
+
+    const trafficLayer = {
+        id: TRAFFIC_LAYER_ID,
+        type: 'line',
+        source: TRAFFIC_SOURCE_ID,
+        'source-layer': 'traffic',
+        layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        paint: {
+            'line-width': 2,
+            'line-color': [
+                'match',
+                ['get', 'congestion'],
+                'low', '#30c83a',
+                'moderate', '#ff9a00',
+                'heavy', '#ff3d3d',
+                'severe', '#a00000',
+                '#a0a0a0'
+            ]
+        }
+    };
+    
+    function addTrafficLayer() {
+        if (map.getSource(TRAFFIC_SOURCE_ID)) return;
+        map.addSource(TRAFFIC_SOURCE_ID, trafficSource);
+        // The last argument ('route-line') tells the map to draw the traffic layer *before* the route line
+        map.addLayer(trafficLayer, 'route-line');
+    }
+
+    function removeTrafficLayer() {
+        if (!map.getSource(TRAFFIC_SOURCE_ID)) return;
+        map.removeLayer(TRAFFIC_LAYER_ID);
+        map.removeSource(TRAFFIC_SOURCE_ID);
+    }
+    // --- END TRAFFIC LAYER LOGIC ---
+
+    // --- SETTINGS & OTHER UI LOGIC ---
+    const settingsBtns = document.querySelectorAll('.js-settings-btn');
+    const settingsMenu = document.getElementById('settings-menu');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
+    const trafficToggle = document.getElementById('traffic-toggle'); // NEW
+
+    function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
+    function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
+
+    settingsBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openSettings();
+        });
+    });
+
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    menuOverlay.addEventListener('click', closeSettings);
+
+    document.addEventListener('click', (e) => {
+        if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) {
+            closeSettings();
+        }
+    });
+
+    styleRadioButtons.forEach(radio => {
+        radio.addEventListener('change', () => {
+            const newStyle = radio.value;
+            map.setStyle(STYLES[newStyle]);
+            if (isMobile) {
+                setTimeout(closeSettings, 200);
+            }
+        });
+    });
+    
+    // NEW: Event listener for the traffic toggle
+    trafficToggle.addEventListener('change', () => {
+        if (trafficToggle.checked) {
+            addTrafficLayer();
+        } else {
+            removeTrafficLayer();
+        }
+        if (isMobile) {
+            setTimeout(closeSettings, 200);
+        }
+    });
+
+    document.querySelectorAll('input[name="map-units"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (isMobile) {
+                setTimeout(closeSettings, 200);
+            }
+        });
+    });
+
+    map.on('styledata', () => {
+        if (navigationState.isActive && currentRouteData) {
+            const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry };
+            addRouteToMap(routeGeoJSON);
+            updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]);
+        }
+        // NEW: Re-add traffic layer if it was enabled when map style changes
+        if (trafficToggle.checked) {
+            addTrafficLayer();
+        }
+    });
