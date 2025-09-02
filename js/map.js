@@ -1,5 +1,4 @@
 // --- MAP INITIALIZATION & CONTROLS ---
-// NEW: Add your MapTiler API Key here
 const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 
 const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
@@ -10,19 +9,28 @@ const STYLES = {
     satellite: `https://api.maptiler.com/maps/satellite/style.json?key=${MAPTILER_KEY}`
 };
 
+// Initialize MapTiler SDK map
 const map = new maptilersdk.Map({
     container: "map",
     style: STYLES.default,
     projection: "globe",
     center: [0, 0],
-    zoom: 0,       // start fully zoomed out
+    zoom: 0,
     minZoom: 0,
     maxZoom: 22,
     pitch: 0,
     bearing: 0
 });
 
-// Add Google Maps–style atmosphere
+// Add built-in navigation and geolocate controls
+map.addControl(new maptilersdk.NavigationControl(), "bottom-right");
+map.addControl(new maptilersdk.GeolocateControl({
+    positionOptions: geolocationOptions,
+    trackUserLocation: true,
+    showUserHeading: true
+}), "bottom-right");
+
+// Add atmosphere/fog (MapTiler SDK supports fog like MapLibre)
 map.on('style.load', () => {
     map.setFog({
         color: 'rgba(255, 255, 255, 0.8)',
@@ -33,21 +41,13 @@ map.on('style.load', () => {
     });
 });
 
-map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-
-const geolocateControl = new maplibregl.GeolocateControl({
-    positionOptions: geolocationOptions,
-    trackUserLocation: true,
-    showUserHeading: true
-});
-map.addControl(geolocateControl, "bottom-right");
-
-// On load: trigger geolocation and center map
+// Trigger geolocation on load
 map.on('load', () => {
-    geolocateControl.trigger();
+    const geolocateControl = map.getControl(maptilersdk.GeolocateControl);
+    if (geolocateControl) geolocateControl.trigger();
 });
 
-// --- NEW: Map click event ---
+// --- CLICK TO SHOW LOCATION ---
 let clickMarker = null;
 map.on('click', (e) => {
     if (!navigationState.isActive) {
@@ -73,9 +73,7 @@ const speech = {
     synthesis: window.speechSynthesis,
     utterance: new SpeechSynthesisUtterance(),
     speak(text, priority = false) {
-        if (priority && this.synthesis.speaking) {
-            this.synthesis.cancel();
-        }
+        if (priority && this.synthesis.speaking) this.synthesis.cancel();
         if (!this.synthesis.speaking && text) {
             this.utterance.text = text;
             this.synthesis.speak(this.utterance);
@@ -111,7 +109,7 @@ const statEtaEl = document.getElementById('stat-eta');
 const statTimeRemainingEl = document.getElementById('stat-time-remaining');
 const highlightedSegmentLayerId = 'highlighted-route-segment';
 
-// --- NEW FUNCTIONS FOR CLICK-TO-GET-LOCATION ---
+// --- CLICK TO GET LOCATION ---
 async function reverseGeocode(lngLat) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lngLat.lat}&lon=${lngLat.lng}`;
     try {
@@ -125,30 +123,24 @@ async function reverseGeocode(lngLat) {
 }
 
 function showClickedLocation(lngLat) {
-    if (clickMarker) {
-        clickMarker.remove();
-    }
-    
-    map.flyTo({
-        center: lngLat,
-        zoom: 16,
-        essential: true
-    });
+    if (clickMarker) clickMarker.remove();
 
-    clickMarker = new maplibregl.Marker()
+    // MapTiler SDK marker
+    clickMarker = new maptilersdk.Marker()
         .setLngLat(lngLat)
         .addTo(map);
 
+    map.flyTo({ center: lngLat, zoom: 16, essential: true });
+
     reverseGeocode(lngLat).then(data => {
-        if (data && data.display_name) {
-            processPlaceResult(data);
-        } else {
+        if (data && data.display_name) processPlaceResult(data);
+        else {
             mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
             showInfoPanel({
                 name: `Location`,
                 address: `Unable to find an address for this spot.`,
                 coordinates: [lngLat.lng, lngLat.lat],
-                quickFacts: 'This location may be in a remote or unmapped area. You can still use the coordinates for directions.'
+                quickFacts: 'This location may be in a remote or unmapped area.'
             });
         }
     }).catch(error => {
@@ -156,14 +148,14 @@ function showClickedLocation(lngLat) {
         mainSearchInput.value = `[${lngLat.lng.toFixed(6)}, ${lngLat.lat.toFixed(6)}]`;
         showInfoPanel({
             name: `Location`,
-            address: `We\'re having trouble getting details for this location right now.`,
+            address: `Error fetching location details.`,
             coordinates: [lngLat.lng, lngLat.lat],
-            quickFacts: 'Please try again in a moment or use the coordinates provided.'
+            quickFacts: 'Use the coordinates for directions.'
         });
     });
 }
 
-// NEW FUNCTION: showInfoPanel
+// --- SHOW INFO PANEL ---
 function showInfoPanel(place) {
     currentPlace = {
         display_name: place.name,
