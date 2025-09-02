@@ -19,39 +19,34 @@ async function getRoute() {
     clearRouteFromMap();
     try {
         const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-        const url = `https://api.maptiler.com/directions/v1/driving/${start.join(',')};${end.join(',')}?key=${MAPTILER_KEY}`;
+        const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
         const res = await fetch(url);
         const data = await res.json();
-        
-        if (!data.routes || data.routes.length === 0 || !data.routes[0].geometry) {
-            throw new Error('No route found.');
+        if (!data.routes || data.routes.length === 0 || !data.routes[0].legs || !data.routes[0].legs[0].steps || data.routes[0].legs[0].steps.length === 0) {
+            return alert("A route could not be found. Please try a different location.");
         }
-
+        currentRouteData = data;
         const route = data.routes[0];
-        currentRouteData = data; 
-        
-        // Convert MapTiler's polyline to GeoJSON for rendering
-        const decodedPath = decodePolyline(route.geometry.coordinates, 5); 
-        const routeGeoJSON = {
-            type: 'Feature',
-            geometry: {
-                type: 'LineString',
-                coordinates: decodedPath
-            }
-        };
-
+        const routeGeoJSON = { type: 'Feature', geometry: route.geometry };
         addRouteToMap(routeGeoJSON);
-        displayRoutePreview(route);
-        // The rest of your route handling logic goes here
-        addStepsToPanel(route.legs[0].steps);
-        fitMapToRoute(route);
-    } catch (e) {
-        console.error("Route fetch failed", e);
-        alert(`Could not find a route: ${e.message}`);
-        closePanel();
+        const bounds = new maplibregl.LngLatBounds();
+        routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
+
+        if (fromInput.value.trim() === "Your Location") {
+            map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
+            closePanel();
+            startNavigation();
+        } else {
+            displayRoutePreview(route);
+            map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
+        }
+    } catch (err) {
+        alert(`Error getting route: ${err.message}`);
+        navigationState.isRerouting = false;
     }
 }
-async function addRouteToMap(routeGeoJSON) {
+
+function addRouteToMap(routeGeoJSON) {
     if (map.getSource('route')) {
         map.getSource('route').setData(routeGeoJSON);
     } else {
@@ -87,52 +82,19 @@ const trafficLayer = {
             'moderate', '#ff9a00',
             'heavy', '#ff3d3d',
             'severe', '#a00000',
-            '#ccc' // default color
+            '#a0a0a0'
         ]
-    },
-    'minzoom': 5
+    }
 };
-
+    
 function addTrafficLayer() {
-    if (!map.getSource('traffic')) {
-        map.addSource('traffic', trafficSource);
-    }
-    if (!map.getLayer(TRAFFIC_LAYER_ID)) {
-        map.addLayer(trafficLayer);
-    }
-    map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', 'visible');
+    if (map.getSource(TRAFFIC_SOURCE_ID)) return;
+    map.addSource(TRAFFIC_SOURCE_ID, trafficSource);
+    map.addLayer(trafficLayer, 'route-line');
 }
 
 function removeTrafficLayer() {
-    if (map.getLayer(TRAFFIC_LAYER_ID)) {
-        map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', 'none');
-    }
-}
-
-// Helper function to decode the polyline
-function decodePolyline(encoded, precision) {
-    const points = [];
-    let index = 0, len = encoded.length;
-    let lat = 0, lng = 0;
-    while (index < len) {
-        let b, shift = 0, result = 0;
-        do {
-            b = encoded.charCodeAt(index++) - 63;
-            result |= (b & 0x1f) << shift;
-            shift += 5;
-        } while (b >= 0x20);
-        let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
-        lat += dlat;
-        shift = 0;
-        result = 0;
-        do {
-            b = encoded.charCodeAt(index++) - 63;
-            result |= (b & 0x1f) << shift;
-            shift += 5;
-        } while (b >= 0x20);
-        let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
-        lng += dlng;
-        points.push([lng / Math.pow(10, precision), lat / Math.pow(10, precision)]);
-    }
-    return points;
+    if (!map.getSource(TRAFFIC_SOURCE_ID)) return;
+    map.removeLayer(TRAFFIC_LAYER_ID);
+    map.removeSource(TRAFFIC_SOURCE_ID);
 }
