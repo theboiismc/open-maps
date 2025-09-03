@@ -10,6 +10,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
     
+    
     <meta property="og:title" content="TheBoiisMC Maps" />
     <meta property="og:description" content="Explore the world with private, modern mapping." />
     <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
@@ -17,21 +18,18 @@
     <meta name="twitter:card" content="summary_large_image" />
     
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
-    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" defer></script>
-    <script src="https://npmcdn.com/@turf/turf/turf.min.js" defer></script> 
+    
     <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
 
+        
     <link rel="stylesheet" href="styles.css">
-
-    
 </head>
 <body>
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
-            <!-- Settings button stays visible (position:fixed) -->
-            <button id="settings-btn" class="settings-btn" aria-label="Map Settings" aria-haspopup="dialog" aria-expanded="false">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button class="js-settings-btn" aria-label="Map Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82-.33l-.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V15z"></path>
                 </svg>
@@ -164,22 +162,19 @@
         </div>
     </div>
     
-    <!-- Layer button stays visible (position:fixed) -->
-    <button id="layer-btn" class="layer-btn" aria-label="Layer Settings" aria-haspopup="dialog" aria-expanded="false">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-layers">
             <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
             <polyline points="2 17 12 22 22 17"></polyline>
             <polyline points="2 12 12 17 22 12"></polyline>
         </svg>
     </button>
     
-    <div id="menu-overlay" aria-hidden="true"></div>
-
-    <!-- Settings menu (existing) -->
-    <div id="settings-menu" role="dialog" aria-modal="true" aria-labelledby="settings-menu-title">
+    <div id="menu-overlay"></div>
+    <div id="settings-menu">
         <div class="settings-menu-header">
-            <h4 id="settings-menu-title">Map Settings</h4>
-            <button id="close-settings-btn" class="menu-close" aria-label="Close Settings">&times;</button>
+            <h4>Map Settings</h4>
+            <button id="close-settings-btn" aria-label="Close Settings">&times;</button>
         </div>
         <div class="settings-menu-content">
             <div class="setting-group">
@@ -196,7 +191,7 @@
                 <label class="setting-label">Live Traffic</label>
                 <div class="toggle-switch">
                     <input type="checkbox" id="traffic-toggle" name="map-traffic">
-                    <label for="traffic-toggle">Toggle</label>
+                    <label for="traffic-toggle"></label>
                 </div>
             </div>
             <hr>
@@ -211,47 +206,17 @@
             </div>
         </div>
     </div>
-
-    <!-- NEW: Layers menu (for the Layer button) -->
-    <div id="layers-menu" role="dialog" aria-modal="true" aria-labelledby="layers-menu-title">
-        <div class="layers-menu-header">
-            <h4 id="layers-menu-title">Layers</h4>
-            <button id="close-layers-btn" class="menu-close" aria-label="Close Layers">&times;</button>
-        </div>
-        <div class="layers-menu-content">
-            <div class="setting-group">
-                <label class="setting-label">Base Map</label>
-                <div class="radio-group">
-                    <input type="radio" id="base-default" name="base-map" value="default" checked>
-                    <label for="base-default">Default</label>
-                    <input type="radio" id="base-satellite" name="base-map" value="satellite">
-                    <label for="base-satellite">Satellite</label>
-                </div>
-            </div>
-            <hr>
-            <div class="setting-group">
-                <label class="setting-label">Overlays</label>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="overlay-traffic">
-                    <label for="overlay-traffic">Traffic</label>
-                    <input type="checkbox" id="overlay-contours">
-                    <label for="overlay-contours">Contours</label>
-                    <input type="checkbox" id="overlay-terrain">
-                    <label for="overlay-terrain">Terrain</label>
-                </div>
-            </div>
-        </div>
-    </div>
     
-    <div id="map"></div>
-
-    <!-- Your existing app scripts -->
+    <div id="map">
+    </div>
+    <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" defer></script>
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js' defer></script>
     <script src="js/auth.js" defer></script>
     <script src="js/map.js" defer></script>
+    <script src="js/map_layers.js" defer ></script>
+    <script src="js/ui.js" defer></script>
     <script src="js/search.js" defer></script>
     <script src="js/navigation.js" defer></script>
-
-    <!-- Wire up buttons/menus -->
-    <script src="logic.js" defer></script>
+    
 </body>
 </html>
