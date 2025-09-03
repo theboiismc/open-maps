@@ -1,4 +1,4 @@
-const settingsBtn = document.getElementById('js-settings-btn');
+const settingsBtn = document.getElementById('settings-btn');
 const settingsMenu = document.getElementById('settings-menu');
 const profileBtn = document.getElementById('profile-btn');
 const profileDropdown = document.getElementById('profile-dropdown');
