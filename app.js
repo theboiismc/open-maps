@@ -213,24 +213,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     function debounce(func, delay) { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; }
+    
+    // --- START REPLACEMENT: Using MapTiler Geocoding API for Search Suggestions ---
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
-            if (!query) { suggestionsEl.style.display = "none"; return; }
+            if (query.length < 3) { // Don't search for very short strings
+                suggestionsEl.style.display = "none";
+                return;
+            }
             const bounds = map.getBounds();
-            const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`;
+            const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+            const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&bbox=${bbox}&limit=5`;
+            
             try {
                 const res = await fetch(url);
                 const data = await res.json();
                 suggestionsEl.innerHTML = "";
-                data.forEach(item => {
+                data.features.forEach(item => {
                     const el = document.createElement("div");
                     el.className = "search-result";
-                    el.textContent = item.display_name;
-                    el.addEventListener("click", () => onSelect(item));
+                    el.textContent = item.place_name;
+                    el.addEventListener("click", () => {
+                        // Adapt MapTiler's response format to what processPlaceResult expects
+                        const place = {
+                            lon: item.center[0],
+                            lat: item.center[1],
+                            display_name: item.place_name
+                        };
+                        onSelect(place);
+                    });
                     suggestionsEl.appendChild(el);
                 });
-                suggestionsEl.style.display = data.length > 0 ? "block" : "none";
+                suggestionsEl.style.display = data.features.length > 0 ? "block" : "none";
             } catch (e) {
                 console.error("Suggestion fetch failed", e);
             }
@@ -246,17 +260,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         const query = inputEl.value.trim();
         if (!query) return;
         const bounds = map.getBounds();
-        const viewbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&viewbox=${viewbox}&bounded=1`;
+        const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&bbox=${bbox}&limit=1`;
+        
         try {
             const res = await fetch(url);
             const data = await res.json();
-            if (data.length > 0) onSelect(data[0]);
-            else alert("No results found for your search.");
+            if (data.features && data.features.length > 0) {
+                const item = data.features[0];
+                const place = {
+                    lon: item.center[0],
+                    lat: item.center[1],
+                    display_name: item.place_name
+                };
+                onSelect(place);
+            } else {
+                alert("No results found for your search.");
+            }
         } catch (e) {
             alert("Search failed. Please check your connection.");
         }
     }
+    // --- END REPLACEMENT ---
 
     const mainSuggestions = document.getElementById("main-suggestions");
     attachSuggestionListener(mainSearchInput, mainSuggestions, processPlaceResult);
@@ -433,15 +458,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         showPanel('route-preview-panel');
     }
 
+    // --- START REPLACEMENT: Using MapTiler Routing API ---
     async function getRoute() {
         if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
         clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
+            // Note the new URL structure for MapTiler Routing
+            const url = `https://api.maptiler.com/routes/driving/${start[0]},${start[1]};${end[0]},${end[1]}?key=${MAPTILER_KEY}&steps=true&geometries=geojson&overview=full`;
+            
             const res = await fetch(url);
             const data = await res.json();
-            if (!data.routes || data.routes.length === 0 || !data.routes[0].legs || !data.routes[0].legs[0].steps || data.routes[0].legs[0].steps.length === 0) {
+
+            // The response structure from MapTiler is slightly different
+            if (!data.routes || data.routes.length === 0) {
                 return alert("A route could not be found. Please try a different location.");
             }
             currentRouteData = data;
@@ -464,6 +494,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             navigationState.isRerouting = false;
         }
     }
+    // --- END REPLACEMENT ---
     
     const startNavigationBtn = document.getElementById('start-navigation-btn');
     startNavigationBtn.addEventListener('click', startNavigation);
@@ -507,15 +538,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         showPanel('directions-panel-redesign');
     });
 
+    // --- START REPLACEMENT: Using MapTiler Geocoding API for address lookup ---
     async function geocode(inputEl) {
         if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(inputEl.value)}&format=json&limit=1`);
+        
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(inputEl.value)}.json?key=${MAPTILER_KEY}&limit=1`;
+        const res = await fetch(url);
         const data = await res.json();
-        if (!data[0]) throw new Error(`Could not find location: ${inputEl.value}`);
-        inputEl.value = data[0].display_name;
-        inputEl.dataset.coords = `${data[0].lon},${data[0].lat}`;
-        return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+
+        if (!data.features || data.features.length === 0) throw new Error(`Could not find location: ${inputEl.value}`);
+        
+        const feature = data.features[0];
+        inputEl.value = feature.place_name;
+        inputEl.dataset.coords = `${feature.center[0]},${feature.center[1]}`;
+        return [feature.center[0], feature.center[1]]; // [lon, lat]
     }
+    // --- END REPLACEMENT ---
 
     function addRouteToMap(routeGeoJSON) {
         if (map.getSource('route')) {
