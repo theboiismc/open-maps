@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentRouteData = null;
     let userLocationMarker = null;
     let navigationWatcherId = null;
-    let clickedLocationMarker = null; // NEW: Marker for clicked locations
+    let clickedLocationMarker = null;
 
     const speech = {
         synthesis: window.speechSynthesis,
@@ -165,7 +165,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- UPDATED: closePanel now also removes the click marker ---
     function closePanel() {
         if (isMobile) sidePanel.classList.remove('open', 'peek');
         else {
@@ -181,32 +180,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(closePanelBtn) closePanelBtn.addEventListener('click', closePanel);
     closeInfoBtn.addEventListener('click', closePanel);
 
-    // --- NEW: Advanced Click Handler for POIs and Reverse Geocoding ---
     map.on('click', async (e) => {
         const target = e.originalEvent.target;
-        // Ignore clicks on UI controls like zoom or geolocate
         if (target.closest('.maplibregl-ctrl')) return;
 
-        // Check if the click was on the route line. If so, don't do anything.
-        const routeFeatures = map.queryRenderedFeatures(e.point, {
-            layers: ['route-line', 'highlighted-route-segment']
-        });
-        if (routeFeatures.length > 0) return;
+        const features = map.queryRenderedFeatures(e.point, { layers: ['route-line', 'highlighted-route-segment'] });
+        if (features.length > 0) return;
 
-        // Process click if it's not on the side panel itself
         if (!target.closest('#side-panel')) {
-            // Prioritize clicking on a named Point of Interest (POI)
             const poi = map.queryRenderedFeatures(e.point, { layers: ['poi'] })[0];
             if (poi && poi.properties.name) {
                 performSmartSearch({ value: poi.properties.name }, processPlaceResult);
             } else {
-                // Otherwise, get info for the exact coordinates clicked
                 await reverseGeocodeAndShowInfo(e.lngLat);
             }
         }
     });
 
-    // --- NEW: Reverse Geocoding Function to find info from coordinates ---
     async function reverseGeocodeAndShowInfo(lngLat) {
         const url = `https://api.maptiler.com/geocoding/${lngLat.lng},${lngLat.lat}.json?key=${MAPTILER_KEY}&limit=1`;
         try {
@@ -221,7 +211,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 };
                 processPlaceResult(place);
             } else {
-                // If no feature is found at the clicked location, close the panel
                 closePanel();
             }
         } catch (error) {
@@ -231,7 +220,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function debounce(func, delay) { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; }
     
-    // --- UPDATED: Search now uses proximity and fuzzy matching for better results ---
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
             if (query.length < 3) { suggestionsEl.style.display = "none"; return; }
@@ -296,7 +284,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toSuggestions = document.getElementById('panel-to-suggestions');
     attachSuggestionListener(toInput, toSuggestions, (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
 
-    // --- UPDATED: processPlaceResult now manages the click marker ---
     function processPlaceResult(place) {
         currentPlace = place;
         stopNavigation();
@@ -710,6 +697,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) { addTrafficLayer(); } else { removeTrafficLayer(); } if (isMobile) { setTimeout(closeSettings, 200); } });
     document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
     map.on('styledata', () => { if (navigationState.isActive && currentRouteData) { const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry }; addRouteToMap(routeGeoJSON); updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]); } if (trafficToggle.checked) { addTrafficLayer(); } });
-    if (isMobile) { /* Mobile panel drag logic... */ }
+    
+    // --- NEW: Mobile Panel Drag/Swipe Logic ---
+    if (isMobile) {
+        let panelDragState = {
+            isDragging: false,
+            startY: 0,
+            currentY: 0,
+            dragOffset: 0
+        };
+
+        const panelDragStart = (e) => {
+            if (e.target.closest('.panel-content')) return; // Don't drag if touching content
+            panelDragState.isDragging = true;
+            panelDragState.startY = e.touches[0].clientY;
+            sidePanel.style.transition = 'none'; // Disable transition for smooth dragging
+        };
+
+        const panelDragMove = (e) => {
+            if (!panelDragState.isDragging) return;
+            
+            panelDragState.currentY = e.touches[0].clientY;
+            panelDragState.dragOffset = panelDragState.currentY - panelDragState.startY;
+
+            // Only allow dragging down
+            if (panelDragState.dragOffset > 0) {
+                sidePanel.style.transform = `translateY(${panelDragState.dragOffset}px)`;
+            }
+        };
+
+        const panelDragEnd = () => {
+            if (!panelDragState.isDragging) return;
+            
+            panelDragState.isDragging = false;
+            sidePanel.style.transition = ''; // Re-enable CSS transitions
+            sidePanel.style.transform = ''; // Reset transform
+
+            // If dragged more than a third of the panel's height, close it
+            const closeThreshold = sidePanel.offsetHeight / 3;
+            if (panelDragState.dragOffset > closeThreshold) {
+                closePanel();
+            }
+            
+            // Reset state
+            panelDragState.dragOffset = 0;
+        };
+        
+        sidePanel.addEventListener('touchstart', panelDragStart);
+        document.addEventListener('touchmove', panelDragMove);
+        document.addEventListener('touchend', panelDragEnd);
+    }
+
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registered'), err => console.log('SW failed')); }); }
 });
