@@ -232,7 +232,7 @@ hr {
     background-color: #f0f0f0;
 }
 
-/* --- Side Panel (for details, directions, etc.) --- */
+/* --- Side Panel (Unified Container for All States) --- */
 #side-panel {
     position: fixed;
     z-index: 55;
@@ -254,7 +254,7 @@ hr {
 }
 
 #panel-grabber {
-    display: none; /* Mobile only */
+    display: none;
 }
 
 #close-panel-btn {
@@ -287,6 +287,79 @@ hr {
     overflow-y: auto;
 }
 
+/* --- Panel State Management --- */
+/* By default, hide all direct children/views inside the panel content area */
+.panel-content > div {
+    display: none;
+}
+
+/* Use state classes on #side-panel to show the correct content view */
+#side-panel.state-default #default-panel-content,
+#side-panel.state-info #info-panel-redesign,
+#side-panel.state-directions #directions-panel-redesign,
+#side-panel.state-route-preview #route-preview-panel,
+#side-panel.state-route-steps #route-section {
+    display: block;
+}
+
+/* --- Default Panel Content Styling --- */
+#default-panel-content {
+    padding: 16px;
+}
+
+.panel-section {
+    margin-bottom: 24px;
+}
+
+.panel-section h2 {
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.icon-grid {
+    display: flex;
+    justify-content: space-around;
+}
+
+.icon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.icon-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    color: white;
+}
+
+.icon-svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+.map-detail-icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 8px;
+}
+
+.map-detail-icon img {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+/* --- Info Panel Content Styling --- */
 .header-image-container {
     position: relative;
     width: 100%;
@@ -390,79 +463,6 @@ hr {
     color: #3c4043;
     line-height: 1.6;
 }
-
-/* --- INTEGRATED: Default Bottom Panel (Mobile View) --- */
-#default-panel {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: white;
-    padding: 16px;
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
-    display: block;
-}
-
-.panel-section {
-    margin-bottom: 24px;
-}
-
-.panel-section h2 {
-    font-size: 18px;
-    font-weight: 500;
-    margin-top: 0;
-    margin-bottom: 16px;
-}
-
-.icon-grid {
-    display: flex;
-    justify-content: space-around;
-}
-
-.icon-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-.icon-circle {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 8px;
-    color: white;
-}
-
-.icon-svg {
-    width: 24px;
-    height: 24px;
-    fill: currentColor;
-}
-
-.map-detail-icon {
-    width: 56px;
-    height: 56px;
-    margin-bottom: 8px;
-}
-
-.map-detail-icon img {
-    width: 100%;
-    height: 100%;
-    border-radius: 8px;
-}
-
-@media (min-width: 769px) {
-    #default-panel {
-        display: none;
-    }
-}
-
 
 /* --- Directions Panel --- */
 #directions-panel-redesign .dir-input-group {
@@ -913,7 +913,7 @@ hr {
         height: var(--panel-mobile-height);
         border-radius: 20px 20px 0 0;
         box-shadow: 0 -3px 18px rgba(0,0,0,0.1);
-        bottom: -100%;
+        bottom: -100%; /* Panel is hidden by default */
         transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
         padding-top: 0;
     }
@@ -993,6 +993,11 @@ hr {
 
 /* --- Responsive Styles: Desktop (min-width: 769px) --- */
 @media (min-width: 769px) {
+    /* Hide the default panel view on desktop, as the panel is only for specific content. */
+    #side-panel.state-default {
+        left: -100%; /* Keep it hidden */
+    }
+
     #mobile-settings-btn {
         display: none;
     }
