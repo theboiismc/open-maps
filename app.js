@@ -30,8 +30,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const emailDisplay = loggedInView.querySelector('.email');
     let currentUser = null;
 
-    // --- START FIX: MOVED ALL UI ELEMENT DECLARATIONS TO THE TOP ---
-    // This ensures they exist before any functions try to use them.
     const sidePanel = document.getElementById("side-panel");
     const mainSearchInput = document.getElementById("main-search");
     const mainSearchContainer = document.getElementById('main-search-container');
@@ -46,7 +44,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statSpeedEl = document.getElementById('stat-speed');
     const statEtaEl = document.getElementById('stat-eta');
     const statTimeRemainingEl = document.getElementById('stat-time-remaining');
-    // --- END FIX ---
 
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
@@ -117,11 +114,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     map.on('load', () => {
         geolocateControl.trigger();
-        // Show the welcome panel by default when the app loads
         showPanel('welcome-panel');
     });
 
-    // Make the new directions button work
     document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
     
     // --- GLOBAL VARIABLES ---
@@ -129,14 +124,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentRouteData = null;
     let userLocationMarker = null;
     let navigationWatcherId = null;
+    let clickedLocationMarker = null; // NEW: Marker for clicked locations
 
     const speech = {
         synthesis: window.speechSynthesis,
         utterance: new SpeechSynthesisUtterance(),
         speak(text, priority = false) {
-            if (priority && this.synthesis.speaking) {
-                this.synthesis.cancel();
-            }
+            if (priority && this.synthesis.speaking) this.synthesis.cancel();
             if (!this.synthesis.speaking && text) {
                 this.utterance.text = text;
                 this.synthesis.speak(this.utterance);
@@ -144,41 +138,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // --- ADVANCED NAVIGATION STATE ---
     let navigationState = {};
     function resetNavigationState() {
-        navigationState = {
-            isActive: false,
-            isRerouting: false,
-            currentStepIndex: 0,
-            progressAlongStep: 0,
-            distanceToNextManeuver: Infinity,
-            userSpeed: 0,
-            estimatedArrivalTime: null,
-            totalTripTime: 0,
-            lastAnnouncedDistance: Infinity,
-            isWrongWay: false
-        };
+        navigationState = { isActive: false, isRerouting: false, currentStepIndex: 0, progressAlongStep: 0, distanceToNextManeuver: Infinity, userSpeed: 0, estimatedArrivalTime: null, totalTripTime: 0, lastAnnouncedDistance: Infinity, isWrongWay: false };
     }
     resetNavigationState();
 
-    // --- NAVIGATION UI ELEMENTS (Now declared at top) ---
     const highlightedSegmentLayerId = 'highlighted-route-segment';
     
-    // --- CORE PANEL & SEARCH LOGIC ---
     function moveSearchBarToPanel() { if (!isMobile) { mainSearchContainer.style.boxShadow = 'none'; mainSearchContainer.style.borderRadius = '8px'; panelSearchPlaceholder.hidden = false; panelSearchPlaceholder.appendChild(mainSearchContainer); topSearchWrapper.style.opacity = '0'; } }
     function moveSearchBarToTop() { if (!isMobile) { mainSearchContainer.style.boxShadow = ''; mainSearchContainer.style.borderRadius = ''; topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
 
-    // --- START FIX: IMPROVED showPanel FUNCTION FOR MOBILE ---
     function showPanel(viewId) {
-        // This part is the same: hide all panels except the one we want.
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel'].forEach(id => { 
-            document.getElementById(id).hidden = id !== viewId; 
-        });
-
-        // This logic is more robust for handling mobile panel states.
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel'].forEach(id => { document.getElementById(id).hidden = id !== viewId; });
         if (isMobile) {
-            // On mobile, the welcome panel "peeks", but other panels open fully.
             if (viewId === 'welcome-panel') {
                 sidePanel.classList.remove('open');
                 sidePanel.classList.add('peek');
@@ -187,43 +160,83 @@ document.addEventListener('DOMContentLoaded', async () => {
                 sidePanel.classList.add('open');
             }
         } else {
-            // Desktop logic remains the same.
             sidePanel.classList.add('open');
             moveSearchBarToPanel();
         }
     }
-    // --- END FIX ---
 
+    // --- UPDATED: closePanel now also removes the click marker ---
     function closePanel() {
         if (isMobile) sidePanel.classList.remove('open', 'peek');
         else {
             sidePanel.classList.remove('open');
             moveSearchBarToTop();
         }
+        if (clickedLocationMarker) {
+            clickedLocationMarker.remove();
+            clickedLocationMarker = null;
+        }
     }
 
     if(closePanelBtn) closePanelBtn.addEventListener('click', closePanel);
     closeInfoBtn.addEventListener('click', closePanel);
 
-    map.on('click', (e) => {
+    // --- NEW: Advanced Click Handler for POIs and Reverse Geocoding ---
+    map.on('click', async (e) => {
         const target = e.originalEvent.target;
-        if (!target.closest('.maplibregl-ctrl') && !target.closest('#side-panel') && !target.closest('.js-settings-btn')) {
-            closePanel();
+        // Ignore clicks on UI controls like zoom or geolocate
+        if (target.closest('.maplibregl-ctrl')) return;
+
+        // Check if the click was on the route line. If so, don't do anything.
+        const routeFeatures = map.queryRenderedFeatures(e.point, {
+            layers: ['route-line', 'highlighted-route-segment']
+        });
+        if (routeFeatures.length > 0) return;
+
+        // Process click if it's not on the side panel itself
+        if (!target.closest('#side-panel')) {
+            // Prioritize clicking on a named Point of Interest (POI)
+            const poi = map.queryRenderedFeatures(e.point, { layers: ['poi'] })[0];
+            if (poi && poi.properties.name) {
+                performSmartSearch({ value: poi.properties.name }, processPlaceResult);
+            } else {
+                // Otherwise, get info for the exact coordinates clicked
+                await reverseGeocodeAndShowInfo(e.lngLat);
+            }
         }
     });
 
+    // --- NEW: Reverse Geocoding Function to find info from coordinates ---
+    async function reverseGeocodeAndShowInfo(lngLat) {
+        const url = `https://api.maptiler.com/geocoding/${lngLat.lng},${lngLat.lat}.json?key=${MAPTILER_KEY}&limit=1`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.features && data.features.length > 0) {
+                const item = data.features[0];
+                const place = {
+                    lon: item.center[0],
+                    lat: item.center[1],
+                    display_name: item.place_name
+                };
+                processPlaceResult(place);
+            } else {
+                // If no feature is found at the clicked location, close the panel
+                closePanel();
+            }
+        } catch (error) {
+            console.error("Reverse geocoding failed", error);
+        }
+    }
+
     function debounce(func, delay) { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; }
     
-    // --- START REPLACEMENT: Using MapTiler Geocoding API for Search Suggestions ---
+    // --- UPDATED: Search now uses proximity and fuzzy matching for better results ---
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
-            if (query.length < 3) { // Don't search for very short strings
-                suggestionsEl.style.display = "none";
-                return;
-            }
-            const bounds = map.getBounds();
-            const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-            const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&bbox=${bbox}&limit=5`;
+            if (query.length < 3) { suggestionsEl.style.display = "none"; return; }
+            const center = map.getCenter();
+            const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5&fuzzyMatch=true`;
             
             try {
                 const res = await fetch(url);
@@ -234,12 +247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     el.className = "search-result";
                     el.textContent = item.place_name;
                     el.addEventListener("click", () => {
-                        // Adapt MapTiler's response format to what processPlaceResult expects
-                        const place = {
-                            lon: item.center[0],
-                            lat: item.center[1],
-                            display_name: item.place_name
-                        };
+                        const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name };
                         onSelect(place);
                     });
                     suggestionsEl.appendChild(el);
@@ -251,28 +259,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         const debouncedFetch = debounce(fetchAndDisplaySuggestions, 300);
         inputEl.addEventListener("input", () => debouncedFetch(inputEl.value.trim()));
-        inputEl.addEventListener("blur", () => {
-            setTimeout(() => { suggestionsEl.style.display = "none"; }, 200);
-        });
+        inputEl.addEventListener("blur", () => { setTimeout(() => { suggestionsEl.style.display = "none"; }, 200); });
     }
 
     async function performSmartSearch(inputEl, onSelect) {
         const query = inputEl.value.trim();
         if (!query) return;
-        const bounds = map.getBounds();
-        const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&bbox=${bbox}&limit=1`;
+        const center = map.getCenter();
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=1&fuzzyMatch=true`;
         
         try {
             const res = await fetch(url);
             const data = await res.json();
             if (data.features && data.features.length > 0) {
                 const item = data.features[0];
-                const place = {
-                    lon: item.center[0],
-                    lat: item.center[1],
-                    display_name: item.place_name
-                };
+                const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name };
                 onSelect(place);
             } else {
                 alert("No results found for your search.");
@@ -281,33 +282,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert("Search failed. Please check your connection.");
         }
     }
-    // --- END REPLACEMENT ---
 
     const mainSuggestions = document.getElementById("main-suggestions");
     attachSuggestionListener(mainSearchInput, mainSuggestions, processPlaceResult);
     document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
-    mainSearchInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult);
-    });
+    mainSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult); });
 
     const fromInput = document.getElementById('panel-from-input');
     const fromSuggestions = document.getElementById('panel-from-suggestions');
-    attachSuggestionListener(fromInput, fromSuggestions, (place) => {
-        fromInput.value = place.display_name;
-        fromInput.dataset.coords = `${place.lon},${place.lat}`;
-    });
+    attachSuggestionListener(fromInput, fromSuggestions, (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
 
     const toInput = document.getElementById('panel-to-input');
     const toSuggestions = document.getElementById('panel-to-suggestions');
-    attachSuggestionListener(toInput, toSuggestions, (place) => {
-        toInput.value = place.display_name;
-        toInput.dataset.coords = `${place.lon},${place.lat}`;
-    });
+    attachSuggestionListener(toInput, toSuggestions, (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
 
+    // --- UPDATED: processPlaceResult now manages the click marker ---
     function processPlaceResult(place) {
         currentPlace = place;
         stopNavigation();
         clearRouteFromMap();
+
+        if (clickedLocationMarker) {
+            clickedLocationMarker.remove();
+        }
+        clickedLocationMarker = new maplibregl.Marker()
+            .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
+            .addTo(map);
+
         map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
         document.getElementById('info-name').textContent = place.display_name.split(',')[0];
@@ -344,10 +345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
             imgEl.src = fallbackUrl;
             imgEl.alt = `Map view of ${query}`;
-            imgEl.onerror = () => {
-                imgEl.style.backgroundColor = '#e0e0e0';
-                imgEl.alt = 'Image not available';
-            };
+            imgEl.onerror = () => { imgEl.style.backgroundColor = '#e0e0e0'; imgEl.alt = 'Image not available'; };
         }
     }
 
@@ -398,50 +396,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentPlace) {
             toInput.value = currentPlace.display_name;
             toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
-            fromInput.value = '';
-            fromInput.dataset.coords = '';
+            fromInput.value = ''; fromInput.dataset.coords = '';
         } else {
             toInput.value = mainSearchInput.value;
-            toInput.dataset.coords = '';
-            fromInput.value = '';
-            fromInput.dataset.coords = '';
+            toInput.dataset.coords = ''; fromInput.value = ''; fromInput.dataset.coords = '';
         }
     }
 
     document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
     document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
-    document.getElementById('info-save-btn').addEventListener('click', () => {
-        if (currentUser) {
-            alert("Feature 'Save Place' not yet implemented!");
-        } else {
-            alert("Please log in to save places.");
-        }
-    });
-
-    document.getElementById('swap-btn').addEventListener('click', () => {
-        [fromInput.value, toInput.value] = [toInput.value, fromInput.value];
-        [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords];
-    });
-
-    document.getElementById('dir-use-my-location').addEventListener('click', () => {
-        fromInput.value = "Getting your location...";
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                fromInput.value = "Your Location";
-                fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
-            },
-            handlePositionError,
-            geolocationOptions
-        );
-    });
-
-    document.getElementById('back-to-info-btn').addEventListener('click', () => {
-        if (currentPlace) showPanel('info-panel-redesign');
-    });
-    
-    document.getElementById('back-to-directions-btn').addEventListener('click', () => {
-        showPanel('directions-panel-redesign');
-    });
+    document.getElementById('info-save-btn').addEventListener('click', () => { if (currentUser) { alert("Feature 'Save Place' not yet implemented!"); } else { alert("Please log in to save places."); } });
+    document.getElementById('swap-btn').addEventListener('click', () => { [fromInput.value, toInput.value] = [toInput.value, fromInput.value]; [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords]; });
+    document.getElementById('dir-use-my-location').addEventListener('click', () => { fromInput.value = "Getting your location..."; navigator.geolocation.getCurrentPosition( pos => { fromInput.value = "Your Location"; fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; }, handlePositionError, geolocationOptions ); });
+    document.getElementById('back-to-info-btn').addEventListener('click', () => { if (currentPlace) showPanel('info-panel-redesign'); });
+    document.getElementById('back-to-directions-btn').addEventListener('click', () => { showPanel('directions-panel-redesign'); });
 
     function clearRouteFromMap() {
         if (map.getLayer('route-line')) map.removeLayer('route-line');
@@ -458,22 +426,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         showPanel('route-preview-panel');
     }
 
-    // --- START REPLACEMENT: Using MapTiler Routing API ---
     async function getRoute() {
         if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
         clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-            // Note the new URL structure for MapTiler Routing
             const url = `https://api.maptiler.com/routes/driving/${start[0]},${start[1]};${end[0]},${end[1]}?key=${MAPTILER_KEY}&steps=true&geometries=geojson&overview=full`;
-            
             const res = await fetch(url);
             const data = await res.json();
-
-            // The response structure from MapTiler is slightly different
-            if (!data.routes || data.routes.length === 0) {
-                return alert("A route could not be found. Please try a different location.");
-            }
+            if (!data.routes || data.routes.length === 0) { return alert("A route could not be found. Please try a different location."); }
             currentRouteData = data;
             const route = data.routes[0];
             const routeGeoJSON = { type: 'Feature', geometry: route.geometry };
@@ -494,7 +455,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             navigationState.isRerouting = false;
         }
     }
-    // --- END REPLACEMENT ---
     
     const startNavigationBtn = document.getElementById('start-navigation-btn');
     startNavigationBtn.addEventListener('click', startNavigation);
@@ -538,33 +498,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         showPanel('directions-panel-redesign');
     });
 
-    // --- START REPLACEMENT: Using MapTiler Geocoding API for address lookup ---
     async function geocode(inputEl) {
         if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
-        
         const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(inputEl.value)}.json?key=${MAPTILER_KEY}&limit=1`;
         const res = await fetch(url);
         const data = await res.json();
-
         if (!data.features || data.features.length === 0) throw new Error(`Could not find location: ${inputEl.value}`);
-        
         const feature = data.features[0];
         inputEl.value = feature.place_name;
         inputEl.dataset.coords = `${feature.center[0]},${feature.center[1]}`;
-        return [feature.center[0], feature.center[1]]; // [lon, lat]
+        return [feature.center[0], feature.center[1]];
     }
-    // --- END REPLACEMENT ---
 
     function addRouteToMap(routeGeoJSON) {
-        if (map.getSource('route')) {
-            map.getSource('route').setData(routeGeoJSON);
-        } else {
+        if (map.getSource('route')) { map.getSource('route').setData(routeGeoJSON); } 
+        else {
             map.addSource('route', { type: 'geojson', data: routeGeoJSON });
             map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0d89ec', 'line-width': 8, 'line-opacity': 0.7 } });
         }
     }
 
-    // --- ADVANCED NAVIGATION FUNCTIONS ---
     function toRadians(degrees) { return degrees * Math.PI / 180; }
     function toDegrees(radians) { return radians * 180 / Math.PI; }
     function getBearing(startPoint, endPoint) {
@@ -734,129 +687,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- TRAFFIC LAYER LOGIC ---
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
+    const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
+    const trafficLayer = { id: TRAFFIC_LAYER_ID, type: 'line', source: TRAFFIC_SOURCE_ID, 'source-layer': 'traffic', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 2, 'line-color': [ 'match', ['get', 'congestion'], 'low', '#30c83a', 'moderate', '#ff9a00', 'heavy', '#ff3d3d', 'severe', '#a00000', '#a0a0a0' ] } };
+    function addTrafficLayer() { if (map.getSource(TRAFFIC_SOURCE_ID)) return; map.addSource(TRAFFIC_SOURCE_ID, trafficSource); map.addLayer(trafficLayer, 'route-line'); }
+    function removeTrafficLayer() { if (!map.getSource(TRAFFIC_SOURCE_ID)) return; map.removeLayer(TRAFFIC_LAYER_ID); map.removeSource(TRAFFIC_SOURCE_ID); }
 
-    const trafficSource = {
-        type: 'vector',
-        url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}`
-    };
-
-    const trafficLayer = {
-        id: TRAFFIC_LAYER_ID,
-        type: 'line',
-        source: TRAFFIC_SOURCE_ID,
-        'source-layer': 'traffic',
-        layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-        },
-        paint: {
-            'line-width': 2,
-            'line-color': [
-                'match',
-                ['get', 'congestion'],
-                'low', '#30c83a',
-                'moderate', '#ff9a00',
-                'heavy', '#ff3d3d',
-                'severe', '#a00000',
-                '#a0a0a0'
-            ]
-        }
-    };
-    
-    function addTrafficLayer() {
-        if (map.getSource(TRAFFIC_SOURCE_ID)) return;
-        map.addSource(TRAFFIC_SOURCE_ID, trafficSource);
-        map.addLayer(trafficLayer, 'route-line');
-    }
-
-    function removeTrafficLayer() {
-        if (!map.getSource(TRAFFIC_SOURCE_ID)) return;
-        map.removeLayer(TRAFFIC_LAYER_ID);
-        map.removeSource(TRAFFIC_SOURCE_ID);
-    }
-    // --- END TRAFFIC LAYER LOGIC ---
-
-    // --- SETTINGS & OTHER UI LOGIC ---
     const settingsBtns = document.querySelectorAll('.js-settings-btn');
     const settingsMenu = document.getElementById('settings-menu');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const menuOverlay = document.getElementById('menu-overlay');
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
     const trafficToggle = document.getElementById('traffic-toggle');
-
     function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
     function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
-
-    settingsBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openSettings();
-        });
-    });
-
+    settingsBtns.forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); openSettings(); }); });
     closeSettingsBtn.addEventListener('click', closeSettings);
     menuOverlay.addEventListener('click', closeSettings);
-
-    document.addEventListener('click', (e) => {
-        if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) {
-            closeSettings();
-        }
-    });
-
-    styleRadioButtons.forEach(radio => {
-        radio.addEventListener('change', () => {
-            const newStyle = radio.value;
-            map.setStyle(STYLES[newStyle]);
-            if (isMobile) {
-                setTimeout(closeSettings, 200);
-            }
-        });
-    });
-    
-    trafficToggle.addEventListener('change', () => {
-        if (trafficToggle.checked) {
-            addTrafficLayer();
-        } else {
-            removeTrafficLayer();
-        }
-        if (isMobile) {
-            setTimeout(closeSettings, 200);
-        }
-    });
-
-    document.querySelectorAll('input[name="map-units"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-            if (isMobile) {
-                setTimeout(closeSettings, 200);
-            }
-        });
-    });
-
-    map.on('styledata', () => {
-        if (navigationState.isActive && currentRouteData) {
-            const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry };
-            addRouteToMap(routeGeoJSON);
-            updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]);
-        }
-        if (trafficToggle.checked) {
-            addTrafficLayer();
-        }
-    });
-
-    if (isMobile) {
-        // Mobile panel drag logic...
-    }
-
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').then(registration => {
-                console.log('SW registered: ', registration.scope);
-            }, err => {
-                console.log('SW registration failed: ', err);
-            });
-        });
-    }
+    document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) { closeSettings(); } });
+    styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { const newStyle = radio.value; map.setStyle(STYLES[newStyle]); if (isMobile) { setTimeout(closeSettings, 200); } }); });
+    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) { addTrafficLayer(); } else { removeTrafficLayer(); } if (isMobile) { setTimeout(closeSettings, 200); } });
+    document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
+    map.on('styledata', () => { if (navigationState.isActive && currentRouteData) { const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry }; addRouteToMap(routeGeoJSON); updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]); } if (trafficToggle.checked) { addTrafficLayer(); } });
+    if (isMobile) { /* Mobile panel drag logic... */ }
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registered'), err => console.log('SW failed')); }); }
 });
