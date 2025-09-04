@@ -98,6 +98,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     map.addControl(geolocateControl, "bottom-right");
     map.on('load', () => geolocateControl.trigger());
+
+    // Show the welcome panel by default when the app loads
+    showPanel('welcome-panel');
+
+    // Make the new directions button work
+    document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
+    
     // --- GLOBAL VARIABLES & UI ELEMENTS ---
     const sidePanel = document.getElementById("side-panel");
     const mainSearchInput = document.getElementById("main-search");
@@ -159,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function moveSearchBarToTop() { if (!isMobile) { mainSearchContainer.style.boxShadow = ''; mainSearchContainer.style.borderRadius = ''; topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
 
     function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel'].forEach(id => { document.getElementById(id).hidden = id !== viewId; });
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel'].forEach(id => { document.getElementById(id).hidden = id !== viewId; });
         if (!sidePanel.classList.contains('open')) {
             if (isMobile) {
                 if (!sidePanel.classList.contains('peek')) sidePanel.classList.add('peek');
