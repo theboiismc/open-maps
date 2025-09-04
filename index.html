@@ -15,8 +15,8 @@
         script-src 'self' https://unpkg.com https://npmcdn.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com 'unsafe-inline';
         style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
         img-src 'self' data: https:;
-        font-src https://fonts.gstatic.com;
-        connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com;
+        font-src 'self' https://fonts.gstatic.com;
+        connect-src 'self' https://accounts.theboiismc.com https://tiles.openfreemap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://en.wikipedia.org https://router.project-osrm.org https://cloudflareinsights.com https://api.maptiler.com;
         worker-src 'self' blob: https://unpkg.com;
     ">
     
@@ -31,7 +31,12 @@
     <link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    
+    <!-- FONTS & ICONS -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- NEW: Google Material Symbols -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -39,10 +44,12 @@
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button class="js-settings-btn" aria-label="Map Settings">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <!-- UPDATED ICON -->
+                <span class="material-symbols-outlined">settings</span>
             </button>
             <button id="profile-button" aria-label="User Profile">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.93 0 3.5 1.57 3.5 3.5S13.93 12 12 12s-3.5-1.57-3.5-3.5S10.07 5 12 5zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                <!-- UPDATED ICON -->
+                <span class="material-symbols-outlined">account_circle</span>
             </button>
             <div id="profile-dropdown">
                 <div id="logged-in-view" hidden>
@@ -75,7 +82,7 @@
     
     <div id="navigation-status">
         <div id="instruction-container">
-            <svg id="instruction-icon" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+            <!-- You can add a navigation icon here if you wish, e.g., <span class="material-symbols-outlined">navigation</span> -->
             <div id="navigation-instruction">Starting navigation...</div>
             <div id="instruction-progress-bar"></div>
         </div>
@@ -98,9 +105,11 @@
     
     <div id="top-search-wrapper">
         <div id="main-search-container">
-            <svg id="search-icon-inside" class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <!-- UPDATED ICON -->
+            <span id="search-icon-inside" class="material-symbols-outlined">search</span>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" />
-            <svg id="main-directions-icon" class="directions-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <!-- UPDATED ICON -->
+            <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
             <div id="main-suggestions" class="suggestions-dropdown"></div>
         </div>
     </div>
@@ -113,7 +122,8 @@
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location"/>
                     <button id="close-info-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <!-- UPDATED ICON -->
+                        <span class="material-symbols-outlined">arrow_back</span>
                     </button>
                 </div>
                 <div class="info-content-padding">
@@ -121,8 +131,8 @@
                     <div class="address" id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg></div><div class="btn-label">Save</div></div>
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></div>
                     </div>
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
@@ -130,13 +140,13 @@
             <div id="directions-panel-redesign" hidden>
                 <div class="info-content-padding">
                     <div class="dir-input-group">
-                        <div class="dir-input-wrapper"><svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5l-9.5-5.5v-11l9.5-5.5 9.5 5.5v11z"></path></svg><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
                         <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                        <div class="dir-input-wrapper"><svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
                         <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                        <button id="swap-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg></button>
+                        <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
                     </div>
-                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg></div>Your location</div>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
                     <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
                 </div>
             </div>
@@ -147,8 +157,8 @@
                         <div id="route-summary-distance"></div>
                     </div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4-8-10v-5c0-1.1.9-2 2-2h12a2 2 0 0 1 2 2v5c0 6-8 10-8 10z"></path></svg></div><div class="btn-label">Start Trip</div></div>
-                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></div><div class="btn-label">Share</div></div>
+                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
+                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
                     </div>
                     <button id="back-to-directions-btn">Back</button>
                 </div>
@@ -158,16 +168,16 @@
             </div>
         </div>
     </div>
-    <button id="close-panel-btn" title="Close Panel"></button>
+    
     <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.03 1.25c-.21.98-.16 2.2-1.5 2.2a1.65 1.65 0 0 0-1.25-.97 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.25-1.03c-.98-.21-2.2-.16-2.2-1.5a1.65 1.65 0 0 0 .97-1.25 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1.03-1.25c.21-.98.16-2.2 1.5-2.2a1.65 1.65 0 0 0 1.25.97 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82z"></path></svg>
+        <span class="material-symbols-outlined">layers</span>
     </button>
     
     <div id="menu-overlay"></div>
     <div id="settings-menu">
         <div class="settings-menu-header">
             <h4>Map Settings</h4>
-            <button id="close-settings-btn" aria-label="Close Settings">×</button>
+            <button id="close-settings-btn" aria-label="Close Settings">&times;</button>
         </div>
         <div class="settings-menu-content">
             <div class="setting-group">
@@ -177,6 +187,15 @@
                     <label for="style-default">Default</label>
                     <input type="radio" id="style-satellite" name="map-style" value="satellite">
                     <label for="style-satellite">Satellite</label>
+                </div>
+            </div>
+            <hr>
+            <!-- NEW: Live Traffic Toggle -->
+            <div class="setting-group">
+                <label class="setting-label">Live Traffic</label>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="traffic-toggle" name="map-traffic">
+                    <label for="traffic-toggle"></label>
                 </div>
             </div>
             <hr>
