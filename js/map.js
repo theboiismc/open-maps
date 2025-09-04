@@ -12,13 +12,6 @@ const map = new maplibregl.Map({
     container: "map",
     style: STYLES.default,
     center: [-95, 39],
-    zoom: 2,
-    pitch: 0, // no tilt
-    bearing: 0,
-    dragRotate: false,      // disable mouse drag rotation
-    touchPitch: false,      // disable pinch-tilt gesture
-    pitchWithRotate: false, // disables right-click+drag tilt
-    renderWorldCopies: false
 });
 
 
