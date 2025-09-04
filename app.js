@@ -75,12 +75,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- MAP INITIALIZATION & CONTROLS ---
     // NEW: Add your MapTiler API Key here
-    const MAPTILER_KEY = 'YOUR_MAPTILER_API_KEY';
+    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty',
+        default: 'https://tiles.theboiismc.com/',
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
     const map = new maplibregl.Map({
