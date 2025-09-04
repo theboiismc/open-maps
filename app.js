@@ -30,6 +30,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const emailDisplay = loggedInView.querySelector('.email');
     let currentUser = null;
 
+    // --- START FIX: MOVED ALL UI ELEMENT DECLARATIONS TO THE TOP ---
+    // This ensures they exist before any functions try to use them.
+    const sidePanel = document.getElementById("side-panel");
+    const mainSearchInput = document.getElementById("main-search");
+    const mainSearchContainer = document.getElementById('main-search-container');
+    const topSearchWrapper = document.getElementById('top-search-wrapper');
+    const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
+    const closePanelBtn = document.getElementById('close-panel-btn');
+    const closeInfoBtn = document.getElementById('close-info-btn');
+    const navigationStatusPanel = document.getElementById('navigation-status');
+    const navigationInstructionEl = document.getElementById('navigation-instruction');
+    const instructionProgressBar = document.getElementById('instruction-progress-bar').style;
+    const endNavigationBtn = document.getElementById('end-navigation-btn');
+    const statSpeedEl = document.getElementById('stat-speed');
+    const statEtaEl = document.getElementById('stat-eta');
+    const statTimeRemainingEl = document.getElementById('stat-time-remaining');
+    // --- END FIX ---
+
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
         const isLoggedIn = !!currentUser;
@@ -74,7 +92,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- END AUTHENTICATION ---
 
     // --- MAP INITIALIZATION & CONTROLS ---
-    // NEW: Add your MapTiler API Key here
     const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
@@ -97,23 +114,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         showUserHeading: true
     });
     map.addControl(geolocateControl, "bottom-right");
-    map.on('load', () => geolocateControl.trigger());
-
-    // Show the welcome panel by default when the app loads
-    showPanel('welcome-panel');
+    
+    map.on('load', () => {
+        geolocateControl.trigger();
+        // Show the welcome panel by default when the app loads
+        showPanel('welcome-panel');
+    });
 
     // Make the new directions button work
     document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
     
-    // --- GLOBAL VARIABLES & UI ELEMENTS ---
-    const sidePanel = document.getElementById("side-panel");
-    const mainSearchInput = document.getElementById("main-search");
-    const mainSearchContainer = document.getElementById('main-search-container');
-    const topSearchWrapper = document.getElementById('top-search-wrapper');
-    const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
-    const closePanelBtn = document.getElementById('close-panel-btn');
-    const closeInfoBtn = document.getElementById('close-info-btn');
-    
+    // --- GLOBAL VARIABLES ---
     let currentPlace = null;
     let currentRouteData = null;
     let userLocationMarker = null;
@@ -151,31 +162,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     resetNavigationState();
 
-    // --- NAVIGATION UI ELEMENTS ---
-    const navigationStatusPanel = document.getElementById('navigation-status');
-    const navigationInstructionEl = document.getElementById('navigation-instruction');
-    const instructionProgressBar = document.getElementById('instruction-progress-bar').style;
-    const endNavigationBtn = document.getElementById('end-navigation-btn');
-    const statSpeedEl = document.getElementById('stat-speed');
-    const statEtaEl = document.getElementById('stat-eta');
-    const statTimeRemainingEl = document.getElementById('stat-time-remaining');
+    // --- NAVIGATION UI ELEMENTS (Now declared at top) ---
     const highlightedSegmentLayerId = 'highlighted-route-segment';
     
     // --- CORE PANEL & SEARCH LOGIC ---
     function moveSearchBarToPanel() { if (!isMobile) { mainSearchContainer.style.boxShadow = 'none'; mainSearchContainer.style.borderRadius = '8px'; panelSearchPlaceholder.hidden = false; panelSearchPlaceholder.appendChild(mainSearchContainer); topSearchWrapper.style.opacity = '0'; } }
     function moveSearchBarToTop() { if (!isMobile) { mainSearchContainer.style.boxShadow = ''; mainSearchContainer.style.borderRadius = ''; topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
 
+    // --- START FIX: IMPROVED showPanel FUNCTION FOR MOBILE ---
     function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel'].forEach(id => { document.getElementById(id).hidden = id !== viewId; });
-        if (!sidePanel.classList.contains('open')) {
-            if (isMobile) {
-                if (!sidePanel.classList.contains('peek')) sidePanel.classList.add('peek');
+        // This part is the same: hide all panels except the one we want.
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel'].forEach(id => { 
+            document.getElementById(id).hidden = id !== viewId; 
+        });
+
+        // This logic is more robust for handling mobile panel states.
+        if (isMobile) {
+            // On mobile, the welcome panel "peeks", but other panels open fully.
+            if (viewId === 'welcome-panel') {
+                sidePanel.classList.remove('open');
+                sidePanel.classList.add('peek');
             } else {
+                sidePanel.classList.remove('peek');
                 sidePanel.classList.add('open');
-                moveSearchBarToPanel();
             }
+        } else {
+            // Desktop logic remains the same.
+            sidePanel.classList.add('open');
+            moveSearchBarToPanel();
         }
     }
+    // --- END FIX ---
 
     function closePanel() {
         if (isMobile) sidePanel.classList.remove('open', 'peek');
@@ -679,7 +696,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- NEW: TRAFFIC LAYER LOGIC ---
+    // --- TRAFFIC LAYER LOGIC ---
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
 
@@ -714,7 +731,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     function addTrafficLayer() {
         if (map.getSource(TRAFFIC_SOURCE_ID)) return;
         map.addSource(TRAFFIC_SOURCE_ID, trafficSource);
-        // The last argument ('route-line') tells the map to draw the traffic layer *before* the route line
         map.addLayer(trafficLayer, 'route-line');
     }
 
@@ -731,7 +747,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const menuOverlay = document.getElementById('menu-overlay');
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
-    const trafficToggle = document.getElementById('traffic-toggle'); // NEW
+    const trafficToggle = document.getElementById('traffic-toggle');
 
     function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
     function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
@@ -762,7 +778,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-    // NEW: Event listener for the traffic toggle
     trafficToggle.addEventListener('change', () => {
         if (trafficToggle.checked) {
             addTrafficLayer();
@@ -788,7 +803,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             addRouteToMap(routeGeoJSON);
             updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]);
         }
-        // NEW: Re-add traffic layer if it was enabled when map style changes
         if (trafficToggle.checked) {
             addTrafficLayer();
         }
