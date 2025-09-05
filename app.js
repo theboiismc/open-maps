@@ -229,14 +229,104 @@ document.addEventListener('DOMContentLoaded', async () => {
     let navigationWatcherId = null;
     let clickedLocationMarker = null;
 
-    const speech = {
+    // --- NEW: Advanced Speech Synthesis Service ---
+    const speechService = {
         synthesis: window.speechSynthesis,
-        utterance: new SpeechSynthesisUtterance(),
+        voices: {
+            male: null,
+            female: null,
+        },
+        selectedVoice: 'female', // Default to female
+        isReady: false,
+        
+        // Initialize and load available voices
+        init() {
+            return new Promise((resolve, reject) => {
+                const getVoices = () => {
+                    const availableVoices = this.synthesis.getVoices();
+                    if (!availableVoices.length) {
+                        return;
+                    }
+
+                    // Find a high-quality female voice
+                    this.voices.female = availableVoices.find(voice => 
+                        voice.lang.startsWith('en') && 
+                        (voice.name.includes('Google US English') || voice.name.includes('Zira') || voice.name.includes('Female'))
+                    ) || availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.name.includes('Female'));
+                    
+                    // Find a high-quality male voice
+                    this.voices.male = availableVoices.find(voice => 
+                        voice.lang.startsWith('en') && 
+                        (voice.name.includes('Google UK English Male') || voice.name.includes('David') || voice.name.includes('Male'))
+                    ) || availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.name.includes('Male'));
+
+                    // Fallback to any english voice if specific ones aren't found
+                    if (!this.voices.female) {
+                        this.voices.female = availableVoices.find(voice => voice.lang.startsWith('en') && !voice.name.toLowerCase().includes('male'));
+                    }
+                     if (!this.voices.male) {
+                        // Fallback male to any other english voice if no male found
+                        this.voices.male = availableVoices.find(voice => voice.lang.startsWith('en')) || this.voices.female; 
+                    }
+                    
+                    if (this.voices.female || this.voices.male) {
+                        this.isReady = true;
+                        console.log("Speech service ready. Voices found:", this.voices);
+                        resolve(); // Voices are loaded
+                    }
+                };
+                
+                this.synthesis.onvoiceschanged = getVoices;
+                getVoices(); // Call immediately in case they are already cached
+
+                // Timeout for browsers that don't fire onvoiceschanged reliably
+                setTimeout(() => {
+                    if (!this.isReady) {
+                        getVoices(); // Try one more time
+                        if(this.isReady) {
+                            resolve();
+                        } else {
+                           console.warn("Speech synthesis voices could not be loaded in time.");
+                           reject("Voice loading timeout");
+                        }
+                    }
+                }, 1000);
+            });
+        },
+
+        // Speak the given text
         speak(text, priority = false) {
-            if (priority && this.synthesis.speaking) this.synthesis.cancel();
-            if (!this.synthesis.speaking && text) {
-                this.utterance.text = text;
-                this.synthesis.speak(this.utterance);
+            if (!this.isReady || !text) return;
+            if (priority && this.synthesis.speaking) {
+                this.synthesis.cancel();
+            }
+    
+            // Use a timeout to allow cancel() to finish before speaking again
+            setTimeout(() => {
+                 if (!this.synthesis.speaking) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    const voice = this.voices[this.selectedVoice];
+                    
+                    if (voice) {
+                        utterance.voice = voice;
+                        utterance.pitch = 1; 
+                        utterance.rate = 1;
+                    } else {
+                         console.warn(`Selected voice '${this.selectedVoice}' not available.`);
+                    }
+                    this.synthesis.speak(utterance);
+                }
+            }, 50);
+        },
+
+        // Set the active voice gender
+        setVoice(voiceGender) {
+            if (this.voices[voiceGender]) {
+                this.selectedVoice = voiceGender;
+                localStorage.setItem('mapVoice', voiceGender);
+                console.log(`Voice set to: ${voiceGender}`);
+            } else {
+                 console.error(`Cannot set voice, '${voiceGender}' not found.`);
             }
         }
     };
@@ -722,15 +812,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         navigationState.totalTripTime = currentRouteData.routes[0].duration;
 
         const firstStep = currentRouteData.routes[0].legs[0].steps[0];
-        // --- MODIFIED: Use the new instruction formatter ---
         const instruction = formatOsrmInstruction(firstStep);
         navigationInstructionEl.textContent = instruction;
         updateHighlightedSegment(firstStep);
         updateNavigationUI();
 
         navigationStatusPanel.style.display = 'flex';
-        // --- MODIFIED: Use the new instruction formatter ---
-        speech.speak(`Starting route. ${instruction}`, true);
+        speechService.speak(`Starting route. ${instruction}`, true);
         if (!userLocationMarker) {
             const el = document.createElement('div');
             el.className = 'user-location-marker';
@@ -751,7 +839,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         resetNavigationState();
 
         navigationStatusPanel.style.display = 'none';
-        speech.synthesis.cancel();
+        speechService.synthesis.cancel();
 
         map.easeTo({ pitch: 0, bearing: 0 });
     }
@@ -791,14 +879,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (snapped.properties.dist > 50) {
             navigationState.isRerouting = true;
-            speech.speak("Off route. Recalculating.", true);
+            speechService.speak("Off route. Recalculating.", true);
             await getRoute();
             return;
         }
         
         if (heading != null && headingDifference > 90 && headingDifference < 270 && navigationState.userSpeed > 5 && !navigationState.isWrongWay) {
              navigationState.isWrongWay = true;
-             speech.speak("Wrong way. Recalculating.", true);
+             speechService.speak("Wrong way. Recalculating.", true);
              await getRoute();
              return;
         }
@@ -817,29 +905,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateNavigationUI();
 
         const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
-        // --- MODIFIED: Use the new instruction formatter ---
         const instruction = formatOsrmInstruction(currentStep);
         if (distanceMiles > 0.9 && distanceMiles < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
-            speech.speak(`In 1 mile, ${instruction}`);
+            speechService.speak(`In 1 mile, ${instruction}`);
             navigationState.lastAnnouncedDistance = 1;
         } else if (distanceMiles > 0.24 && distanceMiles < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
-            speech.speak(`In a quarter mile, ${instruction}`);
+            speechService.speak(`In a quarter mile, ${instruction}`);
             navigationState.lastAnnouncedDistance = 0.25;
         }
 
         if (navigationState.distanceToNextManeuver < 50) {
             navigationState.currentStepIndex++;
             if (navigationState.currentStepIndex >= steps.length) {
-                speech.speak("You have arrived at your destination.", true);
+                speechService.speak("You have arrived at your destination.", true);
                 stopNavigation();
                 return;
             }
             const nextStep = steps[navigationState.currentStepIndex];
-            // --- MODIFIED: Use the new instruction formatter ---
             const nextInstruction = formatOsrmInstruction(nextStep);
             navigationInstructionEl.textContent = nextInstruction;
             updateHighlightedSegment(nextStep);
-            speech.speak(nextInstruction, true);
+            speechService.speak(nextInstruction, true);
             navigationState.lastAnnouncedDistance = Infinity;
         }
     }
@@ -847,10 +933,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- REMOVED: OSRM does not provide a traffic layer ---
     // const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     // const TRAFFIC_LAYER_ID = 'traffic-lines';
-    // const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
-    // const trafficLayer = { id: TRAFFIC_LAYER_ID, type: 'line', source: TRAFFIC_SOURCE_ID, 'source-layer': 'traffic', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 2, 'line-color': [ 'match', ['get', 'congestion'], 'low', '#30c83a', 'moderate', '#ff9a00', 'heavy', '#ff3d3d', 'severe', '#a00000', '#a0a0a0' ] } };
-    // function addTrafficLayer() { if (map.getSource(TRAFFIC_SOURCE_ID)) return; map.addSource(TRAFFIC_SOURCE_ID, trafficSource); map.addLayer(trafficLayer, 'route-line'); }
-    // function removeTrafficLayer() { if (!map.getSource(TRAFFIC_SOURCE_ID)) return; map.removeLayer(TRAFFIC_LAYER_ID); map.removeSource(TRAFFIC_SOURCE_ID); }
+    // ...
 
     const settingsBtns = document.querySelectorAll('.js-settings-btn');
     const settingsMenu = document.getElementById('settings-menu');
@@ -870,18 +953,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeSettingsBtn.addEventListener('click', closeSettings);
     menuOverlay.addEventListener('click', closeSettings);
     document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) { closeSettings(); } });
-    styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { const newStyle = radio.value; map.setStyle(STYLES[newStyle]); if (isMobile) { setTimeout(closeSettings, 200); } }); });
     
-    // trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) { addTrafficLayer(); } else { removeTrafficLayer(); } if (isMobile) { setTimeout(closeSettings, 200); } });
+    styleRadioButtons.forEach(radio => { 
+        radio.addEventListener('change', () => { 
+            const newStyle = radio.value; 
+            map.setStyle(STYLES[newStyle]); 
+            if (isMobile) { 
+                setTimeout(closeSettings, 200); 
+            } 
+        }); 
+    });
+    
+    // --- NEW: Voice Selection Logic ---
+    const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
+    voiceRadioButtons.forEach(radio => {
+        radio.addEventListener('change', () => {
+            speechService.setVoice(radio.value);
+            speechService.speak("Voice has been changed.", true);
+            if (isMobile) {
+                setTimeout(closeSettings, 200);
+            }
+        });
+    });
     
     document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
+    
     map.on('styledata', () => { 
         if (navigationState.isActive && currentRouteData) { 
             const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry }; 
             addRouteToMap(routeGeoJSON); 
             updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]); 
         } 
-        // if (trafficToggle.checked) { addTrafficLayer(); } 
     });
     
     // --- Mobile Panel Drag/Swipe Logic ---
@@ -935,5 +1037,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registered'), err => console.log('SW failed')); }); }
+
+    // --- NEW: Initialize speech service and load preferences ---
+    speechService.init().then(() => {
+        const savedVoice = localStorage.getItem('mapVoice') || 'female';
+        speechService.setVoice(savedVoice);
+        const radioToCheck = document.querySelector(`input[name="nav-voice"][value="${savedVoice}"]`);
+        if (radioToCheck) {
+            radioToCheck.checked = true;
+        } else {
+            const femaleRadio = document.querySelector(`input[name="nav-voice"][value="female"]`);
+            if(femaleRadio) femaleRadio.checked = true;
+        }
+    }).catch(err => console.error("Could not initialize speech service:", err));
 });
 
