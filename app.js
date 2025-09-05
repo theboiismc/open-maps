@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- END AUTHENTICATION ---
 
     // --- MAP INITIALIZATION & CONTROLS ---
-    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
+    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV'; // Still needed for geocoding
 
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
@@ -524,10 +524,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-            const url = `https://api.maptiler.com/routes/driving/${start[0]},${start[1]};${end[0]},${end[1]}?key=${MAPTILER_KEY}&steps=true&geometries=geojson&overview=full`;
+            // --- MODIFIED: Using OSRM routing API ---
+            const url = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&geometries=geojson&overview=full`;
             const res = await fetch(url);
             const data = await res.json();
-            if (!data.routes || data.routes.length === 0) { return showToast("A route could not be found.", "error"); }
+
+            // OSRM returns a 'code' property on error, e.g. "NoRoute"
+            if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
+                return showToast(data.message || "A route could not be found.", "error");
+            }
+            
             currentRouteData = data;
             const route = data.routes[0];
             const routeGeoJSON = { type: 'Feature', geometry: route.geometry };
@@ -780,12 +786,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
-    const TRAFFIC_LAYER_ID = 'traffic-lines';
-    const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
-    const trafficLayer = { id: TRAFFIC_LAYER_ID, type: 'line', source: TRAFFIC_SOURCE_ID, 'source-layer': 'traffic', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 2, 'line-color': [ 'match', ['get', 'congestion'], 'low', '#30c83a', 'moderate', '#ff9a00', 'heavy', '#ff3d3d', 'severe', '#a00000', '#a0a0a0' ] } };
-    function addTrafficLayer() { if (map.getSource(TRAFFIC_SOURCE_ID)) return; map.addSource(TRAFFIC_SOURCE_ID, trafficSource); map.addLayer(trafficLayer, 'route-line'); }
-    function removeTrafficLayer() { if (!map.getSource(TRAFFIC_SOURCE_ID)) return; map.removeLayer(TRAFFIC_LAYER_ID); map.removeSource(TRAFFIC_SOURCE_ID); }
+    // --- REMOVED: OSRM does not provide a traffic layer ---
+    // const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
+    // const TRAFFIC_LAYER_ID = 'traffic-lines';
+    // const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
+    // const trafficLayer = { id: TRAFFIC_LAYER_ID, type: 'line', source: TRAFFIC_SOURCE_ID, 'source-layer': 'traffic', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 2, 'line-color': [ 'match', ['get', 'congestion'], 'low', '#30c83a', 'moderate', '#ff9a00', 'heavy', '#ff3d3d', 'severe', '#a00000', '#a0a0a0' ] } };
+    // function addTrafficLayer() { if (map.getSource(TRAFFIC_SOURCE_ID)) return; map.addSource(TRAFFIC_SOURCE_ID, trafficSource); map.addLayer(trafficLayer, 'route-line'); }
+    // function removeTrafficLayer() { if (!map.getSource(TRAFFIC_SOURCE_ID)) return; map.removeLayer(TRAFFIC_LAYER_ID); map.removeSource(TRAFFIC_SOURCE_ID); }
 
     const settingsBtns = document.querySelectorAll('.js-settings-btn');
     const settingsMenu = document.getElementById('settings-menu');
@@ -793,6 +800,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const menuOverlay = document.getElementById('menu-overlay');
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
     const trafficToggle = document.getElementById('traffic-toggle');
+    if (trafficToggle) {
+        trafficToggle.disabled = true;
+        trafficToggle.parentElement.style.opacity = 0.5;
+        trafficToggle.parentElement.title = "Traffic layer is not available with the current routing provider.";
+    }
+
     function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
     function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
     settingsBtns.forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); openSettings(); }); });
@@ -800,9 +813,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     menuOverlay.addEventListener('click', closeSettings);
     document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) { closeSettings(); } });
     styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { const newStyle = radio.value; map.setStyle(STYLES[newStyle]); if (isMobile) { setTimeout(closeSettings, 200); } }); });
-    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) { addTrafficLayer(); } else { removeTrafficLayer(); } if (isMobile) { setTimeout(closeSettings, 200); } });
+    
+    // trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) { addTrafficLayer(); } else { removeTrafficLayer(); } if (isMobile) { setTimeout(closeSettings, 200); } });
+    
     document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
-    map.on('styledata', () => { if (navigationState.isActive && currentRouteData) { const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry }; addRouteToMap(routeGeoJSON); updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]); } if (trafficToggle.checked) { addTrafficLayer(); } });
+    map.on('styledata', () => { 
+        if (navigationState.isActive && currentRouteData) { 
+            const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry }; 
+            addRouteToMap(routeGeoJSON); 
+            updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]); 
+        } 
+        // if (trafficToggle.checked) { addTrafficLayer(); } 
+    });
     
     // --- Mobile Panel Drag/Swipe Logic ---
     if (isMobile) {
