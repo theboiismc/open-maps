@@ -930,10 +930,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- REMOVED: OSRM does not provide a traffic layer ---
-    // const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
-    // const TRAFFIC_LAYER_ID = 'traffic-lines';
-    // ...
+    // --- RE-ENABLED: MapTiler Traffic Layer ---
+    const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
+    const TRAFFIC_LAYER_ID = 'traffic-lines';
+    const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
+    const trafficLayer = { id: TRAFFIC_LAYER_ID, type: 'line', source: TRAFFIC_SOURCE_ID, 'source-layer': 'traffic', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 2, 'line-color': [ 'match', ['get', 'congestion'], 'low', '#30c83a', 'moderate', '#ff9a00', 'heavy', '#ff3d3d', 'severe', '#a00000', '#a0a0a0' ] } };
+    
+    function addTrafficLayer() { 
+        if (map.getSource(TRAFFIC_SOURCE_ID)) return; 
+        map.addSource(TRAFFIC_SOURCE_ID, trafficSource); 
+        
+        // Find the first symbol layer to insert the traffic layer before, ensuring labels are on top
+        const layers = map.getStyle().layers;
+        let firstSymbolId;
+        for (const layer of layers) {
+            if (layer.type === 'symbol') {
+                firstSymbolId = layer.id;
+                break;
+            }
+        }
+        map.addLayer(trafficLayer, firstSymbolId);
+    }
+    
+    function removeTrafficLayer() { 
+        if (!map.getSource(TRAFFIC_SOURCE_ID)) return; 
+        map.removeLayer(TRAFFIC_LAYER_ID); 
+        map.removeSource(TRAFFIC_SOURCE_ID); 
+    }
 
     const settingsBtns = document.querySelectorAll('.js-settings-btn');
     const settingsMenu = document.getElementById('settings-menu');
@@ -941,12 +964,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const menuOverlay = document.getElementById('menu-overlay');
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
     const trafficToggle = document.getElementById('traffic-toggle');
-    if (trafficToggle) {
-        trafficToggle.disabled = true;
-        trafficToggle.parentElement.style.opacity = 0.5;
-        trafficToggle.parentElement.title = "Traffic layer is not available with the current routing provider.";
-    }
-
+    
     function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
     function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
     settingsBtns.forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); openSettings(); }); });
@@ -964,7 +982,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }); 
     });
     
-    // --- NEW: Voice Selection Logic ---
+    // --- Connect traffic toggle to functions ---
+    trafficToggle.addEventListener('change', () => { 
+        if (trafficToggle.checked) { 
+            addTrafficLayer(); 
+        } else { 
+            removeTrafficLayer(); 
+        } 
+        if (isMobile) { 
+            setTimeout(closeSettings, 200); 
+        } 
+    });
+    
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
     voiceRadioButtons.forEach(radio => {
         radio.addEventListener('change', () => {
@@ -978,11 +1007,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
     
+    // --- Update listener to re-apply traffic on style change ---
     map.on('styledata', () => { 
         if (navigationState.isActive && currentRouteData) { 
             const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry }; 
             addRouteToMap(routeGeoJSON); 
             updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]); 
+        } 
+        if (trafficToggle.checked) { 
+            addTrafficLayer(); 
         } 
     });
     
@@ -1038,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registered'), err => console.log('SW failed')); }); }
 
-    // --- NEW: Initialize speech service and load preferences ---
+    // --- Initialize speech service and load preferences ---
     speechService.init().then(() => {
         const savedVoice = localStorage.getItem('mapVoice') || 'female';
         speechService.setVoice(savedVoice);
