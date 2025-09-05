@@ -21,10 +21,7 @@
     <link rel="stylesheet" href="libs/css/styles.css">
 
     <style>
-        /*
-        * A fast, non-proprietary, and widely available font stack.
-        * This ensures the text renders quickly without needing to fetch external resources.
-        */
+        /* A fast, non-proprietary, and widely available font stack. */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
         }
@@ -35,14 +32,6 @@
             height: 24px;
             fill: currentColor;
             vertical-align: middle;
-        }
-
-        /* --- FIX: Adjust panel height on mobile --- */
-        :root {
-            /* * Reduces the open panel height on mobile from 90vh to 65vh.
-             * This leaves more of the map visible. You can adjust this value.
-             */
-            --panel-mobile-height: 30vh;
         }
     </style>
 </head>
@@ -245,9 +234,10 @@
         </div>
     </div>
     
-    <div id="map">
-
-    </div>
+    <div id="map"></div>
+    
+    <div id="toast-container"></div>
+    
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
     <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
     <script src='https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js' defer></script>
