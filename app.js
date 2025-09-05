@@ -15,6 +15,24 @@ const authService = {
     async handleCallback() { return userManager.signinRedirectCallback(); }
 };
 
+// --- NEW: Toast Notification Utility ---
+function showToast(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    // Animate out and remove
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, duration);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // --- AUTHENTICATION CHECK & UI UPDATE ---
     const profileArea = document.getElementById('profile-area');
@@ -97,11 +115,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         default: 'https://tiles.theboiismc.com/styles/basic-preview/style.json',
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
+
+    // --- NEW: URL Hash Syncing ---
+    function getInitialViewFromHash() {
+        if (window.location.hash) {
+            const parts = window.location.hash.substring(1).split('/');
+            if (parts.length === 3) {
+                const [zoom, lat, lng] = parts.map(parseFloat);
+                if (!isNaN(zoom) && !isNaN(lat) && !isNaN(lng)) {
+                    return { center: [lng, lat], zoom: zoom };
+                }
+            }
+        }
+        // Fallback to default
+        return { center: [-95, 39], zoom: 4 };
+    }
+    
+    const initialView = getInitialViewFromHash();
     const map = new maplibregl.Map({
         container: "map",
         style: STYLES.default,
-        center: [-95, 39],
-        zoom: 4
+        center: initialView.center,
+        zoom: initialView.zoom
     });
     
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -115,6 +150,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.on('load', () => {
         geolocateControl.trigger();
         showPanel('welcome-panel');
+
+        // --- NEW: URL Hash Syncing Listeners ---
+        const updateUrlHash = () => {
+            const center = map.getCenter();
+            const zoom = map.getZoom();
+            const hash = `#${zoom.toFixed(2)}/${center.lat.toFixed(4)}/${center.lng.toFixed(4)}`;
+            // Use replaceState to avoid cluttering browser history
+            history.replaceState(null, '', hash);
+        };
+        map.on('moveend', updateUrlHash);
+        map.on('zoomend', updateUrlHash);
     });
 
     document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
@@ -264,10 +310,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name };
                 onSelect(place);
             } else {
-                alert("No results found for your search.");
+                showToast("No results found for your search.", "error");
             }
         } catch (e) {
-            alert("Search failed. Please check your connection.");
+            showToast("Search failed. Please check your connection.", "error");
         }
     }
 
@@ -298,8 +344,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
+
+        // --- UPDATED: Show Skeleton Loaders ---
         document.getElementById('info-name').textContent = place.display_name.split(',')[0];
         document.getElementById('info-address').textContent = place.display_name;
+        document.getElementById('info-image').src = '';
+        document.getElementById('info-image').style.backgroundColor = '#e0e0e0';
+        document.getElementById('info-weather').innerHTML = '<div class="skeleton-line"></div>';
+        document.getElementById('quick-facts-content').innerHTML = '<div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div>';
+
         const locationName = place.display_name.split(',')[0];
         fetchAndSetPlaceImage(locationName, place.lon, place.lat);
         fetchAndSetWeather(place.lat, place.lon);
@@ -309,8 +362,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function fetchAndSetPlaceImage(query, lon, lat) {
         const imgEl = document.getElementById('info-image');
-        imgEl.src = '';
-        imgEl.style.backgroundColor = '#e0e0e0';
         imgEl.alt = 'Loading image...';
         imgEl.onerror = null;
         try {
@@ -343,7 +394,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function fetchAndSetWeather(lat, lon) {
         const weatherEl = document.getElementById('info-weather');
-        weatherEl.textContent = "Loading weather...";
         try {
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=fahrenheit`;
             const res = await fetch(url);
@@ -365,7 +415,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function fetchAndSetQuickFacts(query) {
         const factsEl = document.getElementById('quick-facts-content');
-        factsEl.textContent = "Loading facts...";
         try {
             const url = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=extracts&exintro&explaintext&redirects=1&titles=${encodeURIComponent(query)}`;
             const res = await fetch(url);
@@ -392,7 +441,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('main-directions-icon').addEventListener('click', openDirectionsPanel);
     document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
-    document.getElementById('info-save-btn').addEventListener('click', () => { if (currentUser) { alert("Feature 'Save Place' not yet implemented!"); } else { alert("Please log in to save places."); } });
+    document.getElementById('info-save-btn').addEventListener('click', () => { if (currentUser) { showToast("Feature 'Save Place' not yet implemented!"); } else { showToast("Please log in to save places.", "error"); } });
     document.getElementById('swap-btn').addEventListener('click', () => { [fromInput.value, toInput.value] = [toInput.value, fromInput.value]; [fromInput.dataset.coords, toInput.dataset.coords] = [toInput.dataset.coords, fromInput.dataset.coords]; });
     document.getElementById('dir-use-my-location').addEventListener('click', () => { fromInput.value = "Getting your location..."; navigator.geolocation.getCurrentPosition( pos => { fromInput.value = "Your Location"; fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; }, handlePositionError, geolocationOptions ); });
     document.getElementById('back-to-info-btn').addEventListener('click', () => { if (currentPlace) showPanel('info-panel-redesign'); });
@@ -414,14 +463,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function getRoute() {
-        if (!fromInput.value || !toInput.value) return alert("Please fill both start and end points.");
+        if (!fromInput.value || !toInput.value) return showToast("Please fill both start and end points.", "error");
         clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
             const url = `https://api.maptiler.com/routes/driving/${start[0]},${start[1]};${end[0]},${end[1]}?key=${MAPTILER_KEY}&steps=true&geometries=geojson&overview=full`;
             const res = await fetch(url);
             const data = await res.json();
-            if (!data.routes || data.routes.length === 0) { return alert("A route could not be found. Please try a different location."); }
+            if (!data.routes || data.routes.length === 0) { return showToast("A route could not be found.", "error"); }
             currentRouteData = data;
             const route = data.routes[0];
             const routeGeoJSON = { type: 'Feature', geometry: route.geometry };
@@ -438,7 +487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
             }
         } catch (err) {
-            alert(`Error getting route: ${err.message}`);
+            showToast(`Error getting route: ${err.message}`, "error");
             navigationState.isRerouting = false;
         }
     }
@@ -471,10 +520,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } else {
             navigator.clipboard.writeText(url.toString()).then(() => {
-                alert("Route link copied to clipboard!");
+                showToast("Route link copied to clipboard!", "success");
             }).catch(err => {
                 console.error('Could not copy link: ', err);
-                alert("Could not copy link. Please manually copy the URL from the address bar.");
+                showToast("Could not copy link to clipboard.", "error");
             });
         }
     });
@@ -552,7 +601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function startNavigation() {
-        if (!navigator.geolocation) return alert("Geolocation is not supported by your browser.");
+        if (!navigator.geolocation) return showToast("Geolocation is not supported by your browser.", "error");
         
         resetNavigationState();
         navigationState.isActive = true;
@@ -592,7 +641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function handlePositionError(error) {
         console.error("Geolocation Error:", error.message);
-        alert(`Geolocation error: ${error.message}. Navigation stopped.`);
+        showToast(`Geolocation error: ${error.message}.`, "error");
         stopNavigation();
     }
 
