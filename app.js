@@ -15,7 +15,7 @@ const authService = {
     async handleCallback() { return userManager.signinRedirectCallback(); }
 };
 
-// --- NEW: Toast Notification Utility ---
+// --- Toast Notification Utility ---
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
@@ -37,8 +37,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- AUTHENTICATION CHECK & UI UPDATE ---
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
+    const defaultProfileIconSVG = profileButton.innerHTML; 
     const profileDropdown = document.getElementById('profile-dropdown');
     const loggedInView = document.getElementById('logged-in-view');
+    const dropdownAvatar = document.getElementById('dropdown-avatar'); 
     const loggedOutView = document.getElementById('logged-out-view');
     const loginBtn = document.getElementById('login-btn');
     const signupBtn = document.getElementById('signup-btn');
@@ -68,9 +70,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isLoggedIn = !!currentUser;
         loggedInView.hidden = !isLoggedIn;
         loggedOutView.hidden = isLoggedIn;
+
         if (isLoggedIn) {
+            const userFirstName = currentUser.profile.name.split(' ')[0];
             usernameDisplay.textContent = currentUser.profile.name || 'User';
             emailDisplay.textContent = currentUser.profile.email || '';
+            
+            // Personalize search placeholder
+            mainSearchInput.placeholder = `Where to, ${userFirstName}?`;
+
+            // Update profile picture if available
+            if (currentUser.profile.picture) {
+                profileButton.innerHTML = `<img class="profile-avatar" src="${currentUser.profile.picture}" alt="User Profile"/>`;
+                dropdownAvatar.src = currentUser.profile.picture;
+                dropdownAvatar.hidden = false;
+            } else {
+                // Fallback to default icon if no picture is provided
+                profileButton.innerHTML = defaultProfileIconSVG;
+                dropdownAvatar.hidden = true;
+            }
+        } else {
+            // Restore defaults when logged out
+            profileButton.innerHTML = defaultProfileIconSVG;
+            mainSearchInput.placeholder = 'Search TheBoiisMC Maps';
         }
     };
 
@@ -81,6 +103,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             const user = await authService.getUser();
             updateAuthUI(user);
+
+            // Show a welcome toast if the user is logged in on page load
+            if (user && !user.expired) {
+                const userFirstName = user.profile.name.split(' ')[0];
+                setTimeout(() => { // Small delay to let the UI settle
+                    showToast(`Welcome back, ${userFirstName}!`, 'success');
+                }, 500);
+            }
         }
     } catch (error) {
         console.error("Authentication process failed:", error);
@@ -116,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
 
-    // --- NEW: URL Hash Syncing ---
+    // --- URL Hash Syncing ---
     function getInitialViewFromHash() {
         if (window.location.hash) {
             const parts = window.location.hash.substring(1).split('/');
@@ -151,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         geolocateControl.trigger();
         showPanel('welcome-panel');
 
-        // --- NEW: URL Hash Syncing Listeners ---
+        // --- URL Hash Syncing Listeners ---
         const updateUrlHash = () => {
             const center = map.getCenter();
             const zoom = map.getZoom();
@@ -345,7 +375,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
 
-        // --- UPDATED: Show Skeleton Loaders ---
+        // --- Show Skeleton Loaders ---
         document.getElementById('info-name').textContent = place.display_name.split(',')[0];
         document.getElementById('info-address').textContent = place.display_name;
         document.getElementById('info-image').src = '';
@@ -747,7 +777,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
     map.on('styledata', () => { if (navigationState.isActive && currentRouteData) { const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry }; addRouteToMap(routeGeoJSON); updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]); } if (trafficToggle.checked) { addTrafficLayer(); } });
     
-    // --- NEW: Mobile Panel Drag/Swipe Logic ---
+    // --- Mobile Panel Drag/Swipe Logic ---
     if (isMobile) {
         let panelDragState = {
             isDragging: false,
