@@ -753,55 +753,54 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 'route-line');
     }
 
-    // --- NEW: Helper function to create instructions from OSRM data ---
+    // --- REWRITTEN: Greatly enhanced instruction generation ---
     function formatOsrmInstruction(step) {
-      if (!step || !step.maneuver) return 'Continue';
-
-      const { type, modifier } = step.maneuver;
-      const name = step.name;
-
-      if (type === 'depart') {
-        return `Head on ${name}`;
-      }
-      if (type === 'arrive') {
-        return `You have arrived at your destination`;
-      }
-      
-      let instructionText = '';
-
-      switch (type) {
-        case 'turn':
-        case 'off ramp':
-          instructionText = `Turn ${modifier}`;
-          break;
-        case 'fork':
-          instructionText = `Keep ${modifier} at the fork`;
-          break;
-        case 'roundabout':
-          const exit = step.maneuver.exit;
-          const nth = exit === 1 ? 'st' : exit === 2 ? 'nd' : exit === 3 ? 'rd' : 'th';
-          instructionText = `Enter the roundabout and take the ${exit}${nth} exit`;
-          break;
-        case 'merge':
-          instructionText = `Merge ${modifier}`;
-          break;
-        case 'continue':
-           instructionText = `Continue`;
-           break;
-        case 'new name':
-            instructionText = `Continue`;
-            break;
-        default:
-          instructionText = `${type.replace(/_/g, ' ')} ${modifier ? modifier.replace(/_/g, ' ') : ''}`.trim();
-      }
-      
-      instructionText = instructionText.charAt(0).toUpperCase() + instructionText.slice(1);
-
-      if (name) {
-        instructionText += ` onto ${name}`;
-      }
-      
-      return instructionText.replace('Turn straight', 'Continue straight');
+        if (!step || !step.maneuver) return 'Continue';
+    
+        const { type, modifier } = step.maneuver;
+        const name = step.name.split(',')[0]; // Use only the primary street name
+    
+        // Helper to add street name context if available
+        const onto = (str) => (name ? `${str} onto ${name}` : str);
+        const on = (str) => (name ? `${str} on ${name}` : str);
+    
+        switch (type) {
+            case 'depart':
+                // Use the compass direction for a more natural start
+                const cardinalDirection = modifier ? modifier.replace(/\b\w/g, l => l.toUpperCase()) : '';
+                return `Head ${cardinalDirection} ${on('')}`.trim();
+    
+            case 'arrive':
+                return `Your destination is on the ${modifier}`;
+    
+            case 'turn':
+            case 'off ramp':
+                if (modifier === 'straight') return on('Continue straight');
+                return onto(`Turn ${modifier}`);
+    
+            case 'fork':
+                return onto(`Keep ${modifier} at the fork`);
+    
+            case 'roundabout':
+                const exit = step.maneuver.exit;
+                if (!exit) return 'Enter the roundabout';
+                const nth = exit === 1 ? 'st' : exit === 2 ? 'nd' : exit === 3 ? 'rd' : 'th';
+                return onto(`Take the ${exit}${nth} exit from the roundabout`);
+    
+            case 'merge':
+                return onto(`Merge ${modifier}`);
+    
+            case 'new name':
+                return on('Continue');
+    
+            case 'continue':
+                return on(`Continue ${modifier || ''}`.trim());
+    
+            default:
+                // Fallback for any other maneuver types
+                const formattedType = type.replace(/_/g, ' ');
+                return `${formattedType} ${modifier || ''}`.trim();
+        }
     }
 
     function startNavigation() {
