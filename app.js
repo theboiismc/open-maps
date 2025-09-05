@@ -96,26 +96,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    try {
-        if (window.location.pathname.endsWith("callback.html")) {
+    // --- MODIFIED: Event-driven Authentication Handling ---
+    // This block replaces the previous try/catch block for loading the user.
+
+    // Handle the OIDC callback if we're on the callback page
+    if (window.location.pathname.endsWith("callback.html")) {
+        try {
             await authService.handleCallback();
             window.location.href = "/";
-        } else {
-            const user = await authService.getUser();
-            updateAuthUI(user);
+        } catch (error) {
+            console.error("Callback failed:", error);
+            window.location.href = "/"; // Redirect home even on failure
+        }
+        return; // Stop further execution on the callback page
+    }
 
-            // Show a welcome toast if the user is logged in on page load
-            if (user && !user.expired) {
-                const userFirstName = user.profile.name.split(' ')[0];
-                setTimeout(() => { // Small delay to let the UI settle
-                    showToast(`Welcome back, ${userFirstName}!`, 'success');
-                }, 500);
-            }
+    // --- NEW: Listen for user loaded/unloaded events ---
+    userManager.events.addUserLoaded(user => {
+        console.log("OIDC Event: User loaded", user);
+        updateAuthUI(user);
+        // We only show the "welcome back" toast on the event, not on the initial guess.
+        const userFirstName = user.profile.name.split(' ')[0];
+        showToast(`Welcome back, ${userFirstName}!`, 'success');
+    });
+
+    userManager.events.addUserUnloaded(() => {
+        console.log("OIDC Event: User unloaded");
+        updateAuthUI(null);
+    });
+
+    // --- Initial check for a faster UI update ---
+    // This might show the logged-out state briefly, but the event listener above will correct it.
+    try {
+        const user = await authService.getUser();
+        if (user) {
+            console.log("Initial check: User found", user);
+            updateAuthUI(user);
+        } else {
+            console.log("Initial check: No user found.");
+            updateAuthUI(null);
         }
     } catch (error) {
-        console.error("Authentication process failed:", error);
+        console.error("Initial getUser check failed:", error);
         updateAuthUI(null);
     }
+    
+    // --- End of Modified Section ---
+
 
     profileButton.addEventListener('click', (e) => {
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
