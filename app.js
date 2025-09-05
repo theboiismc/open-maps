@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
             // --- MODIFIED: Using OSRM routing API ---
-            const url = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&geometries=geojson&overview=full`;
+            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
             const res = await fetch(url);
             const data = await res.json();
 
@@ -663,6 +663,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 'route-line');
     }
 
+    // --- NEW: Helper function to create instructions from OSRM data ---
+    function formatOsrmInstruction(step) {
+      if (!step || !step.maneuver) return 'Continue';
+
+      const { type, modifier } = step.maneuver;
+      const name = step.name;
+
+      if (type === 'depart') {
+        return `Head on ${name}`;
+      }
+      if (type === 'arrive') {
+        return `You have arrived at your destination`;
+      }
+      
+      let instructionText = '';
+
+      switch (type) {
+        case 'turn':
+        case 'off ramp':
+          instructionText = `Turn ${modifier}`;
+          break;
+        case 'fork':
+          instructionText = `Keep ${modifier} at the fork`;
+          break;
+        case 'roundabout':
+          const exit = step.maneuver.exit;
+          const nth = exit === 1 ? 'st' : exit === 2 ? 'nd' : exit === 3 ? 'rd' : 'th';
+          instructionText = `Enter the roundabout and take the ${exit}${nth} exit`;
+          break;
+        case 'merge':
+          instructionText = `Merge ${modifier}`;
+          break;
+        case 'continue':
+           instructionText = `Continue`;
+           break;
+        case 'new name':
+            instructionText = `Continue`;
+            break;
+        default:
+          instructionText = `${type.replace(/_/g, ' ')} ${modifier ? modifier.replace(/_/g, ' ') : ''}`.trim();
+      }
+      
+      instructionText = instructionText.charAt(0).toUpperCase() + instructionText.slice(1);
+
+      if (name) {
+        instructionText += ` onto ${name}`;
+      }
+      
+      return instructionText.replace('Turn straight', 'Continue straight');
+    }
+
     function startNavigation() {
         if (!navigator.geolocation) return showToast("Geolocation is not supported by your browser.", "error");
         
@@ -671,12 +722,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         navigationState.totalTripTime = currentRouteData.routes[0].duration;
 
         const firstStep = currentRouteData.routes[0].legs[0].steps[0];
-        navigationInstructionEl.textContent = firstStep.maneuver.instruction;
+        // --- MODIFIED: Use the new instruction formatter ---
+        const instruction = formatOsrmInstruction(firstStep);
+        navigationInstructionEl.textContent = instruction;
         updateHighlightedSegment(firstStep);
         updateNavigationUI();
 
         navigationStatusPanel.style.display = 'flex';
-        speech.speak(`Starting route. ${firstStep.maneuver.instruction}`, true);
+        // --- MODIFIED: Use the new instruction formatter ---
+        speech.speak(`Starting route. ${instruction}`, true);
         if (!userLocationMarker) {
             const el = document.createElement('div');
             el.className = 'user-location-marker';
@@ -763,11 +817,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateNavigationUI();
 
         const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
+        // --- MODIFIED: Use the new instruction formatter ---
+        const instruction = formatOsrmInstruction(currentStep);
         if (distanceMiles > 0.9 && distanceMiles < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
-            speech.speak(`In 1 mile, ${currentStep.maneuver.instruction}`);
+            speech.speak(`In 1 mile, ${instruction}`);
             navigationState.lastAnnouncedDistance = 1;
         } else if (distanceMiles > 0.24 && distanceMiles < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
-            speech.speak(`In a quarter mile, ${currentStep.maneuver.instruction}`);
+            speech.speak(`In a quarter mile, ${instruction}`);
             navigationState.lastAnnouncedDistance = 0.25;
         }
 
@@ -779,9 +835,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             const nextStep = steps[navigationState.currentStepIndex];
-            navigationInstructionEl.textContent = nextStep.maneuver.instruction;
+            // --- MODIFIED: Use the new instruction formatter ---
+            const nextInstruction = formatOsrmInstruction(nextStep);
+            navigationInstructionEl.textContent = nextInstruction;
             updateHighlightedSegment(nextStep);
-            speech.speak(nextStep.maneuver.instruction, true);
+            speech.speak(nextInstruction, true);
             navigationState.lastAnnouncedDistance = Infinity;
         }
     }
@@ -878,3 +936,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registered'), err => console.log('SW failed')); }); }
 });
+
