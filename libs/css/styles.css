@@ -1,16 +1,16 @@
-:root { --panel-width: 400px; --panel-mobile-height: 65vh; /* <-- ADJUSTED HEIGHT */ --panel-mobile-peek: 220px; --brand-color: #00796b; --banner-height: 50px;}
+:root { --panel-width: 400px; --panel-mobile-height: 65vh; --panel-mobile-peek: 220px; --brand-color: #00796b; --banner-height: 50px;}
 * { font-family: 'Inter', sans-serif; box-sizing: border-box; -webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */}
 html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;}
 #map { position: fixed; top: 0; left: 0;}
 
-/* --- NEW: Toast Notification Styles --- */
+/* --- Toast Notification Styles --- */
 #toast-container { position: fixed; top: calc(var(--banner-height) + 15px); right: 15px; z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;}
 .toast { background-color: #333; color: white; padding: 12px 18px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transform: translateX(100%); transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1); font-size: 14px; font-weight: 500;}
 .toast.show { opacity: 1; transform: translateX(0);}
 .toast.error { background-color: #d9534f;}
 .toast.success { background-color: #5cb85c;}
 
-/* --- NEW: Skeleton Loader Styles --- */
+/* --- Skeleton Loader Styles --- */
 @keyframes skeleton-pulse { 0% { background-color: #e0e0e0; } 50% { background-color: #d0d0d0; } 100% { background-color: #e0e0e0; }}
 .skeleton-line { width: 90%; height: 1em; background-color: #e0e0e0; border-radius: 4px; animation: skeleton-pulse 1.5s infinite ease-in-out; margin-bottom: 8px;}
 .skeleton-line:last-child { width: 60%;}
@@ -20,7 +20,32 @@ html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; overflow: h
 #top-banner { position: fixed; top: 0; left: 0; width: 100%; height: var(--banner-height); background-color: var(--brand-color); color: white; display: flex; align-items: center; justify-content: space-between; z-index: 100; font-weight: 600; padding: 0 20px;}
 #site-title { font-size: 18px;}
 #profile-area { position: relative; display: flex; align-items: center; gap: 10px;}.js-settings-btn, #profile-button { width: 36px; height: 36px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.2); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background-color 0.2s; flex-shrink: 0;}.js-settings-btn:hover, #profile-button:hover { background-color: rgba(255, 255, 255, 0.3);}/* Icon style for top banner buttons */#profile-area .material-symbols-outlined { font-size: 24px; color: white;}
-#profile-dropdown { display: none; position: absolute; top: calc(100% + 10px); right: 0; background: white; color: #333; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); min-width: 240px; z-index: 101; overflow: hidden;}.profile-section { padding: 15px;}.profile-section-header { text-align: center;}.profile-section-header .username { font-size: 16px; font-weight: 600; margin-bottom: 5px;}.profile-section-header .email { font-size: 12px; color: #5f6368;}.profile-actions a { display: block; padding: 10px 15px; color: #3c4043; text-decoration: none; font-weight: 500; cursor: pointer;}.profile-actions a:hover { background-color: #f1f1f1;}
+
+/* Styles the image that will replace the SVG in the top-right button */
+#profile-button .profile-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover; /* Ensures the image covers the area without distortion */
+}
+
+#profile-dropdown { display: none; position: absolute; top: calc(100% + 10px); right: 0; background: white; color: #333; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); min-width: 240px; z-index: 101; overflow: hidden;}
+.profile-section { padding: 15px;}
+.profile-section-header { 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 10px;
+}
+.profile-dropdown-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 12px;
+    border: 2px solid #f1f1f1;
+}
+.profile-section-header .username { font-size: 16px; font-weight: 600; margin-bottom: 5px;}.profile-section-header .email { font-size: 12px; color: #5f6368;}.profile-actions a { display: block; padding: 10px 15px; color: #3c4043; text-decoration: none; font-weight: 500; cursor: pointer;}.profile-actions a:hover { background-color: #f1f1f1;}
 hr { border: none; border-top: 1px solid #e0e0e0; margin: 0;}.auth-buttons { padding: 15px; display: flex; flex-direction: column; gap: 10px;}.auth-buttons .btn { text-align: center; padding: 8px 12px; border-radius: 5px; text-decoration: none;}.btn-primary { background-color: var(--brand-color); color: white;}.btn-secondary { background-color: #e0e0e0; color: #333;}
 #top-search-wrapper { position: fixed; top: calc(var(--banner-height) + 15px); left: 50%; transform: translateX(-50%); z-index: 60; width: 400px; transition: opacity 0.2s ease;}
 #panel-search-placeholder { padding: 15px; background-color: #fff; border-bottom: 1px solid #e0e0e0;}
