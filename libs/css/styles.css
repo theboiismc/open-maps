@@ -1,5 +1,5 @@
 :root { --panel-width: 400px; --panel-mobile-height: 65vh; --panel-mobile-peek: 220px; --brand-color: #00796b; --banner-height: 50px;}
-* { font-family: 'Inter', sans-serif; box-sizing: border-box; -webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */}
+* { font-family: sans-serif; box-sizing: border-box; -webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */}
 html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;}
 #map { position: fixed; top: 0; left: 0;}
 
