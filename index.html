@@ -4,49 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     
-    <!-- Title & Description -->
-    <title>TheBoiisMC Maps – Self-Hosted, Privacy-First Mapping</title>
-    <meta name="description" content="Explore TheBoiisMC Maps: fully self-hosted, privacy-focused maps and routing for modern navigation." />
-    <meta name="keywords" content="TheBoiisMC, self-hosted maps, privacy, FOSS maps, mapping, navigation, open source" />
-    <link rel="canonical" href="https://maps.theboiismc.com/" />
-
-    <!-- Open Graph -->
-    <meta property="og:title" content="TheBoiisMC Maps – Privacy-First Mapping" />
-    <meta property="og:description" content="Explore fully self-hosted maps and privacy-focused services at TheBoiisMC." />
+    <title>TheBoiisMC Maps</title>
+    <meta name="description" content="Explore the world with private, modern mapping." />
+    <meta name="theme-color" content="#00796b" />
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon512_rounded.png">
+    
+    <meta property="og:title" content="TheBoiisMC Maps" />
+    <meta property="og:description" content="Explore the world with private, modern mapping." />
     <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
-
-    <!-- Structured Data (JSON-LD) -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "TheBoiisMC Maps",
-      "url": "https://maps.theboiismc.com",
-      "description": "Self-hosted, privacy-first mapping service.",
-      "publisher": {
-        "@type": "Organization",
-        "name": "TheBoiisMC",
-        "url": "https://www.theboiismc.com"
-      },
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://search.theboiismc.com/?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
-    }
-    </script>
-
-    <!-- Theme & Manifest -->
-    <meta name="theme-color" content="#00796b">
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon512_rounded.png">
-
-    <!-- Styles -->
+    
     <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
+    
     <link rel="stylesheet" href="libs/css/styles.css">
-   
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+        }
+        .material-symbols-outlined {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+            vertical-align: middle;
+        }
+        .icon-svg {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 </head>
 <body>
     <div id="top-banner">
