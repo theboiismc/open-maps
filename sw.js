@@ -18,10 +18,6 @@ const urlsToCache = [
   '/libs/js/maplibre-gl-4.1.0.js',
   '/libs/js/turf-6.5.0.min.js',
 
-  // External resources as specified in your HTML
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
-];
-
 // Install event - cache all resources
 self.addEventListener('install', event => {
   event.waitUntil(
