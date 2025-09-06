@@ -3,23 +3,27 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
+    <title>TheBoiisMC Maps - Private Navigation & Directions</title>
+
+    <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
     
-    <title>TheBoiisMC Maps</title>
-    <meta name="description" content="Explore the world with private, modern mapping." />
+    <meta name="robots" content="index, follow" />
+    
+    <link rel="canonical" href="https://maps.theboiismc.com/" />
+
     <meta name="theme-color" content="#00796b" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
-    
-    <meta property="og:title" content="TheBoiisMC Maps" />
-    <meta property="og:description" content="Explore the world with private, modern mapping." />
+
+    <meta property="og:title" content="TheBoiisMC Maps - Private Navigation & Directions" />
+    <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps." />
     <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
-    
-    <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
-    
-    <link rel="stylesheet" href="libs/css/styles.css">
 
+    <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
+    <link rel="stylesheet" href="libs/css/styles.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
@@ -36,6 +40,23 @@
             height: 100%;
         }
     </style>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "TheBoiisMC Maps",
+      "url": "https://maps.theboiismc.com/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://maps.theboiismc.com/?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
 </head>
 <body>
     <div id="top-banner">
@@ -87,7 +108,7 @@
             </div>
         </div>
     </div>
-    
+
     <div id="navigation-status">
         <div id="instruction-container">
             <span class="material-symbols-outlined">
@@ -103,7 +124,7 @@
         </div>
         <button id="end-navigation-btn">End Trip</button>
     </div>
-    
+
     <div id="top-search-wrapper">
         <div id="main-search-container">
             <span id="search-icon-inside" class="material-symbols-outlined">
@@ -116,14 +137,14 @@
             <div id="main-suggestions" class="suggestions-dropdown"></div>
         </div>
     </div>
-    
+
     <div id="side-panel">
         <div id="panel-grabber"></div>
         <div id="panel-search-placeholder" hidden></div>
         <div class="panel-content">
             <div id="welcome-panel" hidden>
                 <div class="info-content-padding">
-                    <h3>Welcome to TheBoiisMC Maps</h3>
+                    <h1>Welcome to TheBoiisMC Maps</h1>
                     <p style="margin-top: 8px; color: #5f6368;">Your private, modern mapping experience. Search for a place or plan a route to get started.</p>
                     <div class="action-buttons" style="margin-top: 24px;">
                         <div class="btn-wrapper" id="welcome-directions-btn">
@@ -141,14 +162,14 @@
                     </button>
                 </div>
                 <div class="info-content-padding">
-                    <h3 id="info-name"></h3>
+                    <h2 id="info-name"></h2>
                     <div class="address" id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
                         <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a4 4 0 0 0 4-4h-8a4 4 0 0 0 4 4Z"/><path d="M12 2a4 4 0 0 0-4 4v1h8V6a4 4 0 0 0-4-4Z"/><path d="m15 11-3-3-3 3"/><path d="m9 13 3 3 3-3"/></svg></span></div><div class="btn-label">Directions</div></div>
                         <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg></span></div><div class="btn-label">Save</div></div>
                     </div>
-                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
+                    <div id="quick-facts"><h3>Quick facts</h3><p id="quick-facts-content"></p></div>
                 </div>
             </div>
             <div id="directions-panel-redesign" hidden>
@@ -178,13 +199,13 @@
             </div>
         </div>
     </div>
-    
+
     <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
         <span class="material-symbols-outlined">
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>
         </span>
     </button>
-    
+
     <div id="menu-overlay"></div>
     <div id="settings-menu">
         <div class="settings-menu-header">
@@ -231,11 +252,10 @@
             </div>
         </div>
     </div>
-    
+
     <div id="map"></div>
-    
     <div id="toast-container"></div>
-    
+
     <script src="libs/js/oidc-client-ts@2.2.0.js" defer></script>
     <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
     <script src='libs/js/turf-6.5.0.min.js' defer></script>
