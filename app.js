@@ -18,7 +18,7 @@ const authService = {
 // --- Toast Notification Utility ---
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
-    if (!container) return;
+    if (!container) return; // FIX: Ensure container exists before trying to append
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -56,8 +56,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mainSearchContainer = document.getElementById('main-search-container');
     const topSearchWrapper = document.getElementById('top-search-wrapper');
     const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
-    const closePanelBtn = document.getElementById('close-panel-btn');
-    const closeInfoBtn = document.getElementById('close-info-btn');
+    // FIX: Using closeInfoBtn instead of non-existent closePanelBtn
+    const closeInfoBtn = document.getElementById('close-info-btn'); 
     const navigationStatusPanel = document.getElementById('navigation-status');
     const navigationInstructionEl = document.getElementById('navigation-instruction');
     const instructionProgressBar = document.getElementById('instruction-progress-bar').style;
@@ -73,12 +73,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const infoWeatherEl = document.getElementById('info-weather');
     const quickFactsEl = document.getElementById('quick-facts-content');
     const infoWebsiteBtn = document.getElementById('info-website-btn');
-    const infoWebsiteLink = document.getElementById('info-website-link');
     
-    // NEW: App Menu
-    const appMenuBtn = document.getElementById('app-menu-btn');
-    const menuOverlay = document.getElementById('menu-overlay');
+    const settingsBtns = document.querySelectorAll('.js-settings-btn');
     const settingsMenu = document.getElementById('settings-menu');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const menuOverlay = document.getElementById('menu-overlay');
 
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
@@ -97,12 +96,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Update profile picture if available
             if (currentUser.profile.picture) {
                 profileButton.innerHTML = `<img class="profile-avatar" src="${currentUser.profile.picture}" alt="User Profile"/>`;
-                dropdownAvatar.src = currentUser.profile.picture;
-                dropdownAvatar.hidden = false;
+                // FIX: Added check to prevent error if dropdownAvatar is not found
+                if(dropdownAvatar) {
+                    dropdownAvatar.src = currentUser.profile.picture;
+                    dropdownAvatar.hidden = false;
+                }
             } else {
                 // Fallback to default icon if no picture is provided
                 profileButton.innerHTML = defaultProfileIconSVG;
-                dropdownAvatar.hidden = true;
+                if(dropdownAvatar) dropdownAvatar.hidden = true;
             }
         } else {
             // Restore defaults when logged out
@@ -111,26 +113,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // --- MODIFIED: Event-driven Authentication Handling ---
-    // This block replaces the previous try/catch block for loading the user.
-
-    // Handle the OIDC callback if we're on the callback page
     if (window.location.pathname.endsWith("callback.html")) {
         try {
             await authService.handleCallback();
             window.location.href = "/";
         } catch (error) {
             console.error("Callback failed:", error);
-            window.location.href = "/"; // Redirect home even on failure
+            window.location.href = "/";
         }
-        return; // Stop further execution on the callback page
+        return;
     }
 
-    // --- NEW: Listen for user loaded/unloaded events ---
     userManager.events.addUserLoaded(user => {
         console.log("OIDC Event: User loaded", user);
         updateAuthUI(user);
-        // We only show the "welcome back" toast on the event, not on the initial guess.
         const userFirstName = user.profile.name.split(' ')[0];
         showToast(`Welcome back, ${userFirstName}!`, 'success');
     });
@@ -140,8 +136,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateAuthUI(null);
     });
 
-    // --- Initial check for a faster UI update ---
-    // This might show the logged-out state briefly, but the event listener above will correct it.
     try {
         const user = await authService.getUser();
         if (user) {
@@ -156,9 +150,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateAuthUI(null);
     }
     
-    // --- End of Modified Section ---
-
-
     profileButton.addEventListener('click', (e) => {
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
@@ -176,10 +167,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/";
     });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
-    // --- END AUTHENTICATION ---
 
-    // --- MAP INITIALIZATION & CONTROLS ---
-    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV'; // Still needed for geocoding
+    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
 
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
@@ -188,7 +177,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
 
-    // --- URL Hash Syncing ---
     function getInitialViewFromHash() {
         if (window.location.hash) {
             const parts = window.location.hash.substring(1).split('/');
@@ -199,7 +187,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         }
-        // Fallback to default
         return { center: [-95, 39], zoom: 4 };
     }
     
@@ -223,12 +210,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         geolocateControl.trigger();
         showPanel('welcome-panel');
 
-        // --- URL Hash Syncing Listeners ---
         const updateUrlHash = () => {
             const center = map.getCenter();
             const zoom = map.getZoom();
             const hash = `#${zoom.toFixed(2)}/${center.lat.toFixed(4)}/${center.lng.toFixed(4)}`;
-            // Use replaceState to avoid cluttering browser history
             history.replaceState(null, '', hash);
         };
         map.on('moveend', updateUrlHash);
@@ -237,24 +222,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
     
-    // --- GLOBAL VARIABLES ---
     let currentPlace = null;
     let currentRouteData = null;
     let userLocationMarker = null;
     let navigationWatcherId = null;
     let clickedLocationMarker = null;
 
-    // --- NEW: Advanced Speech Synthesis Service ---
     const speechService = {
         synthesis: window.speechSynthesis,
         voices: {
             male: null,
             female: null,
         },
-        selectedVoice: localStorage.getItem('mapVoice') || 'female', // Default and load preference
+        selectedVoice: localStorage.getItem('mapVoice') || 'female',
         isReady: false,
         
-        // Initialize and load available voices
         init() {
             return new Promise((resolve, reject) => {
                 const getVoices = () => {
@@ -263,41 +245,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
 
-                    // Find a high-quality female voice
                     this.voices.female = availableVoices.find(voice => 
                         voice.lang.startsWith('en') && 
                         (voice.name.includes('Google US English') || voice.name.includes('Zira') || voice.name.includes('Female'))
                     ) || availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.name.includes('Female'));
                     
-                    // Find a high-quality male voice
                     this.voices.male = availableVoices.find(voice => 
                         voice.lang.startsWith('en') && 
                         (voice.name.includes('Google UK English Male') || voice.name.includes('David') || voice.name.includes('Male'))
                     ) || availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.name.includes('Male'));
 
-                    // Fallback to any english voice if specific ones aren't found
                     if (!this.voices.female) {
                         this.voices.female = availableVoices.find(voice => voice.lang.startsWith('en') && !voice.name.toLowerCase().includes('male'));
                     }
                      if (!this.voices.male) {
-                        // Fallback male to any other english voice if no male found
                         this.voices.male = availableVoices.find(voice => voice.lang.startsWith('en')) || this.voices.female; 
                     }
                     
                     if (this.voices.female || this.voices.male) {
                         this.isReady = true;
                         console.log("Speech service ready. Voices found:", this.voices);
-                        resolve(); // Voices are loaded
+                        resolve();
                     }
                 };
                 
                 this.synthesis.onvoiceschanged = getVoices;
-                getVoices(); // Call immediately in case they are already cached
+                getVoices();
 
-                // Timeout for browsers that don't fire onvoiceschanged reliably
                 setTimeout(() => {
                     if (!this.isReady) {
-                        getVoices(); // Try one more time
+                        getVoices();
                         if(this.isReady) {
                             resolve();
                         } else {
@@ -309,14 +286,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         },
 
-        // Speak the given text
         speak(text, priority = false) {
             if (!this.isReady || !text) return;
             if (priority && this.synthesis.speaking) {
                 this.synthesis.cancel();
             }
     
-            // Use a timeout to allow cancel() to finish before speaking again
             setTimeout(() => {
                  if (!this.synthesis.speaking) {
                     const utterance = new SpeechSynthesisUtterance(text);
@@ -334,7 +309,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }, 50);
         },
 
-        // Set the active voice gender
         setVoice(voiceGender) {
             if (this.voices[voiceGender]) {
                 this.selectedVoice = voiceGender;
@@ -385,8 +359,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    if(closePanelBtn) closePanelBtn.addEventListener('click', closePanel);
-    closeInfoBtn.addEventListener('click', closePanel);
+    if(closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
 
     map.on('click', async (e) => {
         const target = e.originalEvent.target;
@@ -415,7 +388,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const place = {
                     lon: item.center[0],
                     lat: item.center[1],
-                    display_name: item.place_name
+                    display_name: item.place_name,
+                    bbox: item.bbox
                 };
                 processPlaceResult(place);
             } else {
@@ -443,12 +417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     el.className = "search-result";
                     el.textContent = item.place_name;
                     el.addEventListener("click", () => {
-                        const place = {
-                            lon: item.center[0],
-                            lat: item.center[1],
-                            display_name: item.place_name,
-                            bbox: item.bbox // NEW: Add bounding box
-                        };
+                        const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox };
                         onSelect(place);
                     });
                     suggestionsEl.appendChild(el);
@@ -474,12 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await res.json();
             if (data.features && data.features.length > 0) {
                 const item = data.features[0];
-                const place = {
-                    lon: item.center[0],
-                    lat: item.center[1],
-                    display_name: item.place_name,
-                    bbox: item.bbox // NEW: Add bounding box to place object
-                };
+                const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox };
                 onSelect(place);
             } else {
                 showToast("No results found for your search.", "error");
@@ -514,7 +478,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
             .addTo(map);
 
-        // NEW: Fit to bounding box if available, otherwise fly to a default zoom
         if (place.bbox) {
             map.fitBounds(place.bbox, {
                 padding: { top: 100, bottom: 100, left: 100, right: 100 },
@@ -526,7 +489,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
 
-        // --- Show Skeleton Loaders ---
         infoNameEl.textContent = place.display_name.split(',')[0];
         infoAddressEl.textContent = place.display_name;
         infoImageEl.src = '';
@@ -538,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchAndSetPlaceImage(locationName, place.lon, place.lat);
         fetchAndSetWeather(place.lat, place.lon);
         fetchAndSetQuickFacts(locationName);
-        fetchAndSetWebsite(locationName); // NEW: Fetch website
+        fetchAndSetWebsite(locationName);
         showPanel('info-panel-redesign');
     }
 
@@ -569,7 +531,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // NEW: Function to fetch and set the website link
     async function fetchAndSetWebsite(query) {
         const websiteBtn = document.getElementById('info-website-btn');
         const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageprops|extlinks&titles=${encodeURIComponent(query)}`;
@@ -579,7 +540,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const page = Object.values(data.query.pages)[0];
             let websiteFound = false;
             
-            // Check for website in external links
             if (page.extlinks && page.extlinks.length > 0) {
                 const websiteLink = page.extlinks.find(link => link['*'].includes('://') && !link['*'].includes('wikipedia.org'));
                 if (websiteLink) {
@@ -589,7 +549,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Check for website in infobox (e.g., from Wikidata)
             if (!websiteFound && page.pageprops && page.pageprops.wikibase_item) {
                 const wikidataId = page.pageprops.wikibase_item;
                 const wikidataUrl = `https://www.wikidata.org/w/api.php?origin=*&action=wbgetentities&format=json&ids=${wikidataId}&props=claims&languages=en`;
@@ -709,12 +668,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-            // --- MODIFIED: Using OSRM routing API ---
             const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
             const res = await fetch(url);
             const data = await res.json();
 
-            // OSRM returns a 'code' property on error, e.g. "NoRoute"
             if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
                 return showToast(data.message || "A route could not be found.", "error");
             }
@@ -848,51 +805,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 'route-line');
     }
 
-    // --- REWRITTEN: Greatly enhanced instruction generation ---
     function formatOsrmInstruction(step) {
         if (!step || !step.maneuver) return 'Continue';
     
         const { type, modifier } = step.maneuver;
-        const name = step.name.split(',')[0]; // Use only the primary street name
+        const name = step.name.split(',')[0];
     
-        // Helper to add street name context if available
         const onto = (str) => (name ? `${str} onto ${name}` : str);
         const on = (str) => (name ? `${str} on ${name}` : str);
     
         switch (type) {
             case 'depart':
-                // Use the compass direction for a more natural start
                 const cardinalDirection = modifier ? modifier.replace(/\b\w/g, l => l.toUpperCase()) : '';
                 return `Head ${cardinalDirection} ${on('')}`.trim();
-    
             case 'arrive':
                 return `Your destination is on the ${modifier}`;
-    
             case 'turn':
             case 'off ramp':
                 if (modifier === 'straight') return on('Continue straight');
                 return onto(`Turn ${modifier}`);
-    
             case 'fork':
                 return onto(`Keep ${modifier} at the fork`);
-    
             case 'roundabout':
                 const exit = step.maneuver.exit;
                 if (!exit) return 'Enter the roundabout';
                 const nth = exit === 1 ? 'st' : exit === 2 ? 'nd' : exit === 3 ? 'rd' : 'th';
                 return onto(`Take the ${exit}${nth} exit from the roundabout`);
-    
             case 'merge':
                 return onto(`Merge ${modifier}`);
-    
             case 'new name':
                 return on('Continue');
-    
             case 'continue':
                 return on(`Continue ${modifier || ''}`.trim());
-    
             default:
-                // Fallback for any other maneuver types
                 const formattedType = type.replace(/_/g, ' ');
                 return `${formattedType} ${modifier || ''}`.trim();
         }
@@ -916,7 +861,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!userLocationMarker) {
             const el = document.createElement('div');
             el.className = 'user-location-marker';
-            // Use an SVG for the car/arrow
             el.innerHTML = `<svg class="car-icon" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>`;
             userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
@@ -1026,7 +970,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- RE-ENABLED: MapTiler Traffic Layer ---
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
     const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
@@ -1036,7 +979,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (map.getSource(TRAFFIC_SOURCE_ID)) return; 
         map.addSource(TRAFFIC_SOURCE_ID, trafficSource); 
         
-        // Find the first symbol layer to insert the traffic layer before, ensuring labels are on top
         const layers = map.getStyle().layers;
         let firstSymbolId;
         for (const layer of layers) {
@@ -1054,57 +996,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         map.removeSource(TRAFFIC_SOURCE_ID); 
     }
 
-    const settingsBtns = document.querySelectorAll('.js-settings-btn');
-    const closeSettingsBtn = document.getElementById('close-settings-btn');
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
     const trafficToggle = document.getElementById('traffic-toggle');
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
     const unitsRadioButtons = document.querySelectorAll('input[name="map-units"]');
-
-    // NEW: App menu and settings menu logic consolidation
-    function openMenu(menu) {
-        menu.classList.add('open');
-        menuOverlay.classList.add('open');
-    }
-    function closeMenu(menu) {
-        menu.classList.remove('open');
-        menuOverlay.classList.remove('open');
-    }
-
-    appMenuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openMenu(settingsMenu);
-    });
-
-    settingsBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openMenu(settingsMenu);
-        });
-    });
-
-    closeSettingsBtn.addEventListener('click', () => closeMenu(settingsMenu));
-    menuOverlay.addEventListener('click', () => closeMenu(settingsMenu));
-
-    document.addEventListener('click', (e) => {
-        if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn') && !e.target.closest('#app-menu-btn')) {
-            closeMenu(settingsMenu);
-        }
-    });
-
-    // End of NEW: App menu logic
-
+    
+    function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
+    function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
+    
+    // FIX: Using the correct button to open settings
+    document.getElementById('mobile-settings-btn').addEventListener('click', (e) => { e.stopPropagation(); openSettings(); });
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    menuOverlay.addEventListener('click', closeSettings);
+    document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn') && !e.target.closest('#mobile-settings-btn')) { closeSettings(); } });
+    
     styleRadioButtons.forEach(radio => { 
         radio.addEventListener('change', () => { 
             const newStyle = radio.value; 
             map.setStyle(STYLES[newStyle]); 
             if (isMobile) { 
-                setTimeout(() => closeMenu(settingsMenu), 200); 
+                setTimeout(closeSettings, 200); 
             } 
         }); 
     });
     
-    // --- Connect traffic toggle to functions ---
     trafficToggle.addEventListener('change', () => { 
         if (trafficToggle.checked) { 
             addTrafficLayer(); 
@@ -1112,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             removeTrafficLayer(); 
         } 
         if (isMobile) { 
-            setTimeout(() => closeMenu(settingsMenu), 200); 
+            setTimeout(closeSettings, 200); 
         } 
     });
     
@@ -1121,14 +1036,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             speechService.setVoice(radio.value);
             speechService.speak("Voice has been changed.", true);
             if (isMobile) {
-                setTimeout(() => closeMenu(settingsMenu), 200);
+                setTimeout(closeSettings, 200);
             }
         });
     });
     
-    unitsRadioButtons.forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(() => closeMenu(settingsMenu), 200); } }); });
+    unitsRadioButtons.forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
     
-    // --- Update listener to re-apply traffic on style change ---
     map.on('styledata', () => { 
         if (navigationState.isActive && currentRouteData) { 
             const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry }; 
@@ -1140,9 +1054,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         } 
     });
     
-    // --- Mobile Panel Drag/Swipe Logic ---
-    // The user's original code already contained the logic for a draggable mobile panel.
-    // This section is kept as-is to fulfill the request.
     if (isMobile) {
         let panelDragState = {
             isDragging: false,
@@ -1152,10 +1063,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         const panelDragStart = (e) => {
-            if (e.target.closest('.panel-content')) return; // Don't drag if touching content
+            if (e.target.closest('.panel-content')) return;
             panelDragState.isDragging = true;
             panelDragState.startY = e.touches[0].clientY;
-            sidePanel.style.transition = 'none'; // Disable transition for smooth dragging
+            sidePanel.style.transition = 'none';
         };
 
         const panelDragMove = (e) => {
@@ -1164,7 +1075,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             panelDragState.currentY = e.touches[0].clientY;
             panelDragState.dragOffset = panelDragState.currentY - panelDragState.startY;
 
-            // Only allow dragging down
             if (panelDragState.dragOffset > 0) {
                 sidePanel.style.transform = `translateY(${panelDragState.dragOffset}px)`;
             }
@@ -1174,16 +1084,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!panelDragState.isDragging) return;
             
             panelDragState.isDragging = false;
-            sidePanel.style.transition = ''; // Re-enable CSS transitions
-            sidePanel.style.transform = ''; // Reset transform
+            sidePanel.style.transition = '';
+            sidePanel.style.transform = '';
 
-            // If dragged more than a third of the panel's height, close it
             const closeThreshold = sidePanel.offsetHeight / 3;
             if (panelDragState.dragOffset > closeThreshold) {
                 closePanel();
             }
             
-            // Reset state
             panelDragState.dragOffset = 0;
         };
         
@@ -1192,7 +1100,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.addEventListener('touchend', panelDragEnd);
     }
     
-    // --- Deep Linking: Check for shared route parameters in URL on load ---
     function getInitialRouteFromUrl() {
         const params = new URLSearchParams(window.location.search);
         const fromCoords = params.get('from');
@@ -1211,7 +1118,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registered'), err => console.log('SW failed')); }); }
 
-    // --- Initialize speech service and load preferences ---
     speechService.init().then(() => {
         const savedVoice = localStorage.getItem('mapVoice') || 'female';
         speechService.setVoice(savedVoice);
@@ -1224,6 +1130,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }).catch(err => console.error("Could not initialize speech service:", err));
     
-    // Call deep linking function on initial load
     getInitialRouteFromUrl();
 });
