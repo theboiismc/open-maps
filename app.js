@@ -211,7 +211,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         container: "map",
         style: STYLES.default,
         center: initialView.center,
-        zoom: initialView.zoom
+        zoom: initialView.zoom,
+        pitchWithRotate: false, // Disables pitch
+        dragRotate: false,      // Disables rotate
     });
     
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -881,7 +883,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
 
-        map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
+        map.easeTo({ pitch: 0, zoom: 17, duration: 1500 }); // Pitch is now 0
+        map.flyTo({ bearing: 0, pitch: 0 });
 
         navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
         endNavigationBtn.addEventListener('click', stopNavigation);
@@ -922,7 +925,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         userLocationMarker.setLngLat(snapped.geometry.coordinates);
         if (heading != null) {
             userLocationMarker.setRotation(heading);
-            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: 18, duration: 500 });
+            map.easeTo({ center: snapped.geometry.coordinates, bearing: 0, zoom: 18, duration: 500 }); // Pitch is 0 and bearing is 0
         } else {
             map.easeTo({ center: snapped.geometry.coordinates, zoom: 18, duration: 500 });
         }
