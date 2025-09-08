@@ -683,7 +683,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function getRoute() {
         if (!fromInput.value || !toInput.value) return showToast("Please fill both start and end points.", "error");
-        clearRouteFromMap();
+        
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
             const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
@@ -701,7 +701,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const bounds = new maplibregl.LngLatBounds();
             routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
 
-            if (fromInput.value.trim() === "Your Location") {
+            if (navigationState.isRerouting) {
+                // Rerouting logic, do not call startNavigation again
+                map.fitBounds(bounds, { padding: 100 });
+                updateHighlightedSegment(route.legs[0].steps[0]);
+                navigationInstructionEl.textContent = formatOsrmInstruction(route.legs[0].steps[0]);
+                navigationState.currentStepIndex = 0;
+                navigationState.isRerouting = false;
+                navigationState.isWrongWay = false;
+            } else if (fromInput.value.trim() === "Your Location") {
                 map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
                 closePanel();
                 startNavigation();
@@ -910,7 +918,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function handlePositionUpdate(position) {
-        if (!navigationState.isActive || navigationState.isRerouting) return;
+        if (!navigationState.isActive) return;
         const { latitude, longitude, heading, speed, accuracy } = position.coords;
 
         if (accuracy > 80) return;
@@ -930,38 +938,49 @@ document.addEventListener('DOMContentLoaded', async () => {
             map.easeTo({ center: snapped.geometry.coordinates, zoom: 18, duration: 500 });
         }
 
-        const currentStep = steps[navigationState.currentStepIndex];
-        const stepStartPoint = turf.point(currentStep.geometry.coordinates[0]);
-        const stepEndPoint = turf.point(currentStep.geometry.coordinates[currentStep.geometry.coordinates.length - 1]);
-        const stepBearing = getBearing(stepStartPoint, stepEndPoint);
-        const headingDifference = Math.abs(heading - stepBearing);
-
+        // IMPROVED: Off-route and rerouting logic
         if (snapped.properties.dist > 50) {
-            navigationState.isRerouting = true;
-            speechService.speak("Off route. Recalculating.", true);
-            await getRoute();
+            if (!navigationState.isRerouting) {
+                navigationState.isRerouting = true;
+                speechService.speak("Off route. Recalculating.", true);
+                await getRoute();
+            }
             return;
         }
         
-        if (heading != null && headingDifference > 90 && headingDifference < 270 && navigationState.userSpeed > 5 && !navigationState.isWrongWay) {
-             navigationState.isWrongWay = true;
-             speechService.speak("Wrong way. Recalculating.", true);
-             await getRoute();
-             return;
+        // IMPROVED: "Wrong way" check is less aggressive
+        if (heading != null && navigationState.userSpeed > 5) {
+            const currentStep = steps[navigationState.currentStepIndex];
+            const stepLine = turf.lineString(currentStep.geometry.coordinates);
+            const stepBearing = getBearing(turf.point(stepLine.coordinates[0]), turf.point(stepLine.coordinates[stepLine.coordinates.length - 1]));
+            const headingDifference = Math.abs(heading - stepBearing);
+
+            if (headingDifference > 135 && headingDifference < 225) {
+                if (!navigationState.isWrongWay && snapped.properties.dist > 10) {
+                     navigationState.isWrongWay = true;
+                     speechService.speak("Wrong way. Recalculating.", true);
+                     await getRoute();
+                     return;
+                }
+            } else {
+                navigationState.isWrongWay = false;
+            }
         }
-        navigationState.isWrongWay = false;
 
-        const currentStepLine = turf.lineString(currentStep.geometry.coordinates);
-        const totalStepDistance = turf.length(currentStepLine, { units: 'meters' });
-        navigationState.distanceToNextManeuver = turf.distance(userPoint, stepEndPoint, { units: 'meters' });
-        navigationState.progressAlongStep = Math.max(0, 1 - (navigationState.distanceToNextManeuver / totalStepDistance));
-
-        const tripDurationSeconds = currentRouteData.routes[0].duration;
-        const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
-        const remainingTimeSeconds = tripDurationSeconds - timeElapsed;
+        // IMPROVED: ETA Calculation
+        const remainingRoute = turf.lineSlice(snapped, turf.point(routeLine.coordinates[routeLine.coordinates.length - 1]), routeLine);
+        const remainingDistance = turf.length(remainingRoute, { units: 'meters' });
+        const speedInMetersPerSecond = navigationState.userSpeed * 0.44704;
+        const remainingTimeSeconds = speedInMetersPerSecond > 0 ? (remainingDistance / speedInMetersPerSecond) : 0;
         navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
         navigationState.totalTripTime = remainingTimeSeconds;
         updateNavigationUI();
+
+        const currentStep = steps[navigationState.currentStepIndex];
+        const stepLine = turf.lineString(currentStep.geometry.coordinates);
+        const totalStepDistance = turf.length(stepLine, { units: 'meters' });
+        navigationState.distanceToNextManeuver = turf.distance(userPoint, turf.point(stepLine.coordinates[stepLine.coordinates.length - 1]), { units: 'meters' });
+        navigationState.progressAlongStep = Math.max(0, 1 - (navigationState.distanceToNextManeuver / totalStepDistance));
 
         const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
         const instruction = formatOsrmInstruction(currentStep);
