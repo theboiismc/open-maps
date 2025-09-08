@@ -212,8 +212,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         style: STYLES.default,
         center: initialView.center,
         zoom: initialView.zoom,
-        pitchWithRotate: false, // Disables pitch
-        dragRotate: false,      // Disables rotate
+        pitchWithRotate: false,
+        dragRotate: false
     });
     
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
