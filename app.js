@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const instructionProgressBar = document.getElementById('instruction-progress-bar').style;
     const endNavigationBtn = document.getElementById('end-navigation-btn');
     const statSpeedEl = document.getElementById('stat-speed');
-    const statEtaEl = document.getElementById('stat-eta');
+    const statEtaEl = document = document.getElementById('stat-eta');
     const statTimeRemainingEl = document.getElementById('stat-time-remaining');
     const routeStepsList = document.getElementById('route-steps'); // Added for turn-by-turn list
 
@@ -837,7 +837,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const el = document.createElement('div');
             el.className = 'user-location-marker';
             // Use an SVG for the car/arrow
-            el.innerHTML = `<svg class="car-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.93 0 3.5 1.57 3.5 3.5S13.93 12 12 12s-3.5-1.57-3.5-3.5S10.07 5 12 5zm0 14.2c-2.73 0-5.1-.98-6.9-2.58.01-2.48 4.67-3.82 6.9-3.82 2.23 0 6.89 1.34 6.9 3.82-1.8 1.6-4.17 2.58-6.9 2.58z"/></svg>`;
+            el.innerHTML = `<svg class="car-icon" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>`;
             userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
 
