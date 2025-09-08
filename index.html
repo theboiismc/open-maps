@@ -10,8 +10,6 @@
     
     <meta name="robots" content="index, follow" />
     <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
-    <!-- FIX: Added Google Fonts link for Material Symbols -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
@@ -34,14 +32,30 @@
         }
 
         /* --- ICON STYLE OVERRIDE --- */
-        /* Styling for Google Material Symbols */
+        /* Replaced horrid icons with beautiful, open-source Lucide icons. */
+        .icon-wrapper .material-symbols-outlined,
         .material-symbols-outlined {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
             vertical-align: middle;
-            font-size: 24px; /* Default size */
+        }
+
+        .icon-svg {
+            width: 1.1em;
+            height: 1.1em;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
         }
         
-        #navigation-status .material-symbols-outlined {
-             font-size: 32px; /* Larger icon for nav */
+        #navigation-status .icon-svg {
+             width: 1.5em;
+             height: 1.5em;
         }
 
         /* Adjust panel height on mobile */
@@ -62,6 +76,13 @@
             padding: 0;
             margin-right: -10px;
             transition: background-color 0.2s ease-in-out;
+        }
+
+        #top-banner #app-menu-button svg {
+            fill: #fff; /* Grid icon uses fill */
+            stroke: none;
+            width: 24px;
+            height: 24px;
         }
         
         #top-banner #app-menu-button:hover {
@@ -136,29 +157,33 @@
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button class="js-settings-btn" aria-label="Map Settings">
-                <span class="material-symbols-outlined">settings</span>
+                <span class="material-symbols-outlined">
+                    <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 0-1 1.73V11a2 2 0 0 0 .28 1L8 14.18V18a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-3.82l.72-2.14a2 2 0 0 0 .28-1V8.16a2 2 0 0 0-1-1.73l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><path d="M12 9a3 3 0 1 0 0 6 3 3 0 1 0 0-6z"/></svg>
+                </span>
             </button>
             <button id="profile-button" aria-label="User Profile">
-                <span class="material-symbols-outlined">account_circle</span>
+                <span class="material-symbols-outlined">
+                    <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8.009 8.009 0 0 1-8 8z"/><path d="M12 11a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0-4a1 1 0 1 1-1 1 1 1 0 0 1 1-1z"/><path d="M12 13.5c-2.63 0-4.83.67-5.98 1.57a.5.5 0 0 0-.02.63 6 6 0 0 0 12 0 .5.5 0 0 0-.02-.63C16.83 14.17 14.63 13.5 12 13.5z"/></svg>
+                </span>
             </button>
             <button id="app-menu-button">
-                 <span class="material-symbols-outlined" style="color: white;">apps</span>
+                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-4v4h4V8h-4zM4 12h4V8H4v4zm6-6v4h4V4h-4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
             </button>
             <div id="services-dropdown">
                 <a href="https://search.theboiismc.com" class="service-item">
-                    <span class="service-icon"><span class="material-symbols-outlined">search</span></span>
+                    <span class="service-icon"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
                     <span class="service-name">Search</span>
                 </a>
                 <a href="https://maps.theboiismc.com" class="service-item">
-                    <span class="service-icon"><span class="material-symbols-outlined">location_on</span></span>
+                    <span class="service-icon"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
                     <span class="service-name">Maps</span>
                 </a>
                 <a href="https://drive.theboiismc.com" class="service-item">
-                    <span class="service-icon"><span class="material-symbols-outlined">folder</span></span>
+                    <span class="service-icon"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m15 15-3 3-3-3"/></svg></span>
                     <span class="service-name">Drive</span>
                 </a>
                 <a href="https://account.theboiismc.com" class="service-item">
-                     <span class="service-icon"><span class="material-symbols-outlined">account_circle</span></span>
+                     <span class="service-icon"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8.009 8.009 0 0 1-8 8z"/><path d="M12 11a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0-4a1 1 0 1 1-1 1 1 1 0 0 1 1-1z"/><path d="M12 13.5c-2.63 0-4.83.67-5.98 1.57a.5.5 0 0 0-.02.63 6 6 0 0 0 12 0 .5.5 0 0 0-.02-.63C16.83 14.17 14.63 13.5 12 13.5z"/></svg></span>
                     <span class="service-name">Account</span>
                 </a>
             </div>
@@ -193,7 +218,9 @@
     
     <div id="navigation-status">
         <div id="instruction-container">
-            <span class="material-symbols-outlined">navigation</span>
+            <span class="material-symbols-outlined">
+                 <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m3 11 19-9-9 19-2-8-8-2z"/></svg>
+            </span>
             <div id="navigation-instruction">Starting navigation...</div>
             <div id="instruction-progress-bar"></div>
         </div>
@@ -216,9 +243,13 @@
     
     <div id="top-search-wrapper">
         <div id="main-search-container">
-            <span id="search-icon-inside" class="material-symbols-outlined">search</span>
+            <span id="search-icon-inside" class="material-symbols-outlined">
+                <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
-            <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
+            <span id="main-directions-icon" class="material-symbols-outlined">
+                <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M15.7 8.3a1 1 0 0 0-1.4 0L12 10.58 9.7 8.3a1 1 0 0 0-1.4 1.4L10.58 12l-2.29 2.3a1 1 0 1 0 1.4 1.4L12 13.42l2.3 2.29a1 1 0 0 0 1.4-1.4L13.42 12l2.29-2.3a1 1 0 0 0 0-1.4z"/></svg>
+            </span>
             <div id="main-suggestions" class="suggestions-dropdown"></div>
         </div>
     </div>
@@ -237,7 +268,9 @@
                     <div class="action-buttons" style="margin-top: 24px;">
                         <div class="btn-wrapper" id="welcome-directions-btn">
                             <div class="icon-circle">
-                                <span class="material-symbols-outlined">directions</span>
+                                <span class="material-symbols-outlined">
+                                    <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                                </span>
                             </div>
                             <div class="btn-label">Directions</div>
                         </div>
@@ -248,7 +281,9 @@
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location"/>
                     <button id="close-info-btn">
-                        <span class="material-symbols-outlined">arrow_back</span>
+                        <span class="material-symbols-outlined">
+                             <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                        </span>
                     </button>
                 </div>
                 <div class="info-content-padding">
@@ -256,9 +291,9 @@
                     <div class="address" id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-outlined">language</span></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark_border</span></div><div class="btn-label">Save</div></div>
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span></div><div class="btn-label">Website</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></span></div><div class="btn-label">Save</div></div>
                     </div>
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
@@ -266,13 +301,13 @@
             <div id="directions-panel-redesign" hidden>
                 <div class="info-content-padding">
                     <div class="dir-input-group">
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2"/></svg></span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
                         <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
                         <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                        <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
+                        <button id="swap-btn"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg></span></button>
                     </div>
-                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg></span></div>Your location</div>
                     <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
                 </div>
             </div>
@@ -283,9 +318,9 @@
                         <div id="route-summary-distance"></div>
                     </div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
-                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
-                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined">list</span></div><div class="btn-label">Steps</div></div>
+                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m3 11 19-9-9 19-2-8-8-2z"/></svg></span></div><div class="btn-label">Start Trip</div></div>
+                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg></span></div><div class="btn-label">Share</div></div>
+                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg></span></div><div class="btn-label">Steps</div></div>
                     </div>
                     <button id="back-to-directions-btn">Back</button>
                 </div>
@@ -301,7 +336,9 @@
     </div>
     
     <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
-        <span class="material-symbols-outlined">layers</span>
+        <span class="material-symbols-outlined">
+            <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 0-1 1.73V11a2 2 0 0 0 .28 1L8 14.18V18a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-3.82l.72-2.14a2 2 0 0 0 .28-1V8.16a2 2 0 0 0-1-1.73l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><path d="M12 9a3 3 0 1 0 0 6 3 3 0 1 0 0-6z"/></svg>
+        </span>
     </button>
     
     <div id="menu-overlay"></div>
