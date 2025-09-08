@@ -10,12 +10,15 @@
     
     <meta name="robots" content="index, follow" />
     <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
-    <!-- FIX: Added Google Fonts link for Material Symbols -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
-    <meta name="theme-color" content="#00796b" />
+    <!-- Google Fonts: Inter and Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <meta name="theme-color" content="#3b82f6" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
 
@@ -26,95 +29,9 @@
     <meta name="twitter:card" content="summary_large_image" />
 
     <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
-    <link rel="stylesheet" href="libs/css/styles.css">
-    <style>
-        /* A fast, non-proprietary, and widely available font stack. */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-        }
+    <link rel="stylesheet" href="styles.css">
 
-        /* --- ICON STYLE OVERRIDE --- */
-        /* Styling for Google Material Symbols */
-        .material-symbols-outlined {
-            vertical-align: middle;
-            font-size: 24px; /* Default size */
-        }
-        
-        #navigation-status .material-symbols-outlined {
-             font-size: 32px; /* Larger icon for nav */
-        }
-
-        /* Adjust panel height on mobile */
-        :root {
-            --panel-mobile-height: 30vh;
-        }
-
-        /* App menu button and dropdown */
-        #top-banner #app-menu-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            padding: 0;
-            margin-right: -10px;
-            transition: background-color 0.2s ease-in-out;
-        }
-        
-        #top-banner #app-menu-button:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-        }
-
-        #services-dropdown {
-            position: absolute;
-            top: 50px;
-            right: 0;
-            width: 240px;
-            background-color: #3b3b3d;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-            z-index: 20;
-            display: none;
-            padding: 8px;
-        }
-
-        #services-dropdown.open {
-            display: block;
-        }
-
-        .service-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            text-decoration: none;
-            color: #fff;
-            border-radius: 6px;
-            transition: background-color 0.2s ease-in-out;
-        }
-
-        .service-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .service-item .service-icon {
-            width: 24px;
-            height: 24px;
-            margin-right: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .service-item .service-name {
-            font-size: 16px;
-            font-weight: 500;
-        }
-    </style>
-
-        <script type="application/ld+json">
+    <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
@@ -129,7 +46,7 @@
         "query-input": "required name=search_term_string"
       }
     }
-        </script>
+    </script>
 </head>
 <body>
     <div id="top-banner">
@@ -141,24 +58,24 @@
             <button id="profile-button" aria-label="User Profile">
                 <span class="material-symbols-outlined">account_circle</span>
             </button>
-            <button id="app-menu-button">
-                 <span class="material-symbols-outlined" style="color: white;">apps</span>
+            <button id="app-menu-button" aria-label="App Menu">
+                 <span class="material-symbols-outlined">apps</span>
             </button>
             <div id="services-dropdown">
                 <a href="https://search.theboiismc.com" class="service-item">
-                    <span class="service-icon"><span class="material-symbols-outlined">search</span></span>
+                    <span class="material-symbols-outlined service-icon">search</span>
                     <span class="service-name">Search</span>
                 </a>
                 <a href="https://maps.theboiismc.com" class="service-item">
-                    <span class="service-icon"><span class="material-symbols-outlined">location_on</span></span>
+                    <span class="material-symbols-outlined service-icon">map</span>
                     <span class="service-name">Maps</span>
                 </a>
                 <a href="https://drive.theboiismc.com" class="service-item">
-                    <span class="service-icon"><span class="material-symbols-outlined">folder</span></span>
+                    <span class="material-symbols-outlined service-icon">cloud</span>
                     <span class="service-name">Drive</span>
                 </a>
                 <a href="https://account.theboiismc.com" class="service-item">
-                     <span class="service-icon"><span class="material-symbols-outlined">account_circle</span></span>
+                     <span class="material-symbols-outlined service-icon">account_circle</span>
                     <span class="service-name">Account</span>
                 </a>
             </div>
@@ -195,7 +112,9 @@
         <div id="instruction-container">
             <span class="material-symbols-outlined">navigation</span>
             <div id="navigation-instruction">Starting navigation...</div>
-            <div id="instruction-progress-bar"></div>
+        </div>
+        <div id="instruction-progress-bar-container">
+             <div id="instruction-progress-bar"></div>
         </div>
         <div id="trip-stats-container">
             <div class="stat-item">
@@ -214,18 +133,20 @@
         <button id="end-navigation-btn">End Trip</button>
     </div>
     
-    <div id="top-search-wrapper">
-        <div id="main-search-container">
-            <span id="search-icon-inside" class="material-symbols-outlined">search</span>
-            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
-            <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
-            <div id="main-suggestions" class="suggestions-dropdown"></div>
-        </div>
-    </div>
-    
     <div id="side-panel">
         <div id="panel-grabber"></div>
-        <div id="panel-search-placeholder" hidden></div>
+        <div id="panel-search-placeholder">
+            <!-- NEW: Panel toggle button for desktop -->
+            <button id="minimize-panel-btn" aria-label="Minimize panel">
+                <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <div id="main-search-container">
+                <span id="search-icon-inside" class="material-symbols-outlined">search</span>
+                <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
+                <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
+                <div id="main-suggestions" class="suggestions-dropdown"></div>
+            </div>
+        </div>
         <div class="panel-content">
             <div id="welcome-panel" hidden>
                 <div class="info-content-padding">
@@ -247,7 +168,7 @@
             <div id="info-panel-redesign" hidden>
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location"/>
-                    <button id="close-info-btn">
+                    <button id="close-info-btn" aria-label="Back to search">
                         <span class="material-symbols-outlined">arrow_back</span>
                     </button>
                 </div>
@@ -258,7 +179,7 @@
                     <div class="action-buttons">
                         <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
                         <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-outlined">language</span></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark_border</span></div><div class="btn-label">Save</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></div>
                     </div>
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
@@ -270,7 +191,7 @@
                         <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
                         <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
                         <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                        <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
+                        <button id="swap-btn" aria-label="Swap starting point and destination"><span class="material-symbols-outlined">swap_vert</span></button>
                     </div>
                     <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
                     <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
@@ -299,6 +220,11 @@
             </div>
         </div>
     </div>
+
+    <!-- NEW: Button to maximize panel when it's minimized on desktop -->
+    <button id="maximize-panel-btn" aria-label="Maximize panel">
+        <span class="material-symbols-outlined">menu</span>
+    </button>
     
     <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
         <span class="material-symbols-outlined">layers</span>
@@ -360,4 +286,3 @@
     <script src="app.js" defer></script>
 </body>
 </html>
-
