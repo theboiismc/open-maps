@@ -171,7 +171,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
-    // FIX: Updated signup button to point to the correct general accounts URL
     signupBtn.addEventListener('click', (e) => {
         e.preventDefault();
         window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/";
@@ -239,6 +238,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userLocationMarker = null;
     let navigationWatcherId = null;
     let clickedLocationMarker = null;
+    let currentUnits = localStorage.getItem('mapUnits') || 'imperial';
 
     const speechService = {
         synthesis: window.speechSynthesis,
@@ -257,7 +257,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
                     
-                    // IMPROVED: Find male and female voices with more robust checks
                     const femaleNames = ['Google US English', 'Zira', 'Samantha', 'Female', 'Allison'];
                     this.voices.female = availableVoices.find(voice => 
                         voice.lang.startsWith('en') && 
@@ -599,8 +598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (data.current_weather) {
                 const tempF = Math.round(data.current_weather.temperature);
                 const tempC = Math.round((tempF - 32) * 5 / 9);
-                const description = getWeatherDescription(data.current_weather.weathercode);
-                weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
+                weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${getWeatherDescription(data.current_weather.weathercode)}`;
             } else {
                 throw new Error("Invalid weather data format.");
             }
@@ -657,18 +655,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     function displayRoutePreview(route) {
         const durationMinutes = Math.round(route.duration / 60);
-        const distanceMiles = (route.distance / 1609.34).toFixed(1);
+        const distance = currentUnits === 'imperial' ? (route.distance / 1609.34).toFixed(1) : (route.distance / 1000).toFixed(1);
+        const distanceUnit = currentUnits === 'imperial' ? 'mi' : 'km';
         document.getElementById('route-summary-time').textContent = `${durationMinutes} min`;
-        document.getElementById('route-summary-distance').textContent = `${distanceMiles} mi`;
+        document.getElementById('route-summary-distance').textContent = `${distance} ${distanceUnit}`;
         showPanel('route-preview-panel');
     }
     
     function populateRouteSteps() {
         routeStepsList.innerHTML = '';
         const steps = currentRouteData.routes[0].legs[0].steps;
-        steps.forEach((step, index) => {
+        const distanceFactor = currentUnits === 'imperial' ? 1609.34 : 1000;
+        const distanceUnit = currentUnits === 'imperial' ? 'mi' : 'km';
+        steps.forEach((step) => {
             const li = document.createElement('li');
-            li.innerHTML = `<span>${formatOsrmInstruction(step)}</span><span class="step-distance">${(step.distance / 1609.34).toFixed(2)} mi</span>`;
+            const formattedDistance = (step.distance / distanceFactor).toFixed(2);
+            li.innerHTML = `<span>${formatOsrmInstruction(step)}</span><span class="step-distance">${formattedDistance} ${distanceUnit}</span>`;
             routeStepsList.appendChild(li);
         });
     }
@@ -803,9 +805,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateNavigationUI() {
         const remainingTime = (navigationState.totalTripTime / 60).toFixed(0);
+        const speed = currentUnits === 'imperial' ? navigationState.userSpeed : navigationState.userSpeed * 1.60934;
+        const speedUnit = currentUnits === 'imperial' ? 'mph' : 'km/h';
+        
         statTimeRemainingEl.textContent = `${remainingTime} min`;
         statEtaEl.textContent = formatEta(navigationState.estimatedArrivalTime);
-        statSpeedEl.textContent = navigationState.userSpeed.toFixed(0);
+        statSpeedEl.textContent = speed.toFixed(0);
+        const speedUnitEl = statSpeedEl.nextElementSibling;
+        if(speedUnitEl) speedUnitEl.textContent = speedUnit;
         instructionProgressBar.transform = `scaleX(${1 - navigationState.progressAlongStep})`;
     }
 
@@ -917,7 +924,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userPoint = turf.point([longitude, latitude]);
         const steps = currentRouteData.routes[0].legs[0].steps;
 
-        navigationState.userSpeed = (speed || 0) * 2.23694;
+        // Convert m/s to mph or km/h based on units preference
+        navigationState.userSpeed = (speed || 0) * (currentUnits === 'imperial' ? 2.23694 : 3.6);
         const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
         const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
 
@@ -958,7 +966,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const remainingRoute = turf.lineSlice(snapped, turf.point(routeLine.coordinates[routeLine.coordinates.length - 1]), routeLine);
         const remainingDistance = turf.length(remainingRoute, { units: 'meters' });
-        const speedInMetersPerSecond = navigationState.userSpeed * 0.44704;
+        const speedInMetersPerSecond = (speed || 0);
         const remainingTimeSeconds = speedInMetersPerSecond > 0 ? (remainingDistance / speedInMetersPerSecond) : 0;
         navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
         navigationState.totalTripTime = remainingTimeSeconds;
@@ -970,13 +978,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         navigationState.distanceToNextManeuver = turf.distance(userPoint, turf.point(stepLine.coordinates[stepLine.coordinates.length - 1]), { units: 'meters' });
         navigationState.progressAlongStep = Math.max(0, 1 - (navigationState.distanceToNextManeuver / totalStepDistance));
 
-        const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
+        // Use correct units for announcements
+        const distanceFactor = currentUnits === 'imperial' ? 0.000621371 : 0.001;
+        const distanceUnit = currentUnits === 'imperial' ? 'mile' : 'kilometer';
+        const distanceMiles = navigationState.distanceToNextManeuver * distanceFactor;
         const instruction = formatOsrmInstruction(currentStep);
         if (distanceMiles > 0.9 && distanceMiles < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
-            speechService.speak(`In 1 mile, ${instruction}`);
+            speechService.speak(`In 1 ${distanceUnit}, ${instruction}`);
             navigationState.lastAnnouncedDistance = 1;
         } else if (distanceMiles > 0.24 && distanceMiles < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
-            speechService.speak(`In a quarter mile, ${instruction}`);
+            speechService.speak(`In a quarter ${distanceUnit}, ${instruction}`);
             navigationState.lastAnnouncedDistance = 0.25;
         }
 
@@ -1026,6 +1037,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const trafficToggle = document.getElementById('traffic-toggle');
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
     const unitsRadioButtons = document.querySelectorAll('input[name="map-units"]');
+
+    function updateAllUIForUnits() {
+        if (navigationState.isActive) {
+            updateNavigationUI();
+        }
+        if (currentRouteData) {
+            displayRoutePreview(currentRouteData.routes[0]);
+            populateRouteSteps();
+        }
+        // Update other UI elements that display units if necessary
+    }
     
     function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
     function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
@@ -1066,7 +1088,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-    unitsRadioButtons.forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
+    unitsRadioButtons.forEach(radio => { 
+        radio.addEventListener('change', () => { 
+            currentUnits = radio.value;
+            localStorage.setItem('mapUnits', currentUnits);
+            updateAllUIForUnits();
+            if (isMobile) { 
+                setTimeout(closeSettings, 200); 
+            } 
+        }); 
+    });
+
+    const unitsRadioToCheck = document.querySelector(`input[name="map-units"][value="${currentUnits}"]`);
+    if (unitsRadioToCheck) {
+        unitsRadioToCheck.checked = true;
+    }
     
     map.on('styledata', () => { 
         if (navigationState.isActive && currentRouteData) { 
