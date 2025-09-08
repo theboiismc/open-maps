@@ -214,12 +214,17 @@
                     <div class="action-buttons">
                         <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></span></div><div class="btn-label">Start Trip</div></div>
                         <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 16.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM6 10c-.83 0-1.5.67-1.5 1.5S5.17 13 6 13s1.5-.67 1.5-1.5S6.83 10 6 10zm12-4.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM12 6.5v8c0 .55.45 1 1 1s1-.45 1-1v-8c0-.55-.45-1-1-1s-1 .45-1 1zm0 4.5v-8c0-.55-.45-1-1-1s-1 .45-1 1v8c0 .55.45 1 1 1s1-.45 1-1zM5.5 11.5v-3c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v3c0 1.1-.9 2-2 2h-4c-1.1 0-2-.9-2-2zM12 17.5v-3c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v3c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2z"/></svg></span></div><div class="btn-label">Share</div></div>
+                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></span></div><div class="btn-label">Steps</div></div>
                     </div>
                     <button id="back-to-directions-btn">Back</button>
                 </div>
             </div>
             <div id="route-section" hidden>
-                <div class="info-content-padding"><h3>Route Steps</h3><button id="exit-route-btn">Back</button><ol id="route-steps"></ol></div>
+                <div class="info-content-padding">
+                    <h3>Route Steps</h3>
+                    <button id="exit-route-btn">Back</button>
+                    <ol id="route-steps"></ol>
+                </div>
             </div>
         </div>
     </div>
@@ -262,6 +267,16 @@
                     <label for="units-imperial">Imperial</label>
                     <input type="radio" id="units-metric" name="map-units" value="metric">
                     <label for="units-metric">Metric</label>
+                </div>
+            </div>
+            <hr>
+            <div class="setting-group">
+                <label class="setting-label">Navigation Voice</label>
+                <div class="radio-group">
+                    <input type="radio" id="voice-female" name="nav-voice" value="female" checked>
+                    <label for="voice-female">Female</label>
+                    <input type="radio" id="voice-male" name="nav-voice" value="male">
+                    <label for="voice-male">Male</label>
                 </div>
             </div>
         </div>
