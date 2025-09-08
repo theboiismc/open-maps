@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statSpeedEl = document.getElementById('stat-speed');
     const statEtaEl = document.getElementById('stat-eta');
     const statTimeRemainingEl = document.getElementById('stat-time-remaining');
+    const routeStepsList = document.getElementById('route-steps'); // Added for turn-by-turn list
 
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
@@ -236,7 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             male: null,
             female: null,
         },
-        selectedVoice: 'female', // Default to female
+        selectedVoice: localStorage.getItem('mapVoice') || 'female', // Default and load preference
         isReady: false,
         
         // Initialize and load available voices
@@ -593,6 +594,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('dir-use-my-location').addEventListener('click', () => { fromInput.value = "Getting your location..."; navigator.geolocation.getCurrentPosition( pos => { fromInput.value = "Your Location"; fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; }, handlePositionError, geolocationOptions ); });
     document.getElementById('back-to-info-btn').addEventListener('click', () => { if (currentPlace) showPanel('info-panel-redesign'); });
     document.getElementById('back-to-directions-btn').addEventListener('click', () => { showPanel('directions-panel-redesign'); });
+    document.getElementById('view-steps-btn').addEventListener('click', () => {
+        showPanel('route-section');
+        populateRouteSteps();
+    });
 
     function clearRouteFromMap() {
         if (map.getLayer('route-line')) map.removeLayer('route-line');
@@ -607,6 +612,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('route-summary-time').textContent = `${durationMinutes} min`;
         document.getElementById('route-summary-distance').textContent = `${distanceMiles} mi`;
         showPanel('route-preview-panel');
+    }
+    
+    function populateRouteSteps() {
+        routeStepsList.innerHTML = '';
+        const steps = currentRouteData.routes[0].legs[0].steps;
+        steps.forEach((step, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${formatOsrmInstruction(step)}</span><span class="step-distance">${(step.distance / 1609.34).toFixed(2)} mi</span>`;
+            routeStepsList.appendChild(li);
+        });
     }
 
     async function getRoute() {
@@ -821,7 +836,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!userLocationMarker) {
             const el = document.createElement('div');
             el.className = 'user-location-marker';
-            userLocationMarker = new maplibregl.Marker(el).setLngLat([0, 0]).addTo(map);
+            // Use an SVG for the car/arrow
+            el.innerHTML = `<svg class="car-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.93 0 3.5 1.57 3.5 3.5S13.93 12 12 12s-3.5-1.57-3.5-3.5S10.07 5 12 5zm0 14.2c-2.73 0-5.1-.98-6.9-2.58.01-2.48 4.67-3.82 6.9-3.82 2.23 0 6.89 1.34 6.9 3.82-1.8 1.6-4.17 2.58-6.9 2.58z"/></svg>`;
+            userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
 
         map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
@@ -963,6 +980,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const menuOverlay = document.getElementById('menu-overlay');
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
     const trafficToggle = document.getElementById('traffic-toggle');
+    const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
+    const unitsRadioButtons = document.querySelectorAll('input[name="map-units"]');
     
     function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
     function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
@@ -993,7 +1012,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         } 
     });
     
-    const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
     voiceRadioButtons.forEach(radio => {
         radio.addEventListener('change', () => {
             speechService.setVoice(radio.value);
@@ -1004,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-    document.querySelectorAll('input[name="map-units"]').forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
+    unitsRadioButtons.forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
     
     // --- Update listener to re-apply traffic on style change ---
     map.on('styledata', () => { 
@@ -1067,6 +1085,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.addEventListener('touchmove', panelDragMove);
         document.addEventListener('touchend', panelDragEnd);
     }
+    
+    // --- Deep Linking: Check for shared route parameters in URL on load ---
+    function getInitialRouteFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const fromCoords = params.get('from');
+        const toCoords = params.get('to');
+        const fromName = params.get('fromName');
+        const toName = params.get('toName');
+
+        if (fromCoords && toCoords) {
+            fromInput.dataset.coords = fromCoords;
+            toInput.dataset.coords = toCoords;
+            fromInput.value = fromName || 'Start Location';
+            toInput.value = toName || 'Destination';
+            getRoute();
+        }
+    }
 
     if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registered'), err => console.log('SW failed')); }); }
 
@@ -1082,4 +1117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(femaleRadio) femaleRadio.checked = true;
         }
     }).catch(err => console.error("Could not initialize speech service:", err));
+    
+    // Call deep linking function on initial load
+    getInitialRouteFromUrl();
 });
