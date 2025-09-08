@@ -18,7 +18,7 @@ const authService = {
 // --- Toast Notification Utility ---
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
-    if (!container) return; // FIX: Ensure container exists before trying to append
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -56,7 +56,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mainSearchContainer = document.getElementById('main-search-container');
     const topSearchWrapper = document.getElementById('top-search-wrapper');
     const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
-    // FIX: Using closeInfoBtn instead of non-existent closePanelBtn
     const closeInfoBtn = document.getElementById('close-info-btn'); 
     const navigationStatusPanel = document.getElementById('navigation-status');
     const navigationInstructionEl = document.getElementById('navigation-instruction');
@@ -65,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statSpeedEl = document.getElementById('stat-speed');
     const statEtaEl = document.getElementById('stat-eta');
     const statTimeRemainingEl = document.getElementById('stat-time-remaining');
-    const routeStepsList = document.getElementById('route-steps'); // Added for turn-by-turn list
+    const routeStepsList = document.getElementById('route-steps');
 
     const infoNameEl = document.getElementById('info-name');
     const infoAddressEl = document.getElementById('info-address');
@@ -92,24 +91,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             usernameDisplay.textContent = currentUser.profile.name || 'User';
             emailDisplay.textContent = currentUser.profile.email || '';
             
-            // Personalize search placeholder
             mainSearchInput.placeholder = `Where to, ${userFirstName}?`;
 
-            // Update profile picture if available
             if (currentUser.profile.picture) {
                 profileButton.innerHTML = `<img class="profile-avatar" src="${currentUser.profile.picture}" alt="User Profile"/>`;
-                // FIX: Added check to prevent error if dropdownAvatar is not found
                 if(dropdownAvatar) {
                     dropdownAvatar.src = currentUser.profile.picture;
                     dropdownAvatar.hidden = false;
                 }
             } else {
-                // Fallback to default icon if no picture is provided
                 profileButton.innerHTML = defaultProfileIconSVG;
                 if(dropdownAvatar) dropdownAvatar.hidden = true;
             }
         } else {
-            // Restore defaults when logged out
             profileButton.innerHTML = defaultProfileIconSVG;
             mainSearchInput.placeholder = 'Search TheBoiisMC Maps';
         }
@@ -155,16 +149,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     profileButton.addEventListener('click', (e) => {
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
-        servicesDropdown.style.display = 'none'; // Close other dropdowns
+        servicesDropdown.style.display = 'none';
     });
 
-    // NEW: Toggle services dropdown
     if (appMenuButton) {
         appMenuButton.addEventListener('click', (e) => {
             e.stopPropagation();
             const isHidden = servicesDropdown.style.display === 'none' || !servicesDropdown.style.display;
             servicesDropdown.style.display = isHidden ? 'block' : 'none';
-            profileDropdown.style.display = 'none'; // Close other dropdowns
+            profileDropdown.style.display = 'none';
         });
     }
 
@@ -178,6 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
+    // FIX: Updated signup button to point to the correct general accounts URL
     signupBtn.addEventListener('click', (e) => {
         e.preventDefault();
         window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/";
@@ -262,28 +256,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!availableVoices.length) {
                         return;
                     }
-
+                    
+                    // IMPROVED: Find male and female voices with more robust checks
+                    const femaleNames = ['Google US English', 'Zira', 'Samantha', 'Female', 'Allison'];
                     this.voices.female = availableVoices.find(voice => 
                         voice.lang.startsWith('en') && 
-                        (voice.name.includes('Google US English') || voice.name.includes('Zira') || voice.name.includes('Female'))
-                    ) || availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.name.includes('Female'));
+                        femaleNames.some(name => voice.name.includes(name))
+                    ) || availableVoices.find(voice => voice.lang.startsWith('en') && !voice.name.toLowerCase().includes('male'));
                     
+                    const maleNames = ['Google UK English Male', 'David', 'Male', 'Tom'];
                     this.voices.male = availableVoices.find(voice => 
                         voice.lang.startsWith('en') && 
-                        (voice.name.includes('Google UK English Male') || voice.name.includes('David') || voice.name.includes('Male'))
-                    ) || availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.name.includes('Male'));
+                        maleNames.some(name => voice.name.includes(name))
+                    ) || availableVoices.find(voice => voice.lang.startsWith('en') && !this.voices.female);
 
-                    if (!this.voices.female) {
-                        this.voices.female = availableVoices.find(voice => voice.lang.startsWith('en') && !voice.name.toLowerCase().includes('male'));
-                    }
-                     if (!this.voices.male) {
-                        this.voices.male = availableVoices.find(voice => voice.lang.startsWith('en')) || this.voices.female; 
-                    }
-                    
                     if (this.voices.female || this.voices.male) {
                         this.isReady = true;
                         console.log("Speech service ready. Voices found:", this.voices);
                         resolve();
+                    } else {
+                        reject("No suitable English voices found.");
                     }
                 };
                 
@@ -702,7 +694,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
 
             if (navigationState.isRerouting) {
-                // Rerouting logic, do not call startNavigation again
                 map.fitBounds(bounds, { padding: 100 });
                 updateHighlightedSegment(route.legs[0].steps[0]);
                 navigationInstructionEl.textContent = formatOsrmInstruction(route.legs[0].steps[0]);
@@ -891,7 +882,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
 
-        map.easeTo({ pitch: 0, zoom: 17, duration: 1500 }); // Pitch is now 0
+        map.easeTo({ pitch: 0, zoom: 17, duration: 1500 });
         map.flyTo({ bearing: 0, pitch: 0 });
 
         navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
@@ -933,12 +924,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         userLocationMarker.setLngLat(snapped.geometry.coordinates);
         if (heading != null) {
             userLocationMarker.setRotation(heading);
-            map.easeTo({ center: snapped.geometry.coordinates, bearing: 0, zoom: 18, duration: 500 }); // Pitch is 0 and bearing is 0
+            map.easeTo({ center: snapped.geometry.coordinates, bearing: 0, zoom: 18, duration: 500 });
         } else {
             map.easeTo({ center: snapped.geometry.coordinates, zoom: 18, duration: 500 });
         }
 
-        // IMPROVED: Off-route and rerouting logic
         if (snapped.properties.dist > 50) {
             if (!navigationState.isRerouting) {
                 navigationState.isRerouting = true;
@@ -948,7 +938,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // IMPROVED: "Wrong way" check is less aggressive
         if (heading != null && navigationState.userSpeed > 5) {
             const currentStep = steps[navigationState.currentStepIndex];
             const stepLine = turf.lineString(currentStep.geometry.coordinates);
@@ -967,7 +956,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // IMPROVED: ETA Calculation
         const remainingRoute = turf.lineSlice(snapped, turf.point(routeLine.coordinates[routeLine.coordinates.length - 1]), routeLine);
         const remainingDistance = turf.length(remainingRoute, { units: 'meters' });
         const speedInMetersPerSecond = navigationState.userSpeed * 0.44704;
@@ -1042,7 +1030,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
     function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
     
-    // FIX: Using the correct button to open settings
     document.getElementById('mobile-settings-btn').addEventListener('click', (e) => { e.stopPropagation(); openSettings(); });
     closeSettingsBtn.addEventListener('click', closeSettings);
     menuOverlay.addEventListener('click', closeSettings);
