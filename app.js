@@ -78,6 +78,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settingsMenu = document.getElementById('settings-menu');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const menuOverlay = document.getElementById('menu-overlay');
+    const appMenuButton = document.getElementById('app-menu-button');
+    const servicesDropdown = document.getElementById('services-dropdown');
 
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
@@ -153,11 +155,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     profileButton.addEventListener('click', (e) => {
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
+        servicesDropdown.style.display = 'none'; // Close other dropdowns
     });
+
+    // NEW: Toggle services dropdown
+    if (appMenuButton) {
+        appMenuButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = servicesDropdown.style.display === 'none' || !servicesDropdown.style.display;
+            servicesDropdown.style.display = isHidden ? 'block' : 'none';
+            profileDropdown.style.display = 'none'; // Close other dropdowns
+        });
+    }
 
     document.addEventListener('click', (e) => {
         if (profileDropdown.style.display === 'block' && !profileArea.contains(e.target)) {
             profileDropdown.style.display = 'none';
+        }
+        if (servicesDropdown.style.display === 'block' && !appMenuButton.contains(e.target) && !servicesDropdown.contains(e.target)) {
+            servicesDropdown.style.display = 'none';
         }
     });
 
