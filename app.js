@@ -18,6 +18,7 @@ const authService = {
 // --- Toast Notification Utility ---
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -62,9 +63,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     const instructionProgressBar = document.getElementById('instruction-progress-bar').style;
     const endNavigationBtn = document.getElementById('end-navigation-btn');
     const statSpeedEl = document.getElementById('stat-speed');
-    const statEtaEl = document = document.getElementById('stat-eta');
+    const statEtaEl = document.getElementById('stat-eta');
     const statTimeRemainingEl = document.getElementById('stat-time-remaining');
     const routeStepsList = document.getElementById('route-steps'); // Added for turn-by-turn list
+
+    const infoNameEl = document.getElementById('info-name');
+    const infoAddressEl = document.getElementById('info-address');
+    const infoImageEl = document.getElementById('info-image');
+    const infoWeatherEl = document.getElementById('info-weather');
+    const quickFactsEl = document.getElementById('quick-facts-content');
+    const infoWebsiteBtn = document.getElementById('info-website-btn');
+    const infoWebsiteLink = document.getElementById('info-website-link');
+    
+    // NEW: App Menu
+    const appMenuBtn = document.getElementById('app-menu-btn');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const settingsMenu = document.getElementById('settings-menu');
 
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
@@ -429,7 +443,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     el.className = "search-result";
                     el.textContent = item.place_name;
                     el.addEventListener("click", () => {
-                        const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name };
+                        const place = {
+                            lon: item.center[0],
+                            lat: item.center[1],
+                            display_name: item.place_name,
+                            bbox: item.bbox // NEW: Add bounding box
+                        };
                         onSelect(place);
                     });
                     suggestionsEl.appendChild(el);
@@ -455,7 +474,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await res.json();
             if (data.features && data.features.length > 0) {
                 const item = data.features[0];
-                const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name };
+                const place = {
+                    lon: item.center[0],
+                    lat: item.center[1],
+                    display_name: item.place_name,
+                    bbox: item.bbox // NEW: Add bounding box to place object
+                };
                 onSelect(place);
             } else {
                 showToast("No results found for your search.", "error");
@@ -490,21 +514,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
             .addTo(map);
 
-        map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
+        // NEW: Fit to bounding box if available, otherwise fly to a default zoom
+        if (place.bbox) {
+            map.fitBounds(place.bbox, {
+                padding: { top: 100, bottom: 100, left: 100, right: 100 },
+                essential: true
+            });
+        } else {
+            map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
+        }
+
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
 
         // --- Show Skeleton Loaders ---
-        document.getElementById('info-name').textContent = place.display_name.split(',')[0];
-        document.getElementById('info-address').textContent = place.display_name;
-        document.getElementById('info-image').src = '';
-        document.getElementById('info-image').style.backgroundColor = '#e0e0e0';
-        document.getElementById('info-weather').innerHTML = '<div class="skeleton-line"></div>';
-        document.getElementById('quick-facts-content').innerHTML = '<div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div>';
+        infoNameEl.textContent = place.display_name.split(',')[0];
+        infoAddressEl.textContent = place.display_name;
+        infoImageEl.src = '';
+        infoImageEl.style.backgroundColor = '#e0e0e0';
+        infoWeatherEl.innerHTML = '<div class="skeleton-line"></div>';
+        quickFactsEl.innerHTML = '<div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div>';
 
         const locationName = place.display_name.split(',')[0];
         fetchAndSetPlaceImage(locationName, place.lon, place.lat);
         fetchAndSetWeather(place.lat, place.lon);
         fetchAndSetQuickFacts(locationName);
+        fetchAndSetWebsite(locationName); // NEW: Fetch website
         showPanel('info-panel-redesign');
     }
 
@@ -532,6 +566,52 @@ document.addEventListener('DOMContentLoaded', async () => {
             imgEl.src = fallbackUrl;
             imgEl.alt = `Map view of ${query}`;
             imgEl.onerror = () => { imgEl.style.backgroundColor = '#e0e0e0'; imgEl.alt = 'Image not available'; };
+        }
+    }
+
+    // NEW: Function to fetch and set the website link
+    async function fetchAndSetWebsite(query) {
+        const websiteBtn = document.getElementById('info-website-btn');
+        const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=pageprops|extlinks&titles=${encodeURIComponent(query)}`;
+        try {
+            const res = await fetch(wikipediaUrl);
+            const data = await res.json();
+            const page = Object.values(data.query.pages)[0];
+            let websiteFound = false;
+            
+            // Check for website in external links
+            if (page.extlinks && page.extlinks.length > 0) {
+                const websiteLink = page.extlinks.find(link => link['*'].includes('://') && !link['*'].includes('wikipedia.org'));
+                if (websiteLink) {
+                    websiteBtn.style.display = 'flex';
+                    websiteBtn.onclick = () => window.open(websiteLink['*'], '_blank');
+                    websiteFound = true;
+                }
+            }
+
+            // Check for website in infobox (e.g., from Wikidata)
+            if (!websiteFound && page.pageprops && page.pageprops.wikibase_item) {
+                const wikidataId = page.pageprops.wikibase_item;
+                const wikidataUrl = `https://www.wikidata.org/w/api.php?origin=*&action=wbgetentities&format=json&ids=${wikidataId}&props=claims&languages=en`;
+                const wikidataRes = await fetch(wikidataUrl);
+                const wikidataData = await wikidataRes.json();
+                const claims = wikidataData.entities[wikidataId]?.claims;
+                if (claims && claims.P856 && claims.P856.length > 0) {
+                    const website = claims.P856[0].mainsnak.datavalue.value;
+                    if (website) {
+                        websiteBtn.style.display = 'flex';
+                        websiteBtn.onclick = () => window.open(website, '_blank');
+                        websiteFound = true;
+                    }
+                }
+            }
+            
+            if (!websiteFound) {
+                websiteBtn.style.display = 'none';
+            }
+        } catch (e) {
+            console.error("Website fetch failed:", e);
+            websiteBtn.style.display = 'none';
         }
     }
 
@@ -975,27 +1055,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const settingsBtns = document.querySelectorAll('.js-settings-btn');
-    const settingsMenu = document.getElementById('settings-menu');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
-    const menuOverlay = document.getElementById('menu-overlay');
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
     const trafficToggle = document.getElementById('traffic-toggle');
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
     const unitsRadioButtons = document.querySelectorAll('input[name="map-units"]');
-    
-    function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
-    function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
-    settingsBtns.forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); openSettings(); }); });
-    closeSettingsBtn.addEventListener('click', closeSettings);
-    menuOverlay.addEventListener('click', closeSettings);
-    document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) { closeSettings(); } });
-    
+
+    // NEW: App menu and settings menu logic consolidation
+    function openMenu(menu) {
+        menu.classList.add('open');
+        menuOverlay.classList.add('open');
+    }
+    function closeMenu(menu) {
+        menu.classList.remove('open');
+        menuOverlay.classList.remove('open');
+    }
+
+    appMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openMenu(settingsMenu);
+    });
+
+    settingsBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openMenu(settingsMenu);
+        });
+    });
+
+    closeSettingsBtn.addEventListener('click', () => closeMenu(settingsMenu));
+    menuOverlay.addEventListener('click', () => closeMenu(settingsMenu));
+
+    document.addEventListener('click', (e) => {
+        if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn') && !e.target.closest('#app-menu-btn')) {
+            closeMenu(settingsMenu);
+        }
+    });
+
+    // End of NEW: App menu logic
+
     styleRadioButtons.forEach(radio => { 
         radio.addEventListener('change', () => { 
             const newStyle = radio.value; 
             map.setStyle(STYLES[newStyle]); 
             if (isMobile) { 
-                setTimeout(closeSettings, 200); 
+                setTimeout(() => closeMenu(settingsMenu), 200); 
             } 
         }); 
     });
@@ -1008,7 +1112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             removeTrafficLayer(); 
         } 
         if (isMobile) { 
-            setTimeout(closeSettings, 200); 
+            setTimeout(() => closeMenu(settingsMenu), 200); 
         } 
     });
     
@@ -1017,12 +1121,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             speechService.setVoice(radio.value);
             speechService.speak("Voice has been changed.", true);
             if (isMobile) {
-                setTimeout(closeSettings, 200);
+                setTimeout(() => closeMenu(settingsMenu), 200);
             }
         });
     });
     
-    unitsRadioButtons.forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
+    unitsRadioButtons.forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(() => closeMenu(settingsMenu), 200); } }); });
     
     // --- Update listener to re-apply traffic on style change ---
     map.on('styledata', () => { 
@@ -1037,6 +1141,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     // --- Mobile Panel Drag/Swipe Logic ---
+    // The user's original code already contained the logic for a draggable mobile panel.
+    // This section is kept as-is to fulfill the request.
     if (isMobile) {
         let panelDragState = {
             isDragging: false,
