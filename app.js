@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     const STYLES = {
-        default: 'https://tiles.theboiismc.com/styles/basic-preview/style.json',
+        default: 'https://tiles.theboiismc.com/api/tiles/maptiler-osm-2020-02-10-v3.11-planet/tiles.json',
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
 
