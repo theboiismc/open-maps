@@ -214,7 +214,7 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0; }
 .btn-primary { background-color: var(--brand-color); color: white; }
 .btn-secondary { background-color: var(--border-color); color: var(--text-primary); }
 
-#top-search-wrapper { position: fixed; top: calc(var(--banner-height) + 15px); left: 50%; transform: translateX(-50%); z-index: 60; width: 400px; transition: opacity 0.2s ease; }
+#top-search-wrapper { position: fixed; top: calc(var(--banner-height) + 15px); left: 50%; transform: translateX(-50%); z-index: 60; width: 400px; /* FIX: Hide search wrapper initially to prevent flash */ opacity: 0; }
 #panel-search-placeholder { padding: 15px; background-color: var(--background-primary); border-bottom: 1px solid var(--border-color); }
 
 #main-search-container {
@@ -266,11 +266,12 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0; }
     background: var(--background-primary);
     color: var(--text-primary);
     top: 0;
-    left: -100%;
+    /* FIX: Make panel visible by default on page load */
+    left: 0;
     width: var(--panel-width);
     height: 100%;
     box-shadow: 2px 0 15px var(--shadow-color);
-    transition: left 0.3s ease-in-out;
+    /* FIX: Removed animation */
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -409,7 +410,7 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0; }
     #top-search-wrapper { width: 90vw; left: 5vw; transform: none; } 
     #profile-area { flex-grow: 1; justify-content: flex-end; } 
     #site-title { flex-grow: 1; } 
-    #side-panel { top: auto; left: 0; width: 100%; height: var(--panel-mobile-height); border-radius: 20px 20px 0 0; box-shadow: 0 -3px 18px var(--shadow-color); bottom: -100%; transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1); padding-top: 0; border-top: 1px solid var(--border-color); } 
+    #side-panel { top: auto; left: 0; width: 100%; height: var(--panel-mobile-height); border-radius: 20px 20px 0 0; box-shadow: 0 -3px 18px var(--shadow-color); bottom: -100%; /* FIX: Removed animation */ padding-top: 0; border-top: 1px solid var(--border-color); } 
     #side-panel.peek { bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek))); } 
     #side-panel.open { left: 0; bottom: 0; } 
     #panel-grabber { display: block; width: 40px; height: 5px; background-color: var(--text-secondary); border-radius: 2.5px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: grab; } 
@@ -423,6 +424,12 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0; }
 }
 
 @media (min-width: 769px) { 
+    /* FIX: Add static layout for desktop to prevent content shift */
+    #map, #top-banner {
+        left: var(--panel-width);
+        width: calc(100% - var(--panel-width));
+    }
+
     #mobile-settings-btn { display: none; } 
     #settings-menu { position: absolute; top: calc(100% + 5px); right: 0; min-width: 280px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-color); opacity: 0; transform: translateY(-10px); transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none; } 
     #settings-menu.open { display: block; opacity: 1; transform: translateY(0); pointer-events: auto; } 
