@@ -3,23 +3,28 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
+    <title>TheBoiisMC Maps - Private Navigation & Directions</title>
+
+    <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
     
-    <title>TheBoiisMC Maps</title>
-    <meta name="description" content="Explore the world with private, modern mapping." />
+    <meta name="robots" content="index, follow" />
+        <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
+
+    <link rel="canonical" href="https://maps.theboiismc.com/" />
+
     <meta name="theme-color" content="#00796b" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
-    
-    <meta property="og:title" content="TheBoiisMC Maps" />
-    <meta property="og:description" content="Explore the world with private, modern mapping." />
+
+    <meta property="og:title" content="TheBoiisMC Maps - Private Navigation & Directions" />
+    <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps." />
     <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
-    
-    <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
-    
-    <link rel="stylesheet" href="libs/css/styles.css">
 
+    <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
+    <link rel="stylesheet" href="libs/css/styles.css">
     <style>
         /*
         * A fast, non-proprietary, and widely available font stack.
@@ -45,6 +50,23 @@
             --panel-mobile-height: 30vh;
         }
     </style>
+
+        <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "TheBoiisMC Maps",
+      "url": "https://maps.theboiismc.com/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://maps.theboiismc.com/?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+        </script>
 </head>
 <body>
     <div id="top-banner">
