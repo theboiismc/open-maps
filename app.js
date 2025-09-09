@@ -18,7 +18,7 @@ const authService = {
 // --- Toast Notification Utility ---
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
-    if (!container) return;
+    if (!container) return; // FIX: Ensure container exists before trying to append
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mainSearchContainer = document.getElementById('main-search-container');
     const topSearchWrapper = document.getElementById('top-search-wrapper');
     const panelSearchPlaceholder = document.getElementById('panel-search-placeholder');
+    // FIX: Using closeInfoBtn instead of non-existent closePanelBtn
     const closeInfoBtn = document.getElementById('close-info-btn'); 
     const navigationStatusPanel = document.getElementById('navigation-status');
     const navigationInstructionEl = document.getElementById('navigation-instruction');
@@ -64,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statSpeedEl = document.getElementById('stat-speed');
     const statEtaEl = document.getElementById('stat-eta');
     const statTimeRemainingEl = document.getElementById('stat-time-remaining');
-    const routeStepsList = document.getElementById('route-steps');
+    const routeStepsList = document.getElementById('route-steps'); // Added for turn-by-turn list
 
     const infoNameEl = document.getElementById('info-name');
     const infoAddressEl = document.getElementById('info-address');
@@ -77,8 +78,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settingsMenu = document.getElementById('settings-menu');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const menuOverlay = document.getElementById('menu-overlay');
-    const appMenuButton = document.getElementById('app-menu-button');
-    const servicesDropdown = document.getElementById('services-dropdown');
 
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
@@ -91,19 +90,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             usernameDisplay.textContent = currentUser.profile.name || 'User';
             emailDisplay.textContent = currentUser.profile.email || '';
             
+            // Personalize search placeholder
             mainSearchInput.placeholder = `Where to, ${userFirstName}?`;
 
+            // Update profile picture if available
             if (currentUser.profile.picture) {
                 profileButton.innerHTML = `<img class="profile-avatar" src="${currentUser.profile.picture}" alt="User Profile"/>`;
+                // FIX: Added check to prevent error if dropdownAvatar is not found
                 if(dropdownAvatar) {
                     dropdownAvatar.src = currentUser.profile.picture;
                     dropdownAvatar.hidden = false;
                 }
             } else {
+                // Fallback to default icon if no picture is provided
                 profileButton.innerHTML = defaultProfileIconSVG;
                 if(dropdownAvatar) dropdownAvatar.hidden = true;
             }
         } else {
+            // Restore defaults when logged out
             profileButton.innerHTML = defaultProfileIconSVG;
             mainSearchInput.placeholder = 'Search TheBoiisMC Maps';
         }
@@ -149,24 +153,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     profileButton.addEventListener('click', (e) => {
         const isHidden = profileDropdown.style.display === 'none' || !profileDropdown.style.display;
         profileDropdown.style.display = isHidden ? 'block' : 'none';
-        servicesDropdown.style.display = 'none';
     });
-
-    if (appMenuButton) {
-        appMenuButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isHidden = servicesDropdown.style.display === 'none' || !servicesDropdown.style.display;
-            servicesDropdown.style.display = isHidden ? 'block' : 'none';
-            profileDropdown.style.display = 'none';
-        });
-    }
 
     document.addEventListener('click', (e) => {
         if (profileDropdown.style.display === 'block' && !profileArea.contains(e.target)) {
             profileDropdown.style.display = 'none';
-        }
-        if (servicesDropdown.style.display === 'block' && !appMenuButton.contains(e.target) && !servicesDropdown.contains(e.target)) {
-            servicesDropdown.style.display = 'none';
         }
     });
 
@@ -182,7 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty',
+        default: 'https://tiles.theboiismc.com/styles/basic-preview/style.json',
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery", minzoom: 0, maxzoom: 22 }] }
     };
 
@@ -204,9 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         container: "map",
         style: STYLES.default,
         center: initialView.center,
-        zoom: initialView.zoom,
-        pitchWithRotate: false,
-        dragRotate: false
+        zoom: initialView.zoom
     });
     
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -238,7 +227,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userLocationMarker = null;
     let navigationWatcherId = null;
     let clickedLocationMarker = null;
-    let currentUnits = localStorage.getItem('mapUnits') || 'imperial';
 
     const speechService = {
         synthesis: window.speechSynthesis,
@@ -256,25 +244,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!availableVoices.length) {
                         return;
                     }
-                    
-                    const femaleNames = ['Google US English', 'Zira', 'Samantha', 'Female', 'Allison'];
+
                     this.voices.female = availableVoices.find(voice => 
                         voice.lang.startsWith('en') && 
-                        femaleNames.some(name => voice.name.includes(name))
-                    ) || availableVoices.find(voice => voice.lang.startsWith('en') && !voice.name.toLowerCase().includes('male'));
+                        (voice.name.includes('Google US English') || voice.name.includes('Zira') || voice.name.includes('Female'))
+                    ) || availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.name.includes('Female'));
                     
-                    const maleNames = ['Google UK English Male', 'David', 'Male', 'Tom'];
                     this.voices.male = availableVoices.find(voice => 
                         voice.lang.startsWith('en') && 
-                        maleNames.some(name => voice.name.includes(name))
-                    ) || availableVoices.find(voice => voice.lang.startsWith('en') && !this.voices.female);
+                        (voice.name.includes('Google UK English Male') || voice.name.includes('David') || voice.name.includes('Male'))
+                    ) || availableVoices.find(voice => voice.lang.startsWith('en-US') && voice.name.includes('Male'));
 
+                    if (!this.voices.female) {
+                        this.voices.female = availableVoices.find(voice => voice.lang.startsWith('en') && !voice.name.toLowerCase().includes('male'));
+                    }
+                     if (!this.voices.male) {
+                        this.voices.male = availableVoices.find(voice => voice.lang.startsWith('en')) || this.voices.female; 
+                    }
+                    
                     if (this.voices.female || this.voices.male) {
                         this.isReady = true;
                         console.log("Speech service ready. Voices found:", this.voices);
                         resolve();
-                    } else {
-                        reject("No suitable English voices found.");
                     }
                 };
                 
@@ -598,7 +589,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (data.current_weather) {
                 const tempF = Math.round(data.current_weather.temperature);
                 const tempC = Math.round((tempF - 32) * 5 / 9);
-                weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${getWeatherDescription(data.current_weather.weathercode)}`;
+                const description = getWeatherDescription(data.current_weather.weathercode);
+                weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
             } else {
                 throw new Error("Invalid weather data format.");
             }
@@ -655,29 +647,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     function displayRoutePreview(route) {
         const durationMinutes = Math.round(route.duration / 60);
-        const distance = currentUnits === 'imperial' ? (route.distance / 1609.34).toFixed(1) : (route.distance / 1000).toFixed(1);
-        const distanceUnit = currentUnits === 'imperial' ? 'mi' : 'km';
+        const distanceMiles = (route.distance / 1609.34).toFixed(1);
         document.getElementById('route-summary-time').textContent = `${durationMinutes} min`;
-        document.getElementById('route-summary-distance').textContent = `${distance} ${distanceUnit}`;
+        document.getElementById('route-summary-distance').textContent = `${distanceMiles} mi`;
         showPanel('route-preview-panel');
     }
     
     function populateRouteSteps() {
         routeStepsList.innerHTML = '';
         const steps = currentRouteData.routes[0].legs[0].steps;
-        const distanceFactor = currentUnits === 'imperial' ? 1609.34 : 1000;
-        const distanceUnit = currentUnits === 'imperial' ? 'mi' : 'km';
-        steps.forEach((step) => {
+        steps.forEach((step, index) => {
             const li = document.createElement('li');
-            const formattedDistance = (step.distance / distanceFactor).toFixed(2);
-            li.innerHTML = `<span>${formatOsrmInstruction(step)}</span><span class="step-distance">${formattedDistance} ${distanceUnit}</span>`;
+            li.innerHTML = `<span>${formatOsrmInstruction(step)}</span><span class="step-distance">${(step.distance / 1609.34).toFixed(2)} mi</span>`;
             routeStepsList.appendChild(li);
         });
     }
 
     async function getRoute() {
         if (!fromInput.value || !toInput.value) return showToast("Please fill both start and end points.", "error");
-        
+        clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
             const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
@@ -695,14 +683,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const bounds = new maplibregl.LngLatBounds();
             routeGeoJSON.geometry.coordinates.forEach(coord => bounds.extend(coord));
 
-            if (navigationState.isRerouting) {
-                map.fitBounds(bounds, { padding: 100 });
-                updateHighlightedSegment(route.legs[0].steps[0]);
-                navigationInstructionEl.textContent = formatOsrmInstruction(route.legs[0].steps[0]);
-                navigationState.currentStepIndex = 0;
-                navigationState.isRerouting = false;
-                navigationState.isWrongWay = false;
-            } else if (fromInput.value.trim() === "Your Location") {
+            if (fromInput.value.trim() === "Your Location") {
                 map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
                 closePanel();
                 startNavigation();
@@ -805,14 +786,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateNavigationUI() {
         const remainingTime = (navigationState.totalTripTime / 60).toFixed(0);
-        const speed = currentUnits === 'imperial' ? navigationState.userSpeed : navigationState.userSpeed * 1.60934;
-        const speedUnit = currentUnits === 'imperial' ? 'mph' : 'km/h';
-        
         statTimeRemainingEl.textContent = `${remainingTime} min`;
         statEtaEl.textContent = formatEta(navigationState.estimatedArrivalTime);
-        statSpeedEl.textContent = speed.toFixed(0);
-        const speedUnitEl = statSpeedEl.nextElementSibling;
-        if(speedUnitEl) speedUnitEl.textContent = speedUnit;
+        statSpeedEl.textContent = navigationState.userSpeed.toFixed(0);
         instructionProgressBar.transform = `scaleX(${1 - navigationState.progressAlongStep})`;
     }
 
@@ -889,8 +865,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
 
-        map.easeTo({ pitch: 0, zoom: 17, duration: 1500 });
-        map.flyTo({ bearing: 0, pitch: 0 });
+        map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
 
         navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
         endNavigationBtn.addEventListener('click', stopNavigation);
@@ -916,7 +891,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function handlePositionUpdate(position) {
-        if (!navigationState.isActive) return;
+        if (!navigationState.isActive || navigationState.isRerouting) return;
         const { latitude, longitude, heading, speed, accuracy } = position.coords;
 
         if (accuracy > 80) return;
@@ -924,70 +899,58 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userPoint = turf.point([longitude, latitude]);
         const steps = currentRouteData.routes[0].legs[0].steps;
 
-        // Convert m/s to mph or km/h based on units preference
-        navigationState.userSpeed = (speed || 0) * (currentUnits === 'imperial' ? 2.23694 : 3.6);
+        navigationState.userSpeed = (speed || 0) * 2.23694;
         const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
         const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
 
         userLocationMarker.setLngLat(snapped.geometry.coordinates);
         if (heading != null) {
             userLocationMarker.setRotation(heading);
-            map.easeTo({ center: snapped.geometry.coordinates, bearing: 0, zoom: 18, duration: 500 });
+            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: 18, duration: 500 });
         } else {
             map.easeTo({ center: snapped.geometry.coordinates, zoom: 18, duration: 500 });
         }
 
+        const currentStep = steps[navigationState.currentStepIndex];
+        const stepStartPoint = turf.point(currentStep.geometry.coordinates[0]);
+        const stepEndPoint = turf.point(currentStep.geometry.coordinates[currentStep.geometry.coordinates.length - 1]);
+        const stepBearing = getBearing(stepStartPoint, stepEndPoint);
+        const headingDifference = Math.abs(heading - stepBearing);
+
         if (snapped.properties.dist > 50) {
-            if (!navigationState.isRerouting) {
-                navigationState.isRerouting = true;
-                speechService.speak("Off route. Recalculating.", true);
-                await getRoute();
-            }
+            navigationState.isRerouting = true;
+            speechService.speak("Off route. Recalculating.", true);
+            await getRoute();
             return;
         }
         
-        if (heading != null && navigationState.userSpeed > 5) {
-            const currentStep = steps[navigationState.currentStepIndex];
-            const stepLine = turf.lineString(currentStep.geometry.coordinates);
-            const stepBearing = getBearing(turf.point(stepLine.coordinates[0]), turf.point(stepLine.coordinates[stepLine.coordinates.length - 1]));
-            const headingDifference = Math.abs(heading - stepBearing);
-
-            if (headingDifference > 135 && headingDifference < 225) {
-                if (!navigationState.isWrongWay && snapped.properties.dist > 10) {
-                     navigationState.isWrongWay = true;
-                     speechService.speak("Wrong way. Recalculating.", true);
-                     await getRoute();
-                     return;
-                }
-            } else {
-                navigationState.isWrongWay = false;
-            }
+        if (heading != null && headingDifference > 90 && headingDifference < 270 && navigationState.userSpeed > 5 && !navigationState.isWrongWay) {
+             navigationState.isWrongWay = true;
+             speechService.speak("Wrong way. Recalculating.", true);
+             await getRoute();
+             return;
         }
+        navigationState.isWrongWay = false;
 
-        const remainingRoute = turf.lineSlice(snapped, turf.point(routeLine.coordinates[routeLine.coordinates.length - 1]), routeLine);
-        const remainingDistance = turf.length(remainingRoute, { units: 'meters' });
-        const speedInMetersPerSecond = (speed || 0);
-        const remainingTimeSeconds = speedInMetersPerSecond > 0 ? (remainingDistance / speedInMetersPerSecond) : 0;
+        const currentStepLine = turf.lineString(currentStep.geometry.coordinates);
+        const totalStepDistance = turf.length(currentStepLine, { units: 'meters' });
+        navigationState.distanceToNextManeuver = turf.distance(userPoint, stepEndPoint, { units: 'meters' });
+        navigationState.progressAlongStep = Math.max(0, 1 - (navigationState.distanceToNextManeuver / totalStepDistance));
+
+        const tripDurationSeconds = currentRouteData.routes[0].duration;
+        const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
+        const remainingTimeSeconds = tripDurationSeconds - timeElapsed;
         navigationState.estimatedArrivalTime = new Date(Date.now() + remainingTimeSeconds * 1000);
         navigationState.totalTripTime = remainingTimeSeconds;
         updateNavigationUI();
 
-        const currentStep = steps[navigationState.currentStepIndex];
-        const stepLine = turf.lineString(currentStep.geometry.coordinates);
-        const totalStepDistance = turf.length(stepLine, { units: 'meters' });
-        navigationState.distanceToNextManeuver = turf.distance(userPoint, turf.point(stepLine.coordinates[stepLine.coordinates.length - 1]), { units: 'meters' });
-        navigationState.progressAlongStep = Math.max(0, 1 - (navigationState.distanceToNextManeuver / totalStepDistance));
-
-        // Use correct units for announcements
-        const distanceFactor = currentUnits === 'imperial' ? 0.000621371 : 0.001;
-        const distanceUnit = currentUnits === 'imperial' ? 'mile' : 'kilometer';
-        const distanceMiles = navigationState.distanceToNextManeuver * distanceFactor;
+        const distanceMiles = navigationState.distanceToNextManeuver * 0.000621371;
         const instruction = formatOsrmInstruction(currentStep);
         if (distanceMiles > 0.9 && distanceMiles < 1.1 && navigationState.lastAnnouncedDistance > 1.1) {
-            speechService.speak(`In 1 ${distanceUnit}, ${instruction}`);
+            speechService.speak(`In 1 mile, ${instruction}`);
             navigationState.lastAnnouncedDistance = 1;
         } else if (distanceMiles > 0.24 && distanceMiles < 0.26 && navigationState.lastAnnouncedDistance > 0.26) {
-            speechService.speak(`In a quarter ${distanceUnit}, ${instruction}`);
+            speechService.speak(`In a quarter mile, ${instruction}`);
             navigationState.lastAnnouncedDistance = 0.25;
         }
 
@@ -1037,21 +1000,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const trafficToggle = document.getElementById('traffic-toggle');
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
     const unitsRadioButtons = document.querySelectorAll('input[name="map-units"]');
-
-    function updateAllUIForUnits() {
-        if (navigationState.isActive) {
-            updateNavigationUI();
-        }
-        if (currentRouteData) {
-            displayRoutePreview(currentRouteData.routes[0]);
-            populateRouteSteps();
-        }
-        // Update other UI elements that display units if necessary
-    }
     
     function openSettings() { settingsMenu.classList.add('open'); if (isMobile) { menuOverlay.classList.add('open'); } }
     function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) { menuOverlay.classList.remove('open'); } }
     
+    // FIX: Using the correct button to open settings
     document.getElementById('mobile-settings-btn').addEventListener('click', (e) => { e.stopPropagation(); openSettings(); });
     closeSettingsBtn.addEventListener('click', closeSettings);
     menuOverlay.addEventListener('click', closeSettings);
@@ -1088,21 +1041,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-    unitsRadioButtons.forEach(radio => { 
-        radio.addEventListener('change', () => { 
-            currentUnits = radio.value;
-            localStorage.setItem('mapUnits', currentUnits);
-            updateAllUIForUnits();
-            if (isMobile) { 
-                setTimeout(closeSettings, 200); 
-            } 
-        }); 
-    });
-
-    const unitsRadioToCheck = document.querySelector(`input[name="map-units"][value="${currentUnits}"]`);
-    if (unitsRadioToCheck) {
-        unitsRadioToCheck.checked = true;
-    }
+    unitsRadioButtons.forEach(radio => { radio.addEventListener('change', () => { if (isMobile) { setTimeout(closeSettings, 200); } }); });
     
     map.on('styledata', () => { 
         if (navigationState.isActive && currentRouteData) { 
