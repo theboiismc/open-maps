@@ -1193,4 +1193,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     getInitialRouteFromUrl();
 });
-
