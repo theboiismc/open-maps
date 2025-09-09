@@ -1,3 +1,4 @@
+ 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,17 +10,11 @@
     <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
     
     <meta name="robots" content="index, follow" />
-    <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
-
-    <!-- IMPROVEMENT: Added Google Fonts for Inter and Material Symbols -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+        <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
 
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
-    <meta name="theme-color" content="#3b82f6" />
+    <meta name="theme-color" content="#00796b" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
 
@@ -31,8 +26,101 @@
 
     <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     <link rel="stylesheet" href="libs/css/styles.css">
+    <style>
+        /*
+        * A fast, non-proprietary, and widely available font stack.
+        * This ensures the text renders quickly without needing to fetch external resources.
+        */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+        }
 
-    <script type="application/ld+json">
+        .material-symbols-outlined {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+            vertical-align: middle;
+        }
+
+        /* --- FIX: Adjust panel height on mobile --- */
+        :root {
+            /* * Reduces the open panel height on mobile from 90vh to 65vh.
+             * This leaves more of the map visible. You can adjust this value.
+             */
+            --panel-mobile-height: 30vh;
+        }
+
+        /* NEW STYLES for the app menu button and dropdown */
+        #top-banner #app-menu-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+            margin-right: -10px; /* Align with the edge */
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        #top-banner #app-menu-button svg {
+            fill: #fff;
+            width: 24px;
+            height: 24px;
+        }
+        
+        #top-banner #app-menu-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+        }
+
+        #services-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            width: 240px;
+            background-color: #3b3b3d;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 20;
+            display: none;
+            padding: 8px;
+        }
+
+        #services-dropdown.open {
+            display: block;
+        }
+
+        .service-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            text-decoration: none;
+            color: #fff;
+            border-radius: 6px;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .service-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .service-item .service-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            fill: currentColor;
+        }
+        .service-item .service-name {
+            font-size: 16px;
+            font-weight: 500;
+        }
+    </style>
+
+        <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
@@ -47,51 +135,48 @@
         "query-input": "required name=search_term_string"
       }
     }
-    </script>
+        </script>
 </head>
 <body>
-    <!-- IMPROVEMENT: Added Toast container for notifications -->
-    <div id="toast-container"></div>
-
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
             <button class="js-settings-btn" aria-label="Map Settings">
-                <!-- IMPROVEMENT: Replaced SVG with Material Symbol -->
-                <span class="material-symbols-outlined">settings</span>
+                <span class="material-symbols-outlined">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                </span>
             </button>
             <button id="profile-button" aria-label="User Profile">
-                <!-- IMPROVEMENT: Replaced SVG with Material Symbol -->
-                <span class="material-symbols-outlined">account_circle</span>
+                <span class="material-symbols-outlined">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.93 0 3.5 1.57 3.5 3.5S13.93 12 12 12s-3.5-1.57-3.5-3.5S10.07 5 12 5zm0 14.2c-2.73 0-5.1-.98-6.9-2.58.01-2.48 4.67-3.82 6.9-3.82 2.23 0 6.89 1.34 6.9 3.82-1.8 1.6-4.17 2.58-6.9 2.58z"/></svg>
+                </span>
             </button>
             <button id="app-menu-button">
-                 <!-- IMPROVEMENT: Replaced SVG with Material Symbol -->
-                 <span class="material-symbols-outlined">apps</span>
+                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4zm0-6h4V4h-4v4zm-6 0h4V4h-4v4zm6 12h4v-4h-4v4z"/></svg>
             </button>
             <div id="services-dropdown">
                 <a href="https://search.theboiismc.com" class="service-item">
-                    <span class="material-symbols-outlined service-icon">search</span>
+                    <svg class="service-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                     <span class="service-name">Search</span>
                 </a>
                 <a href="https://maps.theboiismc.com" class="service-item">
-                    <span class="material-symbols-outlined service-icon">map</span>
+                    <svg class="service-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
                     <span class="service-name">Maps</span>
                 </a>
                 <a href="https://drive.theboiismc.com" class="service-item">
-                    <span class="material-symbols-outlined service-icon">cloud</span>
+                    <svg class="service-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm4 11h-1v-4h-2.5V7h-2v4h-2.5v-4h-2v4h-1v-4H6v4c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-4h-2v4z"/></svg>
                     <span class="service-name">Drive</span>
                 </a>
                 <a href="https://account.theboiismc.com" class="service-item">
-                     <span class="material-symbols-outlined service-icon">account_circle</span>
+                     <svg class="service-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.93 0 3.5 1.57 3.5 3.5S13.93 12 12 12s-3.5-1.57-3.5-3.5S10.07 5 12 5zm0 14.2c-2.73 0-5.1-.98-6.9-2.58.01-2.48 4.67-3.82 6.9-3.82 2.23 0 6.89 1.34 6.9 3.82-1.8 1.6-4.17 2.58-6.9 2.58z"/></svg>
                     <span class="service-name">Account</span>
                 </a>
             </div>
             <div id="profile-dropdown">
                 <div id="logged-in-view" hidden>
                     <div class="profile-section profile-section-header">
-                        <img id="dropdown-avatar" class="profile-dropdown-avatar" src="" alt="User avatar"/>
-                        <div class="username"></div>
-                        <div class="email"></div>
+                        <div class="username">TheBoiisMC</div>
+                        <div class="email">user@example.com</div>
                     </div>
                     <hr/>
                     <div class="profile-actions">
@@ -102,8 +187,8 @@
                         <a id="logout-btn">Log Out</a>
                     </div>
                 </div>
-                <div id="logged-out-view">
-                    <div class="profile-section" style="text-align:center; font-weight: 500;">
+                <div id="logged-out-view" hidden>
+                    <div class="profile-section" style="text-align:center; font-weight: 500; color: #5f6368;">
                         Sign in to save and view places
                     </div>
                     <hr/>
@@ -118,10 +203,12 @@
     
     <div id="navigation-status">
         <div id="instruction-container">
-            <span id="instruction-icon" class="material-symbols-outlined">navigation</span>
+            <span class="material-symbols-outlined">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+            </span>
             <div id="navigation-instruction">Starting navigation...</div>
+            <div id="instruction-progress-bar"></div>
         </div>
-        <div id="instruction-progress-bar"></div>
         <div id="trip-stats-container">
             <div class="stat-item">
                 <span id="stat-speed">--</span>
@@ -139,36 +226,36 @@
         <button id="end-navigation-btn">End Trip</button>
     </div>
     
-    <!-- IMPROVEMENT: This is no longer needed, search bar is now static inside panel -->
-    <!-- <div id="top-search-wrapper"> -->
-        
-    <!-- </div> -->
+    <div id="top-search-wrapper">
+        <div id="main-search-container">
+            <span id="search-icon-inside" class="material-symbols-outlined">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            </span>
+            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
+            <span id="main-directions-icon" class="material-symbols-outlined">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 15.6l-7.1-7.1C13.9 8.35 13.5 8 13 8h-2c-.5 0-1 .4-1 .85l-7 7.1c-.4.4-1.2.1-1.2.6v.9c0 .5.7.8 1.1.4l6.5-6.5c.5-.5.8-.8 1.4-.8h.8c.6 0 .9 .3 1.4 .8l6.5 6.5c.4.4 1.1.1 1.1-.4v-.9c0-.5-.7-.8-1.1-.4z"/></svg>
+            </span>
+            <div id="main-suggestions" class="suggestions-dropdown"></div>
+        </div>
+    </div>
     
     <div id="side-panel">
         <div id="panel-grabber"></div>
-        <!-- IMPROVEMENT: Search bar is now permanently in the panel for a static layout -->
-        <div id="panel-search-placeholder">
-            <!-- IMPROVEMENT: Added minimize button for desktop -->
-            <button id="minimize-panel-btn" aria-label="Minimize panel"><span class="material-symbols-outlined">chevron_left</span></button>
-            <div id="main-search-container">
-                <span id="search-icon-inside" class="material-symbols-outlined">search</span>
-                <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
-                <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
-                <div id="main-suggestions" class="suggestions-dropdown"></div>
-            </div>
-        </div>
+        <div id="panel-search-placeholder" hidden></div>
         <div class="panel-content">
-            <div id="welcome-panel">
+            <div id="welcome-panel" hidden>
                 <div class="info-content-padding">
                     <h3>Welcome to TheBoiisMC Maps</h3>
-                    <p style="margin-top: 8px;">
+                    <p style="margin-top: 8px; color: #5f6368;">
                         Your private, modern mapping experience.
                         Search for a place or plan a route to get started.
                     </p>
                     <div class="action-buttons" style="margin-top: 24px;">
                         <div class="btn-wrapper" id="welcome-directions-btn">
                             <div class="icon-circle">
-                                <span class="material-symbols-outlined">directions</span>
+                                <span class="material-symbols-outlined">
+                                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 15.6l-7.1-7.1C13.9 8.35 13.5 8 13 8h-2c-.5 0-1 .4-1 .85l-7 7.1c-.4.4-1.2.1-1.2.6v.9c0 .5.7.8 1.1.4l6.5-6.5c.5-.5.8-.8 1.4-.8h.8c.6 0 .9 .3 1.4 .8l6.5 6.5c.4.4 1.1.1 1.1-.4v-.9c0-.5-.7-.8-1.1-.4z"/></svg>
+                                </span>
                             </div>
                             <div class="btn-label">Directions</div>
                         </div>
@@ -179,7 +266,9 @@
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location"/>
                     <button id="close-info-btn">
-                        <span class="material-symbols-outlined">arrow_back</span>
+                        <span class="material-symbols-outlined">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                        </span>
                     </button>
                 </div>
                 <div class="info-content-padding">
@@ -187,9 +276,10 @@
                     <div class="address" id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-outlined">language</span></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></div>
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.5 15.6l-7.1-7.1C13.9 8.35 13.5 8 13 8h-2c-.5 0-1 .4-1 .85l-7 7.1c-.4.4-1.2.1-1.2.6v.9c0 .5.7.8 1.1.4l6.5-6.5c.5-.5.8-.8 1.4-.8h.8c.6 0 .9 .3 1.4 .8l6.5 6.5c.4.4 1.1.1 1.1-.4v-.9c0-.5-.7-.8-1.1-.4z"/></svg></span></div><div class="btn-label">Directions</div></div>
+                        <!-- NEW: Website button -->
+                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm4 11h-1v-4h-2.5V7h-2v4h-2.5v-4h-2v4h-1v-4H6v4c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2v-4h-2v4z"/></svg></span></div><div class="btn-label">Website</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span></div><div class="btn-label">Save</div></div>
                     </div>
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
@@ -197,13 +287,13 @@
             <div id="directions-panel-redesign" hidden>
                 <div class="info-content-padding">
                     <div class="dir-input-group">
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm0-6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg></span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
                         <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
                         <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                        <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
+                        <button id="swap-btn"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M16 11.5V11c0-1.1-.9-2-2-2H9c-1.1 0-2 .9-2 2v.5l-3.5-3.5L7 4l4 4V7c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v.5l3.5 3.5-3.5 3.5V17c0 1.1.9 2 2 2h3c1.1 0 2-.9 2-2v-.5l3.5-3.5L7 17l4 4V20c0-1.1.9-2 2-2h3c1.1 0 2 .9 2 2v-.5l3.5-3.5-3.5-3.5V17c0-1.1-.9-2-2-2h-3c-1.1 0-2 .9-2 2v.5z"/></svg></span></button>
                     </div>
-                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.74-4.24l-1.41-1.41L12 5.58 4.67 1.35 1.76 4.24 6 8.57 2.27 12.3l1.41 1.41L12 18.42l8.32-8.32 1.41-1.41-3.73-3.73z"/></svg></span></div>Your location</div>
                     <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
                 </div>
             </div>
@@ -214,9 +304,9 @@
                         <div id="route-summary-distance"></div>
                     </div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
-                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
-                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined">list</span></div><div class="btn-label">Steps</div></div>
+                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></span></div><div class="btn-label">Start Trip</div></div>
+                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 16.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM6 10c-.83 0-1.5.67-1.5 1.5S5.17 13 6 13s1.5-.67 1.5-1.5S6.83 10 6 10zm12-4.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM12 6.5v8c0 .55.45 1 1 1s1-.45 1-1v-8c0-.55-.45-1-1-1s-1 .45-1 1zm0 4.5v-8c0-.55-.45-1-1-1s-1 .45-1 1v8c0 .55.45 1 1 1s1-.45 1-1zM5.5 11.5v-3c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v3c0 1.1-.9 2-2 2h-4c-1.1 0-2-.9-2-2zM12 17.5v-3c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v3c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2z"/></svg></span></div><div class="btn-label">Share</div></div>
+                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></span></div><div class="btn-label">Steps</div></div>
                     </div>
                     <button id="back-to-directions-btn">Back</button>
                 </div>
@@ -230,12 +320,11 @@
             </div>
         </div>
     </div>
-
-    <!-- IMPROVEMENT: Added maximize button for desktop -->
-    <button id="maximize-panel-btn" aria-label="Maximize panel"><span class="material-symbols-outlined">menu</span></button>
     
     <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
-        <span class="material-symbols-outlined">layers</span>
+        <span class="material-symbols-outlined">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 19L2.5 12 12 5 21.5 12 12 19zm0-4.5l5.5-3.5L12 7.5l-5.5 3.5 5.5 3.5z"/></svg>
+        </span>
     </button>
     
     <div id="menu-overlay"></div>
@@ -285,8 +374,9 @@
         </div>
     </div>
     
-    <div id="map"></div>
+    <div id="map">
 
+    </div>
     <script src="libs/js/oidc-client-ts@2.2.0.js" defer></script>
     <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
     <script src='libs/js/turf-6.5.0.min.js' defer></script>
