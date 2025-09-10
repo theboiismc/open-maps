@@ -1,19 +1,8 @@
-Here is the updated `styles.css` file.
 
-The main change is in the `.material-symbols-outlined` rule near the top. It has been updated to correctly style the new font-based icons instead of the old embedded SVGs. I also removed a duplicate, incorrect style block from the very end of the file.
-
------
-
-```css
 :root { --panel-width: 400px; --panel-mobile-height: 65vh; --panel-mobile-peek: 220px; --brand-color: #00796b; --banner-height: 50px;}
 * { font-family: sans-serif; box-sizing: border-box; -webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */}
 html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;}
 #map { position: fixed; top: 0; left: 0;}
-
-
-#top-banner #app-menu-button {
-    cursor: pointer;
-}
 
 /* --- Toast Notification Styles --- */
 #toast-container { position: fixed; top: calc(var(--banner-height) + 15px); right: 15px; z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;}
