@@ -1,18 +1,4 @@
-My apologies\! You are absolutely right. It looks like I was working from an older version of your code. Thanks for providing the current file.
 
-I have now applied the necessary fixes for the rerouting logic and the non-working buttons directly to the `app.js` code you just gave me. This should resolve the frustrating navigation loop.
-
-### The Fixes Applied
-
-1.  **Intelligent Rerouting**: The `getRoute` function is now much smarter. When called during a reroute, it uses your **live GPS coordinates** as the new starting point instead of re-reading the original address from the input field.
-2.  **Silent Updates**: After a reroute, it will **silently update the route on the map** and immediately give you the next correct instruction, eliminating the "rerouting, starting route" announcements.
-3.  **All Buttons Active**: The **desktop settings button** and the **app menu button** are now fully functional.
-
-Here is the complete, updated `app.js` file. Please replace the entire contents of your current file with this code.
-
------
-
-```javascript
 // app.js
 
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
