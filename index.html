@@ -33,6 +33,60 @@
         :root {
             --panel-mobile-height: 30vh;
         }
+        /* Styles for the context menu */
+        #context-menu {
+            position: absolute;
+            display: none;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 8px 0;
+            z-index: 1000;
+            min-width: 200px;
+            font-size: 14px;
+        }
+        #context-menu-coords {
+            padding: 8px 16px;
+            font-weight: 500;
+            color: #5f6368;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 8px;
+        }
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            cursor: pointer;
+            color: #202124;
+        }
+        .context-menu-item:hover {
+            background-color: #f1f3f4;
+        }
+        .context-menu-item .material-symbols-outlined {
+            margin-right: 16px;
+            font-size: 20px;
+            color: #5f6368;
+        }
+        /* Style for the Globe Toggle Button */
+        #globe-toggle-btn {
+            position: absolute;
+            bottom: 140px; /* Adjust to position above other controls */
+            right: 10px;
+            z-index: 1;
+            background-color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #globe-toggle-btn .material-symbols-outlined {
+            font-size: 24px;
+        }
     </style>
 
     <script type="application/ld+json">
@@ -56,9 +110,6 @@
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
-             <button id="globe-toggle-btn" aria-label="Toggle Globe View">
-                <span class="material-symbols-outlined">public</span>
-            </button>
             <button class="js-settings-btn" aria-label="Map Settings">
                 <span class="material-symbols-outlined">tune</span>
             </button>
@@ -148,12 +199,7 @@
     </div>
     
     <div id="side-panel">
-        <div class="panel-header">
-             <button id="panel-back-btn" class="js-back-btn" hidden>
-                <span class="material-symbols-outlined">arrow_back</span>
-            </button>
-            <div id="panel-grabber"></div>
-        </div>
+        <div id="panel-grabber"></div>
         <div id="panel-search-placeholder" hidden></div>
         <div class="panel-content">
             <div id="welcome-panel" hidden>
@@ -176,6 +222,9 @@
             <div id="info-panel-redesign" hidden>
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location"/>
+                    <button id="close-info-btn">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                    </button>
                 </div>
                 <div class="info-content-padding">
                     <h3 id="info-name"></h3>
@@ -199,7 +248,7 @@
                         <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
                     </div>
                     <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
-                    <button id="get-route-btn">Get Route</button>
+                    <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
                 </div>
             </div>
             <div id="route-preview-panel" hidden>
@@ -213,22 +262,17 @@
                         <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
                         <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined">list</span></div><div class="btn-label">Steps</div></div>
                     </div>
+                    <button id="back-to-directions-btn">Back</button>
                 </div>
             </div>
             <div id="route-section" hidden>
                 <div class="info-content-padding">
                     <h3>Route Steps</h3>
+                    <button id="exit-route-btn">Back</button>
                     <ol id="route-steps"></ol>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div id="context-menu">
-        <div id="context-menu-coords"></div>
-        <div class="context-menu-item" id="ctx-directions-from">Directions from here</div>
-        <div class="context-menu-item" id="ctx-directions-to">Directions to here</div>
-        <div class="context-menu-item" id="ctx-whats-here">What's here?</div>
     </div>
     
     <button id="mobile-settings-btn" class="js-settings-btn" aria-label="Map Settings">
@@ -239,7 +283,7 @@
     <div id="settings-menu">
         <div class="settings-menu-header">
             <h4>Map Settings</h4>
-            <button id="close-settings-btn" class="js-back-btn" aria-label="Close Settings">&times;</button>
+            <button id="close-settings-btn" aria-label="Close Settings">&times;</button>
         </div>
         <div class="settings-menu-content">
             <div class="setting-group">
@@ -281,8 +325,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Context Menu HTML -->
+    <div id="context-menu">
+        <div id="context-menu-coords"></div>
+        <div class="context-menu-item" id="ctx-directions-from">
+            <span class="material-symbols-outlined">near_me</span>
+            <span>Directions from here</span>
+        </div>
+        <div class="context-menu-item" id="ctx-directions-to">
+            <span class="material-symbols-outlined">place</span>
+            <span>Directions to here</span>
+        </div>
+        <div class="context-menu-item" id="ctx-whats-here">
+            <span class="material-symbols-outlined">help_outline</span>
+            <span>What's here?</span>
+        </div>
+    </div>
     
     <div id="map"></div>
+
+    <button id="globe-toggle-btn" aria-label="Toggle Globe View">
+        <span class="material-symbols-outlined">public</span>
+    </button>
+    
     <div id="toast-container"></div>
     
     <script src="libs/js/oidc-client-ts@2.2.0.js" defer></script>
