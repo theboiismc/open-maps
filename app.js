@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         pitch: 0,                        // Set pitch to 0 to disable map tilting
         dragRotate: false,               // Disable rotating the map with drag
         touchPitch: false,               // Disable tilt gesture on touch devices
-        scrollZoom: false,               // Disable zooming with mouse scroll
+        scrollZoom: true,               // Enable zooming with mouse scroll
         maxZoom: 18,                     // Max zoom level (similar to Google Maps)
         minZoom: 1,                      // Min zoom level
     });
