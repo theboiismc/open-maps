@@ -173,7 +173,7 @@ const map = new maplibregl.Map({
     zoom: 2,                      // Initial zoom level (Zoom 2 gives a nice global view)
     pitch: 0,                     // No tilt
     dragRotate: false,            // Disable rotating the map with drag
-    touchPitch: false,            // Disable tilt gesture on touch devices
+    touchPitch: true,            // Disable tilt gesture on touch devices
     scrollZoom: false,            // Disable zooming with mouse scroll
     maxZoom: 18,                  // Max zoom level (Google Maps has similar limits)
     minZoom: 1,                   // Min zoom level
