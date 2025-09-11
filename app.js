@@ -166,20 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return { center: [-95, 39], zoom: 4 };
     }
     
-const map = new maplibregl.Map({
-    container: 'map',             // The id of your map container element
-    style: STYLES.default,        // Use the default style from STYLES
-    center: [0, 0],               // Center the map at the Equator and Prime Meridian (0° Longitude, 0° Latitude)
-    zoom: 2,                      // Initial zoom level (Zoom 2 gives a nice global view)
-    pitch: 0,                     // No tilt
-    dragRotate: false,            // Disable rotating the map with drag
-    touchPitch: true,            // Disable tilt gesture on touch devices
-    scrollZoom: false,            // Disable zooming with mouse scroll
-    maxZoom: 18,                  // Max zoom level (Google Maps has similar limits)
-    minZoom: 1,                   // Min zoom level
-});
-
-
+    const map = new maplibregl.Map({ container: "map", style: STYLES.default, ...getInitialViewFromHash() });
     
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
