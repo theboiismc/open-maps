@@ -156,42 +156,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         default: 'https://tiles.openfreemap.org/styles/liberty',
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] }
     };
-
-    function getInitialViewFromHash() {
-        const hash = window.location.hash.substring(1);
-        if (hash) {
-            const [zoom, lat, lng] = hash.split('/').map(parseFloat);
-            if (![zoom, lat, lng].some(isNaN)) return { center: [lng, lat], zoom: zoom };
-        }
-        return { center: [-95, 39], zoom: 4 };
-    }
     
-const map = new maplibregl.Map({
-    container: "map",                // The id of your map container element
-    style: STYLES.default,           // Use the default style from STYLES
-    pitch: 0,                        // Set pitch to 0 to disable map tilting
-    dragRotate: true,               // Disable rotating the map with drag
-    touchPitch: true,               // Disable tilt gesture on touch devices
-    scrollZoom: false,               // Disable zooming with mouse scroll
-    maxZoom: 18,                     // Max zoom level (similar to Google Maps)
-    minZoom: 1,                      // Min zoom level
-});
-
+    const map = new maplibregl.Map({
+        container: "map",                // The id of your map container element
+        style: STYLES.default,           // Use the default style from STYLES
+        center: [-95, 39],               // Set a default center
+        zoom: 4,                         // Set a default zoom
+        pitch: 0,                        // Set pitch to 0 to disable map tilting
+        dragRotate: true,               // Disable rotating the map with drag
+        touchPitch: true,               // Disable tilt gesture on touch devices
+        scrollZoom: false,               // Disable zooming with mouse scroll
+        maxZoom: 18,                     // Max zoom level (similar to Google Maps)
+        minZoom: 1,                      // Min zoom level
+    });
     
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
     
+    // When the map loads, trigger geolocation and show the welcome panel.
+    // The problematic URL hash updating has been removed to fix the console errors.
     map.on('load', () => {
         geolocateControl.trigger();
         showPanel('welcome-panel');
-        const updateUrlHash = () => {
-            const center = map.getCenter();
-            const zoom = map.getZoom();
-            history.replaceState(null, '', `#${zoom.toFixed(2)}/${center.lat.toFixed(4)}/${center.lng.toFixed(4)}`);
-        };
-        map.on('moveend', updateUrlHash);
-        map.on('zoomend', updateUrlHash);
     });
     
     let navigationState = {};
