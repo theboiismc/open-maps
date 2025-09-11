@@ -67,6 +67,26 @@
             font-size: 20px;
             color: #5f6368;
         }
+        /* Style for the Globe Toggle Button */
+        #globe-toggle-btn {
+            position: absolute;
+            bottom: 140px; /* Adjust to position above other controls */
+            right: 10px;
+            z-index: 1;
+            background-color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #globe-toggle-btn .material-symbols-outlined {
+            font-size: 24px;
+        }
     </style>
 
     <script type="application/ld+json">
@@ -324,6 +344,11 @@
     </div>
     
     <div id="map"></div>
+
+    <button id="globe-toggle-btn" aria-label="Toggle Globe View">
+        <span class="material-symbols-outlined">public</span>
+    </button>
+    
     <div id="toast-container"></div>
     
     <script src="libs/js/oidc-client-ts@2.2.0.js" defer></script>
