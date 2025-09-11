@@ -1,3 +1,11 @@
+/**
+ * app.js
+ *
+ * This file contains the core logic for TheBoiisMC Maps application.
+ * It handles user authentication, map rendering and controls, search functionality,
+ * routing, turn-by-turn navigation, and various UI interactions like the side panel,
+ * settings menu, and the context menu.
+ */
 
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
 const authConfig = {
@@ -18,6 +26,14 @@ const authService = {
     async handleCallback() { return userManager.signinRedirectCallback(); }
 };
 
+// --- UTILITY FUNCTIONS ---
+
+/**
+ * Displays a toast notification message.
+ * @param {string} message The message to display.
+ * @param {'info' | 'success' | 'error'} type The type of toast.
+ * @param {number} duration The duration in milliseconds.
+ */
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -77,6 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toInput = document.getElementById('panel-to-input');
     const contextMenu = document.getElementById('context-menu');
     const contextMenuCoords = document.getElementById('context-menu-coords');
+    const globeToggleBtn = document.getElementById('globe-toggle-btn');
 
     // --- APP STATE VARIABLES ---
     let currentUser = null;
@@ -86,13 +103,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     let clickedLocationMarker = null;
     let navigationWatcherId = null;
     let userLocationMarker = null;
+    
+    // --- HELPER FUNCTIONS ---
+    
+    /**
+     * Formats a duration in seconds into a human-readable string (e.g., "1 hr 25 min").
+     * @param {number} totalSeconds The total duration in seconds.
+     * @returns {string} The formatted duration string.
+     */
+    function formatDuration(totalSeconds) {
+        if (totalSeconds < 60) {
+            return '< 1 min';
+        }
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.round((totalSeconds % 3600) / 60);
+
+        if (hours > 0) {
+            return `${hours} hr ${minutes} min`;
+        } else {
+            return `${minutes} min`;
+        }
+    }
+
 
     // --- CONSTANTS ---
     const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty',
+        default: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] }
     };
     
@@ -179,11 +218,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         container: "map",
         style: STYLES.default,
         center: [-95, 39],
-        zoom: 4,
+        zoom: 3,
         pitch: 0,
-        dragRotate: false,
-        touchPitch: false,
-        scrollZoom: true,
+        dragRotate: true,
+        touchPitch: true,
+        scrollZoom: true, // Enabled for better globe interaction
+        renderWorldCopies: false, // Prevents the map from repeating
         maxZoom: 18,
         minZoom: 1,
     });
@@ -195,6 +235,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.on('load', () => {
         geolocateControl.trigger();
         showPanel('welcome-panel');
+    });
+
+    // --- GLOBE VIEW TOGGLE ---
+    globeToggleBtn.addEventListener('click', () => {
+        if (!map || !map.isStyleLoaded()) return; // Prevent action if map isn't ready
+
+        try {
+            const currentProjection = map.getProjection().name;
+            if (currentProjection === 'mercator') {
+                map.setProjection('globe');
+                map.easeTo({
+                    zoom: 2.5,
+                    pitch: 45,
+                    duration: 1500
+                });
+            } else {
+                map.setProjection('mercator');
+                map.easeTo({
+                    pitch: 0,
+                    bearing: 0,
+                    duration: 1500
+                });
+            }
+        } catch (e) {
+            console.error("Error toggling globe view:", e);
+            showToast("Could not switch view.", "error");
+        }
     });
     
     // --- CONTEXT MENU LOGIC ---
@@ -233,7 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const target = e.originalEvent.target;
         if (target.closest('.maplibregl-ctrl, #side-panel, #context-menu')) return;
         if (map.queryRenderedFeatures(e.point, { layers: ['route-line'] }).length > 0) return;
-        const poi = map.queryRenderedFeatures(e.point, { layers: ['poi'] })[0];
+        const poi = map.queryRenderedFeatures(e.point, { layers: ['poi-label'] })[0]; // Updated layer name for better accuracy
         if (poi?.properties.name) {
             performSmartSearch({ value: poi.properties.name }, processPlaceResult);
         } else {
@@ -778,8 +845,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             speechService.speak(nextInstruction, true);
         }
         
-        // Update UI
+        // --- UI Updates and upcoming turn announcements ---
         statSpeedEl.textContent = ((speed || 0) * 2.23694).toFixed(0);
+
         const totalStepDistance = turf.length(turf.lineString(currentStep.geometry.coordinates), { units: 'meters' });
         const progressAlongStep = Math.max(0, 1 - (distanceToNextManeuver / totalStepDistance));
         instructionProgressBar.transform = `scaleX(${progressAlongStep})`;
@@ -787,7 +855,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tripDurationSeconds = currentRouteData.routes[0].duration;
         const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
         const remainingTime = tripDurationSeconds - timeElapsed;
-        statTimeRemainingEl.textContent = `${(remainingTime / 60).toFixed(0)} min`;
+        
+        // **NEW** Use the formatDuration function for better display
+        statTimeRemainingEl.textContent = formatDuration(remainingTime);
+        
+        // ETA calculation is correct, uses the user's local time zone
         statEtaEl.textContent = new Date(Date.now() + remainingTime * 1000).toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' });
     }
 
@@ -910,4 +982,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     getInitialRouteFromUrl();
 });
-
