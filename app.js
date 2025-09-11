@@ -240,18 +240,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- GLOBE VIEW TOGGLE ---
     globeToggleBtn.addEventListener('click', () => {
         if (!map || !map.isStyleLoaded()) return; // Prevent action if map isn't ready
-
+    
         try {
             const currentProjection = map.getProjection().name;
             if (currentProjection === 'mercator') {
+                // Define a default fog setting required for the globe view
+                const defaultFog = {
+                    "range": [0.8, 8],
+                    "color": "rgb(186, 210, 235)",
+                    "horizon-blend": 0.05,
+                    "high-color": "rgb(220, 225, 235)",
+                    "space-color": "rgb(11, 11, 25)",
+                    "star-intensity": 0.15
+                };
+                
+                // Set the fog before changing projection to prevent errors
+                map.setFog(defaultFog); 
                 map.setProjection('globe');
+                
                 map.easeTo({
                     zoom: 2.5,
                     pitch: 45,
                     duration: 1500
                 });
             } else {
+                // Remove fog when switching back to the flat Mercator view
+                map.setFog(null); 
                 map.setProjection('mercator');
+    
                 map.easeTo({
                     pitch: 0,
                     bearing: 0,
@@ -856,10 +872,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
         const remainingTime = tripDurationSeconds - timeElapsed;
         
-        // **NEW** Use the formatDuration function for better display
         statTimeRemainingEl.textContent = formatDuration(remainingTime);
-        
-        // ETA calculation is correct, uses the user's local time zone
         statEtaEl.textContent = new Date(Date.now() + remainingTime * 1000).toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' });
     }
 
@@ -982,3 +995,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     getInitialRouteFromUrl();
 });
+
