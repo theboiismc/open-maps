@@ -1,4 +1,3 @@
-// app.js
 
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
 const authConfig = {
@@ -9,7 +8,9 @@ const authConfig = {
     response_type: 'code',
     automaticSilentRenew: true,
 };
+
 const userManager = new oidc.UserManager(authConfig);
+
 const authService = {
     async login() { return userManager.signinRedirect(); },
     async logout() { return userManager.signoutRedirect(); },
@@ -17,10 +18,10 @@ const authService = {
     async handleCallback() { return userManager.signinRedirectCallback(); }
 };
 
-// --- Toast Notification Utility ---
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
     if (!container) return;
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
@@ -34,6 +35,7 @@ function showToast(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
+// --- MAIN APPLICATION INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
     // --- ELEMENT SELECTORS ---
     const profileArea = document.getElementById('profile-area');
@@ -61,7 +63,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statSpeedEl = document.getElementById('stat-speed');
     const statEtaEl = document.getElementById('stat-eta');
     const statTimeRemainingEl = document.getElementById('stat-time-remaining');
-    const routeStepsList = document.getElementById('route-steps');
     const infoNameEl = document.getElementById('info-name');
     const infoAddressEl = document.getElementById('info-address');
     const infoImageEl = document.getElementById('info-image');
@@ -74,10 +75,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const menuOverlay = document.getElementById('menu-overlay');
     const fromInput = document.getElementById('panel-from-input');
     const toInput = document.getElementById('panel-to-input');
+    const contextMenu = document.getElementById('context-menu');
+    const contextMenuCoords = document.getElementById('context-menu-coords');
 
+    // --- APP STATE VARIABLES ---
     let currentUser = null;
+    let contextMenuLngLat = null;
+    let currentPlace = null;
+    let currentRouteData = null;
+    let clickedLocationMarker = null;
+    let navigationWatcherId = null;
+    let userLocationMarker = null;
 
-    // --- AUTHENTICATION & UI ---
+    // --- CONSTANTS ---
+    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
+    const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
+    const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+    const STYLES = {
+        default: 'https://tiles.openfreemap.org/styles/liberty',
+        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] }
+    };
+    
+    // --- AUTHENTICATION UI LOGIC ---
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
         const isLoggedIn = !!currentUser;
@@ -102,18 +121,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             mainSearchInput.placeholder = 'Search TheBoiisMC Maps';
         }
     };
-
+    
+    // Handle OIDC callback
     if (window.location.pathname.endsWith("callback.html")) {
-        try { await authService.handleCallback(); window.location.href = "/"; } catch (error) { console.error("Callback failed:", error); window.location.href = "/"; }
+        try { 
+            await authService.handleCallback(); 
+            window.location.href = "/"; 
+        } catch (error) { 
+            console.error("Callback failed:", error); 
+            window.location.href = "/"; 
+        }
         return;
     }
-
+    
+    // Set up OIDC event listeners
     userManager.events.addUserLoaded(user => {
         updateAuthUI(user);
         showToast(`Welcome back, ${user.profile.name.split(' ')[0]}!`, 'success');
     });
     userManager.events.addUserUnloaded(() => updateAuthUI(null));
-
+    
+    // Initial check for logged-in user
     try {
         const user = await authService.getUser();
         updateAuthUI(user);
@@ -122,6 +150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateAuthUI(null);
     }
     
+    // --- UI EVENT LISTENERS ---
     profileButton.addEventListener('click', () => {
         profileDropdown.style.display = (profileDropdown.style.display === 'block') ? 'none' : 'block';
         servicesDropdown.classList.remove('open');
@@ -136,63 +165,98 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.addEventListener('click', (e) => {
         if (!profileArea.contains(e.target)) profileDropdown.style.display = 'none';
         if (!appMenuButton.contains(e.target) && !servicesDropdown.contains(e.target)) servicesDropdown.classList.remove('open');
+        if (!contextMenu.contains(e.target)) contextMenu.style.display = 'none';
     });
 
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
     signupBtn.addEventListener('click', (e) => { e.preventDefault(); window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/"; });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
+    if(closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
+    document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
 
-    // --- MAP & APP STATE ---
-    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
-    const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
-    const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-    let currentPlace = null;
-    let currentRouteData = null;
-    let clickedLocationMarker = null;
-    let navigationWatcherId = null;
-    let userLocationMarker = null;
-
-    const STYLES = {
-        default: 'https://tiles.openfreemap.org/styles/liberty',
-        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] }
-    };
-    
+    // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
-        container: "map",                // The id of your map container element
-        style: STYLES.default,           // Use the default style from STYLES
-        center: [-95, 39],               // Set a default center
-        zoom: 4,                         // Set a default zoom
-        pitch: 0,                        // Set pitch to 0 to disable map tilting
-        dragRotate: false,               // Disable rotating the map with drag
-        touchPitch: false,               // Disable tilt gesture on touch devices
-        scrollZoom: true,               // Enable zooming with mouse scroll
-        maxZoom: 18,                     // Max zoom level (similar to Google Maps)
-        minZoom: 1,                      // Min zoom level
+        container: "map",
+        style: STYLES.default,
+        center: [-95, 39],
+        zoom: 4,
+        pitch: 0,
+        dragRotate: true,
+        touchPitch: true,
+        scrollZoom: false,
+        maxZoom: 18,
+        minZoom: 1,
     });
     
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
     
-    // When the map loads, trigger geolocation and show the welcome panel.
-    // The problematic URL hash updating has been removed to fix the console errors.
     map.on('load', () => {
         geolocateControl.trigger();
         showPanel('welcome-panel');
     });
     
+    // --- CONTEXT MENU LOGIC ---
+    map.on('contextmenu', (e) => {
+        e.preventDefault();
+        contextMenuLngLat = e.lngLat;
+        contextMenuCoords.textContent = `${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)}`;
+        contextMenu.style.left = `${e.point.x}px`;
+        contextMenu.style.top = `${e.point.y}px`;
+        contextMenu.style.display = 'block';
+    });
+    
+    document.getElementById('ctx-directions-from').addEventListener('click', async () => {
+        openDirectionsPanel();
+        fromInput.value = `${contextMenuLngLat.lat.toFixed(5)}, ${contextMenuLngLat.lng.toFixed(5)}`;
+        fromInput.dataset.coords = `${contextMenuLngLat.lng},${contextMenuLngLat.lat}`;
+        toInput.value = '';
+        toInput.dataset.coords = '';
+        toInput.focus();
+    });
+
+    document.getElementById('ctx-directions-to').addEventListener('click', () => {
+        openDirectionsPanel();
+        toInput.value = `${contextMenuLngLat.lat.toFixed(5)}, ${contextMenuLngLat.lng.toFixed(5)}`;
+        toInput.dataset.coords = `${contextMenuLngLat.lng},${contextMenuLngLat.lat}`;
+        fromInput.value = '';
+        fromInput.dataset.coords = '';
+        fromInput.focus();
+    });
+
+    document.getElementById('ctx-whats-here').addEventListener('click', () => {
+        reverseGeocodeAndShowInfo(contextMenuLngLat);
+    });
+    
+    map.on('click', async (e) => {
+        const target = e.originalEvent.target;
+        if (target.closest('.maplibregl-ctrl, #side-panel, #context-menu')) return;
+        if (map.queryRenderedFeatures(e.point, { layers: ['route-line'] }).length > 0) return;
+        const poi = map.queryRenderedFeatures(e.point, { layers: ['poi'] })[0];
+        if (poi?.properties.name) {
+            performSmartSearch({ value: poi.properties.name }, processPlaceResult);
+        } else {
+            await reverseGeocodeAndShowInfo(e.lngLat);
+        }
+    });
+
+    // --- NAVIGATION STATE & SPEECH SERVICE ---
     let navigationState = {};
     function resetNavigationState() {
         navigationState = { 
-            isActive: false, isRerouting: false, currentStepIndex: 0, 
-            destinationCoords: null, lastDistanceToDestination: Infinity
+            isActive: false, 
+            isRerouting: false, 
+            currentStepIndex: 0, 
+            destinationCoords: null, 
+            lastDistanceToDestination: Infinity
         };
     }
     resetNavigationState();
 
     const speechService = {
         synthesis: window.speechSynthesis,
-        voices: { male: null, female: null, },
+        voices: { male: null, female: null },
         selectedVoice: localStorage.getItem('mapVoice') || 'female',
         isReady: false,
         init() {
@@ -221,7 +285,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                  if (!this.synthesis.speaking) {
                     const utterance = new SpeechSynthesisUtterance(text);
                     const voice = this.voices[this.selectedVoice];
-                    if (voice) { utterance.voice = voice; utterance.pitch = 1; utterance.rate = 1; }
+                    if (voice) { 
+                        utterance.voice = voice; 
+                        utterance.pitch = 1; 
+                        utterance.rate = 1; 
+                    }
                     this.synthesis.speak(utterance);
                 }
             }, 50);
@@ -234,8 +302,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // --- SIDE PANEL MANAGEMENT ---
     function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel'].forEach(id => { document.getElementById(id).hidden = id !== viewId; });
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel'].forEach(id => { 
+            document.getElementById(id).hidden = id !== viewId; 
+        });
         if (isMobile) {
             sidePanel.classList.toggle('peek', viewId === 'welcome-panel');
             sidePanel.classList.toggle('open', viewId !== 'welcome-panel');
@@ -244,33 +315,50 @@ document.addEventListener('DOMContentLoaded', async () => {
             moveSearchBarToPanel();
         }
     }
+    
     function closePanel() {
         if (isMobile) sidePanel.classList.remove('open', 'peek');
-        else { sidePanel.classList.remove('open'); moveSearchBarToTop(); }
-        if (clickedLocationMarker) { clickedLocationMarker.remove(); clickedLocationMarker = null; }
+        else { 
+            sidePanel.classList.remove('open'); 
+            moveSearchBarToTop(); 
+        }
+        if (clickedLocationMarker) { 
+            clickedLocationMarker.remove(); 
+            clickedLocationMarker = null; 
+        }
     }
-    function moveSearchBarToPanel() { if (!isMobile) { panelSearchPlaceholder.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = false; topSearchWrapper.style.opacity = '0'; } }
-    function moveSearchBarToTop() { if (!isMobile) { topSearchWrapper.appendChild(mainSearchContainer); panelSearchPlaceholder.hidden = true; topSearchWrapper.style.opacity = '1'; } }
     
-    // --- EVENT LISTENERS ---
-    if(closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
-    document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
-
-    map.on('click', async (e) => {
-        const target = e.originalEvent.target;
-        if (target.closest('.maplibregl-ctrl, #side-panel')) return;
-        if (map.queryRenderedFeatures(e.point, { layers: ['route-line'] }).length > 0) return;
-        const poi = map.queryRenderedFeatures(e.point, { layers: ['poi'] })[0];
-        if (poi?.properties.name) performSmartSearch({ value: poi.properties.name }, processPlaceResult);
-        else await reverseGeocodeAndShowInfo(e.lngLat);
-    });
-
+    function moveSearchBarToPanel() { 
+        if (!isMobile) { 
+            panelSearchPlaceholder.appendChild(mainSearchContainer); 
+            panelSearchPlaceholder.hidden = false; 
+            topSearchWrapper.style.opacity = '0'; 
+        } 
+    }
+    
+    function moveSearchBarToTop() { 
+        if (!isMobile) { 
+            topSearchWrapper.appendChild(mainSearchContainer); 
+            panelSearchPlaceholder.hidden = true; 
+            topSearchWrapper.style.opacity = '1'; 
+        } 
+    }
+    
     // --- SEARCH & GEOCODING ---
-    function debounce(func, delay) { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; }
+    function debounce(func, delay) { 
+        let timeout; 
+        return function(...args) { 
+            clearTimeout(timeout); 
+            timeout = setTimeout(() => func.apply(this, args), delay); 
+        }; 
+    }
     
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
-            if (query.length < 3) { suggestionsEl.style.display = "none"; return; }
+            if (query.length < 3) { 
+                suggestionsEl.style.display = "none"; 
+                return; 
+            }
             const center = map.getCenter();
             const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
             try {
@@ -285,7 +373,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     suggestionsEl.appendChild(el);
                 });
                 suggestionsEl.style.display = data.features.length > 0 ? "block" : "none";
-            } catch (e) { console.error("Suggestion fetch failed", e); }
+            } catch (e) { 
+                console.error("Suggestion fetch failed", e); 
+            }
         };
         const debouncedFetch = debounce(fetchAndDisplaySuggestions, 300);
         inputEl.addEventListener("input", () => debouncedFetch(inputEl.value.trim()));
@@ -303,8 +393,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (data.features.length > 0) {
                 const item = data.features[0];
                 onSelect({ lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox });
-            } else { showToast("No results found.", "error"); }
-        } catch (e) { showToast("Search failed.", "error"); }
+            } else { 
+                showToast("No results found.", "error"); 
+            }
+        } catch (e) { 
+            showToast("Search failed.", "error"); 
+        }
     }
 
     attachSuggestionListener(mainSearchInput, document.getElementById("main-suggestions"), processPlaceResult);
@@ -323,7 +417,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox };
                 processPlaceResult(place);
             }
-        } catch (error) { console.error("Reverse geocoding failed", error); }
+        } catch (error) { 
+            console.error("Reverse geocoding failed", error); 
+        }
     }
     
     function processPlaceResult(place) {
@@ -331,23 +427,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         stopNavigation();
         clearRouteFromMap();
         if (clickedLocationMarker) clickedLocationMarker.remove();
-        clickedLocationMarker = new maplibregl.Marker().setLngLat([parseFloat(place.lon), parseFloat(place.lat)]).addTo(map);
-        if (place.bbox) map.fitBounds(place.bbox, { padding: 100, essential: true });
-        else map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
+        
+        clickedLocationMarker = new maplibregl.Marker()
+            .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
+            .addTo(map);
+            
+        if (place.bbox) {
+            map.fitBounds(place.bbox, { padding: 100, essential: true });
+        } else {
+            map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
+        }
+        
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
         infoNameEl.textContent = place.display_name.split(',')[0];
         infoAddressEl.textContent = place.display_name;
-        infoImageEl.src = ''; infoImageEl.style.backgroundColor = '#e0e0e0';
+        infoImageEl.src = ''; 
+        infoImageEl.style.backgroundColor = '#e0e0e0';
         infoWeatherEl.innerHTML = '<div class="skeleton-line"></div>';
         quickFactsEl.innerHTML = '<div class="skeleton-line"></div><div class="skeleton-line"></div>';
+        
         const locationName = place.display_name.split(',')[0];
         fetchAndSetPlaceImage(locationName, place.lon, place.lat);
         fetchAndSetWeather(place.lat, place.lon);
         fetchAndSetQuickFacts(locationName);
         fetchAndSetWebsite(locationName);
+        
         showPanel('info-panel-redesign');
     }
 
+    // --- DATA FETCHING FOR INFO PANEL ---
     async function fetchAndSetPlaceImage(query, lon, lat) {
         const imgEl = document.getElementById('info-image');
         imgEl.alt = 'Loading image...';
@@ -387,7 +495,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 websiteBtn.style.display = 'none';
             }
-        } catch (e) { websiteBtn.style.display = 'none'; }
+        } catch (e) { 
+            websiteBtn.style.display = 'none'; 
+        }
     }
 
     function getWeatherDescription(code) {
@@ -406,7 +516,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tempC = Math.round((tempF - 32) * 5 / 9);
             const description = getWeatherDescription(data.current_weather.weathercode);
             weatherEl.textContent = `${tempF}°F / ${tempC}°C, ${description}`;
-        } catch (e) { weatherEl.textContent = "Could not load weather."; }
+        } catch (e) { 
+            weatherEl.textContent = "Could not load weather."; 
+        }
     }
 
     async function fetchAndSetQuickFacts(query) {
@@ -417,7 +529,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const data = await res.json();
             const page = Object.values(data.query.pages)[0];
             factsEl.textContent = page.extract ? page.extract.substring(0, 350) + '...' : "No quick facts found.";
-        } catch (e) { factsEl.textContent = "Could not load facts."; }
+        } catch (e) { 
+            factsEl.textContent = "Could not load facts."; 
+        }
     }
     
     // --- ROUTING & NAVIGATION ---
@@ -426,7 +540,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentPlace) {
             toInput.value = currentPlace.display_name;
             toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
-            fromInput.value = ''; fromInput.dataset.coords = '';
+            fromInput.value = ''; 
+            fromInput.dataset.coords = '';
         }
     }
 
@@ -434,7 +549,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
     document.getElementById('get-route-btn').addEventListener('click', getRoute);
     document.getElementById('start-navigation-btn').addEventListener('click', startNavigation);
-    document.getElementById('dir-use-my-location').addEventListener('click', () => { navigator.geolocation.getCurrentPosition(pos => { fromInput.value = "Your Location"; fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; }, handlePositionError, geolocationOptions ); });
+    document.getElementById('dir-use-my-location').addEventListener('click', () => { 
+        navigator.geolocation.getCurrentPosition(pos => { 
+            fromInput.value = "Your Location"; 
+            fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; 
+        }, handlePositionError, geolocationOptions ); 
+    });
     
     function clearRouteFromMap() {
         if (map.getLayer('route-line')) map.removeLayer('route-line');
@@ -460,7 +580,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             map.getSource('route').setData(routeGeoJSON);
         } else {
             map.addSource('route', { type: 'geojson', data: routeGeoJSON });
-            map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0d89ec', 'line-width': 8, 'line-opacity': 0.7 } });
+            map.addLayer({ 
+                id: 'route-line', 
+                type: 'line', 
+                source: 'route', 
+                layout: { 'line-join': 'round', 'line-cap': 'round' }, 
+                paint: { 'line-color': '#0d89ec', 'line-width': 8, 'line-opacity': 0.7 } 
+            });
         }
     }
     
@@ -472,7 +598,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             map.addSource('highlighted-route-segment', { type: 'geojson', data: geojson });
             map.addLayer({
-                id: 'highlighted-route-segment', type: 'line', source: 'highlighted-route-segment',
+                id: 'highlighted-route-segment', 
+                type: 'line', 
+                source: 'highlighted-route-segment',
                 paint: { 'line-color': '#0055ff', 'line-width': 9, 'line-opacity': 0.9 }
             }, 'route-line');
         }
@@ -487,7 +615,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         switch (type) {
             case 'depart': return `Head ${modifier || ''} ${on('')}`.trim();
             case 'arrive': return `Your destination is on the ${modifier}`;
-            case 'turn': case 'off ramp': return (modifier === 'straight') ? on('Continue straight') : onto(`Turn ${modifier}`);
+            case 'turn': 
+            case 'off ramp': return (modifier === 'straight') ? on('Continue straight') : onto(`Turn ${modifier}`);
             case 'fork': return onto(`Keep ${modifier} at the fork`);
             case 'roundabout':
                 const exit = step.maneuver.exit;
@@ -528,7 +657,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showPanel('route-preview-panel');
                 map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
             }
-        } catch (err) { showToast(`Error: ${err.message}`, "error"); }
+        } catch (err) { 
+            showToast(`Error: ${err.message}`, "error"); 
+        }
     }
 
     async function reroute(currentUserPoint) {
@@ -597,13 +728,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         map.easeTo({ pitch: 0, bearing: 0 });
     }
 
-    function handlePositionError(error) { showToast(`Geolocation error: ${error.message}.`, "error"); stopNavigation(); }
+    function handlePositionError(error) { 
+        showToast(`Geolocation error: ${error.message}.`, "error"); 
+        stopNavigation(); 
+    }
 
     async function handlePositionUpdate(position) {
         if (!navigationState.isActive || navigationState.isRerouting) return;
-        const { latitude, longitude, heading } = position.coords;
-        const userPoint = turf.point([longitude, latitude]);
         
+        const { latitude, longitude, heading, speed } = position.coords;
+        const userPoint = turf.point([longitude, latitude]);
         const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
         const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
         
@@ -615,15 +749,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             map.easeTo({ center: snapped.geometry.coordinates, duration: 500 });
         }
         
+        // Reroute if off-course
         const distanceFromRoute = snapped.properties.dist;
         const OFF_ROUTE_THRESHOLD = 50; // meters
-        
         if (distanceFromRoute > OFF_ROUTE_THRESHOLD) {
             speechService.speak("Off route. Recalculating.", true);
             await reroute(userPoint);
             return;
         }
         
+        // Advance to next step
         const steps = currentRouteData.routes[0].legs[0].steps;
         const currentStep = steps[navigationState.currentStepIndex];
         const stepEndPoint = turf.point(currentStep.geometry.coordinates.slice(-1)[0]);
@@ -643,10 +778,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             speechService.speak(nextInstruction, true);
         }
         
-        // --- UI Updates and upcoming turn announcements ---
-        const { speed } = position.coords;
+        // Update UI
         statSpeedEl.textContent = ((speed || 0) * 2.23694).toFixed(0);
-
         const totalStepDistance = turf.length(turf.lineString(currentStep.geometry.coordinates), { units: 'meters' });
         const progressAlongStep = Math.max(0, 1 - (distanceToNextManeuver / totalStepDistance));
         instructionProgressBar.transform = `scaleX(${progressAlongStep})`;
@@ -658,18 +791,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         statEtaEl.textContent = new Date(Date.now() + remainingTime * 1000).toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' });
     }
 
-    // --- Other Functions (Settings, Traffic, etc.) ---
+    // --- SETTINGS & MAP STYLE ---
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
     const trafficToggle = document.getElementById('traffic-toggle');
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
 
-    function openSettings() { settingsMenu.classList.add('open'); if (isMobile) menuOverlay.classList.add('open'); }
-    function closeSettings() { settingsMenu.classList.remove('open'); if (isMobile) menuOverlay.classList.remove('open'); }
+    function openSettings() { 
+        settingsMenu.classList.add('open'); 
+        if (isMobile) menuOverlay.classList.add('open'); 
+    }
+    
+    function closeSettings() { 
+        settingsMenu.classList.remove('open'); 
+        if (isMobile) menuOverlay.classList.remove('open'); 
+    }
     
     settingsBtns.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); openSettings(); }));
     closeSettingsBtn.addEventListener('click', closeSettings);
     menuOverlay.addEventListener('click', closeSettings);
-    document.addEventListener('click', (e) => { if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) closeSettings(); });
+    document.addEventListener('click', (e) => { 
+        if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) {
+            closeSettings();
+        }
+    });
     
     styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); if (isMobile) setTimeout(closeSettings, 200); }); });
     trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); if (isMobile) setTimeout(closeSettings, 200); });
@@ -679,8 +823,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const TRAFFIC_LAYER_ID = 'traffic-lines';
     const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
     const trafficLayer = { id: TRAFFIC_LAYER_ID, type: 'line', source: TRAFFIC_SOURCE_ID, 'source-layer': 'traffic', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 2, 'line-color': [ 'match', ['get', 'congestion'], 'low', '#30c83a', 'moderate', '#ff9a00', 'heavy', '#ff3d3d', 'severe', '#a00000', '#a0a0a0' ] } };
-    function addTrafficLayer() { if (!map.getSource(TRAFFIC_SOURCE_ID)) { map.addSource(TRAFFIC_SOURCE_ID, trafficSource); let firstSymbolId; for (const layer of map.getStyle().layers) { if (layer.type === 'symbol') { firstSymbolId = layer.id; break; } } map.addLayer(trafficLayer, firstSymbolId); } }
-    function removeTrafficLayer() { if (map.getSource(TRAFFIC_SOURCE_ID)) { map.removeLayer(TRAFFIC_LAYER_ID); map.removeSource(TRAFFIC_SOURCE_ID); } }
+    
+    function addTrafficLayer() { 
+        if (!map.getSource(TRAFFIC_SOURCE_ID)) { 
+            map.addSource(TRAFFIC_SOURCE_ID, trafficSource); 
+            let firstSymbolId; 
+            for (const layer of map.getStyle().layers) { 
+                if (layer.type === 'symbol') { 
+                    firstSymbolId = layer.id; 
+                    break; 
+                } 
+            } 
+            map.addLayer(trafficLayer, firstSymbolId); 
+        } 
+    }
+    
+    function removeTrafficLayer() { 
+        if (map.getSource(TRAFFIC_SOURCE_ID)) { 
+            map.removeLayer(TRAFFIC_LAYER_ID); 
+            map.removeSource(TRAFFIC_SOURCE_ID); 
+        } 
+    }
 
     map.on('styledata', () => { 
         if (navigationState.isActive && currentRouteData) { 
@@ -690,16 +853,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (trafficToggle.checked) addTrafficLayer(); 
     });
     
+    // --- MOBILE-SPECIFIC PANEL DRAGGING ---
     if (isMobile) {
         let panelDragState = { isDragging: false, startY: 0, dragOffset: 0 };
-        const panelDragStart = (e) => { if (e.target.closest('.panel-content')) return; panelDragState.isDragging = true; panelDragState.startY = e.touches[0].clientY; sidePanel.style.transition = 'none'; };
-        const panelDragMove = (e) => { if (!panelDragState.isDragging) return; panelDragState.dragOffset = e.touches[0].clientY - panelDragState.startY; if (panelDragState.dragOffset > 0) sidePanel.style.transform = `translateY(${panelDragState.dragOffset}px)`; };
-        const panelDragEnd = () => { if (!panelDragState.isDragging) return; panelDragState.isDragging = false; sidePanel.style.transition = ''; sidePanel.style.transform = ''; if (panelDragState.dragOffset > sidePanel.offsetHeight / 3) closePanel(); };
+        const panelDragStart = (e) => { 
+            if (e.target.closest('.panel-content')) return; 
+            panelDragState.isDragging = true; 
+            panelDragState.startY = e.touches[0].clientY; 
+            sidePanel.style.transition = 'none'; 
+        };
+        const panelDragMove = (e) => { 
+            if (!panelDragState.isDragging) return; 
+            panelDragState.dragOffset = e.touches[0].clientY - panelDragState.startY; 
+            if (panelDragState.dragOffset > 0) sidePanel.style.transform = `translateY(${panelDragState.dragOffset}px)`; 
+        };
+        const panelDragEnd = () => { 
+            if (!panelDragState.isDragging) return; 
+            panelDragState.isDragging = false; 
+            sidePanel.style.transition = ''; 
+            sidePanel.style.transform = ''; 
+            if (panelDragState.dragOffset > sidePanel.offsetHeight / 3) closePanel(); 
+        };
         sidePanel.addEventListener('touchstart', panelDragStart);
         document.addEventListener('touchmove', panelDragMove);
         document.addEventListener('touchend', panelDragEnd);
     }
     
+    // --- INITIALIZATION ON LOAD ---
     function getInitialRouteFromUrl() {
         const params = new URLSearchParams(window.location.search);
         const fromCoords = params.get('from');
@@ -713,12 +893,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registered'), err => console.log('SW failed')); }); }
+    if ('serviceWorker' in navigator) { 
+        window.addEventListener('load', () => { 
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('Service Worker registered.'))
+                .catch(err => console.log('Service Worker registration failed:', err)); 
+        }); 
+    }
+    
     speechService.init().then(() => {
         const savedVoice = localStorage.getItem('mapVoice') || 'female';
         speechService.setVoice(savedVoice);
         const radio = document.querySelector(`input[name="nav-voice"][value="${savedVoice}"]`);
         if (radio) radio.checked = true;
     });
+    
     getInitialRouteFromUrl();
 });
+
