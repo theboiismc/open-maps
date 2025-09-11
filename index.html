@@ -11,7 +11,6 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
-    <!-- Core Web Vitals Fix (LCP): Preconnect to essential origins to speed up initial connection. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
@@ -120,13 +119,8 @@
         <div class="panel-content">
             <div id="welcome-panel" hidden>
                 <div class="info-content-padding">
-                    <h3>Explore Nearby</h3>
-                    <div class="action-buttons category-buttons">
-                        <div class="btn-wrapper" data-category="gas station"><div class="icon-circle"><span class="material-symbols-outlined">local_gas_station</span></div><div class="btn-label">Gas</div></div>
-                        <div class="btn-wrapper" data-category="restaurant"><div class="icon-circle"><span class="material-symbols-outlined">restaurant</span></div><div class="btn-label">Dining</div></div>
-                        <div class="btn-wrapper" data-category="shopping"><div class="icon-circle"><span class="material-symbols-outlined">shopping_bag</span></div><div class="btn-label">Shopping</div></div>
-                        <div class="btn-wrapper" data-category="park"><div class="icon-circle"><span class="material-symbols-outlined">park</span></div><div class="btn-label">Parks</div></div>
-                    </div>
+                    <h3>Welcome to Maps</h3>
+                     <p style="margin-top: 8px; color: #5f6368;">Your private, modern mapping experience.</p>
                     <hr class="panel-divider">
                     <div class="action-buttons">
                         <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
@@ -134,9 +128,9 @@
                 </div>
             </div>
 
-            <div id="category-results-panel" hidden>
-                <h3 id="category-results-title"></h3>
-                <ul id="category-results-list"></ul>
+            <div id="search-results-panel" hidden>
+                <h3 id="search-results-title"></h3>
+                <ul id="search-results-list"></ul>
             </div>
 
             <div id="info-panel-redesign" hidden>
