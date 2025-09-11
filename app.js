@@ -177,10 +177,6 @@ const map = new maplibregl.Map({
     scrollZoom: false,            // Disable zooming with mouse scroll
     maxZoom: 18,                  // Max zoom level (Google Maps has similar limits)
     minZoom: 1,                   // Min zoom level
-    maxBounds: [
-        [-180, -85],              // Southwestern corner of the map (long, lat)
-        [180, 85]                 // Northeastern corner of the map (long, lat)
-    ]
 });
 
 
