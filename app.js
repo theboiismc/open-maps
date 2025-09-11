@@ -163,8 +163,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         center: [-95, 39],               // Set a default center
         zoom: 4,                         // Set a default zoom
         pitch: 0,                        // Set pitch to 0 to disable map tilting
-        dragRotate: true,               // Disable rotating the map with drag
-        touchPitch: true,               // Disable tilt gesture on touch devices
+        dragRotate: false,               // Disable rotating the map with drag
+        touchPitch: false,               // Disable tilt gesture on touch devices
         scrollZoom: false,               // Disable zooming with mouse scroll
         maxZoom: 18,                     // Max zoom level (similar to Google Maps)
         minZoom: 1,                      // Min zoom level
