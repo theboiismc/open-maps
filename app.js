@@ -170,19 +170,6 @@ const initialView = getInitialViewFromHash();
 
 const map = new maplibregl.Map({
     container: "map",                // The id of your map container element
-    style: STYLES.default,           // Use the default style from STYLES
-    center: initialView.center,      // Use the center from the hash or default settings
-    zoom: initialView.zoom,          // Use the zoom from the hash or default settings
-    pitch: 0,                        // Set pitch to 0 to disable map tilting
-    dragRotate: false,               // Disable rotating the map with drag
-    touchPitch: false,               // Disable tilt gesture on touch devices
-    scrollZoom: false,               // Disable zooming with mouse scroll
-    maxZoom: 18,                     // Max zoom level (similar to Google Maps)
-    minZoom: 1,                      // Min zoom level
-    maxBounds: [
-        [-180, -85],                 // Southwestern corner of the map (long, lat)
-        [180, 85]                    // Northeastern corner of the map (long, lat)
-    ]
 });
 
     
