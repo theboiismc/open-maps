@@ -166,13 +166,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         return { center: [-95, 39], zoom: 4 };
     }
     
-    const initialView = getInitialViewFromHash();
-
 const map = new maplibregl.Map({
     container: "map",                // The id of your map container element
     style: STYLES.default,           // Use the default style from STYLES
-    center: initialView.center,      // Use the center from the hash or default settings
-    zoom: initialView.zoom,          // Use the zoom from the hash or default settings
     pitch: 0,                        // Set pitch to 0 to disable map tilting
     dragRotate: true,               // Disable rotating the map with drag
     touchPitch: true,               // Disable tilt gesture on touch devices
