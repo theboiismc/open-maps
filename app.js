@@ -166,20 +166,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         return { center: [-95, 39], zoom: 4 };
     }
     
-    const map = new maplibregl.Map({
-    container: 'map',             // The id of your map container element
-    style: STYLES.default,        // Reference to your style object (STYLES.default)
-    center: [0, 0],           // Initial coordinates for map center [longitude, latitude]
-    zoom: 3,                      // Initial zoom level
-    pitch: 0,                     // Disable tilt by setting pitch to 0
-    dragRotate: false,            // Disable dragging to rotate the map (which causes tilt)
-    touchPitch: false,            // Disable touch gestures for tilting (on mobile/tablets)
-    scrollZoom: false,            // Disable zooming with mouse scroll
-    maxZoom: 18,                  // Max zoom level
-    minZoom: 1,                   // Min zoom level
+const initialView = getInitialViewFromHash();
+
+const map = new maplibregl.Map({
+    container: "map",                // The id of your map container element
+    style: STYLES.default,           // Use the default style from STYLES
+    center: initialView.center,      // Use the center from the hash or default settings
+    zoom: initialView.zoom,          // Use the zoom from the hash or default settings
+    pitch: 0,                        // Set pitch to 0 to disable map tilting
+    dragRotate: false,               // Disable rotating the map with drag
+    touchPitch: false,               // Disable tilt gesture on touch devices
+    scrollZoom: false,               // Disable zooming with mouse scroll
+    maxZoom: 18,                     // Max zoom level (similar to Google Maps)
+    minZoom: 1,                      // Min zoom level
     maxBounds: [
-        [-180, -85],              // Southwestern corner of the map (long, lat)
-        [180, 85]                 // Northeastern corner of the map (long, lat)
+        [-180, -85],                 // Southwestern corner of the map (long, lat)
+        [180, 85]                    // Northeastern corner of the map (long, lat)
     ]
 });
 
