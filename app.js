@@ -166,11 +166,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         return { center: [-95, 39], zoom: 4 };
     }
     
-const initialView = getInitialViewFromHash();
-
-const map = new maplibregl.Map({
-    container: "map",                // The id of your map container element
-});
+ const initialView = getInitialViewFromHash();
+    const map = new maplibregl.Map({
+        container: "map",
+        style: STYLES.default,
+        center: initialView.center,
+        zoom: initialView.zoom
+    });
 
     
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
