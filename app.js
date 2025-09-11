@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         zoom: 3,
         pitch: 0,
         dragRotate: true,
-        touchPitch: true,
+        touchPitch: false,
         scrollZoom: true, // Enabled for better globe interaction
         renderWorldCopies: false, // Prevents the map from repeating
         maxZoom: 18,
