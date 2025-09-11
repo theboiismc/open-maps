@@ -181,9 +181,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         center: [-95, 39],
         zoom: 4,
         pitch: 0,
-        dragRotate: true,
-        touchPitch: true,
-        scrollZoom: false,
+        dragRotate: false,
+        touchPitch: false,
+        scrollZoom: true,
         maxZoom: 18,
         minZoom: 1,
     });
