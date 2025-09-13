@@ -1,11 +1,3 @@
-/**
- * app.js
- *
- * This file contains the core logic for TheBoiisMC Maps application.
- * It handles user authentication, map rendering and controls, search functionality,
- * routing, turn-by-turn navigation, and various UI interactions like the side panel,
- * settings menu, and the context menu.
- */
 
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
 const authConfig = {
@@ -131,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     const STYLES = {
-        default: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
+        default: `https://tiles.theboiismc.com/styles/Default/style.json,
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] }
     };
     
