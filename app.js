@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Settings Modal Selectors
     const settingsModal = document.getElementById('settings-modal');
-    const settingsBtn = document.getElementById('settings-btn');
+    const settingsIconBtn = document.getElementById('settings-icon-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
     const globeToggle = document.getElementById('globe-toggle');
@@ -956,11 +956,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         settingsModal.classList.remove('open'); 
     }
     
-    settingsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        profileDropdown.style.display = 'none';
-        openSettings();
-    });
+    settingsIconBtn.addEventListener('click', openSettings);
     
     closeSettingsBtn.addEventListener('click', closeSettings);
     modalOverlay.addEventListener('click', closeSettings);
