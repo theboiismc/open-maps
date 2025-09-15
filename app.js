@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toInput = document.getElementById('panel-to-input');
     const contextMenu = document.getElementById('context-menu');
     const contextMenuCoords = document.getElementById('context-menu-coords');
-    const globeToggleBtn = document.getElementById('globe-toggle-btn');
+    const globeToggle = document.getElementById('globe-toggle'); // New selector
 
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
@@ -260,50 +260,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.on('load', () => {
         geolocateControl.trigger();
         showPanel('welcome-panel');
+        // ▼▼▼ NEW: Initialize globe view based on saved preference ▼▼▼
+        initializeGlobeView();
     });
 
-    // --- GLOBE VIEW TOGGLE ---
-    globeToggleBtn.addEventListener('click', () => {
+    // --- GLOBE VIEW LOGIC (MOVED FROM BUTTON) ---
+    /**
+     * Toggles the map projection between Mercator (flat) and Globe.
+     * @param {boolean} enableGlobe - True to switch to globe view, false for flat view.
+     */
+    function setGlobeView(enableGlobe) {
         if (!map || !map.isStyleLoaded()) return; // Prevent action if map isn't ready
-    
+
         try {
             const currentProjection = map.getProjection().name;
-            if (currentProjection === 'mercator') {
-                // Define a default fog setting required for the globe view
+
+            if (enableGlobe && currentProjection !== 'globe') {
                 const defaultFog = {
-                    "range": [0.8, 8],
-                    "color": "rgb(186, 210, 235)",
-                    "horizon-blend": 0.05,
-                    "high-color": "rgb(220, 225, 235)",
-                    "space-color": "rgb(11, 11, 25)",
-                    "star-intensity": 0.15
+                    "range": [0.8, 8], "color": "rgb(186, 210, 235)",
+                    "horizon-blend": 0.05, "high-color": "rgb(220, 225, 235)",
+                    "space-color": "rgb(11, 11, 25)", "star-intensity": 0.15
                 };
-                
-                // Set the fog before changing projection to prevent errors
-                map.setFog(defaultFog); 
+                map.setFog(defaultFog);
                 map.setProjection('globe');
-                
-                map.easeTo({
-                    zoom: 2.5,
-                    pitch: 45,
-                    duration: 1500
-                });
-            } else {
-                // Remove fog when switching back to the flat Mercator view
-                map.setFog(null); 
+                map.easeTo({ zoom: 2.5, pitch: 45, duration: 1500 });
+
+            } else if (!enableGlobe && currentProjection === 'globe') {
+                map.setFog(null);
                 map.setProjection('mercator');
-    
-                map.easeTo({
-                    pitch: 0,
-                    bearing: 0,
-                    duration: 1500
-                });
+                map.easeTo({ pitch: 0, bearing: 0, duration: 1500 });
             }
         } catch (e) {
             console.error("Error toggling globe view:", e);
-            showToast("Could not switch view.", "error");
+            showToast("Could not switch map view.", "error");
         }
-    });
+    }
     
     // --- CONTEXT MENU LOGIC ---
     map.on('contextmenu', (e) => {
@@ -1027,6 +1018,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); if (isMobile) setTimeout(closeSettings, 200); });
     voiceRadioButtons.forEach(radio => { radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); if (isMobile) setTimeout(closeSettings, 200); }); });
     
+    // ▼▼▼ NEW: Event listener for the Globe View toggle ▼▼▼
+    globeToggle.addEventListener('change', () => {
+        const isEnabled = globeToggle.checked;
+        localStorage.setItem('mapGlobeEnabled', isEnabled);
+        setGlobeView(isEnabled);
+        if (isMobile) setTimeout(closeSettings, 200);
+    });
+    
     // --- THEME MANAGEMENT ---
     const themeRadioButtons = document.querySelectorAll('input[name="map-theme"]');
     const systemThemeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
@@ -1076,6 +1075,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             radioToCheck.checked = true;
         }
         applyTheme(savedTheme);
+    }
+
+    // --- NEW: Function to set initial globe state from localStorage ---
+    function initializeGlobeView() {
+        const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
+        globeToggle.checked = savedGlobeState;
+        setGlobeView(savedGlobeState);
     }
     
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
