@@ -90,6 +90,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const contextMenu = document.getElementById('context-menu');
     const contextMenuCoords = document.getElementById('context-menu-coords');
     const backToInfoBtn = document.getElementById('back-to-info-btn');
+    const searchResultsPanel = document.getElementById('search-results-panel');
+    const resultsTitle = document.getElementById('results-title');
+    const resultsListContainer = document.getElementById('results-list-container');
+    const backToWelcomeBtn = document.getElementById('back-to-welcome-btn');
 
     // Settings Modal Selectors
     const settingsModal = document.getElementById('settings-modal');
@@ -125,6 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let clickedLocationMarker = null;
     let navigationWatcherId = null;
     let userLocationMarker = null;
+    let currentResultMarkers = []; // To keep track of POI markers
     
     // --- HELPER FUNCTIONS ---
     function formatDuration(totalSeconds) {
@@ -220,6 +225,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
     document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
 
+    backToWelcomeBtn.addEventListener('click', () => {
+        clearResultMarkers();
+        // On mobile, show the welcome panel in its 'peek' state. On desktop, just close the panel.
+        if (isMobile) {
+            showPanel('welcome-panel');
+        } else {
+            closePanel();
+        }
+    });
+
     // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
         container: "map",
@@ -241,9 +256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     map.on('load', () => {
         geolocateControl.trigger();
-        // ▼▼▼ THIS IS THE KEY CHANGE ▼▼▼
-        // Only show the welcome panel in its 'peek' state on mobile.
-        // On desktop, the panel will now remain hidden on load.
         if (isMobile) {
             showPanel('welcome-panel');
         }
@@ -311,8 +323,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     map.on('click', async (e) => {
         const target = e.originalEvent.target;
-        if (target.closest('.maplibregl-ctrl, #side-panel, #context-menu')) return;
+        // Prevent map click if clicking on a control, panel, marker, or route
+        if (target.closest('.maplibregl-ctrl, #side-panel, #context-menu, .maplibregl-marker')) return;
         if (map.queryRenderedFeatures(e.point, { layers: ['route-line'] }).length > 0) return;
+
         const poi = map.queryRenderedFeatures(e.point, { layers: ['poi-label'] })[0];
         if (poi?.properties.name) {
             performSmartSearch({ value: poi.properties.name }, processPlaceResult);
@@ -384,7 +398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- SIDE PANEL MANAGEMENT ---
     function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel'].forEach(id => { 
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'].forEach(id => { 
             document.getElementById(id).hidden = id !== viewId; 
         });
         if (isMobile) {
@@ -407,6 +421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             clickedLocationMarker.remove(); 
             clickedLocationMarker = null; 
         }
+        clearResultMarkers(); // Clear category search markers on panel close
     }
     
     function moveSearchBarToPanel() { 
@@ -425,6 +440,87 @@ document.addEventListener('DOMContentLoaded', async () => {
         } 
     }
     
+    // --- CATEGORY & POI SEARCH FUNCTIONS ---
+    function clearResultMarkers() {
+        currentResultMarkers.forEach(marker => marker.remove());
+        currentResultMarkers = [];
+    }
+
+    async function performCategorySearch(category) {
+        showToast(`Searching for nearby ${category}...`);
+        const center = map.getCenter();
+        const bounds = map.getBounds();
+        const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+        
+        // Use bbox to limit search to the current view, which is better for "nearby"
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(category)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&bbox=${bbox}&limit=10`;
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Search request failed.");
+            const data = await res.json();
+            return data.features;
+        } catch (e) {
+            console.error("Category search failed:", e);
+            showToast("Could not find results.", "error");
+            return []; // Return empty array on failure
+        }
+    }
+
+    function displaySearchResultsList(places, category) {
+        clearResultMarkers();
+        if (clickedLocationMarker) { 
+            clickedLocationMarker.remove(); 
+            clickedLocationMarker = null; 
+        }
+
+        resultsTitle.textContent = `Nearby ${category}`;
+        resultsListContainer.innerHTML = ''; // Clear previous results
+
+        if (!places || places.length === 0) {
+            resultsListContainer.innerHTML = '<p class="no-results">No results found in this map area. Try zooming out.</p>';
+            showPanel('search-results-panel');
+            return;
+        }
+
+        const bounds = new maplibregl.LngLatBounds();
+
+        places.forEach(item => {
+            const place = { 
+                lon: item.center[0], 
+                lat: item.center[1], 
+                display_name: item.place_name, 
+                bbox: item.bbox 
+            };
+
+            // Add a marker for each result
+            const marker = new maplibregl.Marker({ color: '#E53935' }) // Use a distinct color
+                .setLngLat([place.lon, place.lat])
+                .addTo(map);
+            
+            marker.getElement().style.cursor = 'pointer';
+            marker.getElement().addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevents map click event
+                processPlaceResult(place);
+            });
+
+            currentResultMarkers.push(marker);
+            bounds.extend([place.lon, place.lat]);
+
+            // Create and add the list item to the panel
+            const listItem = document.createElement('div');
+            listItem.className = 'result-item';
+            listItem.innerHTML = `<h4>${item.place_name.split(',')[0]}</h4><p>${item.place_name}</p>`;
+            listItem.addEventListener('click', () => processPlaceResult(place));
+            resultsListContainer.appendChild(listItem);
+        });
+
+        if (!bounds.isEmpty()) {
+            map.fitBounds(bounds, { padding: isMobile ? 80 : { top: 100, bottom: 100, left: 450, right: 100 }, maxZoom: 15 });
+        }
+        showPanel('search-results-panel');
+    }
+
     // --- SEARCH & GEOCODING ---
     function debounce(func, delay) { 
         let timeout; 
@@ -526,12 +622,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
-    categoryPillsContainer.addEventListener('mousedown', (e) => {
+    
+    categoryPillsContainer.addEventListener('mousedown', async (e) => {
+        e.preventDefault();
         const pill = e.target.closest('.category-pill');
         if (pill) {
             const query = pill.dataset.query;
-            mainSearchInput.value = query;
-            performSmartSearch({ value: query }, processPlaceResult);
+            const categoryName = pill.textContent.trim();
+            
+            mainSuggestions.style.display = 'none';
+            mainSearchInput.blur();
+            
+            const places = await performCategorySearch(query);
+            displaySearchResultsList(places, categoryName);
         }
     });
     
@@ -580,14 +683,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentPlace = place;
         stopNavigation();
         clearRouteFromMap();
+        clearResultMarkers(); // Clear category markers when selecting one
         if (clickedLocationMarker) clickedLocationMarker.remove();
         
         clickedLocationMarker = new maplibregl.Marker()
             .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
             .addTo(map);
             
-        if (place.bbox) map.fitBounds(place.bbox, { padding: 100, essential: true });
-        else map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
+        if (place.bbox) map.fitBounds(place.bbox, { padding: 100, essential: true, maxZoom: 16 });
+        else map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 16 });
         
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
         infoNameEl.textContent = place.display_name.split(',')[0];
