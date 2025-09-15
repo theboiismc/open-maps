@@ -69,8 +69,9 @@ html, body, #map {
 #top-banner { position: fixed; top: 0; left: 0; width: 100%; height: var(--banner-height); background-color: var(--background-dark); color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; z-index: 100; font-weight: 600; padding: 0 10px 0 20px; border-bottom: 1px solid var(--border-color);}
 #site-title { font-size: 18px;}
 #profile-area { position: relative; display: flex; align-items: center; gap: 5px; }
-#profile-button, #app-menu-button { width: 40px; height: 40px; border-radius: 50%; background-color: transparent; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background-color 0.2s; color: var(--text-primary); }
-#profile-button:hover, #app-menu-button:hover { background-color: var(--input-bg);}
+/* ADDED #settings-icon-btn to this rule */
+#settings-icon-btn, #profile-button, #app-menu-button { width: 40px; height: 40px; border-radius: 50%; background-color: transparent; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background-color 0.2s; color: var(--text-primary); }
+#settings-icon-btn:hover, #profile-button:hover, #app-menu-button:hover { background-color: var(--input-bg);}
 #profile-button .profile-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 
 /* --- App Menu & Profile Dropdown Styles --- */
@@ -135,9 +136,6 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
 .setting-group { display: flex; justify-content: space-between; align-items: center;}.setting-label { display: block; font-size: 14px; font-weight: 500; color: var(--text-primary); } .radio-group { display: flex; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;}.radio-group label { flex: 1; text-align: center; padding: 10px 5px; cursor: pointer; transition: background-color 0.2s; font-weight: 500; color: var(--text-primary); }.radio-group input[type="radio"] { display: none;}.radio-group input[type="radio"]:checked + label { background-color: var(--accent-color); color: white;}.radio-group label:not(:last-of-type) { border-right: 1px solid var(--border-color);}
 .toggle-switch input { opacity: 0; width: 0; height: 0;}.toggle-switch label { cursor: pointer; width: 48px; height: 26px; background: var(--input-bg); display: block; border-radius: 26px; position: relative; transition: background-color 0.2s;}.toggle-switch label:after { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; background: #fff; border-radius: 22px; transition: 0.2s;}.toggle-switch input:checked + label { background: var(--accent-color);}.toggle-switch input:checked + label:after { left: calc(100% - 2px); transform: translateX(-100%);}
 @media (max-width: 768px) and (pointer: coarse) { #top-search-wrapper { width: 90vw; left: 5vw; transform: none; } #profile-area { flex-grow: 1; justify-content: flex-end; } #site-title { flex-grow: 1; } #side-panel { top: auto; left: 0; width: 100%; height: var(--panel-mobile-height); border-radius: 20px 20px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,0.25); bottom: -100%; transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1); padding-top: 0; } #side-panel.peek { bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek))); } #side-panel.open { left: 0; bottom: 0; } #panel-grabber { display: block; width: 40px; height: 5px; background-color: var(--border-color); border-radius: 2.5px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: grab; } #map-watermark { display: none; } #navigation-status { left: 5px; right: 5px; border-radius: 15px; } #end-navigation-btn { text-align: center; }}
-@media (min-width: 769px) { /* No changes here needed */}
-/* Add these new styles to the end of your existing libs/css/styles.css file */
-
 
 /* Styles for the context menu */
 #context-menu {
@@ -149,7 +147,7 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
     box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     padding: 8px 0;
     z-index: 1000;
-    min-width: 220px; /* Increased width for better spacing */
+    min-width: 220px;
     font-size: 14px;
 }
 #context-menu-coords {
@@ -231,7 +229,7 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
 }
 
 #api-suggestions-view .search-result {
-    padding: 12px 16px; /* Match padding */
+    padding: 12px 16px;
 }
 
 /* --- New Unified Settings Modal Styles --- */
@@ -245,7 +243,7 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
     display: flex;
     align-items: center;
     justify-content: center;
-    pointer-events: none; /* Allows clicks to go through when hidden */
+    pointer-events: none;
 }
 
 .modal-overlay {
@@ -269,12 +267,12 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
     opacity: 0;
     transform: scale(0.95);
     transition: opacity 0.3s ease, transform 0.3s ease;
-    z-index: 201; /* Above overlay */
+    z-index: 201;
 }
 
 /* Open State */
 .modal-container.open {
-    pointer-events: auto; /* Enable interaction when open */
+    pointer-events: auto;
 }
 .modal-container.open .modal-overlay {
     opacity: 1;
@@ -313,7 +311,7 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Replaces margins on setting-group */
+    gap: 15px;
 }
 .modal-body hr {
     margin: 0;
@@ -325,13 +323,13 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
 /* Mobile Styling (Bottom Sheet) */
 @media (max-width: 768px) {
     .modal-container {
-        align-items: flex-end; /* Align to bottom */
+        align-items: flex-end;
     }
     .modal-content {
         width: 100%;
         max-width: 100%;
         border-radius: 20px 20px 0 0;
-        transform: translateY(100%); /* Start off-screen */
+        transform: translateY(100%);
         transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .modal-container.open .modal-content {
