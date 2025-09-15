@@ -99,7 +99,31 @@
             <span id="search-icon-inside" class="material-symbols-outlined">search</span>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
             <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
-            <div id="main-suggestions" class="suggestions-dropdown"></div>
+            <div id="main-suggestions" class="suggestions-dropdown">
+                <div id="initial-suggestions-view">
+                    <div id="recent-searches-container">
+                        </div>
+                    <div class="suggestions-section">
+                        <div class="suggestions-header">Categories</div>
+                        <div class="category-pills">
+                            <button class="category-pill" data-query="restaurants">
+                                <span class="material-symbols-outlined">restaurant</span> Restaurants
+                            </button>
+                            <button class="category-pill" data-query="gas stations">
+                                <span class="material-symbols-outlined">local_gas_station</span> Gas
+                            </button>
+                            <button class="category-pill" data-query="coffee">
+                                <span class="material-symbols-outlined">coffee</span> Coffee
+                            </button>
+                            <button class="category-pill" data-query="parks">
+                                <span class="material-symbols-outlined">park</span> Parks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="api-suggestions-view" hidden>
+                    </div>
+            </div>
         </div>
     </div>
     
