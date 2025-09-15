@@ -95,6 +95,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     const contextMenuCoords = document.getElementById('context-menu-coords');
     const globeToggleBtn = document.getElementById('globe-toggle-btn');
 
+    // --- RECENT SEARCH MANAGEMENT ---
+    const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
+    const MAX_RECENT_SEARCHES = 5;
+
+    function getRecentSearches() {
+        return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY)) || [];
+    }
+
+    function addRecentSearch(place) {
+        // A place object needs a unique identifier, display_name is good enough here
+        if (!place || !place.display_name) return;
+
+        let searches = getRecentSearches();
+        // Remove any existing entry with the same name to avoid duplicates
+        searches = searches.filter(item => item.display_name !== place.display_name);
+        // Add the new place to the beginning of the array
+        searches.unshift(place);
+        // Trim the array to the max length
+        if (searches.length > MAX_RECENT_SEARCHES) {
+            searches.length = MAX_RECENT_SEARCHES;
+        }
+        // Save back to localStorage
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
+    }
+
     // --- APP STATE VARIABLES ---
     let currentUser = null;
     let contextMenuLngLat = null;
@@ -436,6 +461,125 @@ document.addEventListener('DOMContentLoaded', async () => {
         }; 
     }
     
+    async function performSmartSearch(inputEl, onSelect) {
+        const query = inputEl.value.trim();
+        if (!query) return;
+        const center = map.getCenter();
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=1`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.features.length > 0) {
+                const item = data.features[0];
+                onSelect({ lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox });
+            } else { 
+                showToast("No results found.", "error"); 
+            }
+        } catch (e) { 
+            showToast("Search failed.", "error"); 
+        }
+    }
+
+    // --- NEW ENHANCED SEARCH LOGIC ---
+    const mainSuggestions = document.getElementById("main-suggestions");
+    const initialSuggestionsView = document.getElementById("initial-suggestions-view");
+    const apiSuggestionsView = document.getElementById("api-suggestions-view");
+    const recentSearchesContainer = document.getElementById("recent-searches-container");
+    const categoryPillsContainer = document.querySelector(".category-pills");
+
+    // Function to show the initial dropdown view (recents & categories)
+    function showInitialSuggestions() {
+        // 1. Populate Recent Searches
+        recentSearchesContainer.innerHTML = ''; // Clear old items
+        const recents = getRecentSearches();
+        if (recents.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'suggestions-header';
+            header.textContent = 'Recent Searches';
+            recentSearchesContainer.appendChild(header);
+
+            recents.forEach(place => {
+                const item = document.createElement('div');
+                item.className = 'recent-item';
+                item.innerHTML = `<span class="material-symbols-outlined">history</span> <span>${place.display_name}</span>`;
+                item.addEventListener('mousedown', (e) => { // Use mousedown to fire before blur
+                    e.preventDefault();
+                    processPlaceResult(place);
+                    mainSuggestions.style.display = 'none';
+                });
+                recentSearchesContainer.appendChild(item);
+            });
+        }
+
+        // 2. Switch views
+        initialSuggestionsView.hidden = false;
+        apiSuggestionsView.hidden = true;
+        mainSuggestions.style.display = 'block';
+    }
+
+    // Function to fetch and show API suggestions
+    const fetchApiSuggestions = debounce(async (query) => {
+        if (query.length < 3) return;
+
+        initialSuggestionsView.hidden = true;
+        apiSuggestionsView.hidden = false;
+
+        const center = map.getCenter();
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            apiSuggestionsView.innerHTML = ""; // Clear old results
+            data.features.forEach(item => {
+                const el = document.createElement("div");
+                el.className = "search-result";
+                el.textContent = item.place_name;
+                el.addEventListener("mousedown", () => { // Use mousedown to fire before blur
+                    const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox };
+                    processPlaceResult(place);
+                    mainSuggestions.style.display = 'none';
+                });
+                apiSuggestionsView.appendChild(el);
+            });
+        } catch (e) {
+            console.error("Suggestion fetch failed", e);
+        }
+    }, 300);
+
+    // Attach all new event listeners for the main search bar
+    mainSearchInput.addEventListener('focus', showInitialSuggestions);
+    mainSearchInput.addEventListener('blur', () => {
+        // Delay hiding to allow click events on suggestions to fire
+        setTimeout(() => { mainSuggestions.style.display = 'none'; }, 200);
+    });
+    mainSearchInput.addEventListener('input', () => {
+        const query = mainSearchInput.value.trim();
+        if (query) {
+            fetchApiSuggestions(query);
+        } else {
+            showInitialSuggestions(); // Go back to recents if input is cleared
+        }
+    });
+    mainSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            performSmartSearch(mainSearchInput, processPlaceResult);
+            mainSuggestions.style.display = 'none';
+        }
+    });
+
+    document.getElementById("search-icon-inside").addEventListener("click", () => {
+        performSmartSearch(mainSearchInput, processPlaceResult);
+    });
+
+    categoryPillsContainer.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.category-pill')) {
+            const query = e.target.closest('.category-pill').dataset.query;
+            mainSearchInput.value = query; // Optional: put category name in search bar
+            performSmartSearch({ value: query }, processPlaceResult);
+        }
+    });
+    
+    // --- Logic for Directions Panel Inputs (Legacy Suggestion System) ---
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
             if (query.length < 3) { 
@@ -464,29 +608,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         inputEl.addEventListener("input", () => debouncedFetch(inputEl.value.trim()));
         inputEl.addEventListener("blur", () => setTimeout(() => { suggestionsEl.style.display = "none"; }, 200));
     }
-
-    async function performSmartSearch(inputEl, onSelect) {
-        const query = inputEl.value.trim();
-        if (!query) return;
-        const center = map.getCenter();
-        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=1`;
-        try {
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.features.length > 0) {
-                const item = data.features[0];
-                onSelect({ lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox });
-            } else { 
-                showToast("No results found.", "error"); 
-            }
-        } catch (e) { 
-            showToast("Search failed.", "error"); 
-        }
-    }
-
-    attachSuggestionListener(mainSearchInput, document.getElementById("main-suggestions"), processPlaceResult);
-    document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
-    mainSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") performSmartSearch(mainSearchInput, processPlaceResult); });
+    
     attachSuggestionListener(fromInput, document.getElementById('panel-from-suggestions'), (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
     attachSuggestionListener(toInput, document.getElementById('panel-to-suggestions'), (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
 
@@ -506,6 +628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function processPlaceResult(place) {
+        addRecentSearch(place); // Save successful search
         currentPlace = place;
         stopNavigation();
         clearRouteFromMap();
