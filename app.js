@@ -93,7 +93,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toInput = document.getElementById('panel-to-input');
     const contextMenu = document.getElementById('context-menu');
     const contextMenuCoords = document.getElementById('context-menu-coords');
-    const globeToggle = document.getElementById('globe-toggle'); // New selector
+    const globeToggle = document.getElementById('globe-toggle');
+    const backToInfoBtn = document.getElementById('back-to-info-btn'); // New selector
 
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
@@ -260,7 +261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.on('load', () => {
         geolocateControl.trigger();
         showPanel('welcome-panel');
-        // ▼▼▼ NEW: Initialize globe view based on saved preference ▼▼▼
+        // Initialize globe view based on saved preference
         initializeGlobeView();
     });
 
@@ -739,6 +740,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
             fromInput.value = ''; 
             fromInput.dataset.coords = '';
+        } else {
+            // Clear inputs if opening fresh
+            toInput.value = '';
+            toInput.dataset.coords = '';
+            fromInput.value = ''; 
+            fromInput.dataset.coords = '';
         }
     }
 
@@ -751,6 +758,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             fromInput.value = "Your Location"; 
             fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; 
         }, handlePositionError, geolocationOptions ); 
+    });
+    
+    // ▼▼▼ NEW: Event listener for the back button ▼▼▼
+    backToInfoBtn.addEventListener('click', () => {
+        if (currentPlace) {
+            showPanel('info-panel-redesign');
+        } else {
+            closePanel();
+        }
     });
     
     function clearRouteFromMap() {
@@ -1018,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); if (isMobile) setTimeout(closeSettings, 200); });
     voiceRadioButtons.forEach(radio => { radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); if (isMobile) setTimeout(closeSettings, 200); }); });
     
-    // ▼▼▼ NEW: Event listener for the Globe View toggle ▼▼▼
+    // Event listener for the Globe View toggle
     globeToggle.addEventListener('change', () => {
         const isEnabled = globeToggle.checked;
         localStorage.setItem('mapGlobeEnabled', isEnabled);
@@ -1077,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyTheme(savedTheme);
     }
 
-    // --- NEW: Function to set initial globe state from localStorage ---
+    // Function to set initial globe state from localStorage
     function initializeGlobeView() {
         const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
         globeToggle.checked = savedGlobeState;
