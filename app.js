@@ -241,7 +241,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     map.on('load', () => {
         geolocateControl.trigger();
-        showPanel('welcome-panel');
+        // ▼▼▼ THIS IS THE KEY CHANGE ▼▼▼
+        // Only show the welcome panel in its 'peek' state on mobile.
+        // On desktop, the panel will now remain hidden on load.
+        if (isMobile) {
+            showPanel('welcome-panel');
+        }
         initializeGlobeView();
     });
 
@@ -392,8 +397,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function closePanel() {
-        if (isMobile) sidePanel.classList.remove('open', 'peek');
-        else { 
+        if (isMobile) {
+            sidePanel.classList.remove('open', 'peek');
+        } else { 
             sidePanel.classList.remove('open'); 
             moveSearchBarToTop(); 
         }
