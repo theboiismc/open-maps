@@ -1027,6 +1027,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); if (isMobile) setTimeout(closeSettings, 200); });
     voiceRadioButtons.forEach(radio => { radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); if (isMobile) setTimeout(closeSettings, 200); }); });
     
+    // --- THEME MANAGEMENT ---
+    const themeRadioButtons = document.querySelectorAll('input[name="map-theme"]');
+    const systemThemeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
+
+    /**
+     * Applies the selected theme by setting a data-attribute on the html element.
+     * @param {'auto' | 'light' | 'dark'} theme 
+     */
+    function applyTheme(theme) {
+        if (theme === 'auto') {
+            document.documentElement.setAttribute('data-theme', systemThemeWatcher.matches ? 'dark' : 'light');
+        } else {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+    }
+
+    /**
+     * Handles changes from the user selecting a new theme radio button.
+     * Saves the preference to localStorage.
+     */
+    function handleThemeSelection(e) {
+        const selectedTheme = e.target.value;
+        localStorage.setItem('mapTheme', selectedTheme);
+        applyTheme(selectedTheme);
+        if (isMobile) setTimeout(closeSettings, 200);
+    }
+
+    // Listen for system theme changes (e.g., OS switches from light to dark mode automatically)
+    systemThemeWatcher.addEventListener('change', (e) => {
+        const savedTheme = localStorage.getItem('mapTheme') || 'auto';
+        if (savedTheme === 'auto') {
+            document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+        }
+    });
+
+    // Add event listeners to the new theme radio buttons
+    themeRadioButtons.forEach(radio => radio.addEventListener('change', handleThemeSelection));
+
+    // --- INITIAL THEME SETUP ON LOAD ---
+    /**
+     * Sets the initial theme based on saved preference or system default.
+     */
+    function initializeTheme() {
+        const savedTheme = localStorage.getItem('mapTheme') || 'auto';
+        const radioToCheck = document.querySelector(`input[name="map-theme"][value="${savedTheme}"]`);
+        if (radioToCheck) {
+            radioToCheck.checked = true;
+        }
+        applyTheme(savedTheme);
+    }
+    
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
     const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
@@ -1116,5 +1167,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (radio) radio.checked = true;
     });
     
+    initializeTheme(); // Set the initial theme
     getInitialRouteFromUrl();
 });
