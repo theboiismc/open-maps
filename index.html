@@ -210,7 +210,15 @@
             <div class="setting-group"><label class="setting-label">Units</label><div class="radio-group"><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
             <hr>
             <div class="setting-group"><label class="setting-label">Navigation Voice</label><div class="radio-group"><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
-        </div>
+            <hr>
+            <div class="setting-group">
+                <label class="setting-label">Globe View</label>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="globe-toggle" name="map-globe">
+                    <label for="globe-toggle"></label>
+                </div>
+            </div>
+            </div>
     </div>
 
     <div id="context-menu">
@@ -221,7 +229,6 @@
     </div>
     
     <div id="map"></div>
-    <button id="globe-toggle-btn" aria-label="Toggle Globe View"><span class="material-symbols-outlined">public</span></button>
     <div id="toast-container"></div>
     
     <script src="libs/js/oidc-client-ts@2.2.0.js" defer></script>
