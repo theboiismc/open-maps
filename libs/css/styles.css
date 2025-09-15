@@ -149,3 +149,64 @@ hr { border: none; border-top: 1px solid #e0e0e0; margin: 0;}.auth-buttons { pad
 #globe-toggle-btn .material-symbols-outlined {
     font-size: 24px;
 }
+
+/* --- New Enhanced Search Styles --- */
+.suggestions-dropdown {
+    padding: 0; /* Remove padding to allow sections to go edge-to-edge */
+}
+
+#initial-suggestions-view .suggestions-section {
+    padding: 8px 16px 16px 16px;
+}
+
+#initial-suggestions-view .suggestions-header {
+    font-size: 13px;
+    font-weight: 500;
+    color: #5f6368;
+    margin-bottom: 12px;
+}
+
+#recent-searches-container .recent-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+}
+
+#recent-searches-container .recent-item:hover {
+    background-color: #f1f3f4;
+}
+
+#recent-searches-container .recent-item .material-symbols-outlined {
+    margin-right: 16px;
+    color: #5f6368;
+    font-size: 20px;
+}
+
+.category-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.category-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f1f3f4;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.category-pill:hover {
+    background-color: #e8e8e8;
+}
+
+#api-suggestions-view .search-result {
+    padding: 12px 16px; /* Match padding */
+}
