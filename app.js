@@ -85,16 +85,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const infoWeatherEl = document.getElementById('info-weather');
     const quickFactsEl = document.getElementById('quick-facts-content');
     const infoWebsiteBtn = document.getElementById('info-website-btn');
-    const settingsBtns = document.querySelectorAll('.js-settings-btn');
-    const settingsMenu = document.getElementById('settings-menu');
-    const closeSettingsBtn = document.getElementById('close-settings-btn');
-    const menuOverlay = document.getElementById('menu-overlay');
     const fromInput = document.getElementById('panel-from-input');
     const toInput = document.getElementById('panel-to-input');
     const contextMenu = document.getElementById('context-menu');
     const contextMenuCoords = document.getElementById('context-menu-coords');
+    const backToInfoBtn = document.getElementById('back-to-info-btn');
+
+    // Settings Modal Selectors
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsBtn = document.getElementById('settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const modalOverlay = document.getElementById('modal-overlay');
     const globeToggle = document.getElementById('globe-toggle');
-    const backToInfoBtn = document.getElementById('back-to-info-btn'); // New selector
 
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
@@ -105,19 +107,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function addRecentSearch(place) {
-        // A place object needs a unique identifier, display_name is good enough here
         if (!place || !place.display_name) return;
-
         let searches = getRecentSearches();
-        // Remove any existing entry with the same name to avoid duplicates
         searches = searches.filter(item => item.display_name !== place.display_name);
-        // Add the new place to the beginning of the array
         searches.unshift(place);
-        // Trim the array to the max length
         if (searches.length > MAX_RECENT_SEARCHES) {
             searches.length = MAX_RECENT_SEARCHES;
         }
-        // Save back to localStorage
         localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
     }
 
@@ -131,26 +127,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userLocationMarker = null;
     
     // --- HELPER FUNCTIONS ---
-    
-    /**
-     * Formats a duration in seconds into a human-readable string (e.g., "1 hr 25 min").
-     * @param {number} totalSeconds The total duration in seconds.
-     * @returns {string} The formatted duration string.
-     */
     function formatDuration(totalSeconds) {
         if (totalSeconds < 60) {
             return '< 1 min';
         }
         const hours = Math.floor(totalSeconds / 3600);
         const minutes = Math.round((totalSeconds % 3600) / 60);
-
-        if (hours > 0) {
-            return `${hours} hr ${minutes} min`;
-        } else {
-            return `${minutes} min`;
-        }
+        return hours > 0 ? `${hours} hr ${minutes} min` : `${minutes} min`;
     }
-
 
     // --- CONSTANTS ---
     const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
@@ -187,7 +171,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
     
-    // Handle OIDC callback
     if (window.location.pathname.endsWith("callback.html")) {
         try { 
             await authService.handleCallback(); 
@@ -199,14 +182,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
-    // Set up OIDC event listeners
     userManager.events.addUserLoaded(user => {
         updateAuthUI(user);
         showToast(`Welcome back, ${user.profile.name.split(' ')[0]}!`, 'success');
     });
     userManager.events.addUserUnloaded(() => updateAuthUI(null));
     
-    // Initial check for logged-in user
     try {
         const user = await authService.getUser();
         updateAuthUI(user);
@@ -230,7 +211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.addEventListener('click', (e) => {
         if (!profileArea.contains(e.target)) profileDropdown.style.display = 'none';
         if (!appMenuButton.contains(e.target) && !servicesDropdown.contains(e.target)) servicesDropdown.classList.remove('open');
-        if (!contextMenu.contains(e.target)) contextMenu.style.display = 'none';
+        if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) contextMenu.style.display = 'none';
     });
 
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
@@ -248,8 +229,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         pitch: 0,
         dragRotate: true,
         touchPitch: false,
-        scrollZoom: true, // Enabled for better globe interaction
-        renderWorldCopies: false, // Prevents the map from repeating
+        scrollZoom: true,
+        renderWorldCopies: false,
         maxZoom: 18,
         minZoom: 1,
     });
@@ -261,17 +242,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.on('load', () => {
         geolocateControl.trigger();
         showPanel('welcome-panel');
-        // Initialize globe view based on saved preference
         initializeGlobeView();
     });
 
-    // --- GLOBE VIEW LOGIC (MOVED FROM BUTTON) ---
-    /**
-     * Toggles the map projection between Mercator (flat) and Globe.
-     * @param {boolean} enableGlobe - True to switch to globe view, false for flat view.
-     */
+    // --- GLOBE VIEW LOGIC ---
     function setGlobeView(enableGlobe) {
-        if (!map || !map.isStyleLoaded()) return; // Prevent action if map isn't ready
+        if (!map || !map.isStyleLoaded()) return;
 
         try {
             const currentProjection = map.getProjection().name;
@@ -285,7 +261,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 map.setFog(defaultFog);
                 map.setProjection('globe');
                 map.easeTo({ zoom: 2.5, pitch: 45, duration: 1500 });
-
             } else if (!enableGlobe && currentProjection === 'globe') {
                 map.setFog(null);
                 map.setProjection('mercator');
@@ -333,7 +308,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const target = e.originalEvent.target;
         if (target.closest('.maplibregl-ctrl, #side-panel, #context-menu')) return;
         if (map.queryRenderedFeatures(e.point, { layers: ['route-line'] }).length > 0) return;
-        const poi = map.queryRenderedFeatures(e.point, { layers: ['poi-label'] })[0]; // Updated layer name for better accuracy
+        const poi = map.queryRenderedFeatures(e.point, { layers: ['poi-label'] })[0];
         if (poi?.properties.name) {
             performSmartSearch({ value: poi.properties.name }, processPlaceResult);
         } else {
@@ -472,17 +447,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- NEW ENHANCED SEARCH LOGIC ---
+    // --- ENHANCED SEARCH LOGIC ---
     const mainSuggestions = document.getElementById("main-suggestions");
     const initialSuggestionsView = document.getElementById("initial-suggestions-view");
     const apiSuggestionsView = document.getElementById("api-suggestions-view");
     const recentSearchesContainer = document.getElementById("recent-searches-container");
     const categoryPillsContainer = document.querySelector(".category-pills");
 
-    // Function to show the initial dropdown view (recents & categories)
     function showInitialSuggestions() {
-        // 1. Populate Recent Searches
-        recentSearchesContainer.innerHTML = ''; // Clear old items
+        recentSearchesContainer.innerHTML = '';
         const recents = getRecentSearches();
         if (recents.length > 0) {
             const header = document.createElement('div');
@@ -494,7 +467,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const item = document.createElement('div');
                 item.className = 'recent-item';
                 item.innerHTML = `<span class="material-symbols-outlined">history</span> <span>${place.display_name}</span>`;
-                item.addEventListener('mousedown', (e) => { // Use mousedown to fire before blur
+                item.addEventListener('mousedown', (e) => {
                     e.preventDefault();
                     processPlaceResult(place);
                     mainSuggestions.style.display = 'none';
@@ -502,31 +475,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 recentSearchesContainer.appendChild(item);
             });
         }
-
-        // 2. Switch views
         initialSuggestionsView.hidden = false;
         apiSuggestionsView.hidden = true;
         mainSuggestions.style.display = 'block';
     }
 
-    // Function to fetch and show API suggestions
     const fetchApiSuggestions = debounce(async (query) => {
         if (query.length < 3) return;
-
         initialSuggestionsView.hidden = true;
         apiSuggestionsView.hidden = false;
-
         const center = map.getCenter();
         const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
         try {
             const res = await fetch(url);
             const data = await res.json();
-            apiSuggestionsView.innerHTML = ""; // Clear old results
+            apiSuggestionsView.innerHTML = "";
             data.features.forEach(item => {
                 const el = document.createElement("div");
                 el.className = "search-result";
                 el.textContent = item.place_name;
-                el.addEventListener("mousedown", () => { // Use mousedown to fire before blur
+                el.addEventListener("mousedown", () => {
                     const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox };
                     processPlaceResult(place);
                     mainSuggestions.style.display = 'none';
@@ -538,19 +506,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }, 300);
 
-    // Attach all new event listeners for the main search bar
     mainSearchInput.addEventListener('focus', showInitialSuggestions);
-    mainSearchInput.addEventListener('blur', () => {
-        // Delay hiding to allow click events on suggestions to fire
-        setTimeout(() => { mainSuggestions.style.display = 'none'; }, 200);
-    });
+    mainSearchInput.addEventListener('blur', () => setTimeout(() => { mainSuggestions.style.display = 'none'; }, 200));
     mainSearchInput.addEventListener('input', () => {
         const query = mainSearchInput.value.trim();
-        if (query) {
-            fetchApiSuggestions(query);
-        } else {
-            showInitialSuggestions(); // Go back to recents if input is cleared
-        }
+        if (query) fetchApiSuggestions(query);
+        else showInitialSuggestions();
     });
     mainSearchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -558,26 +519,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             mainSuggestions.style.display = 'none';
         }
     });
-
-    document.getElementById("search-icon-inside").addEventListener("click", () => {
-        performSmartSearch(mainSearchInput, processPlaceResult);
-    });
-
+    document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
     categoryPillsContainer.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.category-pill')) {
-            const query = e.target.closest('.category-pill').dataset.query;
-            mainSearchInput.value = query; // Optional: put category name in search bar
+        const pill = e.target.closest('.category-pill');
+        if (pill) {
+            const query = pill.dataset.query;
+            mainSearchInput.value = query;
             performSmartSearch({ value: query }, processPlaceResult);
         }
     });
     
-    // --- Logic for Directions Panel Inputs (Legacy Suggestion System) ---
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
-            if (query.length < 3) { 
-                suggestionsEl.style.display = "none"; 
-                return; 
-            }
+            if (query.length < 3) { suggestionsEl.style.display = "none"; return; }
             const center = map.getCenter();
             const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
             try {
@@ -592,9 +546,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     suggestionsEl.appendChild(el);
                 });
                 suggestionsEl.style.display = data.features.length > 0 ? "block" : "none";
-            } catch (e) { 
-                console.error("Suggestion fetch failed", e); 
-            }
+            } catch (e) { console.error("Suggestion fetch failed", e); }
         };
         const debouncedFetch = debounce(fetchAndDisplaySuggestions, 300);
         inputEl.addEventListener("input", () => debouncedFetch(inputEl.value.trim()));
@@ -609,18 +561,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const res = await fetch(url);
             const data = await res.json();
-            if (data.features && data.features.length > 0) {
+            if (data.features?.length > 0) {
                 const item = data.features[0];
                 const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox };
                 processPlaceResult(place);
             }
-        } catch (error) { 
-            console.error("Reverse geocoding failed", error); 
-        }
+        } catch (error) { console.error("Reverse geocoding failed", error); }
     }
     
     function processPlaceResult(place) {
-        addRecentSearch(place); // Save successful search
+        addRecentSearch(place);
         currentPlace = place;
         stopNavigation();
         clearRouteFromMap();
@@ -630,17 +580,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
             .addTo(map);
             
-        if (place.bbox) {
-            map.fitBounds(place.bbox, { padding: 100, essential: true });
-        } else {
-            map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
-        }
+        if (place.bbox) map.fitBounds(place.bbox, { padding: 100, essential: true });
+        else map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
         
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
         infoNameEl.textContent = place.display_name.split(',')[0];
         infoAddressEl.textContent = place.display_name;
         infoImageEl.src = ''; 
-        infoImageEl.style.backgroundColor = '#e0e0e0';
+        infoImageEl.style.backgroundColor = 'var(--input-bg)';
         infoWeatherEl.innerHTML = '<div class="skeleton-line"></div>';
         quickFactsEl.innerHTML = '<div class="skeleton-line"></div><div class="skeleton-line"></div>';
         
@@ -663,7 +610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const res = await fetch(wikipediaUrl);
             const data = await res.json();
             const page = Object.values(data.query.pages)[0];
-            if (page.thumbnail && page.thumbnail.source) {
+            if (page.thumbnail?.source) {
                 imgEl.src = page.thumbnail.source;
                 imgEl.alt = `Photograph of ${query}`;
                 return;
@@ -675,12 +622,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const fallbackUrl = `https://render.openstreetmap.org/cgi-bin/export?bbox=${bbox}&scale=10000&format=png`;
             imgEl.src = fallbackUrl;
             imgEl.alt = `Map view of ${query}`;
-            imgEl.onerror = () => { imgEl.style.backgroundColor = '#e0e0e0'; imgEl.alt = 'Image not available'; };
+            imgEl.onerror = () => { imgEl.style.backgroundColor = 'var(--input-bg)'; imgEl.alt = 'Image not available'; };
         }
     }
 
     async function fetchAndSetWebsite(query) {
         const websiteBtn = document.getElementById('info-website-btn');
+        websiteBtn.style.display = 'none';
         try {
             const wikipediaUrl = `https://en.wikipedia.org/w/api.php?origin=*&action=query&format=json&prop=extlinks&titles=${encodeURIComponent(query)}`;
             const res = await fetch(wikipediaUrl);
@@ -690,12 +638,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (websiteLink) {
                 websiteBtn.style.display = 'flex';
                 websiteBtn.onclick = () => window.open(websiteLink['*'], '_blank');
-            } else {
-                websiteBtn.style.display = 'none';
             }
-        } catch (e) { 
-            websiteBtn.style.display = 'none'; 
-        }
+        } catch (e) { /* Do nothing */ }
     }
 
     function getWeatherDescription(code) {
@@ -741,7 +685,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             fromInput.value = ''; 
             fromInput.dataset.coords = '';
         } else {
-            // Clear inputs if opening fresh
             toInput.value = '';
             toInput.dataset.coords = '';
             fromInput.value = ''; 
@@ -760,13 +703,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, handlePositionError, geolocationOptions ); 
     });
     
-    // ▼▼▼ NEW: Event listener for the back button ▼▼▼
     backToInfoBtn.addEventListener('click', () => {
-        if (currentPlace) {
-            showPanel('info-panel-redesign');
-        } else {
-            closePanel();
-        }
+        if (currentPlace) showPanel('info-panel-redesign');
+        else closePanel();
     });
     
     function clearRouteFromMap() {
@@ -928,11 +867,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
         navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
-        endNavigationBtn.addEventListener('click', stopNavigation);
+        endNavigationBtn.addEventListener('click', stopNavigation, { once: true });
     }
 
     function stopNavigation() {
         if (navigationWatcherId) navigator.geolocation.clearWatch(navigationWatcherId);
+        navigationWatcherId = null;
         if (userLocationMarker) { userLocationMarker.remove(); userLocationMarker = null; }
         clearRouteFromMap();
         resetNavigationState();
@@ -946,7 +886,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         stopNavigation(); 
     }
 
-    async function handlePositionUpdate(position) {
+    function handlePositionUpdate(position) {
         if (!navigationState.isActive || navigationState.isRerouting) return;
         
         const { latitude, longitude, heading, speed } = position.coords;
@@ -962,16 +902,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             map.easeTo({ center: snapped.geometry.coordinates, duration: 500 });
         }
         
-        // Reroute if off-course
         const distanceFromRoute = snapped.properties.dist;
-        const OFF_ROUTE_THRESHOLD = 50; // meters
+        const OFF_ROUTE_THRESHOLD = 50;
         if (distanceFromRoute > OFF_ROUTE_THRESHOLD) {
             speechService.speak("Off route. Recalculating.", true);
-            await reroute(userPoint);
+            reroute(userPoint);
             return;
         }
         
-        // Advance to next step
         const steps = currentRouteData.routes[0].legs[0].steps;
         const currentStep = steps[navigationState.currentStepIndex];
         const stepEndPoint = turf.point(currentStep.geometry.coordinates.slice(-1)[0]);
@@ -991,9 +929,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             speechService.speak(nextInstruction, true);
         }
         
-        // --- UI Updates and upcoming turn announcements ---
         statSpeedEl.textContent = ((speed || 0) * 2.23694).toFixed(0);
-
         const totalStepDistance = turf.length(turf.lineString(currentStep.geometry.coordinates), { units: 'meters' });
         const progressAlongStep = Math.max(0, 1 - (distanceToNextManeuver / totalStepDistance));
         instructionProgressBar.transform = `scaleX(${progressAlongStep})`;
@@ -1006,50 +942,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         statEtaEl.textContent = new Date(Date.now() + remainingTime * 1000).toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' });
     }
 
-    // --- SETTINGS & MAP STYLE ---
+    // --- SETTINGS & MAP STYLE (NEW MODAL LOGIC) ---
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
     const trafficToggle = document.getElementById('traffic-toggle');
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
+    const themeRadioButtons = document.querySelectorAll('input[name="map-theme"]');
 
     function openSettings() { 
-        settingsMenu.classList.add('open'); 
-        if (isMobile) menuOverlay.classList.add('open'); 
+        settingsModal.classList.add('open'); 
     }
     
     function closeSettings() { 
-        settingsMenu.classList.remove('open'); 
-        if (isMobile) menuOverlay.classList.remove('open'); 
+        settingsModal.classList.remove('open'); 
     }
     
-    settingsBtns.forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); openSettings(); }));
-    closeSettingsBtn.addEventListener('click', closeSettings);
-    menuOverlay.addEventListener('click', closeSettings);
-    document.addEventListener('click', (e) => { 
-        if (!isMobile && settingsMenu.classList.contains('open') && !settingsMenu.contains(e.target) && !e.target.closest('.js-settings-btn')) {
-            closeSettings();
-        }
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.style.display = 'none';
+        openSettings();
     });
     
-    styleRadioButtons.forEach(radio => { radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); if (isMobile) setTimeout(closeSettings, 200); }); });
-    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); if (isMobile) setTimeout(closeSettings, 200); });
-    voiceRadioButtons.forEach(radio => { radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); if (isMobile) setTimeout(closeSettings, 200); }); });
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    modalOverlay.addEventListener('click', closeSettings);
     
-    // Event listener for the Globe View toggle
+    const closeAfterSetting = () => { if (isMobile) setTimeout(closeSettings, 200); };
+    
+    styleRadioButtons.forEach(radio => radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); closeAfterSetting(); }));
+    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
+    voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
     globeToggle.addEventListener('change', () => {
         const isEnabled = globeToggle.checked;
         localStorage.setItem('mapGlobeEnabled', isEnabled);
         setGlobeView(isEnabled);
-        if (isMobile) setTimeout(closeSettings, 200);
+        closeAfterSetting();
     });
     
     // --- THEME MANAGEMENT ---
-    const themeRadioButtons = document.querySelectorAll('input[name="map-theme"]');
     const systemThemeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
 
-    /**
-     * Applies the selected theme by setting a data-attribute on the html element.
-     * @param {'auto' | 'light' | 'dark'} theme 
-     */
     function applyTheme(theme) {
         if (theme === 'auto') {
             document.documentElement.setAttribute('data-theme', systemThemeWatcher.matches ? 'dark' : 'light');
@@ -1058,18 +988,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    /**
-     * Handles changes from the user selecting a new theme radio button.
-     * Saves the preference to localStorage.
-     */
     function handleThemeSelection(e) {
         const selectedTheme = e.target.value;
         localStorage.setItem('mapTheme', selectedTheme);
         applyTheme(selectedTheme);
-        if (isMobile) setTimeout(closeSettings, 200);
+        closeAfterSetting();
     }
 
-    // Listen for system theme changes (e.g., OS switches from light to dark mode automatically)
     systemThemeWatcher.addEventListener('change', (e) => {
         const savedTheme = localStorage.getItem('mapTheme') || 'auto';
         if (savedTheme === 'auto') {
@@ -1077,23 +1002,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Add event listeners to the new theme radio buttons
     themeRadioButtons.forEach(radio => radio.addEventListener('change', handleThemeSelection));
 
-    // --- INITIAL THEME SETUP ON LOAD ---
-    /**
-     * Sets the initial theme based on saved preference or system default.
-     */
     function initializeTheme() {
         const savedTheme = localStorage.getItem('mapTheme') || 'auto';
         const radioToCheck = document.querySelector(`input[name="map-theme"][value="${savedTheme}"]`);
-        if (radioToCheck) {
-            radioToCheck.checked = true;
-        }
+        if (radioToCheck) radioToCheck.checked = true;
         applyTheme(savedTheme);
     }
 
-    // Function to set initial globe state from localStorage
     function initializeGlobeView() {
         const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
         globeToggle.checked = savedGlobeState;
@@ -1110,10 +1027,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             map.addSource(TRAFFIC_SOURCE_ID, trafficSource); 
             let firstSymbolId; 
             for (const layer of map.getStyle().layers) { 
-                if (layer.type === 'symbol') { 
-                    firstSymbolId = layer.id; 
-                    break; 
-                } 
+                if (layer.type === 'symbol') { firstSymbolId = layer.id; break; } 
             } 
             map.addLayer(trafficLayer, firstSymbolId); 
         } 
@@ -1189,6 +1103,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (radio) radio.checked = true;
     });
     
-    initializeTheme(); // Set the initial theme
+    initializeTheme();
     getInitialRouteFromUrl();
 });
