@@ -73,7 +73,7 @@
                     <hr/>
                     <div class="profile-actions">
                         <a id="saved-places-btn">Saved Places</a>
-                        </div>
+                    </div>
                     <hr/>
                     <div class="profile-actions">
                         <a id="logout-btn">Log Out</a>
@@ -169,6 +169,17 @@
             </div>
             <div id="directions-panel-redesign" hidden>
                 <div class="info-content-padding">
+                    <div class="travel-modes">
+                        <button class="travel-mode-btn active" data-mode="driving" aria-label="Driving">
+                            <span class="material-symbols-outlined">directions_car</span>
+                        </button>
+                        <button class="travel-mode-btn" data-mode="walking" aria-label="Walking">
+                            <span class="material-symbols-outlined">directions_walk</span>
+                        </button>
+                        <button class="travel-mode-btn" data-mode="cycling" aria-label="Cycling">
+                            <span class="material-symbols-outlined">directions_bike</span>
+                        </button>
+                    </div>
                     <div class="dir-input-group">
                         <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
                         <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
