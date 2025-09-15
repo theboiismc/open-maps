@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Settings Modal Selectors
     const settingsModal = document.getElementById('settings-modal');
-    const settingsIconBtn = document.getElementById('settings-icon-btn'); // New icon button
+    const settingsBtn = document.getElementById('settings-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
     const globeToggle = document.getElementById('globe-toggle');
@@ -956,8 +956,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         settingsModal.classList.remove('open'); 
     }
     
-    // Event listener for the new icon button
-    settingsIconBtn.addEventListener('click', openSettings);
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.style.display = 'none';
+        openSettings();
+    });
     
     closeSettingsBtn.addEventListener('click', closeSettings);
     modalOverlay.addEventListener('click', closeSettings);
@@ -965,7 +968,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeAfterSetting = () => { if (isMobile) setTimeout(closeSettings, 200); };
     
     styleRadioButtons.forEach(radio => radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); closeAfterSetting(); }));
-    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); }));
+    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
     globeToggle.addEventListener('change', () => {
         const isEnabled = globeToggle.checked;
