@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let clickedLocationMarker = null;
     let navigationWatcherId = null;
     let userLocationMarker = null;
-    let searchResultMarkers = []; // For category search markers
+    let searchResultMarkers = [];
 
     // --- HELPER FUNCTIONS ---
     function formatDuration(totalSeconds) {
@@ -239,7 +239,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.addControl(geolocateControl, "bottom-right");
 
     map.on('load', async () => {
-        // Check permission before triggering geolocation on page load
         if (navigator.geolocation && navigator.permissions) {
             try {
                 const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
@@ -248,10 +247,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (error) {
                 console.error("Error checking geolocation permission on load:", error);
-                geolocateControl.trigger(); // Fallback
+                geolocateControl.trigger();
             }
         } else {
-            geolocateControl.trigger(); // Fallback for older browsers
+            geolocateControl.trigger();
         }
 
         if (isMobile) {
@@ -266,11 +265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const currentProjection = map.getProjection().name;
             if (enableGlobe && currentProjection !== 'globe') {
-                const defaultFog = {
-                    "range": [0.8, 8], "color": "rgb(186, 210, 235)",
-                    "horizon-blend": 0.05, "high-color": "rgb(220, 225, 235)",
-                    "space-color": "rgb(11, 11, 25)", "star-intensity": 0.15
-                };
+                const defaultFog = { "range": [0.8, 8], "color": "rgb(186, 210, 235)", "horizon-blend": 0.05, "high-color": "rgb(220, 225, 235)", "space-color": "rgb(11, 11, 25)", "star-intensity": 0.15 };
                 map.setFog(defaultFog);
                 map.setProjection('globe');
                 map.easeTo({ zoom: 2.5, pitch: 45, duration: 1500 });
@@ -295,7 +290,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         contextMenu.style.display = 'block';
     });
 
-    document.getElementById('ctx-directions-from').addEventListener('click', async () => {
+    document.getElementById('ctx-directions-from').addEventListener('click', () => {
         openDirectionsPanel();
         fromInput.value = `${contextMenuLngLat.lat.toFixed(5)}, ${contextMenuLngLat.lng.toFixed(5)}`;
         fromInput.dataset.coords = `${contextMenuLngLat.lng},${contextMenuLngLat.lat}`;
@@ -333,20 +328,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     let navigationState = {};
     function resetNavigationState() {
         navigationState = {
-            isActive: false,
-            isRerouting: false,
-            currentStepIndex: 0,
-            destinationCoords: null,
-            lastDistanceToDestination: Infinity
+            isActive: false, isRerouting: false, currentStepIndex: 0,
+            destinationCoords: null, lastDistanceToDestination: Infinity
         };
     }
     resetNavigationState();
 
     const speechService = {
-        synthesis: window.speechSynthesis,
-        voices: { male: null, female: null },
-        selectedVoice: localStorage.getItem('mapVoice') || 'female',
-        isReady: false,
+        synthesis: window.speechSynthesis, voices: { male: null, female: null },
+        selectedVoice: localStorage.getItem('mapVoice') || 'female', isReady: false,
         init() {
             return new Promise((resolve) => {
                 const getVoices = () => {
@@ -468,7 +458,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- ENHANCED SEARCH LOGIC ---
+    // --- ENHANCED SEARCH LOGIC (Main search bar) ---
     function showInitialSuggestions() {
         recentSearchesContainer.innerHTML = '';
         const recents = getRecentSearches();
@@ -612,7 +602,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- CATEGORY SEARCH ---
-    function displaySearchResults(features, query) {
+    function getIconForCategory(query) {
+        const q = query.toLowerCase();
+        if (q.includes('restaurant')) return 'restaurant';
+        if (q.includes('gas') || q.includes('fuel')) return 'local_gas_station';
+        if (q.includes('coffee') || q.includes('cafe')) return 'coffee';
+        if (q.includes('park')) return 'park';
+        return 'place';
+    }
+    
+    function displaySearchResults(features, query, userCoords) {
         clearSearchResultMarkers();
         searchResultsListEl.innerHTML = '';
         searchResultsQueryEl.textContent = query;
@@ -623,26 +622,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const userPoint = turf.point(userCoords);
+        const featuresWithDistance = features.map(item => {
+            const placePoint = turf.point([item.lon, item.lat]);
+            item.distance = turf.distance(userPoint, placePoint, { units: 'miles' });
+            return item;
+        }).sort((a, b) => a.distance - b.distance);
+        
         const bounds = new maplibregl.LngLatBounds();
+        bounds.extend(userCoords);
 
-        features.forEach(item => {
-            const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox };
-
+        featuresWithDistance.forEach(item => {
+            const displayName = item.tags?.name || 'Unnamed Place';
+            const place = { lon: item.lon, lat: item.lat, display_name: displayName };
+            
             const marker = new maplibregl.Marker({ color: '#E53935' })
                 .setLngLat([place.lon, place.lat])
-                .setPopup(new maplibregl.Popup({ offset: 25 }).setText(item.place_name.split(',')[0]))
+                .setPopup(new maplibregl.Popup({ offset: 25 }).setText(displayName))
                 .addTo(map);
 
-            marker.getElement().addEventListener('click', (e) => {
-                e.stopPropagation();
-                processPlaceResult(place)
-            });
+            marker.getElement().addEventListener('click', (e) => { e.stopPropagation(); processPlaceResult(place) });
             searchResultMarkers.push(marker);
             bounds.extend([place.lon, place.lat]);
 
             const listItem = document.createElement('div');
             listItem.className = 'search-result-item';
-            listItem.innerHTML = `<h4>${item.place_name.split(',')[0]}</h4><p>${item.place_name.split(',').slice(1).join(',').trim()}</p>`;
+            const address = (item.tags && `${item.tags['addr:street'] || ''} ${item.tags['addr:city'] || ''}`).trim() || 'Address not available';
+            
+            listItem.innerHTML = `
+                <div class="result-item-icon"><span class="material-symbols-outlined">${getIconForCategory(query)}</span></div>
+                <div class="result-item-details">
+                    <h4>${displayName}</h4>
+                    <p>${address}</p>
+                </div>
+                <div class="result-item-distance">${item.distance.toFixed(1)} mi</div>
+            `;
             listItem.addEventListener('click', () => processPlaceResult(place));
             searchResultsListEl.appendChild(listItem);
         });
@@ -650,8 +664,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         map.fitBounds(bounds, { padding: 80, maxZoom: 15 });
         showPanel('search-results-panel');
     }
-
-    async function performCategorySearch(query) {
+    
+    async function performCategorySearch(query, osmTag) {
         if (!navigator.geolocation || !navigator.permissions) {
             return showToast("Location services are not supported by your browser.", "error");
         }
@@ -662,28 +676,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         showToast(`Searching for ${query}...`, 'info');
+        
+        const getLocation = new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, geolocationOptions));
 
-        const getLocation = new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, geolocationOptions);
-        });
-
-        let proximityCoords;
+        let userCoords;
         try {
             const position = await getLocation;
-            proximityCoords = [position.coords.longitude, position.coords.latitude];
+            userCoords = [position.coords.longitude, position.coords.latitude];
         } catch (error) {
-            showToast("Could not get your location. Searching near map center.", "info");
+            showToast("Could not get your location. Using map center.", "info");
             const center = map.getCenter();
-            proximityCoords = [center.lng, center.lat];
+            userCoords = [center.lng, center.lat];
         }
 
-        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${proximityCoords.join(',')}&limit=10`;
+        const [tagKey, tagValue] = osmTag.split('=');
+        const searchRadiusMeters = 10000;
+        const overpassQuery = `[out:json];node(around:${searchRadiusMeters},${userCoords[1]},${userCoords[0]})["${tagKey}"="${tagValue}"];out;`;
+        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
 
         try {
             const res = await fetch(url);
-            if (!res.ok) throw new Error("Search request failed.");
+            if (!res.ok) throw new Error("Overpass API request failed.");
             const data = await res.json();
-            displaySearchResults(data.features, query);
+            displaySearchResults(data.elements, query, userCoords);
         } catch (e) {
             showToast("Could not find places.", "error");
             console.error("Category search failed:", e);
@@ -695,9 +710,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (pill) {
             e.preventDefault();
             const query = pill.dataset.query;
+            const osmTag = pill.dataset.osmTag;
             mainSearchInput.value = '';
             mainSuggestions.style.display = 'none';
-            performCategorySearch(query);
+            performCategorySearch(query, osmTag);
         }
     });
 
@@ -1070,19 +1086,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         statEtaEl.textContent = new Date(Date.now() + remainingTime * 1000).toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' });
     }
 
-    // --- SETTINGS & MAP STYLE (NEW MODAL LOGIC) ---
+    // --- SETTINGS & MAP STYLE ---
     const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
     const trafficToggle = document.getElementById('traffic-toggle');
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
     const themeRadioButtons = document.querySelectorAll('input[name="map-theme"]');
 
-    function openSettings() {
-        settingsModal.classList.add('open');
-    }
-
-    function closeSettings() {
-        settingsModal.classList.remove('open');
-    }
+    function openSettings() { settingsModal.classList.add('open'); }
+    function closeSettings() { settingsModal.classList.remove('open'); }
 
     settingsIconBtn.addEventListener('click', openSettings);
     closeSettingsBtn.addEventListener('click', closeSettings);
