@@ -303,3 +303,31 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
     text-align: center;
     color: var(--text-secondary);
 }
+
+/* --- Styles for Sort Controls --- */
+
+.sort-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.sort-btn {
+    flex-grow: 1;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    color: var(--text-secondary);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sort-btn.active,
+.sort-btn:hover {
+    background-color: var(--accent-color-light);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+}
