@@ -200,3 +200,106 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
     border-color: var(--accent-color);
     color: white;
 }
+
+/* --- NEW STYLES FOR SEARCH RESULTS PANEL --- */
+
+/* Lays out the back button and header */
+.results-header {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.25rem;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 0;
+    margin-bottom: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.8;
+}
+.back-button:hover {
+    opacity: 1;
+    color: var(--text-primary);
+}
+.back-button .material-symbols-outlined {
+    margin-right: 8px;
+}
+
+/* Main container for each result item */
+.search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 8px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* Hover effect for interactivity */
+.search-result-item:hover {
+    background-color: var(--hover-bg);
+}
+
+/* Styles for the category icon (restaurant, gas, etc.) */
+.result-item-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--accent-color-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-color);
+}
+.result-item-icon .material-symbols-outlined {
+    font-size: 24px;
+}
+
+/* Container for the name and address, allows it to take up available space */
+.result-item-details {
+    flex-grow: 1;
+    overflow: hidden; /* Prevents long names from breaking layout */
+}
+
+/* Title of the place */
+.result-item-details h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Address or "Address not available" text */
+.result-item-details p {
+    margin: 4px 0 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The distance text on the right */
+.result-item-distance {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Message for when no results are found */
+.no-results {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-secondary);
+}
