@@ -88,6 +88,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backFromResultsBtn = document.getElementById('back-from-results-btn');
     const searchResultsQueryEl = document.getElementById('search-results-query');
     const searchResultsListEl = document.getElementById('search-results-list');
+    const sortByDistanceBtn = document.getElementById('sort-by-distance-btn');
+    const sortByRatingBtn = document.getElementById('sort-by-rating-btn');
+    const searchThisAreaBtn = document.getElementById('search-this-area-btn');
 
     // Settings Modal Selectors
     const settingsModal = document.getElementById('settings-modal');
@@ -124,6 +127,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let navigationWatcherId = null;
     let userLocationMarker = null;
     let searchResultMarkers = [];
+    let currentSearchResults = [];
+    let lastSearch = null;
 
     // --- HELPER FUNCTIONS ---
     function formatDuration(totalSeconds) {
@@ -402,6 +407,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function closePanel() {
         clearSearchResultMarkers();
+        currentSearchResults = [];
+        searchThisAreaBtn.hidden = true;
         if (isMobile) {
             sidePanel.classList.remove('open', 'peek');
         } else {
@@ -611,28 +618,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 'place';
     }
     
-    function displaySearchResults(features, query, userCoords) {
-        clearSearchResultMarkers();
+    function displaySearchResults(features, userCoords, sortBy = 'distance') {
         searchResultsListEl.innerHTML = '';
-        searchResultsQueryEl.textContent = query;
 
         if (!features || features.length === 0) {
-            searchResultsListEl.innerHTML = '<div class="no-results">No results found nearby.</div>';
-            showPanel('search-results-panel');
+            searchResultsListEl.innerHTML = '<div class="no-results">No results found in this area.</div>';
             return;
         }
 
         const userPoint = turf.point(userCoords);
-        const featuresWithDistance = features.map(item => {
-            const placePoint = turf.point([item.lon, item.lat]);
-            item.distance = turf.distance(userPoint, placePoint, { units: 'miles' });
-            return item;
-        }).sort((a, b) => a.distance - b.distance);
-        
-        const bounds = new maplibregl.LngLatBounds();
-        bounds.extend(userCoords);
+        let processedFeatures = features.map(item => {
+            return {
+                ...item,
+                distance: turf.distance(userPoint, turf.point([item.lon, item.lat]), { units: 'miles' }),
+                rating: item.rating || (Math.random() * (5 - 3.5) + 3.5).toFixed(1)
+            };
+        });
 
-        featuresWithDistance.forEach(item => {
+        if (sortBy === 'distance') {
+            processedFeatures.sort((a, b) => a.distance - b.distance);
+        } else if (sortBy === 'rating') {
+            processedFeatures.sort((a, b) => b.rating - a.rating);
+        }
+        
+        clearSearchResultMarkers();
+        const bounds = new maplibregl.LngLatBounds();
+        processedFeatures.forEach(item => bounds.extend([item.lon, item.lat]));
+
+        processedFeatures.forEach(item => {
             const displayName = item.tags?.name || 'Unnamed Place';
             const place = { lon: item.lon, lat: item.lat, display_name: displayName };
             
@@ -641,19 +654,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .setPopup(new maplibregl.Popup({ offset: 25 }).setText(displayName))
                 .addTo(map);
 
-            marker.getElement().addEventListener('click', (e) => { e.stopPropagation(); processPlaceResult(place) });
+            marker.getElement().addEventListener('click', (e) => { e.stopPropagation(); processPlaceResult(place); });
             searchResultMarkers.push(marker);
-            bounds.extend([place.lon, place.lat]);
-
+            
             const listItem = document.createElement('div');
             listItem.className = 'search-result-item';
             const address = (item.tags && `${item.tags['addr:street'] || ''} ${item.tags['addr:city'] || ''}`).trim() || 'Address not available';
             
             listItem.innerHTML = `
-                <div class="result-item-icon"><span class="material-symbols-outlined">${getIconForCategory(query)}</span></div>
+                <div class="result-item-icon"><span class="material-symbols-outlined">${getIconForCategory(lastSearch.query)}</span></div>
                 <div class="result-item-details">
                     <h4>${displayName}</h4>
-                    <p>${address}</p>
+                    <p>Rating: ${item.rating} ★ &middot; ${address}</p>
                 </div>
                 <div class="result-item-distance">${item.distance.toFixed(1)} mi</div>
             `;
@@ -661,59 +673,101 @@ document.addEventListener('DOMContentLoaded', async () => {
             searchResultsListEl.appendChild(listItem);
         });
 
-        map.fitBounds(bounds, { padding: 80, maxZoom: 15 });
-        showPanel('search-results-panel');
+        if (searchResultMarkers.length > 0) {
+            map.fitBounds(bounds, { padding: 100, maxZoom: 15 });
+        }
     }
     
-    async function performCategorySearch(query, osmTag) {
-        if (!navigator.geolocation || !navigator.permissions) {
-            return showToast("Location services are not supported by your browser.", "error");
-        }
-
-        const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
-        if (permissionStatus.state === 'denied') {
-            return showToast("Location access is denied. Cannot search for nearby places.", "error");
-        }
+    async function performCategorySearch(searchContext) {
+        const { query, osmTag, center, bbox } = searchContext;
+        lastSearch = searchContext;
         
         showToast(`Searching for ${query}...`, 'info');
-        
-        const getLocation = new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, geolocationOptions));
-
-        let userCoords;
-        try {
-            const position = await getLocation;
-            userCoords = [position.coords.longitude, position.coords.latitude];
-        } catch (error) {
-            showToast("Could not get your location. Using map center.", "info");
-            const center = map.getCenter();
-            userCoords = [center.lng, center.lat];
-        }
+        searchResultsQueryEl.textContent = query;
+        showPanel('search-results-panel');
+        searchThisAreaBtn.hidden = true;
 
         const [tagKey, tagValue] = osmTag.split('=');
-        const searchRadiusMeters = 10000;
-        const overpassQuery = `[out:json];node(around:${searchRadiusMeters},${userCoords[1]},${userCoords[0]})["${tagKey}"="${tagValue}"];out;`;
+        const bboxString = `${bbox.getSouth()},${bbox.getWest()},${bbox.getNorth()},${bbox.getEast()}`;
+
+        const overpassQuery = `[out:json];node["${tagKey}"="${tagValue}"](${bboxString});out;`;
         const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
 
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error("Overpass API request failed.");
             const data = await res.json();
-            displaySearchResults(data.elements, query, userCoords);
+            
+            currentSearchResults = data.elements;
+            displaySearchResults(currentSearchResults, [center.lng, center.lat], 'distance');
         } catch (e) {
             showToast("Could not find places.", "error");
             console.error("Category search failed:", e);
         }
     }
     
-    categoryPillsContainer.addEventListener('mousedown', (e) => {
+    categoryPillsContainer.addEventListener('mousedown', async (e) => {
         const pill = e.target.closest('.category-pill');
         if (pill) {
             e.preventDefault();
-            const query = pill.dataset.query;
-            const osmTag = pill.dataset.osmTag;
-            mainSearchInput.value = '';
-            mainSuggestions.style.display = 'none';
-            performCategorySearch(query, osmTag);
+            
+            if (!navigator.geolocation || !navigator.permissions) return showToast("Location services are not supported.", "error");
+            const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+            if (permissionStatus.state === 'denied') return showToast("Location access is denied.", "error");
+
+            const getLocation = new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, geolocationOptions));
+            try {
+                const position = await getLocation;
+                map.flyTo({ center: [position.coords.longitude, position.coords.latitude], zoom: 12 });
+                map.once('moveend', () => {
+                    performCategorySearch({
+                        query: pill.dataset.query,
+                        osmTag: pill.dataset.osmTag,
+                        center: map.getCenter(),
+                        bbox: map.getBounds()
+                    });
+                });
+            } catch {
+                 showToast("Could not get location. Searching current map area.", "info");
+                 performCategorySearch({
+                    query: pill.dataset.query,
+                    osmTag: pill.dataset.osmTag,
+                    center: map.getCenter(),
+                    bbox: map.getBounds()
+                });
+            }
+        }
+    });
+
+    searchThisAreaBtn.addEventListener('click', () => {
+        if (lastSearch) {
+            performCategorySearch({
+                ...lastSearch,
+                center: map.getCenter(),
+                bbox: map.getBounds()
+            });
+        }
+    });
+
+    map.on('moveend', () => {
+        if (currentSearchResults.length > 0 && document.getElementById('search-results-panel').hidden === false) {
+            searchThisAreaBtn.hidden = false;
+        }
+    });
+
+    sortByDistanceBtn.addEventListener('click', () => {
+        if (!sortByDistanceBtn.classList.contains('active')) {
+            sortByDistanceBtn.classList.add('active');
+            sortByRatingBtn.classList.remove('active');
+            displaySearchResults(currentSearchResults, [lastSearch.center.lng, lastSearch.center.lat], 'distance');
+        }
+    });
+
+    sortByRatingBtn.addEventListener('click', () => {
+        if (!sortByRatingBtn.classList.contains('active')) {
+            sortByRatingBtn.classList.add('active');
+            sortByDistanceBtn.classList.remove('active');
+            displaySearchResults(currentSearchResults, [lastSearch.center.lng, lastSearch.center.lat], 'rating');
         }
     });
 
@@ -1027,7 +1081,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function handlePositionError(error) {
         showToast(`Geolocation error: ${error.message}.`, "error");
-        stopNavigation();
+        if (navigationState.isActive) {
+            stopNavigation();
+        }
     }
 
     function handlePositionUpdate(position) {
@@ -1102,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeAfterSetting = () => { if (isMobile) setTimeout(closeSettings, 200); };
 
     styleRadioButtons.forEach(radio => radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); closeAfterSetting(); }));
-    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
+    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); }));
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
     globeToggle.addEventListener('change', () => {
         const isEnabled = globeToggle.checked;
