@@ -331,3 +331,85 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
     color: var(--accent-color);
     border-color: var(--accent-color);
 }
+
+/* --- STYLES FOR THE REDESIGNED WELCOME PANEL --- */
+
+/* Style for the "Find Nearby" heading */
+.find-nearby-header {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+/* Make the welcome panel content fill the height and add the footer at the bottom */
+#welcome-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#welcome-panel .info-content-padding {
+    flex-grow: 1;
+}
+
+/* Updated styles for the Category Pills container to create a grid */
+.category-pills {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Creates a 2-column layout */
+    gap: 12px; /* Space between the buttons */
+    margin-top: 8px;
+}
+
+/* Updated styles for individual Category Pills */
+.category-pill {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Align content to the left */
+    gap: 12px; /* Space between icon and text */
+    padding: 12px;
+    border: none;
+    border-radius: 12px; /* More rounded corners */
+    background-color: var(--surface-secondary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s ease;
+}
+
+.category-pill:hover {
+    background-color: var(--surface-tertiary);
+}
+
+.category-pill .material-symbols-outlined {
+    font-size: 24px;
+    color: var(--accent-color); /* Use your accent color for the icons */
+}
+
+
+/* --- STYLES FOR THE NEW LEGAL FOOTER --- */
+.legal-footer {
+    padding: 16px;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto; /* Pushes the footer to the bottom */
+}
+
+.legal-footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin: 0 4px;
+}
+
+.legal-footer a:hover {
+    text-decoration: underline;
+}
+
+.legal-footer p {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
