@@ -702,12 +702,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('info-directions-btn').addEventListener('click', openDirectionsPanel);
     document.getElementById('get-route-btn').addEventListener('click', getRoute);
     document.getElementById('start-navigation-btn').addEventListener('click', startNavigation);
-    document.getElementById('dir-use-my-location').addEventListener('click', () => { 
-        navigator.geolocation.getCurrentPosition(pos => { 
-            fromInput.value = "Your Location"; 
-            fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`; 
-        }, handlePositionError, geolocationOptions ); 
+
+    // --- MODIFIED SECTION START ---
+    // This is the updated code that properly checks for location permissions.
+    document.getElementById('dir-use-my-location').addEventListener('click', async () => {
+        // First, check if the browser supports geolocation at all
+        if (!navigator.geolocation) {
+            showToast("Geolocation is not supported by your browser.", "error");
+            return;
+        }
+    
+        try {
+            // Use the Permissions API to check the state without triggering a prompt
+            const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+    
+            const setLocationFromPosition = (pos) => {
+                fromInput.value = "Your Location";
+                fromInput.dataset.coords = `${pos.coords.longitude},${pos.coords.latitude}`;
+            };
+    
+            if (permissionStatus.state === 'granted') {
+                // ✅ Permission is already granted, just get the position.
+                // This call should NOT trigger a prompt.
+                navigator.geolocation.getCurrentPosition(setLocationFromPosition, handlePositionError, geolocationOptions);
+            } else if (permissionStatus.state === 'prompt') {
+                // 🤔 Permission has not been granted or denied yet.
+                // This call will trigger the browser prompt as expected.
+                navigator.geolocation.getCurrentPosition(setLocationFromPosition, handlePositionError, geolocationOptions);
+            } else if (permissionStatus.state === 'denied') {
+                // ❌ Permission was explicitly denied by the user.
+                // Inform the user how to fix it in their browser settings.
+                showToast("Location access was denied. Please enable it in your browser settings.", "error");
+            }
+        } catch (error) {
+            console.error("Error handling location permission:", error);
+            showToast("Could not get your location.", "error");
+        }
     });
+    // --- MODIFIED SECTION END ---
     
     backToInfoBtn.addEventListener('click', () => {
         if (currentPlace) showPanel('info-panel-redesign');
