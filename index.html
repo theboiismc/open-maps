@@ -152,8 +152,14 @@
             </div>
             <div id="search-results-panel" hidden>
                 <div class="info-content-padding">
-                    <button id="back-from-results-btn" class="back-button"><span class="material-symbols-outlined">arrow_back</span> Back</button>
+                    <button id="back-from-results-btn" class="back-button">
+                        <span class="material-symbols-outlined">arrow_back</span> Back
+                    </button>
                     <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
+                    <div class="sort-controls">
+                        <button id="sort-by-distance-btn" class="sort-btn active" data-sort="distance">Distance</button>
+                        <button id="sort-by-rating-btn" class="sort-btn" data-sort="rating">Rating</button>
+                    </div>
                     <div id="search-results-list">
                         </div>
                 </div>
@@ -254,6 +260,7 @@
     </div>
     
     <div id="map"></div>
+    <button id="search-this-area-btn" class="search-area-btn" hidden>Search this area</button>
     <div id="toast-container"></div>
     
     <script src="libs/js/oidc-client-ts@2.2.0.js" defer></script>
