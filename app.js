@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backFromResultsBtn = document.getElementById('back-from-results-btn');
     const searchResultsQueryEl = document.getElementById('search-results-query');
     const searchResultsListEl = document.getElementById('search-results-list');
+    const welcomeDirectionsBtn = document.getElementById('welcome-directions-btn');
 
     // Settings Modal Selectors
     const settingsModal = document.getElementById('settings-modal');
@@ -217,8 +218,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     signupBtn.addEventListener('click', (e) => { e.preventDefault(); window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/"; });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
     if (closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
-    document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
-
+    welcomeDirectionsBtn.addEventListener('click', openDirectionsPanel);
+    
     // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
         container: "map",
@@ -254,7 +255,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (isMobile) {
-            showPanel('welcome-panel');
+            showPanel('welcome-panel', 'peek');
         }
         initializeGlobeView();
     });
@@ -381,36 +382,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // --- SIDE PANEL MANAGEMENT ---
+    const panelViewIds = ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'];
+
     function clearSearchResultMarkers() {
         searchResultMarkers.forEach(marker => marker.remove());
         searchResultMarkers = [];
     }
     
-    function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'].forEach(id => {
+    // Wrapped showPanel to be accessible by the drag logic override
+    let showPanel = function(viewId, panelState = 'full') {
+        panelViewIds.forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.hidden = id !== viewId;
+            if (el) el.hidden = (id !== viewId);
         });
-        if (isMobile) {
-            sidePanel.classList.toggle('peek', viewId === 'welcome-panel');
-            sidePanel.classList.toggle('open', viewId !== 'welcome-panel');
-        } else {
-            sidePanel.classList.add('open');
-            moveSearchBarToPanel();
+
+        sidePanel.classList.remove('peek', 'mid', 'full');
+        if (panelState) {
+            sidePanel.classList.add(panelState);
+        }
+
+        if (!isMobile) {
+            if (panelState) moveSearchBarToPanel();
+            else moveSearchBarToTop();
         }
     }
 
     function closePanel() {
         clearSearchResultMarkers();
-        if (isMobile) {
-            sidePanel.classList.remove('open', 'peek');
-        } else {
-            sidePanel.classList.remove('open');
-            moveSearchBarToTop();
-        }
+        sidePanel.classList.remove('peek', 'mid', 'full'); 
         if (clickedLocationMarker) {
             clickedLocationMarker.remove();
             clickedLocationMarker = null;
+        }
+        if (!isMobile) {
+            moveSearchBarToTop();
         }
     }
 
@@ -526,7 +531,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
     
-    backFromResultsBtn.addEventListener('click', closePanel);
+    backFromResultsBtn.addEventListener('click', () => showPanel('welcome-panel', 'peek'));
 
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
@@ -598,7 +603,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchAndSetQuickFacts(locationName);
         fetchAndSetWebsite(locationName);
 
-        showPanel('info-panel-redesign');
+        showPanel('info-panel-redesign', 'mid');
     }
 
     // --- CATEGORY SEARCH ---
@@ -618,7 +623,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!features || features.length === 0) {
             searchResultsListEl.innerHTML = '<div class="no-results">No results found nearby.</div>';
-            showPanel('search-results-panel');
+            showPanel('search-results-panel', 'mid');
             return;
         }
 
@@ -662,7 +667,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         map.fitBounds(bounds, { padding: 80, maxZoom: 15 });
-        showPanel('search-results-panel');
+        showPanel('search-results-panel', 'mid');
     }
     
     async function performCategorySearch(query, osmTag) {
@@ -795,7 +800,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- ROUTING & NAVIGATION ---
     function openDirectionsPanel() {
-        showPanel('directions-panel-redesign');
+        showPanel('directions-panel-redesign', 'full');
         if (currentPlace) {
             toInput.value = currentPlace.display_name;
             toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
@@ -839,7 +844,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     backToInfoBtn.addEventListener('click', () => {
         if (currentPlace) showPanel('info-panel-redesign');
-        else closePanel();
+        else showPanel('welcome-panel', 'peek');
     });
 
     function clearRouteFromMap() {
@@ -940,7 +945,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const distanceMiles = (route.distance / 1609.34).toFixed(1);
                 document.getElementById('route-summary-time').textContent = `${durationMinutes} min`;
                 document.getElementById('route-summary-distance').textContent = `${distanceMiles} mi`;
-                showPanel('route-preview-panel');
+                showPanel('route-preview-panel', 'mid');
                 map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
             }
         } catch (err) {
@@ -1184,28 +1189,84 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- MOBILE-SPECIFIC PANEL DRAGGING ---
     if (isMobile) {
-        let panelDragState = { isDragging: false, startY: 0, dragOffset: 0 };
+        let panelState = {
+            isDragging: false,
+            startY: 0,
+            currentY: 0,
+            currentState: 'peek'
+        };
+
+        const statePositions = {
+            peek: window.innerHeight - 320,
+            mid: window.innerHeight * 0.5,
+            full: 80
+        };
+
         const panelDragStart = (e) => {
-            if (e.target.closest('.panel-content')) return;
-            panelDragState.isDragging = true;
-            panelDragState.startY = e.touches[0].clientY;
+            if (e.target.closest('.panel-content') && !e.target.closest('#panel-grabber')) return;
+
+            panelState.isDragging = true;
+            panelState.startY = e.touches[0].clientY;
             sidePanel.style.transition = 'none';
         };
+
         const panelDragMove = (e) => {
-            if (!panelDragState.isDragging) return;
-            panelDragState.dragOffset = e.touches[0].clientY - panelDragState.startY;
-            if (panelDragState.dragOffset > 0) sidePanel.style.transform = `translateY(${panelDragState.dragOffset}px)`;
+            if (!panelState.isDragging) return;
+            
+            const currentTouchY = e.touches[0].clientY;
+            const deltaY = currentTouchY - panelState.startY;
+            let initialY = statePositions[panelState.currentState];
+            let newY = initialY + deltaY;
+
+            newY = Math.max(statePositions.full - 50, newY);
+            
+            panelState.currentY = newY;
+            sidePanel.style.transform = `translateY(${newY}px)`;
         };
+
         const panelDragEnd = () => {
-            if (!panelDragState.isDragging) return;
-            panelDragState.isDragging = false;
+            if (!panelState.isDragging) return;
+            panelState.isDragging = false;
             sidePanel.style.transition = '';
             sidePanel.style.transform = '';
-            if (panelDragState.dragOffset > sidePanel.offsetHeight / 3) closePanel();
+
+            const endY = panelState.currentY;
+            const oldState = panelState.currentState;
+            let newState = oldState;
+
+            if (oldState === 'peek') {
+                if (endY < statePositions.peek - 75) newState = 'full';
+            } else if (oldState === 'mid') {
+                if (endY < statePositions.mid - 100) newState = 'full';
+                else if (endY > statePositions.mid + 100) newState = 'closed';
+            } else if (oldState === 'full') {
+                if (endY > statePositions.full + 100) {
+                    const isResultsVisible = document.getElementById('search-results-panel').hidden === false;
+                    const isInfoVisible = document.getElementById('info-panel-redesign').hidden === false;
+                    newState = (isResultsVisible || isInfoVisible) ? 'mid' : 'peek';
+                }
+            }
+            
+            if (newState === 'closed') {
+                closePanel();
+            } else {
+                sidePanel.classList.remove('peek', 'mid', 'full');
+                sidePanel.classList.add(newState);
+                panelState.currentState = newState;
+            }
         };
-        sidePanel.addEventListener('touchstart', panelDragStart);
-        document.addEventListener('touchmove', panelDragMove);
-        document.addEventListener('touchend', panelDragEnd);
+
+        const originalShowPanel = showPanel;
+        showPanel = function(viewId, state) {
+            if (state && ['peek', 'mid', 'full'].includes(state)) {
+                panelState.currentState = state;
+            }
+            originalShowPanel.apply(this, arguments);
+        };
+
+        sidePanel.addEventListener('touchstart', panelDragStart, { passive: true });
+        document.addEventListener('touchmove', panelDragMove, { passive: false });
+        document.addEventListener('touchend', panelDragEnd, { passive: true });
     }
 
     // --- INITIALIZATION ON LOAD ---
