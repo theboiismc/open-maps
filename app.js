@@ -381,6 +381,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // --- SIDE PANEL MANAGEMENT ---
+    const panelViewIds = ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'];
+
     function clearSearchResultMarkers() {
         searchResultMarkers.forEach(marker => marker.remove());
         searchResultMarkers = [];
@@ -388,16 +390,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Wrapped showPanel to be accessible by the drag logic override
     let showPanel = function(viewId, panelState = 'full') {
-        // 1. Hide all content divs
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'].forEach(id => {
+        // 1. Hide all panel views
+        panelViewIds.forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.hidden = true; // Initially hide all
+            if (el) el.hidden = true;
         });
 
         // 2. Show the target content div
         const targetPanel = document.getElementById(viewId);
         if (targetPanel) {
             targetPanel.hidden = false;
+        } else {
+             console.error(`Panel view with ID "${viewId}" not found.`);
         }
 
         // 3. Set the panel's positional state
@@ -408,11 +412,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Handle search bar visibility for non-mobile
         if (!isMobile) {
-            if (panelState) {
-                moveSearchBarToPanel();
-            } else {
-                moveSearchBarToTop();
-            }
+            if (panelState) moveSearchBarToPanel();
+            else moveSearchBarToTop();
         }
     }
 
@@ -612,7 +613,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchAndSetQuickFacts(locationName);
         fetchAndSetWebsite(locationName);
 
-        showPanel('info-panel-redesign');
+        showPanel('info-panel-redesign', 'mid');
     }
 
     // --- CATEGORY SEARCH ---
@@ -1212,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         const panelDragStart = (e) => {
-            // Allow dragging from the header area, not the scrollable content
+            // Allow dragging from the header area/grabber, not the scrollable content
             if (e.target.closest('.panel-content') && !e.target.closest('#panel-grabber')) return;
 
             panelState.isDragging = true;
@@ -1256,7 +1257,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 else if (endY > statePositions.mid + 100) newState = 'closed';
             } else if (oldState === 'full') {
                 if (endY > statePositions.full + 100) {
-                    // Decide whether to go to mid or peek based on what content is visible
                     newState = document.getElementById('search-results-panel').hidden === false ? 'mid' : 'peek';
                 }
             }
@@ -1271,7 +1271,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
 
-        // Update the current state when showPanel is called
+        // This is the key fix: We wrap the original showPanel function.
+        // This ensures our drag logic always knows the panel's current state.
         const originalShowPanel = showPanel;
         showPanel = function(viewId, state) {
             if (state && ['peek', 'mid', 'full'].includes(state)) {
@@ -1284,7 +1285,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.addEventListener('touchmove', panelDragMove, { passive: false });
         document.addEventListener('touchend', panelDragEnd, { passive: true });
     }
-
 
     // --- INITIALIZATION ON LOAD ---
     function getInitialRouteFromUrl() {
