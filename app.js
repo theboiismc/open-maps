@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // --- SIDE PANEL MANAGEMENT ---
+    // --- SIDE PANEL MANAGEMENT (THE DEFINITIVE FIX) ---
     const panelViewIds = ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'];
 
     function clearSearchResultMarkers() {
@@ -389,18 +389,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchResultMarkers = [];
     }
     
-    // Wrapped showPanel to be accessible by the drag logic override
     let showPanel = function(viewId, panelState = 'full') {
+        // Forcefully hide all panels first by setting display to 'none'
         panelViewIds.forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.hidden = (id !== viewId);
+            if (el) el.style.display = 'none';
         });
 
+        // Then, show the correct panel by setting its display property
+        const targetPanel = document.getElementById(viewId);
+        if (targetPanel) {
+            // #welcome-panel needs flexbox to push the footer down. Others can be block.
+            targetPanel.style.display = (viewId === 'welcome-panel') ? 'flex' : 'block';
+        }
+
+        // Set the positional state class
         sidePanel.classList.remove('peek', 'mid', 'full');
         if (panelState) {
             sidePanel.classList.add(panelState);
         }
 
+        // Handle desktop search bar
         if (!isMobile) {
             if (panelState) moveSearchBarToPanel();
             else moveSearchBarToTop();
@@ -485,15 +494,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 recentSearchesContainer.appendChild(item);
             });
         }
-        initialSuggestionsView.hidden = false;
-        apiSuggestionsView.hidden = true;
+        initialSuggestionsView.style.display = 'block';
+        apiSuggestionsView.style.display = 'none';
         mainSuggestions.style.display = 'block';
     }
 
     const fetchApiSuggestions = debounce(async (query) => {
         if (query.length < 3) return;
-        initialSuggestionsView.hidden = true;
-        apiSuggestionsView.hidden = false;
+        initialSuggestionsView.style.display = 'none';
+        apiSuggestionsView.style.display = 'block';
         const center = map.getCenter();
         const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
         try {
@@ -1107,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeAfterSetting = () => { if (isMobile) setTimeout(closeSettings, 200); };
 
     styleRadioButtons.forEach(radio => radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); closeAfterSetting(); }));
-    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
+    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); }));
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
     globeToggle.addEventListener('change', () => {
         const isEnabled = globeToggle.checked;
@@ -1241,8 +1250,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 else if (endY > statePositions.mid + 100) newState = 'closed';
             } else if (oldState === 'full') {
                 if (endY > statePositions.full + 100) {
-                    const isResultsVisible = document.getElementById('search-results-panel').hidden === false;
-                    const isInfoVisible = document.getElementById('info-panel-redesign').hidden === false;
+                    const isResultsVisible = document.getElementById('search-results-panel').style.display !== 'none';
+                    const isInfoVisible = document.getElementById('info-panel-redesign').style.display !== 'none';
                     newState = (isResultsVisible || isInfoVisible) ? 'mid' : 'peek';
                 }
             }
