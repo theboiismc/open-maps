@@ -357,17 +357,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
     
-    // --- NEW, UNIFIED SIDE PANEL AND DRAG LOGIC ---
-    
+    // --- APPLE MAPS STYLE PANEL LOGIC ---
+
     const panelViewIds = ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'];
     const panelContent = document.querySelector('.panel-content');
     
     let currentPanelState = 'closed';
     const panelPositions = {
-        peek: window.innerHeight - 250,
+        peek: window.innerHeight - 320,
         mid: window.innerHeight * 0.4,
         full: 80,
-        closed: window.innerHeight + 50
     };
 
     function setPanelPosition(state, animate = true) {
@@ -401,77 +400,53 @@ document.addEventListener('DOMContentLoaded', async () => {
             clickedLocationMarker = null;
         }
     }
+
     if (closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
+    document.getElementById('welcome-directions-btn').addEventListener('click', () => showPanel('directions-panel-redesign', 'mid'));
     
     if (isMobile) {
-        let dragState = {
-            startY: 0,
-            currentY: 0,
-            initialPanelY: 0,
-            isDragging: false,
-            canDrag: true
-        };
+        let dragState = { startY: 0, currentY: 0, initialPanelY: 0, isDragging: false };
 
         sidePanel.addEventListener('touchstart', (e) => {
-            if (currentPanelState === 'closed') return;
-
-            let el = e.target;
-            let canScrollUp = false;
-            while(el && el !== sidePanel) {
-                if (el.scrollHeight > el.clientHeight && el.scrollTop > 0) {
-                    canScrollUp = true;
-                    break;
-                }
-                el = el.parentElement;
+            const isScrolled = panelContent.scrollTop > 0;
+            if (currentPanelState === 'full' && isScrolled) {
+                return; // Don't start drag if content is scrolled
             }
-
-            dragState.canDrag = !canScrollUp;
-            if (!dragState.canDrag) return;
-
             dragState.isDragging = true;
             dragState.startY = e.touches[0].clientY;
             dragState.initialPanelY = sidePanel.getBoundingClientRect().top;
             sidePanel.style.transition = 'none';
-
         }, { passive: true });
 
         sidePanel.addEventListener('touchmove', (e) => {
-            if (!dragState.isDragging || !dragState.canDrag) return;
+            if (!dragState.isDragging) return;
 
             const isAtScrollTop = panelContent.scrollTop === 0;
-            const isScrollingDown = (e.touches[0].clientY - dragState.startY) > 0;
-
-            if (currentPanelState === 'full' && isAtScrollTop && isScrollingDown) {
-                // Allow dragging down from the top
-            } else if (currentPanelState === 'full' && !isAtScrollTop) {
-                return; // Let the browser scroll
+            if (currentPanelState === 'full' && !isAtScrollTop) {
+                 return; // Allow native scrolling
             }
-
-            e.preventDefault();
-
+            
+            e.preventDefault(); // Prevent scroll as we are dragging the panel
+            
             dragState.currentY = e.touches[0].clientY;
             const deltaY = dragState.currentY - dragState.startY;
             const newPanelY = dragState.initialPanelY + deltaY;
             
-            const clampedY = Math.max(newPanelY, panelPositions.full - 50);
+            const clampedY = Math.max(newPanelY, panelPositions.full - 50); // Allow over-drag
             sidePanel.style.transform = `translateY(${clampedY}px)`;
-
         }, { passive: false });
 
         sidePanel.addEventListener('touchend', () => {
-            if (!dragState.isDragging || !dragState.canDrag) {
-                dragState.isDragging = false;
-                dragState.canDrag = true;
-                return;
-            }
-            
+            if (!dragState.isDragging) return;
             dragState.isDragging = false;
+            
             const finalPanelY = sidePanel.getBoundingClientRect().top;
             const deltaY = finalPanelY - dragState.initialPanelY;
-
+            
             let newState = currentPanelState;
-
-            if (Math.abs(deltaY) > 75) {
+            
+            // Flick detection
+            if (Math.abs(deltaY) > 50) {
                 if (deltaY < 0) { // Flick up
                     if (currentPanelState === 'peek') newState = 'mid';
                     else newState = 'full';
@@ -480,24 +455,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     else newState = 'peek';
                 }
             } else { // No flick, snap to closest
-                let closestState = 'peek';
-                let minDistance = Infinity;
+                let closestDist = Infinity;
                 for (const state in panelPositions) {
-                     if (state === 'closed') continue;
-                    const distance = Math.abs(finalPanelY - panelPositions[state]);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestState = state;
+                    const dist = Math.abs(finalPanelY - panelPositions[state]);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        newState = state;
                     }
                 }
-                newState = closestState;
             }
             
             setPanelPosition(newState, true);
         }, { passive: true });
     }
     
-    // --- END REBUILT PANEL LOGIC ---
+    // --- END PANEL LOGIC ---
 
     function clearSearchResultMarkers() {
         searchResultMarkers.forEach(marker => marker.remove());
@@ -1271,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (trafficToggle.checked) addTrafficLayer();
     });
-
+    
     map.on('load', async () => {
         if (navigator.geolocation && navigator.permissions) {
             try {
@@ -1288,7 +1260,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (isMobile) {
+            // Set initial panel state using the new system
             showPanel('welcome-panel', 'peek');
+        } else {
+             // Logic for desktop if needed, e.g., show a default search or info panel
         }
         initializeGlobeView();
     });
@@ -1325,3 +1300,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeTheme();
     getInitialRouteFromUrl();
 });
+
