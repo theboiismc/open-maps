@@ -389,41 +389,6 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
 }
 
 
-/* --- STYLES FOR THE REDESIGNED WELCOME PANEL & SCROLLING --- */
-
-/* Enables scrolling within the side panel content area */
-.panel-content {
-    overflow-y: auto;
-    height: 100%;
-}
-
-/* Style for the "Find Nearby" heading */
-.find-nearby-header {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: var(--text-primary);
-}
-
-/* Make the welcome panel a flex container to push the footer down */
-#welcome-panel {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-/* Allows the main content area to grow and fill available space */
-#welcome-panel .info-content-padding {
-    flex-grow: 1;
-}
-
-/* Styles for the Category Pills container to create a grid */
-.category-pills {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2-column layout */
-    gap: 12px;
-    margin-top: 8px;
-}
 
 /* Styles for individual Category Pills */
 .category-pill {
