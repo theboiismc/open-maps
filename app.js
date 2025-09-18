@@ -216,8 +216,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
     signupBtn.addEventListener('click', (e) => { e.preventDefault(); window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/"; });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
-    if (closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
-    document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
 
     // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
@@ -237,27 +235,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
-
-    map.on('load', async () => {
-        if (navigator.geolocation && navigator.permissions) {
-            try {
-                const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
-                if (permissionStatus.state !== 'denied') {
-                    geolocateControl.trigger();
-                }
-            } catch (error) {
-                console.error("Error checking geolocation permission on load:", error);
-                geolocateControl.trigger();
-            }
-        } else {
-            geolocateControl.trigger();
-        }
-
-        if (isMobile) {
-            showPanel('welcome-panel');
-        }
-        initializeGlobeView();
-    });
 
     // --- GLOBE VIEW LOGIC ---
     function setGlobeView(enableGlobe) {
@@ -379,41 +356,154 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     };
+    
+    // --- NEW, UNIFIED SIDE PANEL AND DRAG LOGIC ---
+    
+    const panelViewIds = ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'];
+    const panelContent = document.querySelector('.panel-content');
+    
+    let currentPanelState = 'closed';
+    const panelPositions = {
+        peek: window.innerHeight - 250,
+        mid: window.innerHeight * 0.4,
+        full: 80,
+        closed: window.innerHeight + 50
+    };
 
-    // --- SIDE PANEL MANAGEMENT ---
-    function clearSearchResultMarkers() {
-        searchResultMarkers.forEach(marker => marker.remove());
-        searchResultMarkers = [];
+    function setPanelPosition(state, animate = true) {
+        if (!panelPositions[state]) return;
+        
+        currentPanelState = state;
+        const targetY = panelPositions[state];
+
+        sidePanel.style.transition = animate ? 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)' : 'none';
+        sidePanel.style.transform = `translateY(${targetY}px)`;
+    }
+
+    function showPanel(viewId, state) {
+        panelViewIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+
+        const targetEl = document.getElementById(viewId);
+        if (targetEl) {
+            targetEl.style.display = (viewId === 'welcome-panel') ? 'flex' : 'block';
+        }
+        setPanelPosition(state, true);
     }
     
-    function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.hidden = id !== viewId;
-        });
-        if (isMobile) {
-            sidePanel.classList.toggle('peek', viewId === 'welcome-panel');
-            sidePanel.classList.toggle('open', viewId !== 'welcome-panel');
-        } else {
-            sidePanel.classList.add('open');
-            moveSearchBarToPanel();
-        }
-    }
-
     function closePanel() {
+        showPanel('welcome-panel', 'peek');
         clearSearchResultMarkers();
-        if (isMobile) {
-            sidePanel.classList.remove('open', 'peek');
-        } else {
-            sidePanel.classList.remove('open');
-            moveSearchBarToTop();
-        }
         if (clickedLocationMarker) {
             clickedLocationMarker.remove();
             clickedLocationMarker = null;
         }
     }
+    if (closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
+    
+    if (isMobile) {
+        let dragState = {
+            startY: 0,
+            currentY: 0,
+            initialPanelY: 0,
+            isDragging: false,
+            canDrag: true
+        };
 
+        sidePanel.addEventListener('touchstart', (e) => {
+            if (currentPanelState === 'closed') return;
+
+            let el = e.target;
+            let canScrollUp = false;
+            while(el && el !== sidePanel) {
+                if (el.scrollHeight > el.clientHeight && el.scrollTop > 0) {
+                    canScrollUp = true;
+                    break;
+                }
+                el = el.parentElement;
+            }
+
+            dragState.canDrag = !canScrollUp;
+            if (!dragState.canDrag) return;
+
+            dragState.isDragging = true;
+            dragState.startY = e.touches[0].clientY;
+            dragState.initialPanelY = sidePanel.getBoundingClientRect().top;
+            sidePanel.style.transition = 'none';
+
+        }, { passive: true });
+
+        sidePanel.addEventListener('touchmove', (e) => {
+            if (!dragState.isDragging || !dragState.canDrag) return;
+
+            const isAtScrollTop = panelContent.scrollTop === 0;
+            const isScrollingDown = (e.touches[0].clientY - dragState.startY) > 0;
+
+            if (currentPanelState === 'full' && isAtScrollTop && isScrollingDown) {
+                // Allow dragging down from the top
+            } else if (currentPanelState === 'full' && !isAtScrollTop) {
+                return; // Let the browser scroll
+            }
+
+            e.preventDefault();
+
+            dragState.currentY = e.touches[0].clientY;
+            const deltaY = dragState.currentY - dragState.startY;
+            const newPanelY = dragState.initialPanelY + deltaY;
+            
+            const clampedY = Math.max(newPanelY, panelPositions.full - 50);
+            sidePanel.style.transform = `translateY(${clampedY}px)`;
+
+        }, { passive: false });
+
+        sidePanel.addEventListener('touchend', () => {
+            if (!dragState.isDragging || !dragState.canDrag) {
+                dragState.isDragging = false;
+                dragState.canDrag = true;
+                return;
+            }
+            
+            dragState.isDragging = false;
+            const finalPanelY = sidePanel.getBoundingClientRect().top;
+            const deltaY = finalPanelY - dragState.initialPanelY;
+
+            let newState = currentPanelState;
+
+            if (Math.abs(deltaY) > 75) {
+                if (deltaY < 0) { // Flick up
+                    if (currentPanelState === 'peek') newState = 'mid';
+                    else newState = 'full';
+                } else { // Flick down
+                    if (currentPanelState === 'full') newState = 'mid';
+                    else newState = 'peek';
+                }
+            } else { // No flick, snap to closest
+                let closestState = 'peek';
+                let minDistance = Infinity;
+                for (const state in panelPositions) {
+                     if (state === 'closed') continue;
+                    const distance = Math.abs(finalPanelY - panelPositions[state]);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestState = state;
+                    }
+                }
+                newState = closestState;
+            }
+            
+            setPanelPosition(newState, true);
+        }, { passive: true });
+    }
+    
+    // --- END REBUILT PANEL LOGIC ---
+
+    function clearSearchResultMarkers() {
+        searchResultMarkers.forEach(marker => marker.remove());
+        searchResultMarkers = [];
+    }
+    
     function moveSearchBarToPanel() {
         if (!isMobile) {
             panelSearchPlaceholder.appendChild(mainSearchContainer);
@@ -598,7 +688,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchAndSetQuickFacts(locationName);
         fetchAndSetWebsite(locationName);
 
-        showPanel('info-panel-redesign');
+        showPanel('info-panel-redesign', 'mid');
     }
 
     // --- CATEGORY SEARCH ---
@@ -618,7 +708,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!features || features.length === 0) {
             searchResultsListEl.innerHTML = '<div class="no-results">No results found nearby.</div>';
-            showPanel('search-results-panel');
+            showPanel('search-results-panel', 'mid');
             return;
         }
 
@@ -662,7 +752,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         map.fitBounds(bounds, { padding: 80, maxZoom: 15 });
-        showPanel('search-results-panel');
+        showPanel('search-results-panel', 'mid');
     }
     
     async function performCategorySearch(query, osmTag) {
@@ -795,7 +885,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- ROUTING & NAVIGATION ---
     function openDirectionsPanel() {
-        showPanel('directions-panel-redesign');
+        showPanel('directions-panel-redesign', 'mid');
         if (currentPlace) {
             toInput.value = currentPlace.display_name;
             toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
@@ -838,7 +928,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     backToInfoBtn.addEventListener('click', () => {
-        if (currentPlace) showPanel('info-panel-redesign');
+        if (currentPlace) showPanel('info-panel-redesign', 'mid');
         else closePanel();
     });
 
@@ -940,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const distanceMiles = (route.distance / 1609.34).toFixed(1);
                 document.getElementById('route-summary-time').textContent = `${durationMinutes} min`;
                 document.getElementById('route-summary-distance').textContent = `${distanceMiles} mi`;
-                showPanel('route-preview-panel');
+                showPanel('route-preview-panel', 'mid');
                 map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
             }
         } catch (err) {
@@ -1102,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeAfterSetting = () => { if (isMobile) setTimeout(closeSettings, 200); };
 
     styleRadioButtons.forEach(radio => radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); closeAfterSetting(); }));
-    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
+    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); }));
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
     globeToggle.addEventListener('change', () => {
         const isEnabled = globeToggle.checked;
@@ -1182,31 +1272,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (trafficToggle.checked) addTrafficLayer();
     });
 
-    // --- MOBILE-SPECIFIC PANEL DRAGGING ---
-    if (isMobile) {
-        let panelDragState = { isDragging: false, startY: 0, dragOffset: 0 };
-        const panelDragStart = (e) => {
-            if (e.target.closest('.panel-content')) return;
-            panelDragState.isDragging = true;
-            panelDragState.startY = e.touches[0].clientY;
-            sidePanel.style.transition = 'none';
-        };
-        const panelDragMove = (e) => {
-            if (!panelDragState.isDragging) return;
-            panelDragState.dragOffset = e.touches[0].clientY - panelDragState.startY;
-            if (panelDragState.dragOffset > 0) sidePanel.style.transform = `translateY(${panelDragState.dragOffset}px)`;
-        };
-        const panelDragEnd = () => {
-            if (!panelDragState.isDragging) return;
-            panelDragState.isDragging = false;
-            sidePanel.style.transition = '';
-            sidePanel.style.transform = '';
-            if (panelDragState.dragOffset > sidePanel.offsetHeight / 3) closePanel();
-        };
-        sidePanel.addEventListener('touchstart', panelDragStart);
-        document.addEventListener('touchmove', panelDragMove);
-        document.addEventListener('touchend', panelDragEnd);
-    }
+    map.on('load', async () => {
+        if (navigator.geolocation && navigator.permissions) {
+            try {
+                const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+                if (permissionStatus.state !== 'denied') {
+                    geolocateControl.trigger();
+                }
+            } catch (error) {
+                console.error("Error checking geolocation permission on load:", error);
+                geolocateControl.trigger();
+            }
+        } else {
+            geolocateControl.trigger();
+        }
+
+        if (isMobile) {
+            showPanel('welcome-panel', 'peek');
+        }
+        initializeGlobeView();
+    });
 
     // --- INITIALIZATION ON LOAD ---
     function getInitialRouteFromUrl() {
