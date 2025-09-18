@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backFromResultsBtn = document.getElementById('back-from-results-btn');
     const searchResultsQueryEl = document.getElementById('search-results-query');
     const searchResultsListEl = document.getElementById('search-results-list');
+    const welcomeDirectionsBtn = document.getElementById('welcome-directions-btn');
 
     // Settings Modal Selectors
     const settingsModal = document.getElementById('settings-modal');
@@ -217,8 +218,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     signupBtn.addEventListener('click', (e) => { e.preventDefault(); window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/"; });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
     if (closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
-    document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
-
+    welcomeDirectionsBtn.addEventListener('click', openDirectionsPanel);
+    
     // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
         container: "map",
@@ -390,27 +391,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Wrapped showPanel to be accessible by the drag logic override
     let showPanel = function(viewId, panelState = 'full') {
-        // 1. Hide all panel views
         panelViewIds.forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.hidden = true;
+            if (el) el.hidden = (id !== viewId);
         });
 
-        // 2. Show the target content div
-        const targetPanel = document.getElementById(viewId);
-        if (targetPanel) {
-            targetPanel.hidden = false;
-        } else {
-             console.error(`Panel view with ID "${viewId}" not found.`);
-        }
-
-        // 3. Set the panel's positional state
         sidePanel.classList.remove('peek', 'mid', 'full');
         if (panelState) {
             sidePanel.classList.add(panelState);
         }
 
-        // Handle search bar visibility for non-mobile
         if (!isMobile) {
             if (panelState) moveSearchBarToPanel();
             else moveSearchBarToTop();
@@ -419,7 +409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function closePanel() {
         clearSearchResultMarkers();
-        sidePanel.classList.remove('peek', 'mid', 'full'); // This will trigger the CSS transition to close
+        sidePanel.classList.remove('peek', 'mid', 'full'); 
         if (clickedLocationMarker) {
             clickedLocationMarker.remove();
             clickedLocationMarker = null;
@@ -541,7 +531,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.getElementById("search-icon-inside").addEventListener("click", () => performSmartSearch(mainSearchInput, processPlaceResult));
     
-    backFromResultsBtn.addEventListener('click', closePanel);
+    backFromResultsBtn.addEventListener('click', () => showPanel('welcome-panel', 'peek'));
 
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
@@ -810,7 +800,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- ROUTING & NAVIGATION ---
     function openDirectionsPanel() {
-        showPanel('directions-panel-redesign');
+        showPanel('directions-panel-redesign', 'full');
         if (currentPlace) {
             toInput.value = currentPlace.display_name;
             toInput.dataset.coords = `${currentPlace.lon},${currentPlace.lat}`;
@@ -854,7 +844,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     backToInfoBtn.addEventListener('click', () => {
         if (currentPlace) showPanel('info-panel-redesign');
-        else closePanel();
+        else showPanel('welcome-panel', 'peek');
     });
 
     function clearRouteFromMap() {
@@ -955,7 +945,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const distanceMiles = (route.distance / 1609.34).toFixed(1);
                 document.getElementById('route-summary-time').textContent = `${durationMinutes} min`;
                 document.getElementById('route-summary-distance').textContent = `${distanceMiles} mi`;
-                showPanel('route-preview-panel');
+                showPanel('route-preview-panel', 'mid');
                 map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
             }
         } catch (err) {
@@ -1203,22 +1193,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             isDragging: false,
             startY: 0,
             currentY: 0,
-            currentState: 'peek' // Initial state
+            currentState: 'peek'
         };
 
         const statePositions = {
             peek: window.innerHeight - 320,
             mid: window.innerHeight * 0.5,
-            full: 80 // Small gap from the top
+            full: 80
         };
 
         const panelDragStart = (e) => {
-            // Allow dragging from the header area/grabber, not the scrollable content
             if (e.target.closest('.panel-content') && !e.target.closest('#panel-grabber')) return;
 
             panelState.isDragging = true;
             panelState.startY = e.touches[0].clientY;
-            sidePanel.style.transition = 'none'; // Disable transition for smooth dragging
+            sidePanel.style.transition = 'none';
         };
 
         const panelDragMove = (e) => {
@@ -1226,13 +1215,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const currentTouchY = e.touches[0].clientY;
             const deltaY = currentTouchY - panelState.startY;
-            
-            // Calculate the initial position based on the current state class
             let initialY = statePositions[panelState.currentState];
-            
             let newY = initialY + deltaY;
 
-            // Clamp the drag to prevent over-dragging past the top
             newY = Math.max(statePositions.full - 50, newY);
             
             panelState.currentY = newY;
@@ -1242,14 +1227,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const panelDragEnd = () => {
             if (!panelState.isDragging) return;
             panelState.isDragging = false;
-            sidePanel.style.transition = ''; // Re-enable CSS transitions
-            sidePanel.style.transform = ''; // Clear inline style so CSS classes take over
+            sidePanel.style.transition = '';
+            sidePanel.style.transform = '';
 
             const endY = panelState.currentY;
             const oldState = panelState.currentState;
             let newState = oldState;
 
-            // Determine the new state based on drag distance and direction
             if (oldState === 'peek') {
                 if (endY < statePositions.peek - 75) newState = 'full';
             } else if (oldState === 'mid') {
@@ -1257,22 +1241,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 else if (endY > statePositions.mid + 100) newState = 'closed';
             } else if (oldState === 'full') {
                 if (endY > statePositions.full + 100) {
-                    newState = document.getElementById('search-results-panel').hidden === false ? 'mid' : 'peek';
+                    const isResultsVisible = document.getElementById('search-results-panel').hidden === false;
+                    const isInfoVisible = document.getElementById('info-panel-redesign').hidden === false;
+                    newState = (isResultsVisible || isInfoVisible) ? 'mid' : 'peek';
                 }
             }
-
-            // Apply the new state
+            
             if (newState === 'closed') {
                 closePanel();
             } else {
                 sidePanel.classList.remove('peek', 'mid', 'full');
                 sidePanel.classList.add(newState);
-                panelState.currentState = newState; // IMPORTANT: Update state for the next drag
+                panelState.currentState = newState;
             }
         };
 
-        // This is the key fix: We wrap the original showPanel function.
-        // This ensures our drag logic always knows the panel's current state.
         const originalShowPanel = showPanel;
         showPanel = function(viewId, state) {
             if (state && ['peek', 'mid', 'full'].includes(state)) {
@@ -1318,3 +1301,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeTheme();
     getInitialRouteFromUrl();
 });
+
