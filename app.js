@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (isMobile) {
-            showPanel('welcome-panel');
+            showPanel('welcome-panel', 'peek');
         }
         initializeGlobeView();
     });
@@ -386,31 +386,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchResultMarkers = [];
     }
     
-    function showPanel(viewId) {
+    function showPanel(viewId, panelState = 'full') {
+        // 1. Hide all content divs
         ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.hidden = id !== viewId;
+            if (el) el.hidden = true; // Initially hide all
         });
-        if (isMobile) {
-            sidePanel.classList.toggle('peek', viewId === 'welcome-panel');
-            sidePanel.classList.toggle('open', viewId !== 'welcome-panel');
+
+        // 2. Show the target content div
+        const targetPanel = document.getElementById(viewId);
+        if (targetPanel) {
+            targetPanel.hidden = false;
+        }
+
+        // 3. Set the panel's positional state
+        sidePanel.classList.remove('peek', 'mid', 'full');
+        if (panelState) {
+            sidePanel.classList.add(panelState);
         } else {
-            sidePanel.classList.add('open');
-            moveSearchBarToPanel();
+            // If no state, treat it as closing
+            sidePanel.style.transform = 'translateY(100%)';
+        }
+
+        // Handle search bar visibility for non-mobile
+        if (!isMobile) {
+            if (panelState) {
+                moveSearchBarToPanel();
+            } else {
+                moveSearchBarToTop();
+            }
         }
     }
 
     function closePanel() {
         clearSearchResultMarkers();
-        if (isMobile) {
-            sidePanel.classList.remove('open', 'peek');
-        } else {
-            sidePanel.classList.remove('open');
-            moveSearchBarToTop();
-        }
+        sidePanel.classList.remove('peek', 'mid', 'full'); // This will trigger the CSS transition to close
         if (clickedLocationMarker) {
             clickedLocationMarker.remove();
             clickedLocationMarker = null;
+        }
+        if (!isMobile) {
+            moveSearchBarToTop();
         }
     }
 
@@ -662,7 +678,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         map.fitBounds(bounds, { padding: 80, maxZoom: 15 });
-        showPanel('search-results-panel');
+        showPanel('search-results-panel', 'mid');
     }
     
     async function performCategorySearch(query, osmTag) {
@@ -1184,28 +1200,91 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- MOBILE-SPECIFIC PANEL DRAGGING ---
     if (isMobile) {
-        let panelDragState = { isDragging: false, startY: 0, dragOffset: 0 };
+        let panelState = {
+            isDragging: false,
+            startY: 0,
+            currentY: 0,
+            initialTransform: 0,
+            currentState: 'peek'
+        };
+
+        const statePositions = {
+            peek: window.innerHeight - 320,
+            mid: window.innerHeight * 0.5,
+            full: 80
+        };
+
         const panelDragStart = (e) => {
-            if (e.target.closest('.panel-content')) return;
-            panelDragState.isDragging = true;
-            panelDragState.startY = e.touches[0].clientY;
-            sidePanel.style.transition = 'none';
+            // Only start drag from the grabber or the top area of the panel
+            if (e.target.closest('.panel-content') && e.target.id !== 'panel-grabber') return;
+
+            panelState.isDragging = true;
+            panelState.startY = e.touches[0].clientY;
+            sidePanel.style.transition = 'none'; // Disable transition while dragging
+
+            // Determine current state based on classes
+            if (sidePanel.classList.contains('peek')) panelState.currentState = 'peek';
+            else if (sidePanel.classList.contains('mid')) panelState.currentState = 'mid';
+            else if (sidePanel.classList.contains('full')) panelState.currentState = 'full';
+            
+            panelState.initialTransform = statePositions[panelState.currentState];
         };
+
         const panelDragMove = (e) => {
-            if (!panelDragState.isDragging) return;
-            panelDragState.dragOffset = e.touches[0].clientY - panelDragState.startY;
-            if (panelDragState.dragOffset > 0) sidePanel.style.transform = `translateY(${panelDragState.dragOffset}px)`;
+            if (!panelState.isDragging) return;
+            const deltaY = e.touches[0].clientY - panelState.startY;
+            let newY = panelState.initialTransform + deltaY;
+            
+            // Clamp the drag to prevent over-dragging
+            newY = Math.max(statePositions.full - 50, newY); // Allow some overscroll up
+            
+            panelState.currentY = newY;
+            sidePanel.style.transform = `translateY(${newY}px)`;
         };
+
         const panelDragEnd = () => {
-            if (!panelDragState.isDragging) return;
-            panelDragState.isDragging = false;
-            sidePanel.style.transition = '';
-            sidePanel.style.transform = '';
-            if (panelDragState.dragOffset > sidePanel.offsetHeight / 3) closePanel();
+            if (!panelState.isDragging) return;
+            panelState.isDragging = false;
+            sidePanel.style.transition = ''; // Re-enable CSS transitions for snapping
+
+            const endY = panelState.currentY;
+            const currentState = panelState.currentState;
+
+            if (currentState === 'peek') {
+                if (endY < statePositions.peek - 50) { // Dragged up
+                    sidePanel.classList.remove('peek');
+                    sidePanel.classList.add('full');
+                } else { // Didn't drag far, snap back
+                    sidePanel.classList.add('peek');
+                }
+            } else if (currentState === 'mid') {
+                if (endY < statePositions.mid - 100) { // Dragged up
+                    sidePanel.classList.remove('mid');
+                    sidePanel.classList.add('full');
+                } else if (endY > statePositions.mid + 100) { // Dragged down
+                    closePanel();
+                } else { // Snap back
+                    sidePanel.classList.add('mid');
+                }
+            } else if (currentState === 'full') {
+                 if (endY > statePositions.full + 100) { // Dragged down
+                    // Decide whether to go to mid or peek based on what was shown
+                    if (document.getElementById('search-results-panel').hidden === false) {
+                        sidePanel.classList.remove('full');
+                        sidePanel.classList.add('mid');
+                    } else {
+                         sidePanel.classList.remove('full');
+                         sidePanel.classList.add('peek');
+                    }
+                } else { // Snap back
+                    sidePanel.classList.add('full');
+                }
+            }
         };
-        sidePanel.addEventListener('touchstart', panelDragStart);
-        document.addEventListener('touchmove', panelDragMove);
-        document.addEventListener('touchend', panelDragEnd);
+
+        sidePanel.addEventListener('touchstart', panelDragStart, { passive: true });
+        document.addEventListener('touchmove', panelDragMove, { passive: false });
+        document.addEventListener('touchend', panelDragEnd, { passive: true });
     }
 
     // --- INITIALIZATION ON LOAD ---
@@ -1239,4 +1318,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initializeTheme();
     getInitialRouteFromUrl();
-});
+});Here is my code for my map site rn
+
+
+I need my welcome panel to be separate state from my category search results panel. Right now its all one big panel. When i first load the page the welcome panel is pushed too far down and i cant see the whole welcome panel. Also when i search a category it just expands the panel and puts the results in it. No thats wrong. It should look and feel like apple maps
+
+
+Take a look at how apple maps panel has different states for category results and also the panel can be dragged up to reveal more content. I want my panel like that 
