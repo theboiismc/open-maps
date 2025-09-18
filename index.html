@@ -113,24 +113,7 @@
                 <div id="initial-suggestions-view">
                     <div id="recent-searches-container">
                     </div>
-                    <div class="suggestions-section">
-                        <div class="suggestions-header">Categories</div>
-                        <div class="category-pills">
-                            <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant">
-                                <span class="material-symbols-outlined">restaurant</span> Restaurants
-                            </button>
-                            <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel">
-                                <span class="material-symbols-outlined">local_gas_station</span> Gas
-                            </button>
-                            <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe">
-                                <span class="material-symbols-outlined">coffee</span> Coffee
-                            </button>
-                            <button class="category-pill" data-query="parks" data-osm-tag="leisure=park">
-                                <span class="material-symbols-outlined">park</span> Parks
-                            </button>
-                        </div>
                     </div>
-                </div>
                 <div id="api-suggestions-view" hidden>
                 </div>
             </div>
@@ -143,21 +126,55 @@
         <div class="panel-content">
             <div id="welcome-panel" hidden>
                 <div class="info-content-padding">
+                    
                     <h3>Welcome to TheBoiisMC Maps</h3>
                     <p style="margin-top: 8px; color: var(--text-secondary);">Your private, modern mapping experience. Search for a place or plan a route to get started.</p>
+
+                    <h3 class="find-nearby-header" style="margin-top: 24px;">Find Nearby</h3>
+                    
+                    <div class="category-pills">
+                        <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant">
+                            <span class="material-symbols-outlined">restaurant</span> Restaurants
+                        </button>
+                        <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel">
+                            <span class="material-symbols-outlined">local_gas_station</span> Gas
+                        </button>
+                        <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe">
+                            <span class="material-symbols-outlined">coffee</span> Coffee
+                        </button>
+                        <button class="category-pill" data-query="parks" data-osm-tag="leisure=park">
+                            <span class="material-symbols-outlined">park</span> Parks
+                        </button>
+                    </div>
+
                     <div class="action-buttons" style="margin-top: 24px;">
                         <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
                     </div>
                 </div>
-            </div>
-            <div id="search-results-panel" hidden>
-                <div class="info-content-padding">
-                    <button id="back-from-results-btn" class="back-button"><span class="material-symbols-outlined">arrow_back</span> Back</button>
-                    <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
-                    <div id="search-results-list">
-                        </div>
+
+                <div class="legal-footer">
+                    <a href="https://www.theboiismc.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+                    <span>&middot;</span>
+                    <a href="https://www.theboiismc.com/terms" target="_blank" rel="noopener noreferrer">Terms</a>
+                    <p>Copyright &copy; 2025 TheBoiisMC</p>
                 </div>
             </div>
+            
+            <div id="search-results-panel" hidden>
+                <div class="info-content-padding">
+                    <button id="back-from-results-btn" class="back-button">
+                        <span class="material-symbols-outlined">arrow_back</span> Back
+                    </button>
+                    <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
+                    <div class="sort-controls">
+                        <button id="sort-by-distance-btn" class="sort-btn active" data-sort="distance">Distance</button>
+                        <button id="sort-by-rating-btn" class="sort-btn" data-sort="rating">Rating</button>
+                    </div>
+                    <div id="search-results-list">
+                    </div>
+                </div>
+            </div>
+            
             <div id="info-panel-redesign" hidden>
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location" loading="lazy"/>
@@ -175,6 +192,7 @@
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
             </div>
+            
             <div id="directions-panel-redesign" hidden>
                 <div class="info-content-padding">
                     <div class="travel-modes">
@@ -199,6 +217,7 @@
                     <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
                 </div>
             </div>
+            
             <div id="route-preview-panel" hidden>
                 <div class="info-content-padding">
                     <div class="route-summary">
@@ -213,6 +232,7 @@
                     <button id="back-to-directions-btn">Back</button>
                 </div>
             </div>
+            
             <div id="route-section" hidden>
                 <div class="info-content-padding">
                     <h3>Route Steps</h3>
@@ -254,6 +274,7 @@
     </div>
     
     <div id="map"></div>
+    <button id="search-this-area-btn" class="search-area-btn" hidden>Search this area</button>
     <div id="toast-container"></div>
     
     <script src="libs/js/oidc-client-ts@2.2.0.js" defer></script>
