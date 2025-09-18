@@ -476,3 +476,45 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-b
     margin-top: 8px;
     margin-bottom: 0;
 }
+
+/* --- Add these new styles for the side panel --- */
+
+#side-panel {
+    /* ... keep your existing styles ... */
+    transform: translateY(100%); /* Start hidden off-screen */
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    touch-action: none; /* Prevents browser interference with touch events */
+}
+
+/* State for the initial welcome view */
+#side-panel.peek {
+    transform: translateY(calc(100% - 320px)); /* Shows bottom 320px of the panel */
+}
+
+/* State for the search results view */
+#side-panel.mid {
+    transform: translateY(50vh); /* Panel covers 50% of the viewport height */
+}
+
+/* State for a fully expanded panel */
+#side-panel.full {
+    transform: translateY(80px); /* Panel covers most of the screen, leaving top bar visible */
+}
+
+/* Ensure the grabber is visible and easy to touch */
+#panel-grabber {
+    width: 40px;
+    height: 5px;
+    background-color: var(--border-color);
+    border-radius: 2.5px;
+    margin: 12px auto;
+    display: block;
+}
+
+/* Make sure the panel content is scrollable when it's tall */
+.panel-content {
+    /* ... keep your existing styles ... */
+    height: calc(100% - 30px); /* Adjust height to account for grabber */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
+}
