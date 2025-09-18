@@ -634,7 +634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!features || features.length === 0) {
             searchResultsListEl.innerHTML = '<div class="no-results">No results found nearby.</div>';
-            showPanel('search-results-panel');
+            showPanel('search-results-panel', 'mid');
             return;
         }
 
@@ -1246,6 +1246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!panelState.isDragging) return;
             panelState.isDragging = false;
             sidePanel.style.transition = ''; // Re-enable CSS transitions for snapping
+            sidePanel.style.transform = ''; // IMPORTANT: Clear inline style so CSS classes can take over
 
             const endY = panelState.currentY;
             const currentState = panelState.currentState;
@@ -1318,10 +1319,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initializeTheme();
     getInitialRouteFromUrl();
-});Here is my code for my map site rn
-
-
-I need my welcome panel to be separate state from my category search results panel. Right now its all one big panel. When i first load the page the welcome panel is pushed too far down and i cant see the whole welcome panel. Also when i search a category it just expands the panel and puts the results in it. No thats wrong. It should look and feel like apple maps
-
-
-Take a look at how apple maps panel has different states for category results and also the panel can be dragged up to reveal more content. I want my panel like that 
+});
