@@ -386,7 +386,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchResultMarkers = [];
     }
     
-    function showPanel(viewId, panelState = 'full') {
+    // Wrapped showPanel to be accessible by the drag logic override
+    let showPanel = function(viewId, panelState = 'full') {
         // 1. Hide all content divs
         ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'].forEach(id => {
             const el = document.getElementById(id);
@@ -403,9 +404,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         sidePanel.classList.remove('peek', 'mid', 'full');
         if (panelState) {
             sidePanel.classList.add(panelState);
-        } else {
-            // If no state, treat it as closing
-            sidePanel.style.transform = 'translateY(100%)';
         }
 
         // Handle search bar visibility for non-mobile
@@ -1204,39 +1202,37 @@ document.addEventListener('DOMContentLoaded', async () => {
             isDragging: false,
             startY: 0,
             currentY: 0,
-            initialTransform: 0,
-            currentState: 'peek'
+            currentState: 'peek' // Initial state
         };
 
         const statePositions = {
             peek: window.innerHeight - 320,
             mid: window.innerHeight * 0.5,
-            full: 80
+            full: 80 // Small gap from the top
         };
 
         const panelDragStart = (e) => {
-            // Only start drag from the grabber or the top area of the panel
-            if (e.target.closest('.panel-content') && e.target.id !== 'panel-grabber') return;
+            // Allow dragging from the header area, not the scrollable content
+            if (e.target.closest('.panel-content') && !e.target.closest('#panel-grabber')) return;
 
             panelState.isDragging = true;
             panelState.startY = e.touches[0].clientY;
-            sidePanel.style.transition = 'none'; // Disable transition while dragging
-
-            // Determine current state based on classes
-            if (sidePanel.classList.contains('peek')) panelState.currentState = 'peek';
-            else if (sidePanel.classList.contains('mid')) panelState.currentState = 'mid';
-            else if (sidePanel.classList.contains('full')) panelState.currentState = 'full';
-            
-            panelState.initialTransform = statePositions[panelState.currentState];
+            sidePanel.style.transition = 'none'; // Disable transition for smooth dragging
         };
 
         const panelDragMove = (e) => {
             if (!panelState.isDragging) return;
-            const deltaY = e.touches[0].clientY - panelState.startY;
-            let newY = panelState.initialTransform + deltaY;
             
-            // Clamp the drag to prevent over-dragging
-            newY = Math.max(statePositions.full - 50, newY); // Allow some overscroll up
+            const currentTouchY = e.touches[0].clientY;
+            const deltaY = currentTouchY - panelState.startY;
+            
+            // Calculate the initial position based on the current state class
+            let initialY = statePositions[panelState.currentState];
+            
+            let newY = initialY + deltaY;
+
+            // Clamp the drag to prevent over-dragging past the top
+            newY = Math.max(statePositions.full - 50, newY);
             
             panelState.currentY = newY;
             sidePanel.style.transform = `translateY(${newY}px)`;
@@ -1245,48 +1241,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         const panelDragEnd = () => {
             if (!panelState.isDragging) return;
             panelState.isDragging = false;
-            sidePanel.style.transition = ''; // Re-enable CSS transitions for snapping
-            sidePanel.style.transform = ''; // IMPORTANT: Clear inline style so CSS classes can take over
+            sidePanel.style.transition = ''; // Re-enable CSS transitions
+            sidePanel.style.transform = ''; // Clear inline style so CSS classes take over
 
             const endY = panelState.currentY;
-            const currentState = panelState.currentState;
+            const oldState = panelState.currentState;
+            let newState = oldState;
 
-            if (currentState === 'peek') {
-                if (endY < statePositions.peek - 50) { // Dragged up
-                    sidePanel.classList.remove('peek');
-                    sidePanel.classList.add('full');
-                } else { // Didn't drag far, snap back
-                    sidePanel.classList.add('peek');
-                }
-            } else if (currentState === 'mid') {
-                if (endY < statePositions.mid - 100) { // Dragged up
-                    sidePanel.classList.remove('mid');
-                    sidePanel.classList.add('full');
-                } else if (endY > statePositions.mid + 100) { // Dragged down
-                    closePanel();
-                } else { // Snap back
-                    sidePanel.classList.add('mid');
-                }
-            } else if (currentState === 'full') {
-                 if (endY > statePositions.full + 100) { // Dragged down
-                    // Decide whether to go to mid or peek based on what was shown
-                    if (document.getElementById('search-results-panel').hidden === false) {
-                        sidePanel.classList.remove('full');
-                        sidePanel.classList.add('mid');
-                    } else {
-                         sidePanel.classList.remove('full');
-                         sidePanel.classList.add('peek');
-                    }
-                } else { // Snap back
-                    sidePanel.classList.add('full');
+            // Determine the new state based on drag distance and direction
+            if (oldState === 'peek') {
+                if (endY < statePositions.peek - 75) newState = 'full';
+            } else if (oldState === 'mid') {
+                if (endY < statePositions.mid - 100) newState = 'full';
+                else if (endY > statePositions.mid + 100) newState = 'closed';
+            } else if (oldState === 'full') {
+                if (endY > statePositions.full + 100) {
+                    // Decide whether to go to mid or peek based on what content is visible
+                    newState = document.getElementById('search-results-panel').hidden === false ? 'mid' : 'peek';
                 }
             }
+
+            // Apply the new state
+            if (newState === 'closed') {
+                closePanel();
+            } else {
+                sidePanel.classList.remove('peek', 'mid', 'full');
+                sidePanel.classList.add(newState);
+                panelState.currentState = newState; // IMPORTANT: Update state for the next drag
+            }
+        };
+
+        // Update the current state when showPanel is called
+        const originalShowPanel = showPanel;
+        showPanel = function(viewId, state) {
+            if (state && ['peek', 'mid', 'full'].includes(state)) {
+                panelState.currentState = state;
+            }
+            originalShowPanel.apply(this, arguments);
         };
 
         sidePanel.addEventListener('touchstart', panelDragStart, { passive: true });
         document.addEventListener('touchmove', panelDragMove, { passive: false });
         document.addEventListener('touchend', panelDragEnd, { passive: true });
     }
+
 
     // --- INITIALIZATION ON LOAD ---
     function getInitialRouteFromUrl() {
