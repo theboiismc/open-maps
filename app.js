@@ -243,9 +243,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         minZoom: 1,
     });
 
-    // Add error handling to switch to the backup style if the primary fails
+   // Add error handling to switch to the backup style if the primary fails
     map.on('error', (e) => {
-        // This checks if the error is due to a style loading failure
+        // Ignore network errors that typically have a status of 0 (like CORS errors).
+        if (e.error?.status === 0) {
+            console.warn("Ignoring network error (CORS). Map functionality is not affected.");
+            return;
+        }
+
+        // Switch to the backup style for other, more critical style loading failures (e.g., 404, corrupted file).
         if (e.error?.message.includes('Could not load style')) {
             console.warn("Primary tile server failed. Switching to backup.");
             showToast("Primary map server offline. Using backup tiles.", "warning", 5000);
