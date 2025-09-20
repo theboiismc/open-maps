@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const STYLES = {
         default: {
             primary: `https://tiles.theboiismc.com/styles/Default/style.json`,
-            backup: `https://tiles.openfreemap.org/styles/liberty/style.json`
+            backup: `https://tiles.openfreemap.org/styles/liberty`
         },
         satellite: { 
             version: 8, 
