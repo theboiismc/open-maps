@@ -139,18 +139,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-    
-    // Updated STYLES object with a backup option
     const STYLES = {
-        default: {
-            primary: `https://tiles.theboiismc.com/styles/Default/style.json`,
-            backup: `https://tiles.openfreemap.org/styles/liberty`
-        },
-        satellite: { 
-            version: 8, 
-            sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, 
-            layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] 
-        }
+        default: `https://tiles.openfreemap.org/styles/liberty`,
+        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] }
     };
 
     // --- AUTHENTICATION UI LOGIC ---
@@ -231,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
         container: "map",
-        style: STYLES.default.primary, // Use the primary style initially
+        style: STYLES.default,
         center: [-95, 39],
         zoom: 3,
         pitch: 0,
@@ -241,25 +232,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderWorldCopies: false,
         maxZoom: 18,
         minZoom: 1,
-    });
-
- // Add error handling to switch to the backup style if the primary fails
-    map.on('error', (e) => {
-        // Ignore network errors that typically have a status of 0 (like CORS errors).
-        if (e.error?.status === 0) {
-            console.warn("Ignoring network error (CORS). Map functionality is not affected.");
-            return;
-        }
-
-        // For any other style loading error (e.g., a 404 from the server), switch to the backup.
-        // This is a more general check for when the server is genuinely offline.
-        if (e.error && map.getStyle().metadata['map:style'] === STYLES.default.primary) {
-            console.warn("Primary tile server failed. Switching to backup.");
-            showToast("Primary map server offline. Using backup tiles.", "warning", 5000);
-            map.setStyle(STYLES.default.backup);
-            // Remove the error handler to prevent an infinite loop if the backup fails too
-            map.off('error');
-        }
     });
 
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -284,6 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isMobile) {
             showPanel('welcome-panel');
         }
+        initializeGlobeView();
     });
 
     // --- GLOBE VIEW LOGIC ---
@@ -1172,10 +1145,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyTheme(savedTheme);
     }
 
-    // Initialize globe toggle state but do not force view change on load
-    function initializeGlobeToggle() {
+    function initializeGlobeView() {
         const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
         globeToggle.checked = savedGlobeState;
+        setGlobeView(savedGlobeState);
     }
 
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
@@ -1265,6 +1238,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     initializeTheme();
-    initializeGlobeToggle(); // Now only sets the toggle state
     getInitialRouteFromUrl();
 });
