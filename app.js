@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         minZoom: 1,
     });
 
-   // Add error handling to switch to the backup style if the primary fails
+  // Add error handling to switch to the backup style if the primary fails
     map.on('error', (e) => {
         // Ignore network errors that typically have a status of 0 (like CORS errors).
         if (e.error?.status === 0) {
@@ -251,12 +251,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Switch to the backup style for other, more critical style loading failures (e.g., 404, corrupted file).
-        if (e.error?.message.includes('Could not load style')) {
+        // For any other style loading error (e.g., a 404 from the server), switch to the backup.
+        // This is a more general check for when the server is genuinely offline.
+        if (e.error && map.getStyle().metadata['map:style'] === STYLES.default.primary) {
             console.warn("Primary tile server failed. Switching to backup.");
             showToast("Primary map server offline. Using backup tiles.", "warning", 5000);
             map.setStyle(STYLES.default.backup);
-            // Optionally, remove the error handler to avoid an infinite loop if the backup fails too
+            // Remove the error handler to prevent an infinite loop if the backup fails too
             map.off('error');
         }
     });
