@@ -1,3 +1,4 @@
+```javascript
 /**
  * app.js
  *
@@ -140,7 +141,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     const STYLES = {
-        default: `https://tiles.theboiismc.com/styles/Default/style.json`,
+        default: {
+            primary: `https://tiles.theboiismc.com/styles/Default/style.json`,
+            backup: `https://tiles.openfreemap.org/styles/liberty/style.json`
+        },
         satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] }
     };
 
@@ -222,7 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
         container: "map",
-        style: STYLES.default,
+        style: STYLES.default.primary, // Use the primary style initially
         center: [-95, 39],
         zoom: 3,
         pitch: 0,
@@ -232,6 +236,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderWorldCopies: false,
         maxZoom: 18,
         minZoom: 1,
+    });
+
+    // Add error handling to switch to the backup style if the primary fails
+    map.on('error', (e) => {
+        if (e.error && e.error.message.includes('Could not load style')) {
+            console.warn("Primary tile server failed. Switching to backup.");
+            showToast("Primary map server offline. Using backup tiles.", "warning", 5000);
+            map.setStyle(STYLES.default.backup);
+        }
     });
 
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -1240,3 +1253,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeTheme();
     getInitialRouteFromUrl();
 });
+```
