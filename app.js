@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         minZoom: 1,
     });
 
-  // Add error handling to switch to the backup style if the primary fails
+ // Add error handling to switch to the backup style if the primary fails
     map.on('error', (e) => {
         // Ignore network errors that typically have a status of 0 (like CORS errors).
         if (e.error?.status === 0) {
