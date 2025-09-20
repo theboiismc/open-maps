@@ -277,7 +277,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isMobile) {
             showPanel('welcome-panel');
         }
-        initializeGlobeView();
     });
 
     // --- GLOBE VIEW LOGIC ---
@@ -1166,10 +1165,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyTheme(savedTheme);
     }
 
-    function initializeGlobeView() {
+    // Initialize globe toggle state but do not force view change on load
+    function initializeGlobeToggle() {
         const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
         globeToggle.checked = savedGlobeState;
-        setGlobeView(savedGlobeState);
     }
 
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
@@ -1259,5 +1258,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     initializeTheme();
+    initializeGlobeToggle(); // Now only sets the toggle state
     getInitialRouteFromUrl();
 });
