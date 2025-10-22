@@ -5,6 +5,11 @@
  * It handles user authentication, map rendering and controls, search functionality,
  * routing, turn-by-turn navigation, and various UI interactions like the side panel,
  * settings menu, and the context menu.
+ *
+ * --- UPDATED ---
+ * 1. Fixed Globe View on load.
+ * 2. Modified header dropdown logic to support new styling.
+ * 3. Replaced 'material-symbols-outlined' with 'material-symbols-sharp'.
  */
 
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
@@ -46,7 +51,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- ELEMENT SELECTORS ---
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
-    const defaultProfileIconSVG = profileButton.innerHTML;
+    // MODIFICATION: Default icon is now 'sharp'
+    const defaultProfileIconSVG = '<span class="material-symbols-sharp text-2xl">account_circle</span>';
     const profileDropdown = document.getElementById('profile-dropdown');
     const loggedInView = document.getElementById('logged-in-view');
     const dropdownAvatar = document.getElementById('dropdown-avatar');
@@ -158,6 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             mainSearchInput.placeholder = `Where to, ${userFirstName}?`;
 
             if (currentUser.profile.picture) {
+                // MODIFICATION: Use class 'profile-avatar' (styled in HTML)
                 profileButton.innerHTML = `<img class="profile-avatar" src="${currentUser.profile.picture}" alt="User Profile"/>`;
                 if (dropdownAvatar) { dropdownAvatar.src = currentUser.profile.picture; dropdownAvatar.hidden = false; }
             } else {
@@ -196,19 +203,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- UI EVENT LISTENERS ---
+    // MODIFICATION: Toggle '.open' class instead of style.display
     profileButton.addEventListener('click', () => {
-        profileDropdown.style.display = (profileDropdown.style.display === 'block') ? 'none' : 'block';
+        profileDropdown.classList.toggle('open');
         servicesDropdown.classList.remove('open');
     });
 
+    // MODIFICATION: Toggle '.open' class for services dropdown
     appMenuButton.addEventListener('click', (e) => {
         e.stopPropagation();
         servicesDropdown.classList.toggle('open');
-        profileDropdown.style.display = 'none';
+        profileDropdown.classList.remove('open'); // Close profile dropdown
     });
 
     document.addEventListener('click', (e) => {
-        if (!profileArea.contains(e.target)) profileDropdown.style.display = 'none';
+        // MODIFICATION: Close dropdowns by removing '.open' class
+        if (!profileArea.contains(e.target)) profileDropdown.classList.remove('open');
         if (!appMenuButton.contains(e.target) && !servicesDropdown.contains(e.target)) servicesDropdown.classList.remove('open');
         if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) contextMenu.style.display = 'none';
     });
@@ -256,6 +266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isMobile) {
             showPanel('welcome-panel');
         }
+        // MODIFICATION: This now only sets the toggle, doesn't change map
         initializeGlobeView();
     });
 
@@ -471,7 +482,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             recents.forEach(place => {
                 const item = document.createElement('div');
                 item.className = 'recent-item';
-                item.innerHTML = `<span class="material-symbols-outlined">history</span> <span>${place.display_name}</span>`;
+                // MODIFICATION: Use 'sharp' icon
+                item.innerHTML = `<span class="material-symbols-sharp">history</span> <span>${place.display_name}</span>`;
                 item.addEventListener('mousedown', (e) => {
                     e.preventDefault();
                     processPlaceResult(place);
@@ -649,8 +661,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             listItem.className = 'search-result-item';
             const address = (item.tags && `${item.tags['addr:street'] || ''} ${item.tags['addr:city'] || ''}`).trim() || 'Address not available';
             
+            // MODIFICATION: Use 'sharp' icon
             listItem.innerHTML = `
-                <div class="result-item-icon"><span class="material-symbols-outlined">${getIconForCategory(query)}</span></div>
+                <div class="result-item-icon"><span class="material-symbols-sharp">${getIconForCategory(query)}</span></div>
                 <div class="result-item-details">
                     <h4>${displayName}</h4>
                     <p>${address}</p>
@@ -1145,10 +1158,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyTheme(savedTheme);
     }
 
+    // MODIFICATION: Renamed function
     function initializeGlobeView() {
         const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
         globeToggle.checked = savedGlobeState;
-        setGlobeView(savedGlobeState);
+        // MODIFICATION: REMOVED the call to setGlobeView(savedGlobeState);
+        // This stops the map from changing on load. It will now only
+        // change when the user explicitly clicks the toggle.
     }
 
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
