@@ -5,19 +5,12 @@
  * It handles user authentication, map rendering and controls, search functionality,
  * routing, turn-by-turn navigation, and various UI interactions like the side panel,
  * settings menu, and the context menu.
- *
- * --- UPDATED ---
- * 1. Modernized toast notifications: Non-stacking, bottom-anchored, with icons.
- * 2. Implemented "Saved Places" feature using localStorage, keyed by user ID.
- * - "Save" button on info panel is now functional.
- * - "Saved Places" button in profile dropdown now lists saved locations.
  */
 
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
 const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/maps/",
     client_id: "xqfUqdpbn8PCCz6ouRAQtFV0oUyg4lpEb64U8W9s",
-    scope: 'openid profile email offline_access',
     redirect_uri: "https://maps.theboiismc.com/callback.html",
     post_logout_redirect_uri: "https://maps.theboiismc.com",
     response_type: 'code',
@@ -33,62 +26,19 @@ const authService = {
     async handleCallback() { return userManager.signinRedirectCallback(); }
 };
 
-// --- UTILITY FUNCTIONS (TOASTS) ---
-let activeToast = null;
-
-/**
- * Shows a non-stacking toast notification at the bottom of the screen.
- * @param {string} message The message to display.
- * @param {'info' | 'success' | 'error'} type The type of toast.
- * @param {number} duration How long to display the toast (in ms).
- */
+// --- UTILITY FUNCTIONS ---
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
     if (!container) return;
-
-    // If a toast is already active, dismiss it immediately
-    if (activeToast) {
-        activeToast.dismiss();
-    }
-
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-
-    // Add icon based on type
-    let icon = 'info';
-    if (type === 'success') icon = 'check_circle';
-    if (type === 'error') icon = 'error';
-
-    toast.innerHTML = `
-        <span class="material-symbols-sharp">${icon}</span>
-        <p>${message}</p>
-    `;
-
-    // Create a dismiss function
-    const dismiss = () => {
-        toast.classList.remove('show');
-        if (activeToast && activeToast.element === toast) {
-            clearTimeout(activeToast.timeoutId);
-            activeToast = null;
-        }
-        toast.addEventListener('transitionend', () => toast.remove());
-    };
-
-    const timeoutId = setTimeout(dismiss, duration);
-    
-    // Store this as the active toast
-    activeToast = {
-        element: toast,
-        timeoutId: timeoutId,
-        dismiss: dismiss
-    };
-    
-    // Add click-to-dismiss functionality
-    toast.addEventListener('click', dismiss);
-
+    toast.textContent = message;
     container.appendChild(toast);
-    // Use a tiny timeout to allow the element to be in the DOM before triggering transition
     setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, duration);
 }
 
 // --- MAIN APPLICATION INITIALIZATION ---
@@ -96,6 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- ELEMENT SELECTORS ---
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
+    const defaultProfileIconSVG = profileButton.innerHTML;
     const profileDropdown = document.getElementById('profile-dropdown');
     const loggedInView = document.getElementById('logged-in-view');
     const dropdownAvatar = document.getElementById('dropdown-avatar');
@@ -103,7 +54,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loginBtn = document.getElementById('login-btn');
     const signupBtn = document.getElementById('signup-btn');
     const logoutBtn = document.getElementById('logout-btn');
-    const savedPlacesBtn = document.getElementById('saved-places-btn'); // Added for Saved Places
     const appMenuButton = document.getElementById('app-menu-button');
     const servicesDropdown = document.getElementById('services-dropdown');
     const sidePanel = document.getElementById("side-panel");
@@ -125,7 +75,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const infoWeatherEl = document.getElementById('info-weather');
     const quickFactsEl = document.getElementById('quick-facts-content');
     const infoWebsiteBtn = document.getElementById('info-website-btn');
-    const infoSaveBtn = document.getElementById('info-save-btn'); // Added for Saved Places
     const fromInput = document.getElementById('panel-from-input');
     const toInput = document.getElementById('panel-to-input');
     const contextMenu = document.getElementById('context-menu');
@@ -168,7 +117,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- APP STATE VARIABLES ---
     let currentUser = null;
-    let savedPlaces = []; // Added for Saved Places
     let contextMenuLngLat = null;
     let currentPlace = null;
     let currentRouteData = null;
@@ -176,119 +124,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let navigationWatcherId = null;
     let userLocationMarker = null;
     let searchResultMarkers = [];
-
-    // --- SAVED PLACES LOGIC (NEW) ---
-
-    /** Gets the localStorage key for saved places, namespaced by user ID. */
-    const getSavedPlacesKey = () => {
-        const userId = currentUser?.profile?.sub || 'guest';
-        return `theboiismc-maps-saved-places-${userId}`;
-    };
-
-    /** Loads saved places from localStorage into the `savedPlaces` state variable. */
-    function loadSavedPlaces() {
-        savedPlaces = JSON.parse(localStorage.getItem(getSavedPlacesKey())) || [];
-    }
-
-    /** Persists the current `savedPlaces` state variable to localStorage. */
-    function persistSavedPlaces() {
-        localStorage.setItem(getSavedPlacesKey(), JSON.stringify(savedPlaces));
-    }
-
-    /** Checks if a place is already in the `savedPlaces` array. */
-    function isPlaceSaved(place) {
-        if (!place) return false;
-        return savedPlaces.some(p => p.display_name === place.display_name);
-    }
-
-    /** Adds a place to the saved list and persists it. */
-    function addSavedPlace(place) {
-        if (!place || isPlaceSaved(place)) return;
-        savedPlaces.unshift(place); // Add to the beginning of the list
-        persistSavedPlaces();
-        showToast("Place saved!", 'success');
-        updateSaveButtonState(place);
-    }
-
-    /** Removes a place from the saved list and persists the change. */
-    function removeSavedPlace(place) {
-        if (!place) return;
-        savedPlaces = savedPlaces.filter(p => p.display_name !== place.display_name);
-        persistSavedPlaces();
-        showToast("Place removed.", 'info');
-        updateSaveButtonState(place);
-    }
-
-    /** Updates the Save button's icon and text based on the place's saved state. */
-    function updateSaveButtonState(place) {
-        if (!infoSaveBtn) return;
-        if (isPlaceSaved(place)) {
-            infoSaveBtn.innerHTML = `
-                <div class="icon-circle"><span class="material-symbols-sharp">bookmark_added</span></div>
-                <div class="btn-label">Saved</div>
-            `;
-            infoSaveBtn.classList.add('saved'); // You can use this class for styling
-        } else {
-            infoSaveBtn.innerHTML = `
-                <div class="icon-circle"><span class="material-symbols-sharp">bookmark_border</span></div>
-                <div class="btn-label">Save</div>
-            `;
-            infoSaveBtn.classList.remove('saved');
-        }
-    }
-
-    /** Handles the click event for the main "Save" button on the info panel. */
-    infoSaveBtn.addEventListener('click', () => {
-        if (!currentPlace) return;
-
-        // Require login to save places
-        if (!currentUser) {
-            showToast("Please log in to save places.", 'info');
-            return;
-        }
-
-        if (isPlaceSaved(currentPlace)) {
-            removeSavedPlace(currentPlace);
-        } else {
-            addSavedPlace(currentPlace);
-        }
-    });
-
-    /** Handles the click event for the "Saved Places" button in the profile dropdown. */
-    savedPlacesBtn.addEventListener('click', () => {
-        profileDropdown.classList.remove('open'); // Close dropdown
-        clearSearchResultMarkers();
-        
-        searchResultsQueryEl.textContent = "Saved Places";
-        searchResultsListEl.innerHTML = ''; // Clear previous results
-
-        if (savedPlaces.length === 0) {
-            searchResultsListEl.innerHTML = '<div class="no-results">You have no saved places.</div>';
-            showPanel('search-results-panel');
-            return;
-        }
-
-        savedPlaces.forEach(place => {
-            const listItem = document.createElement('div');
-            listItem.className = 'search-result-item';
-            const address = place.display_name.split(',').slice(1).join(',').trim() || 'Details not available';
-            
-            listItem.innerHTML = `
-                <div class="result-item-icon"><span class="material-symbols-sharp">bookmark</span></div>
-                <div class="result-item-details">
-                    <h4>${place.display_name.split(',')[0]}</h4>
-                    <p>${address}</p>
-                </div>
-            `;
-            listItem.addEventListener('click', () => {
-                // When a saved item is clicked, process it like a search result
-                processPlaceResult(place);
-            });
-            searchResultsListEl.appendChild(listItem);
-        });
-
-        showPanel('search-results-panel');
-    });
 
     // --- HELPER FUNCTIONS ---
     function formatDuration(totalSeconds) {
@@ -315,9 +150,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isLoggedIn = !!currentUser;
         loggedInView.hidden = !isLoggedIn;
         loggedOutView.hidden = isLoggedIn;
-
-        // Load saved places for the current user (or guest)
-        loadSavedPlaces();
 
         if (isLoggedIn) {
             const userFirstName = currentUser.profile.name.split(' ')[0];
@@ -357,26 +189,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
         const user = await authService.getUser();
-        updateAuthUI(user); // This will also call loadSavedPlaces()
+        updateAuthUI(user);
     } catch (error) {
         console.error("Initial getUser check failed:", error);
-        updateAuthUI(null); // This will also call loadSavedPlaces() for 'guest'
+        updateAuthUI(null);
     }
 
     // --- UI EVENT LISTENERS ---
     profileButton.addEventListener('click', () => {
-        profileDropdown.classList.toggle('open');
+        profileDropdown.style.display = (profileDropdown.style.display === 'block') ? 'none' : 'block';
         servicesDropdown.classList.remove('open');
     });
 
     appMenuButton.addEventListener('click', (e) => {
         e.stopPropagation();
         servicesDropdown.classList.toggle('open');
-        profileDropdown.classList.remove('open'); // Close profile dropdown
+        profileDropdown.style.display = 'none';
     });
 
     document.addEventListener('click', (e) => {
-        if (!profileArea.contains(e.target)) profileDropdown.classList.remove('open');
+        if (!profileArea.contains(e.target)) profileDropdown.style.display = 'none';
         if (!appMenuButton.contains(e.target) && !servicesDropdown.contains(e.target)) servicesDropdown.classList.remove('open');
         if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) contextMenu.style.display = 'none';
     });
@@ -555,8 +387,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function showPanel(viewId) {
-        // Updated list to include 'saved-places-panel' if you add one.
-        // For now, it re-uses 'search-results-panel'.
         ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.hidden = id !== viewId;
@@ -641,7 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             recents.forEach(place => {
                 const item = document.createElement('div');
                 item.className = 'recent-item';
-                item.innerHTML = `<span class="material-symbols-sharp">history</span> <span>${place.display_name}</span>`;
+                item.innerHTML = `<span class="material-symbols-outlined">history</span> <span>${place.display_name}</span>`;
                 item.addEventListener('mousedown', (e) => {
                     e.preventDefault();
                     processPlaceResult(place);
@@ -740,7 +570,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function processPlaceResult(place) {
         addRecentSearch(place);
-        currentPlace = place; // Set the global `currentPlace`
+        currentPlace = place;
         stopNavigation();
         clearRouteFromMap();
         clearSearchResultMarkers();
@@ -767,9 +597,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchAndSetWeather(place.lat, place.lon);
         fetchAndSetQuickFacts(locationName);
         fetchAndSetWebsite(locationName);
-
-        // Update the save button state for this new place
-        updateSaveButtonState(place);
 
         showPanel('info-panel-redesign');
     }
@@ -807,13 +634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         featuresWithDistance.forEach(item => {
             const displayName = item.tags?.name || 'Unnamed Place';
-            // Construct a place object compatible with processPlaceResult
-            const place = { 
-                lon: item.lon, 
-                lat: item.lat, 
-                display_name: item.tags?.name ? `${item.tags.name}, ${item.tags['addr:city'] || ''}` : 'Unnamed Place'
-                // Note: This is a simplified display_name. You might want to enhance it.
-            };
+            const place = { lon: item.lon, lat: item.lat, display_name: displayName };
             
             const marker = new maplibregl.Marker({ color: '#E53935' })
                 .setLngLat([place.lon, place.lat])
@@ -829,7 +650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const address = (item.tags && `${item.tags['addr:street'] || ''} ${item.tags['addr:city'] || ''}`).trim() || 'Address not available';
             
             listItem.innerHTML = `
-                <div class="result-item-icon"><span class="material-symbols-sharp">${getIconForCategory(query)}</span></div>
+                <div class="result-item-icon"><span class="material-symbols-outlined">${getIconForCategory(query)}</span></div>
                 <div class="result-item-details">
                     <h4>${displayName}</h4>
                     <p>${address}</p>
@@ -1327,6 +1148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     function initializeGlobeView() {
         const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
         globeToggle.checked = savedGlobeState;
+        setGlobeView(savedGlobeState);
     }
 
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
@@ -1418,4 +1240,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeTheme();
     getInitialRouteFromUrl();
 });
-
