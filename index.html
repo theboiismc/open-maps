@@ -25,13 +25,162 @@
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
-    </noscript>
+    <!-- Google Fonts: Poppins and Material Symbols Sharp (from dashindex.html) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
+    <!-- MapLibre CSS -->
     <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
+    <!-- Original Map Styles -->
     <link rel="stylesheet" href="libs/css/styles.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config (adapted from dashindex.html) -->
+    <script>
+      tailwind.config = {
+        // Use data-theme="dark" for dark mode, matching your app.js
+        darkMode: ['attr', 'data-theme="dark"]'],
+        theme: {
+          extend: {
+            fontFamily: {
+              poppins: ['Poppins', 'sans-serif'],
+            },
+            colors: {
+              'primary-blue': {
+                 '50': '#eff6ff', '100': '#dbeafe', '200': '#bfdbfe', '300': '#93c5fd',
+                 '400': '#60a5fa', '500': '#3b82f6', '600': '#2563eb', '700': '#1d4ed8',
+                 '800': '#1e40af', '900': '#1e3a8a', '950': '#172554',
+              },
+              'accent-yellow': {
+                 '300': '#fcd34d',
+                 '500': '#f59e0b',
+              }
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- Custom Style Overrides for New Header -->
+    <style>
+      /* Use Poppins as the default font */
+      body { 
+        font-family: 'Poppins', sans-serif; 
+      }
+      .material-symbols-sharp {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      /* Class already used by app.js for profile pictures */
+      .profile-avatar { 
+        width: 100%; height: 100%; border-radius: 9999px; object-fit: cover;
+      }
+      
+      /* --- Header Redesign --- */
+      
+      /* Override styles.css to make original banner transparent and float it */
+      #top-banner {
+        background-color: transparent;
+        box-shadow: none;
+        padding: 0;
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 10;
+        height: auto;
+      }
+      
+      /* New container for the icons, styled like dashindex.html's header card */
+      .icon-header-cluster {
+        margin: 1rem; /* p-4 */
+        display: flex;
+        align-items: center;
+        gap: 1rem; /* space-x-4 */
+        background-color: white;
+        padding: 0.75rem; /* p-3 */
+        border-radius: 9999px; /* rounded-full */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+      }
+      [data-theme="dark"] .icon-header-cluster {
+        background-color: #374151; /* dark:bg-gray-700 */
+      }
+      
+      /* Override styles.css for profile-area */
+      #profile-area {
+        position: relative; /* For the dropdowns */
+        display: flex;
+        align-items: center;
+        gap: 0.5rem; /* space-x-2 */
+      }
+      
+      /* Restyle buttons */
+      #settings-icon-btn, #app-menu-button, #profile-button {
+        all: unset; /* Clear styles.css */
+        box-sizing: border-box; 
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem; /* w-10 */
+        height: 2.5rem; /* h-10 */
+        border-radius: 9999px; /* rounded-full */
+        color: #4b5563; /* text-gray-600 */
+        transition: background-color 0.15s ease-in-out;
+      }
+      /* Special styling for profile button to hold avatar */
+      #profile-button {
+         border: 2px solid #3b82f6; /* border-2 border-primary-blue-500 */
+         padding: 2px; /* Small padding to contain image */
+         overflow: hidden; /* Ensure image stays rounded */
+      }
+      #settings-icon-btn:hover, #app-menu-button:hover {
+        background-color: #f3f4f6; /* hover:bg-gray-100 */
+      }
+      #profile-button:hover {
+         opacity: 0.8;
+      }
+      [data-theme="dark"] #settings-icon-btn, [data-theme="dark"] #app-menu-button, [data-theme="dark"] #profile-button span {
+         color: #d1d5db; /* dark:text-gray-300 */
+      }
+      [data-theme="dark"] #settings-icon-btn:hover, [data-theme="dark"] #app-menu-button:hover {
+        background-color: #4b5563; /* dark:hover:bg-gray-600 */
+      }
+      
+      /* Restyle dropdowns to match dashindex.html */
+      #services-dropdown, #profile-dropdown {
+        all: unset; /* Clear styles.css */
+        display: none; /* Default hidden */
+        position: absolute;
+        right: 0;
+        margin-top: 8px; /* mt-2 */
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+        border-radius: 1.5rem; /* rounded-3xl */
+        border: 1px solid #e5e7eb; /* border border-gray-200 */
+        z-index: 30;
+        background-color: white;
+      }
+      [data-theme="dark"] #services-dropdown, [data-theme="dark"] #profile-dropdown {
+        background-color: #374151; /* dark:bg-gray-700 */
+        border-color: #4b5563; /* dark:border-gray-600 */
+      }
+      
+      /* Apps Dropdown */
+      #services-dropdown {
+         width: 20rem; /* w-80 */
+         padding: 1rem; /* p-4 */
+      }
+      /* Profile Dropdown */
+      #profile-dropdown {
+         width: 18rem; /* w-72 */
+         padding: 1rem; /* p-4 */
+      }
+      
+      /* app.js toggles this .open class */
+      #services-dropdown.open, #profile-dropdown.open {
+         display: block; 
+      }
+    </style>
 
     <script type="application/ld+json">
     {
@@ -51,40 +200,96 @@
     </script>
 </head>
 <body>
+    <!-- 
+      HEADER (TOP-BANNER)
+      - Restructured to group icons into a floating card.
+      - Buttons re-ordered.
+      - Dropdown markup replaced with dashindex.html markup.
+      - IDs are kept for app.js to function.
+    -->
     <div id="top-banner">
-        <span id="site-title">TheBoiisMC Maps</span>
-        <div id="profile-area">
-            <button id="settings-icon-btn" aria-label="Map Settings"><span class="material-symbols-outlined">tune</span></button>
-            <button id="profile-button" aria-label="User Profile"><span class="material-symbols-outlined">account_circle</span></button>
-            <button id="app-menu-button" aria-label="TheBoiisMC Apps"><span class="material-symbols-outlined">apps</span></button>
-            <div id="services-dropdown">
-                <a href="https://search.theboiismc.com" class="service-item"><span class="material-symbols-outlined">search</span><span class="service-name">Search</span></a>
-                <a href="https://maps.theboiismc.com" class="service-item"><span class="material-symbols-outlined">map</span><span class="service-name">Maps</span></a>
-                <a href="https://drive.theboiismc.com" class="service-item"><span class="material-symbols-outlined">cloud</span><span class="service-name">Drive</span></a>
-                <a href="https://myaccount.theboiismc.com" class="service-item"><span class="material-symbols-outlined">account_circle</span><span class="service-name">Account</span></a>
-            </div>
-            <div id="profile-dropdown">
-                <div id="logged-in-view" hidden>
-                    <div class="profile-section profile-section-header">
-                        <img id="dropdown-avatar" class="profile-dropdown-avatar" src="" alt="User Avatar" hidden />
-                        <div class="username">TheBoiisMC</div>
-                        <div class="email">user@example.com</div>
-                    </div>
-                    <hr/>
-                    <div class="profile-actions">
-                        <a id="saved-places-btn">Saved Places</a>
-                    </div>
-                    <hr/>
-                    <div class="profile-actions">
-                        <a id="logout-btn">Log Out</a>
+        <div class="icon-header-cluster">
+            <!-- Added site title back, hidden on small screens -->
+            <span id="site-title" class="text-xl font-bold text-gray-800 dark:text-white pr-4 hidden sm:block">Maps</span>
+            
+            <div id="profile-area">
+                <!-- Settings Button (Map specific) -->
+                <button id="settings-icon-btn" aria-label="Map Settings" title="Map Settings">
+                    <span class="material-symbols-sharp">tune</span>
+                </button>
+                
+                <!-- Apps Button (as per dashindex.html) -->
+                <button id="app-menu-button" aria-label="TheBoiisMC Apps" title="TheBoiisMC Apps">
+                    <span class="material-symbols-sharp">apps</span>
+                </button>
+                
+                <!-- Profile Button (as per dashindex.html) -->
+                <button id="profile-button" aria-label="User Profile" title="User Profile">
+                    <!-- This span is the default, app.js will replace it with avatar img -->
+                    <span class="material-symbols-sharp text-2xl">account_circle</span>
+                </button>
+    
+                <!-- 
+                  APPS DROPDOWN (services-dropdown)
+                  - Markup is from dashindex.html's #apps-menu
+                  - ID is #services-dropdown so app.js works
+                  - Styled with Tailwind classes in the <style> block above
+                -->
+                <div id="services-dropdown">
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="https://maps.theboiismc.com" class="flex flex-col items-center justify-center p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-600 text-center transition">
+                            <span class="material-symbols-sharp text-3xl text-primary-blue-500">map</span>
+                            <span class="text-sm text-gray-700 dark:text-gray-200 mt-1">Maps</span>
+                        </a>
+                        <a href="https://drive.theboiismc.com" class="flex flex-col items-center justify-center p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-600 text-center transition">
+                            <span class="material-symbols-sharp text-3xl text-green-500">cloud</span>
+                            <span class="text-sm text-gray-700 dark:text-gray-200 mt-1">Drive</span>
+                        </a>
+                        <a href="https://myaccount.theboiismc.com" class="flex flex-col items-center justify-center p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-600 text-center transition">
+                            <span class="material-symbols-sharp text-3xl text-purple-500">account_circle</span>
+                            <span class="text-sm text-gray-700 dark:text-gray-200 mt-1">Account</span>
+                        </a>
+                        <a href="https://search.theboiismc.com" class="flex flex-col items-center justify-center p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-gray-600 text-center transition">
+                            <span class="material-symbols-sharp text-3xl text-red-500">search</span>
+                            <span class="text-sm text-gray-700 dark:text-gray-200 mt-1">Search</span>
+                        </a>
                     </div>
                 </div>
-                <div id="logged-out-view" hidden>
-                    <div class="profile-section" style="text-align:center; font-weight: 500; color: var(--text-secondary);">Sign in to save and view places</div>
-                    <hr/>
-                    <div class="auth-buttons">
-                        <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
-                        <a href="#" id="signup-btn" class="btn btn-secondary">Sign Up</a>
+                
+                <!-- 
+                  PROFILE DROPDOWN (profile-dropdown)
+                  - Markup is from dashindex.html's #profile-menu
+                  - *BUT* it keeps the #logged-in-view / #logged-out-view structure
+                  - All sub-element IDs that app.js uses are preserved.
+                  - Styled with Tailwind classes.
+                -->
+                <div id="profile-dropdown">
+                    <div id="logged-in-view" hidden>
+                        <div class="text-center pb-3 border-b border-gray-100 dark:border-gray-600 mb-3">
+                            <!-- app.js controls this avatar -->
+                            <img id="dropdown-avatar" class="w-16 h-16 rounded-full mx-auto" src="" alt="User Avatar" hidden />
+                            <!-- app.js populates these -->
+                            <p class="username text-lg font-semibold text-gray-900 dark:text-white mt-2">Loading Name...</p>
+                            <p class="email text-sm text-gray-500 dark:text-gray-400">Loading Email...</p>
+                        </div>
+                        <a id="saved-places-btn" class="flex items-center space-x-3 p-3 text-gray-700 dark:text-gray-200 hover:bg-slate-100 dark:hover:bg-gray-600 rounded-xl transition cursor-pointer">
+                            <span class="material-symbols-sharp text-lg">bookmark</span>
+                            <span class="text-sm font-medium">Saved Places</span>
+                        </a>
+                        <div class="pt-3 border-t border-gray-100 dark:border-gray-600 mt-3">
+                            <button id="logout-btn" class="w-full flex items-center space-x-3 p-3 text-red-500 hover:bg-red-50 dark:hover:bg-gray-800 rounded-xl transition">
+                                <span class="material-symbols-sharp text-lg">logout</span>
+                                <span class="text-sm font-medium">Sign out</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="logged-out-view" hidden>
+                        <p class="text-center text-gray-600 dark:text-gray-400 pb-3 border-b border-gray-100 dark:border-gray-600 mb-3">Sign in to save and view places</p>
+                        <div class="flex flex-col space-y-2">
+                            <!-- Restyled auth buttons -->
+                            <a href="#" id="login-btn" class="w-full text-center px-4 py-2 bg-primary-blue-600 text-white rounded-full hover:bg-primary-blue-700 transition">Log In</a>
+                            <a href="#" id="signup-btn" class="w-full text-center px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500 transition">Sign Up</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -106,9 +311,9 @@
     
     <div id="top-search-wrapper">
         <div id="main-search-container">
-            <span id="search-icon-inside" class="material-symbols-outlined">search</span>
+            <span id="search-icon-inside" class="material-symbols-sharp">search</span>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
-            <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
+            <span id="main-directions-icon" class="material-symbols-sharp">directions</span>
             <div id="main-suggestions" class="suggestions-dropdown">
                 <div id="initial-suggestions-view">
                     <div id="recent-searches-container">
@@ -134,21 +339,21 @@
                     
                     <div class="category-pills">
                         <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant">
-                            <span class="material-symbols-outlined">restaurant</span> Restaurants
+                            <span class="material-symbols-sharp">restaurant</span> Restaurants
                         </button>
                         <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel">
-                            <span class="material-symbols-outlined">local_gas_station</span> Gas
+                            <span class="material-symbols-sharp">local_gas_station</span> Gas
                         </button>
                         <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe">
-                            <span class="material-symbols-outlined">coffee</span> Coffee
+                            <span class="material-symbols-sharp">coffee</span> Coffee
                         </button>
                         <button class="category-pill" data-query="parks" data-osm-tag="leisure=park">
-                            <span class="material-symbols-outlined">park</span> Parks
+                            <span class="material-symbols-sharp">park</span> Parks
                         </button>
                     </div>
 
                     <div class="action-buttons" style="margin-top: 24px;">
-                        <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><span class="material-symbols-sharp">directions</span></div><div class="btn-label">Directions</div></div>
                     </div>
                 </div>
 
@@ -163,7 +368,7 @@
             <div id="search-results-panel" hidden>
                 <div class="info-content-padding">
                     <button id="back-from-results-btn" class="back-button">
-                        <span class="material-symbols-outlined">arrow_back</span> Back
+                        <span class="material-symbols-sharp">arrow_back</span> Back
                     </button>
                     <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
                     <div class="sort-controls">
@@ -178,16 +383,16 @@
             <div id="info-panel-redesign" hidden>
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location" loading="lazy"/>
-                    <button id="close-info-btn"><span class="material-symbols-outlined">arrow_back</span></button>
+                    <button id="close-info-btn"><span class="material-symbols-sharp">arrow_back</span></button>
                 </div>
                 <div class="info-content-padding">
                     <h3 id="info-name"></h3>
                     <div class="address" id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-outlined">public</span></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></div>
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-sharp">directions</span></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-sharp">public</span></div><div class="btn-label">Website</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-sharp">bookmark</span></div><div class="btn-label">Save</div></div>
                     </div>
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
@@ -197,23 +402,23 @@
                 <div class="info-content-padding">
                     <div class="travel-modes">
                         <button class="travel-mode-btn active" data-mode="driving" aria-label="Driving">
-                            <span class="material-symbols-outlined">directions_car</span>
+                            <span class="material-symbols-sharp">directions_car</span>
                         </button>
                         <button class="travel-mode-btn" data-mode="walking" aria-label="Walking">
-                            <span class="material-symbols-outlined">directions_walk</span>
+                            <span class="material-symbols-sharp">directions_walk</span>
                         </button>
                         <button class="travel-mode-btn" data-mode="cycling" aria-label="Cycling">
-                            <span class="material-symbols-outlined">directions_bike</span>
+                            <span class="material-symbols-sharp">directions_bike</span>
                         </button>
                     </div>
                     <div class="dir-input-group">
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><span class="material-symbols-sharp">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
                         <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><span class="material-symbols-sharp">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
                         <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                        <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
+                        <button id="swap-btn"><span class="material-symbols-sharp">swap_vert</span></button>
                     </div>
-                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-sharp">my_location</span></div>Your location</div>
                     <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
                 </div>
             </div>
@@ -225,9 +430,9 @@
                         <div id="route-summary-distance"></div>
                     </div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
-                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
-                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined">list</span></div><div class="btn-label">Steps</div></div>
+                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-sharp">navigation</span></div><div class="btn-label">Start Trip</div></div>
+                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-sharp">share</span></div><div class="btn-label">Share</div></div>
+                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-sharp">list</span></div><div class="btn-label">Steps</div></div>
                     </div>
                     <button id="back-to-directions-btn">Back</button>
                 </div>
@@ -268,9 +473,9 @@
 
     <div id="context-menu">
         <div id="context-menu-coords"></div>
-        <div class="context-menu-item" id="ctx-directions-from"><span class="material-symbols-outlined">near_me</span><span>Directions from here</span></div>
-        <div class="context-menu-item" id="ctx-directions-to"><span class="material-symbols-outlined">place</span><span>Directions to here</span></div>
-        <div class="context-menu-item" id="ctx-whats-here"><span class="material-symbols-outlined">help_outline</span><span>What's here?</span></div>
+        <div class="context-menu-item" id="ctx-directions-from"><span class="material-symbols-sharp">near_me</span><span>Directions from here</span></div>
+        <div class="context-menu-item" id="ctx-directions-to"><span class="material-symbols-sharp">place</span><span>Directions to here</span></div>
+        <div class="context-menu-item" id="ctx-whats-here"><span class="material-symbols-sharp">help_outline</span><span>What's here?</span></div>
     </div>
     
     <div id="map"></div>
@@ -280,6 +485,7 @@
     <script src="libs/js/oidc-client-ts@2.2.0.js" defer></script>
     <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
     <script src='libs/js/turf-6.5.0.min.js' defer></script>
+    <!-- Use the updated app.js -->
     <script src="app.js" defer></script>
 </body>
 </html>
