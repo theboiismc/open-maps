@@ -25,10 +25,7 @@
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
-    </noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
 
     <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     <link rel="stylesheet" href="libs/css/styles.css">
@@ -55,6 +52,7 @@
         <h1 id="site-title">TheBoiisMC Maps</h1>
         
         <div id="profile-area" role="navigation" aria-label="User and Application Controls">
+            
             <button id="settings-icon-btn" aria-label="Map Settings" aria-haspopup="dialog" aria-controls="settings-modal-dialog">
                 <span class="material-symbols-outlined" aria-hidden="true">tune</span>
             </button>
@@ -83,7 +81,6 @@
             </div>
             
             <div id="profile-dropdown" role="menu" aria-label="User Profile Actions" hidden>
-                
                 <div id="logged-in-view" hidden>
                     <div class="profile-section profile-section-header">
                         <img id="dropdown-avatar" class="profile-dropdown-avatar" src="" alt="User Avatar" hidden />
@@ -129,6 +126,7 @@
         <div id="main-search-container" role="search">
             <label for="main-search" class="sr-only">Search TheBoiisMC Maps</label>
             <span id="search-icon-inside" class="material-symbols-outlined" aria-hidden="true">search</span>
+            
             <input type="text" 
                    id="main-search" 
                    placeholder="Search TheBoiisMC Maps" 
@@ -139,6 +137,7 @@
                    aria-controls="main-suggestions" 
             />
             <span id="main-directions-icon" class="material-symbols-outlined" aria-hidden="true">directions</span>
+            
             <div id="main-suggestions" class="suggestions-dropdown" role="listbox">
                 <div id="initial-suggestions-view">
                     <div id="recent-searches-container" aria-label="Recent Searches">
@@ -367,9 +366,15 @@
 
     <div id="context-menu" role="menu" aria-label="Map Context Menu" hidden>
         <div id="context-menu-coords"></div>
-        <div class="context-menu-item" id="ctx-directions-from" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">near_me</span><span>Directions from here</span></div>
-        <div class="context-menu-item" id="ctx-directions-to" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">place</span><span>Directions to here</span></div>
-        <div class="context-menu-item" id="ctx-whats-here" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">help_outline</span><span>What's here?</span></div>
+        <div class="context-menu-item" id="ctx-directions-from" role="menuitem">
+            <span class="material-symbols-outlined" aria-hidden="true">near_me</span><span>Directions from here</span>
+        </div>
+        <div class="context-menu-item" id="ctx-directions-to" role="menuitem">
+            <span class="material-symbols-outlined" aria-hidden="true">place</span><span>Directions to here</span>
+        </div>
+        <div class="context-menu-item" id="ctx-whats-here" role="menuitem">
+            <span class="material-symbols-outlined" aria-hidden="true">help_outline</span><span>What's here?</span>
+        </div>
     </div>
     
     <div id="map" role="application" aria-label="Main interactive map"></div>
@@ -382,6 +387,5 @@
     <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
     <script src='libs/js/turf-6.5.0.min.js' defer></script>
     <script src="app.js" defer></script>
-    
-    </body>
+</body>
 </html>
