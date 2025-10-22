@@ -14,7 +14,6 @@ const urlsToCache = [
   // Local resources as specified in your HTML
   '/libs/css/maplibre-gl-4.1.0.css',
   '/libs/css/styles.css',
-  '/libs/js/oidc-client-ts@2.2.0.js',
   '/libs/js/maplibre-gl-4.1.0.js',
   '/libs/js/turf-6.5.0.min.js',
 
