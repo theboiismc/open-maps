@@ -17,6 +17,7 @@
 const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/maps/",
     client_id: "xqfUqdpbn8PCCz6ouRAQtFV0oUyg4lpEb64U8W9s",
+    scope: 'openid profile email offline_access',
     redirect_uri: "https://maps.theboiismc.com/callback.html",
     post_logout_redirect_uri: "https://maps.theboiismc.com",
     response_type: 'code',
