@@ -96,7 +96,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- ELEMENT SELECTORS ---
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
-    const defaultProfileIconSVG = '<span class="material-symbols-sharp text-2xl">account_circle</span>';
     const profileDropdown = document.getElementById('profile-dropdown');
     const loggedInView = document.getElementById('logged-in-view');
     const dropdownAvatar = document.getElementById('dropdown-avatar');
