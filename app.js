@@ -18,7 +18,6 @@ const authConfig = {
     authority: "https://accounts.theboiismc.com/application/o/maps/",
     client_id: "xqfUqdpbn8PCCz6ouRAQtFV0oUyg4lpEb64U8W9s",
     redirect_uri: "https://maps.theboiismc.com/callback.html",
-    scope: 'openid profile email offline_access',
     post_logout_redirect_uri: "https://maps.theboiismc.com",
     response_type: 'code',
     automaticSilentRenew: true,
@@ -96,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- ELEMENT SELECTORS ---
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
-    const defaultProfileIconSVG = profileButton.innerHTML;
+    const defaultProfileIconSVG = '<span class="material-symbols-sharp text-2xl">account_circle</span>';
     const profileDropdown = document.getElementById('profile-dropdown');
     const loggedInView = document.getElementById('logged-in-view');
     const dropdownAvatar = document.getElementById('dropdown-avatar');
@@ -1419,4 +1418,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeTheme();
     getInitialRouteFromUrl();
 });
-
