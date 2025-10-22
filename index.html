@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
@@ -7,279 +7,330 @@
     <title>TheBoiisMC Maps - Private Navigation & Directions</title>
 
     <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
-    
+
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
+    <!-- Load Inter font for better typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <!-- Load Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    <meta name="theme-color" content="#00796b" />
+    <!-- Load Google Material Symbols (Icons) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <meta name="theme-color" content="#007BFF" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
 
-    <meta property="og:title" content="TheBoiisMC Maps - Private Navigation & Directions" />
-    <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps." />
-    <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
-    <meta property="og:url" content="https://maps.theboiismc.com" />
-    <meta name="twitter:card" content="summary_large_image" />
-
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
-    </noscript>
-
-    <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
-    <link rel="stylesheet" href="libs/css/styles.css">
-
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "TheBoiisMC Maps",
-      "url": "https://maps.theboiismc.com/",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://maps.theboiismc.com/?q={search_term_string}"
-        },
-        "query-input": "required name=search_term_string"
-      }
-    }
+    <!-- Tailwind Configuration and Custom CSS Variables -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // Enable dark mode based on the 'dark' class on <html>
+            theme: {
+                extend: {
+                    // Define custom colors using the CSS variables for easy theming
+                    colors: {
+                        'surface-light': 'var(--background-light)',
+                        'surface-secondary': 'var(--background-dark)',
+                        'surface-tertiary': 'var(--border-color)',
+                        'accent': 'var(--accent-color)',
+                        'text-primary': 'var(--text-primary)',
+                        'text-secondary': 'var(--text-secondary)',
+                    },
+                    // Custom font stack to use Inter first
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
     </script>
+    <style>
+        /*
+         * CUSTOM CSS VARIABLES
+         * These define the color palette for both light and dark modes, which Tailwind's custom colors (defined above) consume.
+         */
+        :root {
+            /* Shared Variables */
+            --panel-width: 400px;
+            --panel-mobile-height: 65vh;
+            --panel-mobile-peek: 220px;
+            --banner-height: 50px;
+            
+            /* Light Theme Palette (Default) */
+            --background-dark: #F8F9FA;
+            --background-light: #FFFFFF;
+            --border-color: #DEE2E6;
+            --accent-color: #007BFF;
+            --accent-hover: #0056b3;
+            --text-primary: #212529;
+            --text-secondary: #6C757D;
+        }
+
+        /* Dark Theme Palette (Applied when <html> has 'dark' class) */
+        .dark {
+            --background-dark: #0F172A;
+            --background-light: #1E293B;
+            --border-color: #334155;
+            --accent-color: #3B82F6;
+            --accent-hover: #2563EB;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+        }
+
+        /* Material Symbols Icon Specific Styles (Necessary for the icon library) */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            color: var(--text-primary);
+        }
+
+        /* Utility classes for the Material Symbols icon color from the old CSS */
+        .icon-accent {
+            color: var(--accent-color);
+        }
+
+        /*
+         * CUSTOM LAYOUT STYLES
+         * These are custom classes required for the specific map panel/drag behavior
+         */
+        body {
+            /* Use a height transition on the body for dark mode switch, if needed */
+            transition: background-color 0.3s ease;
+        }
+
+        /* Map Panel base styles (Mobile default is a small peek height) */
+        #welcome-panel {
+            min-height: var(--panel-mobile-peek); /* Minimum mobile height (peek) */
+            transition: all 0.3s ease-in-out; /* Smooth transitions for panel movement */
+            transform: translateY(0); /* Default position on desktop/large screens (no translateY needed) */
+        }
+        
+        /* Mobile Specific: Panel slides up from the bottom */
+        @media (max-width: 767px) {
+            #welcome-panel.hidden {
+                transform: translateY(calc(100vh - var(--panel-mobile-peek))); /* Hides panel mostly off-screen */
+            }
+        }
+        
+        /* Desktop/Tablet Specific: Panel is fixed left */
+        @media (min-width: 768px) {
+            #welcome-panel {
+                width: var(--panel-width);
+                transform: none !important; /* Override JS transform for desktop */
+                height: 100vh;
+            }
+        }
+        
+        /* Map Container (fills remaining space on desktop, entire screen on mobile) */
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Search area button positioning */
+        #search-this-area-btn {
+            position: fixed;
+            left: 50%;
+            bottom: calc(var(--panel-mobile-peek) + 20px);
+            transform: translateX(-50%);
+        }
+    </style>
 </head>
-<body>
-    <div id="top-banner">
-        <span id="site-title">TheBoiisMC Maps</span>
-        <div id="profile-area">
-            <button id="settings-icon-btn" aria-label="Map Settings"><span class="material-symbols-outlined">tune</span></button>
-            <button id="profile-button" aria-label="User Profile"><span class="material-symbols-outlined">account_circle</span></button>
-            <button id="app-menu-button" aria-label="TheBoiisMC Apps"><span class="material-symbols-outlined">apps</span></button>
-            <div id="services-dropdown">
-                <a href="https://search.theboiismc.com" class="service-item"><span class="material-symbols-outlined">search</span><span class="service-name">Search</span></a>
-                <a href="https://maps.theboiismc.com" class="service-item"><span class="material-symbols-outlined">map</span><span class="service-name">Maps</span></a>
-                <a href="https://drive.theboiismc.com" class="service-item"><span class="material-symbols-outlined">cloud</span><span class="service-name">Drive</span></a>
-                <a href="https://myaccount.theboiismc.com" class="service-item"><span class="material-symbols-outlined">account_circle</span><span class="service-name">Account</span></a>
-            </div>
-            <div id="profile-dropdown">
-                <div id="logged-in-view" hidden>
-                    <div class="profile-section profile-section-header">
-                        <img id="dropdown-avatar" class="profile-dropdown-avatar" src="" alt="User Avatar" hidden />
-                        <div class="username">TheBoiisMC</div>
-                        <div class="email">user@example.com</div>
-                    </div>
-                    <hr/>
-                    <div class="profile-actions">
-                        <a id="saved-places-btn">Saved Places</a>
-                    </div>
-                    <hr/>
-                    <div class="profile-actions">
-                        <a id="logout-btn">Log Out</a>
-                    </div>
-                </div>
-                <div id="logged-out-view" hidden>
-                    <div class="profile-section" style="text-align:center; font-weight: 500; color: var(--text-secondary);">Sign in to save and view places</div>
-                    <hr/>
-                    <div class="auth-buttons">
-                        <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
-                        <a href="#" id="signup-btn" class="btn btn-secondary">Sign Up</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="navigation-status">
-        <div id="instruction-container">
-            <div id="navigation-instruction">Starting navigation...</div>
-            <div id="instruction-progress-bar" style="transform: scaleX(0);"></div>
-        </div>
-        <div id="trip-stats-container">
-            <div class="stat-item"><span id="stat-speed">--</span><span class="stat-label">mph</span></div>
-            <div class="stat-item"><span id="stat-eta">--:--</span><span class="stat-label">ETA</span></div>
-            <div class="stat-item"><span id="stat-time-remaining">-- min</span><span class="stat-label">Time</span></div>
-        </div>
-        <button id="end-navigation-btn">End Trip</button>
-    </div>
-    
-    <div id="top-search-wrapper">
-        <div id="main-search-container">
-            <span id="search-icon-inside" class="material-symbols-outlined">search</span>
-            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
-            <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
-            <div id="main-suggestions" class="suggestions-dropdown">
-                <div id="initial-suggestions-view">
-                    <div id="recent-searches-container">
-                    </div>
-                    </div>
-                <div id="api-suggestions-view" hidden>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="side-panel">
-        <div id="panel-grabber"></div>
-        <div id="panel-search-placeholder" hidden></div>
-        <div class="panel-content">
-            <div id="welcome-panel" hidden>
-                <div class="info-content-padding">
-                    
-                    <h3>Welcome to TheBoiisMC Maps</h3>
-                    <p style="margin-top: 8px; color: var(--text-secondary);">Your private, modern mapping experience. Search for a place or plan a route to get started.</p>
 
-                    <h3 class="find-nearby-header" style="margin-top: 24px;">Find Nearby</h3>
-                    
-                    <div class="category-pills">
-                        <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant">
-                            <span class="material-symbols-outlined">restaurant</span> Restaurants
-                        </button>
-                        <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel">
-                            <span class="material-symbols-outlined">local_gas_station</span> Gas
-                        </button>
-                        <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe">
-                            <span class="material-symbols-outlined">coffee</span> Coffee
-                        </button>
-                        <button class="category-pill" data-query="parks" data-osm-tag="leisure=park">
-                            <span class="material-symbols-outlined">park</span> Parks
-                        </button>
-                    </div>
+<body class="h-screen overflow-hidden bg-surface-light dark:bg-background-dark text-text-primary font-sans antialiased">
+    <!-- Main Welcome/Search Panel -->
+    <div id="welcome-panel" class="fixed bottom-0 left-0 z-30 flex flex-col w-full md:h-full md:w-[var(--panel-width)] bg-surface-light dark:bg-background-light shadow-2xl rounded-t-2xl md:rounded-none">
+        
+        <!-- Mobile Handle -->
+        <div id="panel-handle" class="flex md:hidden w-10 h-1 rounded-full bg-text-secondary/50 mx-auto mt-2 mb-4"></div>
 
-                    <div class="action-buttons" style="margin-top: 24px;">
-                        <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
-                    </div>
-                </div>
-
-                <div class="legal-footer">
-                    <a href="https://www.theboiismc.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
-                    <span>&middot;</span>
-                    <a href="https://www.theboiismc.com/terms" target="_blank" rel="noopener noreferrer">Terms</a>
-                    <p>Copyright &copy; 2025 TheBoiisMC</p>
+        <!-- Search Bar and Controls -->
+        <div id="search-container" class="sticky top-0 z-10 bg-surface-light dark:bg-background-light pb-2 px-4 md:px-6">
+            <div id="search-input" class="flex items-center space-x-3 bg-surface-secondary dark:bg-background-dark rounded-xl p-2 shadow-sm border border-border-color dark:border-border-color">
+                <button id="search-bar-menu-btn" class="icon-btn p-2 rounded-full text-text-primary hover:bg-surface-tertiary transition-colors" title="Menu">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <input type="search" id="search-term-input" placeholder="Search for places or addresses" class="flex-grow bg-transparent text-text-primary placeholder-text-secondary focus:outline-none p-1" />
+                <button id="search-clear-btn" class="icon-btn p-2 rounded-full text-text-primary hover:bg-surface-tertiary transition-colors" title="Clear Search" hidden>
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+                <button id="search-submit-btn" class="icon-btn p-2 rounded-full text-accent hover:bg-surface-tertiary transition-colors" title="Search">
+                    <span class="material-symbols-outlined icon-accent">search</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Panel Content Area -->
+        <div id="panel-content" class="flex flex-col flex-grow overflow-y-auto p-4 md:p-6">
+            <div id="search-results-list" class="space-y-3">
+                <!-- Search results will be dynamically injected here -->
+                <p id="search-tip" class="text-text-secondary text-sm italic">Enter a place name or address above to start searching.</p>
+                <div id="error-message" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert" hidden>
+                    <strong class="font-bold">Error:</strong>
+                    <span id="error-text" class="block sm:inline">An unknown error occurred.</span>
                 </div>
             </div>
-            
-            <div id="search-results-panel" hidden>
-                <div class="info-content-padding">
-                    <button id="back-from-results-btn" class="back-button">
-                        <span class="material-symbols-outlined">arrow_back</span> Back
+
+            <!-- Welcome/Default Content -->
+            <div id="welcome-content" class="flex flex-col space-y-4 pt-4">
+                <h1 class="text-2xl font-bold mb-2">Welcome to Maps</h1>
+                <p class="text-text-secondary">Your secure and private navigation assistant.</p>
+                
+                <hr class="border-border-color dark:border-border-color my-4">
+
+                <!-- Quick Actions Section -->
+                <h2 class="text-lg font-semibold mb-2">Quick Actions</h2>
+                <div class="space-y-3">
+                    <button id="my-location-btn" class="flex items-center space-x-4 w-full p-3 rounded-xl bg-surface-secondary dark:bg-background-dark text-text-primary font-medium cursor-pointer hover:bg-surface-tertiary dark:hover:bg-surface-tertiary transition-colors shadow-sm">
+                        <span class="material-symbols-outlined icon-accent">my_location</span>
+                        <span>Show My Location</span>
                     </button>
-                    <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
-                    <div class="sort-controls">
-                        <button id="sort-by-distance-btn" class="sort-btn active" data-sort="distance">Distance</button>
-                        <button id="sort-by-rating-btn" class="sort-btn" data-sort="rating">Rating</button>
-                    </div>
-                    <div id="search-results-list">
-                    </div>
+                    <button id="home-btn" class="flex items-center space-x-4 w-full p-3 rounded-xl bg-surface-secondary dark:bg-background-dark text-text-primary font-medium cursor-pointer hover:bg-surface-tertiary dark:hover:bg-surface-tertiary transition-colors shadow-sm">
+                        <span class="material-symbols-outlined icon-accent">home</span>
+                        <span>Navigate to Home</span>
+                    </button>
+                </div>
+
+                <hr class="border-border-color dark:border-border-color my-4">
+
+                <!-- Explore Section -->
+                <h2 class="text-lg font-semibold mb-2">Explore Nearby</h2>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                    <button class="category-pill flex items-center justify-start gap-3 p-3 rounded-xl bg-surface-secondary dark:bg-background-dark text-text-primary font-medium cursor-pointer text-left transition-colors hover:bg-surface-tertiary dark:hover:bg-surface-tertiary">
+                        <span class="material-symbols-outlined icon-accent">local_gas_station</span>
+                        <span>Gas Stations</span>
+                    </button>
+                    <button class="category-pill flex items-center justify-start gap-3 p-3 rounded-xl bg-surface-secondary dark:bg-background-dark text-text-primary font-medium cursor-pointer text-left transition-colors hover:bg-surface-tertiary dark:hover:bg-surface-tertiary">
+                        <span class="material-symbols-outlined icon-accent">local_dining</span>
+                        <span>Restaurants</span>
+                    </button>
+                    <button class="category-pill flex items-center justify-start gap-3 p-3 rounded-xl bg-surface-secondary dark:bg-background-dark text-text-primary font-medium cursor-pointer text-left transition-colors hover:bg-surface-tertiary dark:hover:bg-surface-tertiary">
+                        <span class="material-symbols-outlined icon-accent">local_hospital</span>
+                        <span>Hospitals</span>
+                    </button>
+                    <button class="category-pill flex items-center justify-start gap-3 p-3 rounded-xl bg-surface-secondary dark:bg-background-dark text-text-primary font-medium cursor-pointer text-left transition-colors hover:bg-surface-tertiary dark:hover:bg-surface-tertiary">
+                        <span class="material-symbols-outlined icon-accent">shopping_cart</span>
+                        <span>Grocery Stores</span>
+                    </button>
                 </div>
             </div>
-            
-            <div id="info-panel-redesign" hidden>
-                <div class="header-image-container">
-                    <img class="header-image" id="info-image" src="" alt="Image of the location" loading="lazy"/>
-                    <button id="close-info-btn"><span class="material-symbols-outlined">arrow_back</span></button>
-                </div>
-                <div class="info-content-padding">
-                    <h3 id="info-name"></h3>
-                    <div class="address" id="info-address"></div>
-                    <div class="weather" id="info-weather"></div>
-                    <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-outlined">public</span></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></div>
-                    </div>
-                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
-                </div>
-            </div>
-            
-            <div id="directions-panel-redesign" hidden>
-                <div class="info-content-padding">
-                    <div class="travel-modes">
-                        <button class="travel-mode-btn active" data-mode="driving" aria-label="Driving">
-                            <span class="material-symbols-outlined">directions_car</span>
-                        </button>
-                        <button class="travel-mode-btn" data-mode="walking" aria-label="Walking">
-                            <span class="material-symbols-outlined">directions_walk</span>
-                        </button>
-                        <button class="travel-mode-btn" data-mode="cycling" aria-label="Cycling">
-                            <span class="material-symbols-outlined">directions_bike</span>
-                        </button>
-                    </div>
-                    <div class="dir-input-group">
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
-                        <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
-                        <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                        <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
-                    </div>
-                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
-                    <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
-                </div>
-            </div>
-            
-            <div id="route-preview-panel" hidden>
-                <div class="info-content-padding">
-                    <div class="route-summary">
-                        <h3 id="route-summary-time">--</h3>
-                        <div id="route-summary-distance"></div>
-                    </div>
-                    <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
-                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
-                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined">list</span></div><div class="btn-label">Steps</div></div>
-                    </div>
-                    <button id="back-to-directions-btn">Back</button>
-                </div>
-            </div>
-            
-            <div id="route-section" hidden>
-                <div class="info-content-padding">
-                    <h3>Route Steps</h3>
-                    <button id="exit-route-btn">Back</button>
-                    <ol id="route-steps"></ol>
-                </div>
-            </div>
+
+            <!-- Legal Footer -->
+            <footer class="legal-footer mt-auto pt-6 pb-2 text-center text-text-secondary text-xs">
+                <p>&copy; 2024 TheBoiisMC. All rights reserved.</p>
+                <p>Map data by <a href="https://www.openstreetmap.org/" target="_blank" class="text-accent hover:underline">OpenStreetMap</a>.</p>
+            </footer>
         </div>
     </div>
-    
-    <div id="settings-modal" class="modal-container">
-        <div id="modal-overlay" class="modal-overlay"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4>Map Settings</h4>
-                <button id="close-settings-btn" class="modal-close-btn" aria-label="Close Settings">&times;</button>
+
+    <!-- Map Controls & Settings Panel -->
+    <div id="map-controls-panel" class="fixed top-0 right-0 z-40 m-4 space-y-3">
+        <!-- Layer Button -->
+        <button id="layer-btn" class="p-3 rounded-full bg-surface-light dark:bg-background-light shadow-lg hover:shadow-xl transition-shadow text-text-primary hover:text-accent focus:outline-none">
+            <span class="material-symbols-outlined">layers</span>
+        </button>
+        <!-- Settings Button -->
+        <button id="settings-btn" class="p-3 rounded-full bg-surface-light dark:bg-background-light shadow-lg hover:shadow-xl transition-shadow text-text-primary hover:text-accent focus:outline-none">
+            <span class="material-symbols-outlined">settings</span>
+        </button>
+    </div>
+
+    <!-- Hidden Settings Modal (Tailwind equivalent of its original positioning/styling) -->
+    <div id="settings-modal" class="fixed top-0 right-0 z-50 h-full w-full bg-black/50 hidden transition-opacity">
+        <div class="absolute top-0 right-0 h-full w-80 bg-surface-light dark:bg-background-light shadow-2xl p-6 transform translate-x-full transition-transform duration-300" id="settings-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Settings</h2>
+                <button id="settings-close-btn" class="p-1 rounded-full text-text-primary hover:bg-surface-tertiary transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
             </div>
-            <div class="modal-body">
-                <div class="setting-group"><span class="setting-label">Map Style</span><div class="radio-group"><input type="radio" id="style-default" name="map-style" value="default" checked><label for="style-default">Default</label><input type="radio" id="style-satellite" name="map-style" value="satellite"><label for="style-satellite">Satellite</label></div></div>
-                <hr>
-                <div class="setting-group"><span class="setting-label">Live Traffic</span><div class="toggle-switch"><input type="checkbox" id="traffic-toggle" name="map-traffic"><label for="traffic-toggle"></label></div></div>
-                <hr>
-                <div class="setting-group"><span class="setting-label">Globe View</span><div class="toggle-switch"><input type="checkbox" id="globe-toggle" name="map-globe"><label for="globe-toggle"></label></div></div>
-                <hr>
-                <div class="setting-group"><span class="setting-label">Units</span><div class="radio-group"><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
-                <hr>
-                <div class="setting-group"><span class="setting-label">Navigation Voice</span><div class="radio-group"><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
-                <hr>
-                <div class="setting-group"><span class="setting-label">Theme</span><div class="radio-group"><input type="radio" id="theme-auto" name="map-theme" value="auto"><label for="theme-auto">Auto</label><input type="radio" id="theme-light" name="map-theme" value="light"><label for="theme-light">Light</label><input type="radio" id="theme-dark" name="map-theme" value="dark"><label for="theme-dark">Dark</label></div></div>
+            
+            <div class="space-y-6">
+                <!-- Voice Settings -->
+                <div class="setting-group space-y-2">
+                    <span class="setting-label text-base font-semibold">Voice Gender</span>
+                    <div class="flex space-x-4">
+                        <input type="radio" id="voice-off" name="voice-gender" value="off" checked class="form-radio text-accent focus:ring-accent">
+                        <label for="voice-off" class="text-text-primary">Off</label>
+                        <input type="radio" id="voice-female" name="voice-gender" value="female" class="form-radio text-accent focus:ring-accent">
+                        <label for="voice-female" class="text-text-primary">Female</label>
+                        <input type="radio" id="voice-male" name="voice-gender" value="male" class="form-radio text-accent focus:ring-accent">
+                        <label for="voice-male" class="text-text-primary">Male</label>
+                    </div>
+                </div>
+
+                <hr class="border-border-color dark:border-border-color">
+                
+                <!-- Theme Settings -->
+                <div class="setting-group space-y-2">
+                    <span class="setting-label text-base font-semibold">Theme</span>
+                    <div class="flex space-x-4">
+                        <input type="radio" id="theme-auto" name="map-theme" value="auto" checked class="form-radio text-accent focus:ring-accent">
+                        <label for="theme-auto" class="text-text-primary">Auto</label>
+                        <input type="radio" id="theme-light" name="map-theme" value="light" class="form-radio text-accent focus:ring-accent">
+                        <label for="theme-light" class="text-text-primary">Light</label>
+                        <input type="radio" id="theme-dark" name="map-theme" value="dark" class="form-radio text-accent focus:ring-accent">
+                        <label for="theme-dark" class="text-text-primary">Dark</label>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="context-menu">
-        <div id="context-menu-coords"></div>
-        <div class="context-menu-item" id="ctx-directions-from"><span class="material-symbols-outlined">near_me</span><span>Directions from here</span></div>
-        <div class="context-menu-item" id="ctx-directions-to"><span class="material-symbols-outlined">place</span><span>Directions to here</span></div>
-        <div class="context-menu-item" id="ctx-whats-here"><span class="material-symbols-outlined">help_outline</span><span>What's here?</span></div>
+    <!-- Context Menu -->
+    <div id="context-menu" class="fixed z-50 p-2 bg-surface-light dark:bg-background-light rounded-xl shadow-lg border border-border-color dark:border-border-color hidden">
+        <div id="context-menu-coords" class="text-xs text-text-secondary p-1 mb-1 border-b border-border-color dark:border-border-color/50"></div>
+        <div class="context-menu-item flex items-center space-x-2 p-2 rounded-lg cursor-pointer hover:bg-surface-secondary dark:hover:bg-background-dark transition-colors" id="ctx-directions-from">
+            <span class="material-symbols-outlined text-sm icon-accent">near_me</span>
+            <span class="text-sm">Directions from here</span>
+        </div>
+        <div class="context-menu-item flex items-center space-x-2 p-2 rounded-lg cursor-pointer hover:bg-surface-secondary dark:hover:bg-background-dark transition-colors" id="ctx-directions-to">
+            <span class="material-symbols-outlined text-sm icon-accent">place</span>
+            <span class="text-sm">Directions to here</span>
+        </div>
+        <div class="context-menu-item flex items-center space-x-2 p-2 rounded-lg cursor-pointer hover:bg-surface-secondary dark:hover:bg-background-dark transition-colors" id="ctx-whats-here">
+            <span class="material-symbols-outlined text-sm icon-accent">help_outline</span>
+            <span class="text-sm">What's here?</span>
+        </div>
     </div>
     
-    <div id="map"></div>
-    <button id="search-this-area-btn" class="search-area-btn" hidden>Search this area</button>
-    <div id="toast-container"></div>
+    <div id="map" class="h-screen w-screen"></div>
+    <button id="search-this-area-btn" class="fixed z-20 px-4 py-2 text-sm font-semibold text-white bg-accent rounded-full shadow-lg hover:bg-accent-hover transition-colors" hidden>Search this area</button>
     
+    <div id="toast-container" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 space-y-2">
+        <!-- Toast messages will be injected here -->
+    </div>
+    
+    <!-- Dependencies (Keeping the original script structure, but using modern class names) -->
     <script src="libs/js/oidc-client-ts@2.2.0.js" defer></script>
-    <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
-    <script src='libs/js/turf-6.5.0.min.js' defer></script>
-    <script src="app.js" defer></script>
+    <script src="libs/js/leaflet@1.9.4.js" defer></script>
+    <script src="libs/js/mapbox-gl@3.2.0.js" defer></script>
+    <script src="libs/js/mapbox-gl-leaflet.js" defer></script>
+    <script src="libs/js/hash@1.0.3.js" defer></script>
+    <script src="libs/js/turf.min.js" defer></script>
+    <script src="libs/js/easyprint.js" defer></script>
+    <script src="libs/js/polyline-encoded.js" defer></script>
+    <script src="libs/js/togeojson.js" defer></script>
+    <script src="libs/js/mapbox-gl-compare.js" defer></script>
+    
+    <!-- Custom scripts -->
+    <script src="js/lib.js" defer></script>
+    <script src="js/ui.js" defer></script>
+    <script src="js/settings.js" defer></script>
+    <script src="js/app.js" defer></script>
+
+    <!-- Service worker (kept as is) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('SW registered: ', registration);
+                }).catch(registrationError => {
+                    console.log('SW registration failed: ', registrationError);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
