@@ -29,7 +29,7 @@ const authService = {
 
 // --- CONSTANTS & SDK INIT ---
 const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
-maptilersdk.config.apiKey = MAPTILER_KEY; // Initialize MapTiler SDK
+// We initialize the SDK inside DOMContentLoaded to ensure maptilersdk is defined
 
 // --- UTILITY FUNCTIONS ---
 let currentToast = null; // Variable to track the active toast
@@ -93,6 +93,17 @@ function showToast(message, type = 'info', duration = 3000) {
 
 // --- MAIN APPLICATION INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
+    
+    // --- SDK INITIALIZATION ---
+    // Moved initialization here to guarantee all scripts are loaded
+    try {
+         maptilersdk.config.apiKey = MAPTILER_KEY; // Initialize MapTiler SDK
+    } catch (e) {
+        console.error("MapTiler SDK failed to initialize.", e);
+        showToast("Error: Could not load mapping service.", "error", 10000);
+        return; // Stop execution if the SDK failed
+    }
+
     // --- ELEMENT SELECTORS ---
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
@@ -288,7 +299,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // --- MAP INITIALIZATION ---
-    const map = new maplibregl.Map({
+    // FIX: Use maptilersdk.maplibregl instead of maplibregl
+    const map = new maptilersdk.maplibregl.Map({
         container: "map",
         style: STYLES.default,
         center: [-95, 39],
@@ -303,8 +315,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         projection: 'mercator' // Explicitly set to mercator
     });
 
-    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
-    const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
+    // FIX: Use maptilersdk.maplibregl
+    map.addControl(new maptilersdk.maplibregl.NavigationControl(), "bottom-right");
+    const geolocateControl = new maptilersdk.maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
 
     map.on('load', async () => {
@@ -655,11 +668,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (clickedLocationMarker) clickedLocationMarker.remove();
 
-        clickedLocationMarker = new maplibregl.Marker()
+        // FIX: Use maptilersdk.maplibregl
+        clickedLocationMarker = new maptilersdk.maplibregl.Marker()
             .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
             .addTo(map);
 
-        if (place.bbox) map.fitBounds(place.bbox, { padding: 100, essential: true });
+        // FIX: Use maptilersdk.maplibregl
+        if (place.bbox) map.fitBounds(new maptilersdk.maplibregl.LngLatBounds(place.bbox), { padding: 100, essential: true });
         else map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
 
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
@@ -707,16 +722,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             return item;
         }).sort((a, b) => a.distance - b.distance);
         
-        const bounds = new maplibregl.LngLatBounds();
+        // FIX: Use maptilersdk.maplibregl
+        const bounds = new maptilersdk.maplibregl.LngLatBounds();
         bounds.extend(userCoords);
 
         featuresWithDistance.forEach(item => {
             const displayName = item.tags?.name || 'Unnamed Place';
             const place = { lon: item.lon, lat: item.lat, display_name: displayName };
             
-            const marker = new maplibregl.Marker({ color: '#E53935' })
+            // FIX: Use maptilersdk.maplibregl
+            const marker = new maptilersdk.maplibregl.Marker({ color: '#E53935' })
                 .setLngLat([place.lon, place.lat])
-                .setPopup(new maplibregl.Popup({ offset: 25 }).setText(displayName))
+                // FIX: Use maptilersdk.maplibregl
+                .setPopup(new maptilersdk.maplibregl.Popup({ offset: 25 }).setText(displayName))
                 .addTo(map);
 
             marker.getElement().addEventListener('click', (e) => { e.stopPropagation(); processPlaceResult(place) });
@@ -1001,7 +1019,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const route = result.routes[0];
             addRouteToMap({ type: 'Feature', geometry: route.geometry });
 
-            const bounds = new maplibregl.LngLatBounds();
+            // FIX: Use maptilersdk.maplibregl
+            const bounds = new maptilersdk.maplibregl.LngLatBounds();
             route.geometry.coordinates.forEach(coord => bounds.extend(coord));
 
             if (fromInput.value.trim() === "Your Location") {
@@ -1084,7 +1103,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!userLocationMarker) {
             const el = document.createElement('div');
             el.className = 'user-location-marker';
-            userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
+            // FIX: Use maptilersdk.maplibregl
+            userLocationMarker = new maptilersdk.maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
 
         map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
@@ -1310,3 +1330,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Removed initializeGlobeView();
     getInitialRouteFromUrl();
 });
+
