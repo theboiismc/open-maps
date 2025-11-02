@@ -27,19 +27,68 @@ const authService = {
     async handleCallback() { return userManager.signinRedirectCallback(); }
 };
 
+// --- CONSTANTS & SDK INIT ---
+const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
+maptilersdk.config.apiKey = MAPTILER_KEY; // Initialize MapTiler SDK
+
 // --- UTILITY FUNCTIONS ---
+let currentToast = null; // Variable to track the active toast
+
+/**
+ * Shows a modern, non-stacking toast message at the bottom of the screen.
+ * @param {string} message The message to display.
+ * @param {'info' | 'success' | 'error'} type The type of toast.
+ * @param {number} duration How long to show the toast (in ms).
+ */
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
     if (!container) return;
+
+    // If a toast is already showing, hide it immediately
+    if (currentToast) {
+        currentToast.classList.remove('show');
+        currentToast.classList.add('hide'); // Add hide for fade-out
+        // Remove it from DOM after transition
+        currentToast.addEventListener('transitionend', () => currentToast.remove(), { once: true });
+        currentToast = null;
+    }
+
+    // Create new toast
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
     container.appendChild(toast);
-    setTimeout(() => toast.classList.add('show'), 10);
+    currentToast = toast;
+
+    // Trigger fade-in
     setTimeout(() => {
-        toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => toast.remove());
+        if (currentToast === toast) { // Ensure it hasn't been replaced
+            toast.classList.add('show');
+        }
+    }, 10); // Short delay to allow CSS transition
+
+    // Set timer to hide
+    const hideTimer = setTimeout(() => {
+        if (currentToast === toast) {
+            toast.classList.add('hide');
+        }
     }, duration);
+
+    // Add transitionend listener to remove from DOM
+    toast.addEventListener('transitionend', () => {
+        if (toast.classList.contains('hide')) {
+            toast.remove();
+            if (currentToast === toast) {
+                currentToast = null;
+            }
+        }
+    }, { once: true });
+
+    // Optional: allow clicking to dismiss
+    toast.addEventListener('click', () => {
+        clearTimeout(hideTimer);
+        toast.classList.add('hide');
+    }, { once: true });
 }
 
 // --- MAIN APPLICATION INITIALIZATION ---
@@ -55,6 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loginBtn = document.getElementById('login-btn');
     const signupBtn = document.getElementById('signup-btn');
     const logoutBtn = document.getElementById('logout-btn');
+    const historyBtn = document.getElementById('history-btn'); // New
     const appMenuButton = document.getElementById('app-menu-button');
     const servicesDropdown = document.getElementById('services-dropdown');
     const sidePanel = document.getElementById("side-panel");
@@ -89,17 +139,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backFromResultsBtn = document.getElementById('back-from-results-btn');
     const searchResultsQueryEl = document.getElementById('search-results-query');
     const searchResultsListEl = document.getElementById('search-results-list');
+    const historyPanel = document.getElementById('history-panel'); // New
+    const backFromHistoryBtn = document.getElementById('back-from-history-btn'); // New
+    const fullHistoryListEl = document.getElementById('full-history-list'); // New
 
     // Settings Modal Selectors
     const settingsModal = document.getElementById('settings-modal');
     const settingsIconBtn = document.getElementById('settings-icon-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
-    const globeToggle = document.getElementById('globe-toggle');
+    // Removed globeToggle selector
 
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
-    const MAX_RECENT_SEARCHES = 5;
+    const MAX_RECENT_SEARCHES_DROPDOWN = 5; // Limit for dropdown
 
     function getRecentSearches() {
         return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY)) || [];
@@ -108,11 +161,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function addRecentSearch(place) {
         if (!place || !place.display_name) return;
         let searches = getRecentSearches();
+        // Remove duplicates
         searches = searches.filter(item => item.display_name !== place.display_name);
+        // Add to the front
         searches.unshift(place);
-        if (searches.length > MAX_RECENT_SEARCHES) {
-            searches.length = MAX_RECENT_SEARCHES;
-        }
+        // No truncation here - we store full history
         localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
     }
 
@@ -137,7 +190,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- CONSTANTS ---
-    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     const STYLES = {
@@ -220,6 +272,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
     document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
 
+    // New history panel listeners
+    historyBtn.addEventListener('click', () => {
+        showFullHistory();
+        profileDropdown.style.display = 'none';
+    });
+    backFromHistoryBtn.addEventListener('click', () => {
+        // Go back to welcome panel or just close
+        if (isMobile) {
+            showPanel('welcome-panel');
+        } else {
+            closePanel();
+        }
+    });
+
+
     // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
         container: "map",
@@ -230,9 +297,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         dragRotate: true,
         touchPitch: false,
         scrollZoom: true,
-        renderWorldCopies: false,
+        renderWorldCopies: false, // Keep this as globe is removed
         maxZoom: 18,
         minZoom: 1,
+        projection: 'mercator' // Explicitly set to mercator
     });
 
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -257,29 +325,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isMobile) {
             showPanel('welcome-panel');
         }
-        initializeGlobeView();
+        // Removed initializeGlobeView();
     });
 
-    // --- GLOBE VIEW LOGIC ---
-    function setGlobeView(enableGlobe) {
-        if (!map || !map.isStyleLoaded()) return;
-        try {
-            const currentProjection = map.getProjection().name;
-            if (enableGlobe && currentProjection !== 'globe') {
-                const defaultFog = { "range": [0.8, 8], "color": "rgb(186, 210, 235)", "horizon-blend": 0.05, "high-color": "rgb(220, 225, 235)", "space-color": "rgb(11, 11, 25)", "star-intensity": 0.15 };
-                map.setFog(defaultFog);
-                map.setProjection('globe');
-                map.easeTo({ zoom: 2.5, pitch: 45, duration: 1500 });
-            } else if (!enableGlobe && currentProjection === 'globe') {
-                map.setFog(null);
-                map.setProjection('mercator');
-                map.easeTo({ pitch: 0, bearing: 0, duration: 1500 });
-            }
-        } catch (e) {
-            console.error("Error toggling globe view:", e);
-            showToast("Could not switch map view.", "error");
-        }
-    }
+    // --- GLOBE VIEW LOGIC (REMOVED) ---
+    // setGlobeView function removed
+    // globe-toggle listener removed from settings
 
     // --- CONTEXT MENU LOGIC ---
     map.on('contextmenu', (e) => {
@@ -388,7 +439,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function showPanel(viewId) {
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'].forEach(id => {
+        // Added 'history-panel' to the list
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel', 'history-panel'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.hidden = id !== viewId;
         });
@@ -462,7 +514,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- ENHANCED SEARCH LOGIC (Main search bar) ---
     function showInitialSuggestions() {
         recentSearchesContainer.innerHTML = '';
-        const recents = getRecentSearches();
+        // Get only the 5 most recent for the dropdown
+        const recents = getRecentSearches().slice(0, MAX_RECENT_SEARCHES_DROPDOWN); 
+        
         if (recents.length > 0) {
             const header = document.createElement('div');
             header.className = 'suggestions-header';
@@ -471,7 +525,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             recents.forEach(place => {
                 const item = document.createElement('div');
-                item.className = 'recent-item';
+                item.className = 'recent-item'; // Use 'recent-item' class from your HTML
                 item.innerHTML = `<span class="material-symbols-outlined">history</span> <span>${place.display_name}</span>`;
                 item.addEventListener('mousedown', (e) => {
                     e.preventDefault();
@@ -485,6 +539,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         apiSuggestionsView.hidden = true;
         mainSuggestions.style.display = 'block';
     }
+
+    // --- Full Search History Panel ---
+    function showFullHistory() {
+        fullHistoryListEl.innerHTML = '';
+        const allSearches = getRecentSearches();
+
+        if (allSearches.length === 0) {
+            fullHistoryListEl.innerHTML = '<p style="padding: 16px; color: var(--text-secondary);">No search history found.</p>';
+        } else {
+            allSearches.forEach(place => {
+                const item = document.createElement('div');
+                item.className = 'history-item'; // New class for styling
+                item.innerHTML = `<span class="material-symbols-outlined">history</span> <span>${place.display_name}</span>`;
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    processPlaceResult(place);
+                });
+                fullHistoryListEl.appendChild(item);
+            });
+        }
+        showPanel('history-panel');
+    }
+
 
     const fetchApiSuggestions = debounce(async (query) => {
         if (query.length < 3) return;
@@ -794,7 +871,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- ROUTING & NAVIGATION ---
+    // --- ROUTING & NAVIGATION (Updated for MapTiler SDK) ---
     function openDirectionsPanel() {
         showPanel('directions-panel-redesign');
         if (currentPlace) {
@@ -893,26 +970,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function formatOsrmInstruction(step) {
-        if (!step || !step.maneuver) return 'Continue';
-        const { type, modifier } = step.maneuver;
-        const name = step.name.split(',')[0];
-        const onto = (str) => (name ? `${str} onto ${name}` : str);
-        const on = (str) => (name ? `${str} on ${name}` : str);
-        switch (type) {
-            case 'depart': return `Head ${modifier || ''} ${on('')}`.trim();
-            case 'arrive': return `Your destination is on the ${modifier}`;
-            case 'turn':
-            case 'off ramp': return (modifier === 'straight') ? on('Continue straight') : onto(`Turn ${modifier}`);
-            case 'fork': return onto(`Keep ${modifier} at the fork`);
-            case 'roundabout':
-                const exit = step.maneuver.exit;
-                const nth = new Intl.PluralRules('en-US', { type: 'ordinal' }).select(exit);
-                const suffix = { one: 'st', two: 'nd', few: 'rd', other: 'th' }[nth];
-                return onto(`Take the ${exit}${suffix} exit`);
-            case 'merge': return onto(`Merge ${modifier}`);
-            default: return on(`Continue ${modifier || ''}`.trim());
-        }
+    /**
+     * Formats a MapTiler route step into a human-readable instruction.
+     * @param {object} step - The MapTiler route step object.
+     * @returns {string} A readable instruction.
+     */
+    function formatMaptilerInstruction(step) {
+        if (!step || !step.maneuver || !step.maneuver.instruction) return 'Continue';
+        // MapTiler SDK provides a clean instruction string directly.
+        return step.maneuver.instruction;
     }
 
     async function getRoute() {
@@ -920,13 +986,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.code !== "Ok" || !data.routes.length) return showToast(data.message || "A route could not be found.", "error");
 
-            currentRouteData = data;
-            const route = data.routes[0];
+            // Use MapTiler SDK for routing
+            const result = await maptilersdk.routing.directions([start, end], {
+                profile: maptilersdk.RoutingProfiles.DRIVING,
+                steps: true,
+                overview: 'full',
+                geometries: 'geojson'
+            });
+
+            if (!result.routes.length) return showToast("A route could not be found.", "error");
+
+            currentRouteData = result; // Store the whole result
+            const route = result.routes[0];
             addRouteToMap({ type: 'Feature', geometry: route.geometry });
 
             const bounds = new maplibregl.LngLatBounds();
@@ -955,19 +1027,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const start = currentUserPoint.geometry.coordinates;
         const end = navigationState.destinationCoords.geometry.coordinates;
-        const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
-
+        
         try {
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.code !== "Ok" || !data.routes.length) throw new Error("Could not find a new route.");
+            // Use MapTiler SDK for rerouting
+            const result = await maptilersdk.routing.directions([start, end], {
+                profile: maptilersdk.RoutingProfiles.DRIVING,
+                steps: true,
+                overview: 'full',
+                geometries: 'geojson'
+            });
 
-            currentRouteData = data;
-            addRouteToMap({ type: 'Feature', geometry: data.routes[0].geometry });
+            if (!result.routes.length) throw new Error("Could not find a new route.");
+
+            currentRouteData = result;
+            addRouteToMap({ type: 'Feature', geometry: result.routes[0].geometry });
 
             navigationState.currentStepIndex = 0;
             const nextStep = currentRouteData.routes[0].legs[0].steps[0];
-            const nextInstruction = formatOsrmInstruction(nextStep);
+            const nextInstruction = formatMaptilerInstruction(nextStep);
             navigationInstructionEl.textContent = nextInstruction;
             updateHighlightedSegment(nextStep);
             speechService.speak(`Recalculated. ${nextInstruction}`, true);
@@ -998,7 +1075,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         navigationState.destinationCoords = turf.point(toInput.dataset.coords.split(',').map(Number));
 
         const firstStep = currentRouteData.routes[0].legs[0].steps[0];
-        const instruction = formatOsrmInstruction(firstStep);
+        const instruction = formatMaptilerInstruction(firstStep); // Use new formatter
         navigationInstructionEl.textContent = instruction;
         updateHighlightedSegment(firstStep);
         navigationStatusPanel.style.display = 'flex';
@@ -1068,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             const nextStep = steps[navigationState.currentStepIndex];
-            const nextInstruction = formatOsrmInstruction(nextStep);
+            const nextInstruction = formatMaptilerInstruction(nextStep); // Use new formatter
             navigationInstructionEl.textContent = nextInstruction;
             updateHighlightedSegment(nextStep);
             speechService.speak(nextInstruction, true);
@@ -1105,12 +1182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     styleRadioButtons.forEach(radio => radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); closeAfterSetting(); }));
     trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
-    globeToggle.addEventListener('change', () => {
-        const isEnabled = globeToggle.checked;
-        localStorage.setItem('mapGlobeEnabled', isEnabled);
-        setGlobeView(isEnabled);
-        closeAfterSetting();
-    });
+    // Removed globeToggle listener
 
     // --- THEME MANAGEMENT ---
     const systemThemeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
@@ -1146,11 +1218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyTheme(savedTheme);
     }
 
-    function initializeGlobeView() {
-        const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
-        globeToggle.checked = savedGlobeState;
-        setGlobeView(savedGlobeState);
-    }
+    // Removed initializeGlobeView function
 
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
@@ -1239,5 +1307,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     initializeTheme();
+    // Removed initializeGlobeView();
     getInitialRouteFromUrl();
 });
