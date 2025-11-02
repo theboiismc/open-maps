@@ -227,6 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backFromResultsBtn = document.getElementById('back-from-results-btn');
     const searchResultsQueryEl = document.getElementById('search-results-query');
     const searchResultsListEl = document.getElementById('search-results-list');
+    const recenterNavBtn = document.getElementById('recenter-nav-btn'); // NEW: Recenter Button
 
     // Settings Modal Selectors
     const settingsModal = document.getElementById('settings-modal');
@@ -274,6 +275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userLocationMarker = null;
     let searchResultMarkers = [];
     let isTrafficEnabled = false; // NEW: State for traffic layer
+    let overviewTimeout = null; // NEW: Timeout for route overview
 
     // --- HELPER FUNCTIONS ---
     function formatDuration(totalSeconds) {
@@ -289,6 +291,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+    const CACHED_ROUTE_KEY = 'theboiismc-maps-cached-route'; // NEW: For route caching
     
     // --- UPDATED Map Style Definitions ---
     const STYLES = {
@@ -423,6 +426,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
     if (closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
     document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
+    recenterNavBtn.addEventListener('click', showRouteOverview); // NEW: Listener for recenter button
 
     // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
@@ -692,7 +696,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function resetNavigationState() {
         navigationState = {
             isActive: false, isRerouting: false, currentStepIndex: 0,
-            destinationCoords: null, lastDistanceToDestination: Infinity
+            destinationCoords: null, lastDistanceToDestination: Infinity,
+            upcomingAlerts: new Set() // NEW: For proactive voice alerts
         };
     }
     resetNavigationState();
@@ -1349,6 +1354,14 @@ function moveSearchBarToPanel() {
             if (data.code !== "Ok" || !data.routes.length) return showToast(data.message || "A route could not be found.", "error");
 
             currentRouteData = data;
+            
+            // --- NEW: Cache the route ---
+            try {
+                localStorage.setItem(CACHED_ROUTE_KEY, JSON.stringify(currentRouteData));
+            } catch (e) {
+                console.warn("Could not cache route", e);
+            }
+
             const route = data.routes[0];
             addRouteToMap({ type: 'Feature', geometry: route.geometry });
 
@@ -1375,6 +1388,8 @@ function moveSearchBarToPanel() {
     async function reroute(currentUserPoint) {
         if (navigationState.isRerouting) return;
         navigationState.isRerouting = true;
+        // NEW: Clear proactive alerts on reroute
+        navigationState.upcomingAlerts.clear();
 
         const start = currentUserPoint.geometry.coordinates;
         const end = navigationState.destinationCoords.geometry.coordinates;
@@ -1386,6 +1401,14 @@ function moveSearchBarToPanel() {
             if (data.code !== "Ok" || !data.routes.length) throw new Error("Could not find a new route.");
 
             currentRouteData = data;
+            
+            // --- NEW: Cache the new route ---
+            try {
+                localStorage.setItem(CACHED_ROUTE_KEY, JSON.stringify(currentRouteData));
+            } catch (e) {
+                console.warn("Could not cache reroute", e);
+            }
+
             addRouteToMap({ type: 'Feature', geometry: data.routes[0].geometry });
 
             navigationState.currentStepIndex = 0;
@@ -1416,6 +1439,44 @@ function moveSearchBarToPanel() {
         return maxZoom - (speedFraction * (maxZoom - minZoom));
     }
 
+    // --- NEW: Route Overview Function ---
+    function showRouteOverview() {
+        if (!navigationState.isActive || !currentRouteData || !userLocationMarker) return;
+
+        clearTimeout(overviewTimeout);
+        
+        const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
+        const userPoint = userLocationMarker.getLngLat();
+        const snapped = turf.nearestPointOnLine(routeLine, [userPoint.lng, userPoint.lat]);
+        const remainingRoute = turf.lineSlice(snapped, turf.point(routeLine.coordinates[routeLine.coordinates.length - 1]), routeLine);
+
+        const bounds = new maplibregl.LngLatBounds();
+        remainingRoute.geometry.coordinates.forEach(coord => bounds.extend(coord));
+        
+        map.fitBounds(bounds, {
+            padding: isMobile ? { top: 150, bottom: 100, left: 50, right: 50 } : 100,
+            pitch: 0, // Show overview in 2D
+            bearing: 0,
+            duration: 1000
+        });
+
+        // After 4 seconds, zoom back into navigation view
+        overviewTimeout = setTimeout(() => {
+            if (!navigationState.isActive) return; // Don't zoom back if user ended nav
+            
+            // Get current speed to set correct zoom
+            const currentSpeed = parseFloat(statSpeedEl.textContent) || 0;
+            
+            map.easeTo({ 
+                center: userLocationMarker.getLngLat(),
+                zoom: getDynamicZoom(currentSpeed),
+                pitch: 60,
+                bearing: map.getBearing(), // Keep current bearing
+                duration: 1500
+            });
+        }, 4000);
+    }
+
     async function startNavigation() {
         if (!navigator.geolocation || !navigator.permissions) {
             return showToast("Geolocation is not supported.", "error");
@@ -1432,6 +1493,9 @@ function moveSearchBarToPanel() {
         resetNavigationState();
         navigationState.isActive = true;
         navigationState.destinationCoords = turf.point(toInput.dataset.coords.split(',').map(Number));
+
+        document.body.classList.add('is-navigating'); // NEW: Add driving mode class
+        recenterNavBtn.hidden = false; // NEW: Show recenter button
 
         const firstStep = currentRouteData.routes[0].legs[0].steps[0];
         const instruction = formatOsrmInstruction(firstStep);
@@ -1477,10 +1541,17 @@ function moveSearchBarToPanel() {
         if (navigationWatcherId) navigator.geolocation.clearWatch(navigationWatcherId);
         navigationWatcherId = null;
         if (userLocationMarker) { userLocationMarker.remove(); userLocationMarker = null; }
+        
+        document.body.classList.remove('is-navigating'); // NEW: Remove driving mode class
+        recenterNavBtn.hidden = true; // NEW: Hide recenter button
+        clearTimeout(overviewTimeout); // NEW: Clear any pending overview zoom-back
+
         clearRouteFromMap();
         resetNavigationState();
         navigationStatusPanel.style.display = 'none';
         speechService.synthesis.cancel();
+        
+        localStorage.removeItem(CACHED_ROUTE_KEY); // NEW: Clear cached route
 
         // Hide 3D buildings
         const layers = map.getStyle().layers;
@@ -1511,9 +1582,14 @@ function moveSearchBarToPanel() {
         userLocationMarker.setLngLat(snapped.geometry.coordinates);
         if (heading != null) {
             userLocationMarker.setRotation(heading);
-            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: dynamicZoom, duration: 1000 });
+            // Don't ease camera if overview is active
+            if (!overviewTimeout) {
+                map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: dynamicZoom, duration: 1000 });
+            }
         } else {
-            map.easeTo({ center: snapped.geometry.coordinates, zoom: dynamicZoom, duration: 1000 });
+            if (!overviewTimeout) {
+                map.easeTo({ center: snapped.geometry.coordinates, zoom: dynamicZoom, duration: 1000 });
+            }
         }
 
         const distanceFromRoute = snapped.properties.dist;
@@ -1540,6 +1616,22 @@ function moveSearchBarToPanel() {
         const stepEndPoint = turf.point(currentStep.geometry.coordinates.slice(-1)[0]);
         const distanceToNextManeuver = turf.distance(userPoint, stepEndPoint, { units: 'meters' });
 
+        // --- NEW: Proactive Voice Alerts ---
+        const stepAlertKey = `${navigationState.currentStepIndex}`;
+        const instruction = formatOsrmInstruction(currentStep);
+        
+        // Alert at ~500 meters (approx 0.3 miles)
+        if (distanceToNextManeuver < 500 && distanceToNextManeuver > 300 && !navigationState.upcomingAlerts.has(stepAlertKey + '-500m')) {
+            speechService.speak(`In 500 meters, ${instruction}`);
+            navigationState.upcomingAlerts.add(stepAlertKey + '-500m');
+        } 
+        // Alert at ~200 meters (approx 0.12 miles)
+        else if (distanceToNextManeuver < 200 && distanceToNextManeuver > 100 && !navigationState.upcomingAlerts.has(stepAlertKey + '-200m')) {
+            speechService.speak(instruction); // Just say the instruction, e.g., "Turn left"
+            navigationState.upcomingAlerts.add(stepAlertKey + '-200m');
+        }
+
+        // --- Original Maneuver Check ---
         if (distanceToNextManeuver < 50) {
             navigationState.currentStepIndex++;
             if (navigationState.currentStepIndex >= steps.length) {
@@ -1813,7 +1905,7 @@ function moveSearchBarToPanel() {
     }
 
     // --- INITIALIZATION ON LOAD ---
-    // (This section remains unchanged)
+    // (This section is UPDATED for route caching)
     function getInitialRouteFromUrl() {
         const params = new URLSearchParams(window.location.search);
         const fromCoords = params.get('from');
@@ -1824,8 +1916,48 @@ function moveSearchBarToPanel() {
             fromInput.value = params.get('fromName') || 'Start';
             toInput.value = params.get('toName') || 'Destination';
             getRoute();
+            return true; // NEW: Signal that a route was loaded
+        }
+        return false; // NEW: Signal no route from URL
+    }
+
+    // NEW: Function to load cached route
+    function loadCachedRoute() {
+        try {
+            const cachedData = localStorage.getItem(CACHED_ROUTE_KEY);
+            if (cachedData) {
+                currentRouteData = JSON.parse(cachedData);
+                if (currentRouteData && currentRouteData.routes) {
+                    showToast("Restoring previous route...", 'info');
+                    const route = currentRouteData.routes[0];
+                    addRouteToMap({ type: 'Feature', geometry: route.geometry });
+
+                    // Restore input fields from saved waypoints
+                    const fromName = currentRouteData.waypoints[0].name || 'Start';
+                    const toName = currentRouteData.waypoints[1].name || 'Destination';
+                    fromInput.value = fromName;
+                    toInput.value = toName;
+                    fromInput.dataset.coords = currentRouteData.waypoints[0].location.join(',');
+                    toInput.dataset.coords = currentRouteData.waypoints[1].location.join(',');
+
+                    // Show route preview panel to allow resuming
+                    const durationMinutes = Math.round(route.duration / 60);
+                    const distanceMiles = (route.distance / 1609.34).toFixed(1);
+                    document.getElementById('route-summary-time').textContent = `${durationMinutes} min`;
+                    document.getElementById('route-summary-distance').textContent = `${distanceMiles} mi`;
+                    showPanel('route-preview-panel');
+                    
+                    const bounds = new maplibregl.LngLatBounds();
+                    route.geometry.coordinates.forEach(coord => bounds.extend(coord));
+                    map.fitBounds(bounds, { padding: isMobile ? 50 : { top: 50, bottom: 50, left: 450, right: 50 } });
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load cached route", e);
+            localStorage.removeItem(CACHED_ROUTE_KEY);
         }
     }
+
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -1843,6 +1975,11 @@ function moveSearchBarToPanel() {
     });
 
     initializeTheme();
-    getInitialRouteFromUrl();
+    
+    // UPDATED: Check for URL route first, then cached route
+    const loadedFromUrl = getInitialRouteFromUrl();
+    if (!loadedFromUrl) {
+        loadCachedRoute();
+    }
 });
 
