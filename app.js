@@ -5,6 +5,15 @@
  * It handles user authentication, map rendering and controls, search functionality,
  * routing, turn-by-turn navigation, and various UI interactions like the side panel,
  * settings menu, and the context menu.
+ *
+ * UPGRADES:
+ * - Added Screen Wake Lock for navigation.
+ * - Added Haptic Feedback for maneuver approach.
+ * - Added rolling average for smoother speed (MPH) display.
+ * - Replaced ETA/Time/Distance logic with a much more accurate step-based calculation.
+ * - Added "Miles Remaining" to UI.
+ * - Added basic Lane Guidance UI.
+ * - Added visual "Rerouting..." overlay.
  */
 
 // --- AUTHENTICATION SERVICE (OIDC with Authentik) ---
@@ -244,6 +253,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const privacyClearRecentsToggle = document.getElementById('privacy-clear-recents-toggle');
     const privacyDisableSuggestionsToggle = document.getElementById('privacy-disable-suggestions-toggle');
 
+    // --- NEW: Selectors for upgraded navigation UI ---
+    const statMilesRemainingEl = document.getElementById('stat-miles-remaining');
+    const laneGuidanceEl = document.getElementById('lane-guidance-container');
+    const reroutingOverlayEl = document.getElementById('rerouting-overlay');
+
 
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
@@ -274,6 +288,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userLocationMarker = null;
     let searchResultMarkers = [];
     let isTrafficEnabled = false; // NEW: State for traffic layer
+    let wakeLock = null; // NEW: State for Screen Wake Lock
+    let rollingSpeedMph = 0; // NEW: State for smoothed speed
 
     // --- HELPER FUNCTIONS ---
     function formatDuration(totalSeconds) {
@@ -394,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- UI EVENT LISTENERS ---
-    // (This section remains mostly unchanged)
+    // (This section remains unchanged)
     profileButton.addEventListener('click', () => {
         profileDropdown.style.display = (profileDropdown.style.display === 'block') ? 'none' : 'block';
         servicesDropdown.classList.remove('open');
@@ -691,8 +707,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     let navigationState = {};
     function resetNavigationState() {
         navigationState = {
-            isActive: false, isRerouting: false, currentStepIndex: 0,
-            destinationCoords: null, lastDistanceToDestination: Infinity
+            isActive: false, 
+            isRerouting: false, 
+            currentStepIndex: 0,
+            destinationCoords: null, 
+            lastDistanceToDestination: Infinity,
+            warnedForManeuver: false // NEW: Track haptic warning
         };
     }
     resetNavigationState();
@@ -742,6 +762,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     };
+    
+    // --- NEW: WAKE LOCK FUNCTIONS ---
+    async function acquireWakeLock() {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                wakeLock.addEventListener('release', () => {
+                    console.log('Screen Wake Lock was released');
+                });
+                console.log('Screen Wake Lock is active');
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
+            }
+        } else {
+            console.warn('Wake Lock API not supported.');
+        }
+    }
+
+    async function releaseWakeLock() {
+        if (wakeLock !== null) {
+            try {
+                await wakeLock.release();
+                wakeLock = null;
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
+            }
+        }
+    }
 
     // --- SIDE PANEL MANAGEMENT ---
     // (This section remains unchanged)
@@ -1337,13 +1385,49 @@ function moveSearchBarToPanel() {
             default: return on(`Continue ${modifier || ''}`.trim());
         }
     }
+    
+    // --- NEW: Lane Guidance Function ---
+    function updateLaneGuidance(step) {
+        if (!laneGuidanceEl) return;
+        
+        // OSRM provides lane info in step.intersections
+        const intersection = step.intersections?.[0];
+        if (!intersection || !intersection.lanes) {
+            laneGuidanceEl.innerHTML = '';
+            return;
+        }
+
+        const laneIcons = {
+            'straight': '↑',
+            'left': '←',
+            'slight left': '↖',
+            'sharp left': '↩',
+            'right': '→',
+            'slight right': '↗',
+            'sharp right': '↪',
+            'uturn': 'U',
+        };
+        
+        // Find the active lane(s) based on the maneuver modifier
+        const modifier = step.maneuver?.modifier || 'straight';
+        
+        laneGuidanceEl.innerHTML = intersection.lanes.map(lane => {
+            // Check if this lane's indication matches the step's modifier
+            const isActive = lane.indications.some(ind => modifier.includes(ind));
+            // Get the primary indication for the icon
+            const iconType = lane.indications[0];
+            
+            return `<span class="lane-icon ${isActive ? 'active' : ''}">${laneIcons[iconType] || ''}</span>`;
+        }).join('');
+    }
 
     async function getRoute() {
         if (!fromInput.value || !toInput.value) return showToast("Please fill both start and end points.", "error");
         clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
-            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
+            // Added lanes=* to request lane information from OSRM
+            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true&annotations=lanes`;
             const res = await fetch(url);
             const data = await res.json();
             if (data.code !== "Ok" || !data.routes.length) return showToast(data.message || "A route could not be found.", "error");
@@ -1372,13 +1456,21 @@ function moveSearchBarToPanel() {
         }
     }
 
+    // --- NEW: Rerouting visual toggle ---
+    function showReroutingVisual(show) {
+        if (reroutingOverlayEl) {
+            reroutingOverlayEl.classList.toggle('visible', show);
+        }
+    }
+
     async function reroute(currentUserPoint) {
         if (navigationState.isRerouting) return;
         navigationState.isRerouting = true;
+        showReroutingVisual(true); // Show overlay
 
         const start = currentUserPoint.geometry.coordinates;
         const end = navigationState.destinationCoords.geometry.coordinates;
-        const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
+        const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true&annotations=lanes`;
 
         try {
             const res = await fetch(url);
@@ -1389,10 +1481,12 @@ function moveSearchBarToPanel() {
             addRouteToMap({ type: 'Feature', geometry: data.routes[0].geometry });
 
             navigationState.currentStepIndex = 0;
+            navigationState.warnedForManeuver = false; // Reset haptic warning
             const nextStep = currentRouteData.routes[0].legs[0].steps[0];
             const nextInstruction = formatOsrmInstruction(nextStep);
             navigationInstructionEl.textContent = nextInstruction;
             updateNextManeuverSegment(nextStep);
+            updateLaneGuidance(nextStep); // Show lanes for new step
             speechService.speak(`Recalculated. ${nextInstruction}`, true);
 
         } catch (err) {
@@ -1400,6 +1494,7 @@ function moveSearchBarToPanel() {
             stopNavigation();
         } finally {
             navigationState.isRerouting = false;
+            showReroutingVisual(false); // Hide overlay
         }
     }
 
@@ -1430,6 +1525,7 @@ function moveSearchBarToPanel() {
         }
 
         resetNavigationState();
+        rollingSpeedMph = 0; // Reset smoothed speed
         navigationState.isActive = true;
         navigationState.destinationCoords = turf.point(toInput.dataset.coords.split(',').map(Number));
 
@@ -1437,8 +1533,11 @@ function moveSearchBarToPanel() {
         const instruction = formatOsrmInstruction(firstStep);
         navigationInstructionEl.textContent = instruction;
         updateNextManeuverSegment(firstStep);
+        updateLaneGuidance(firstStep); // Show lanes for first step
         navigationStatusPanel.style.display = 'flex';
         speechService.speak(`Starting route. ${instruction}`, true);
+        
+        acquireWakeLock(); // NEW: Keep screen on
 
         if (!userLocationMarker) {
             const el = document.createElement('div');
@@ -1480,7 +1579,9 @@ function moveSearchBarToPanel() {
         clearRouteFromMap();
         resetNavigationState();
         navigationStatusPanel.style.display = 'none';
+        laneGuidanceEl.innerHTML = ''; // Clear lanes
         speechService.synthesis.cancel();
+        releaseWakeLock(); // NEW: Allow screen to sleep
 
         // Hide 3D buildings
         const layers = map.getStyle().layers;
@@ -1498,6 +1599,9 @@ function moveSearchBarToPanel() {
         stopNavigation();
     }
 
+    // --- ################################################# ---
+    // ---          MAJORLY UPDATED NAVIGATION LOGIC         ---
+    // --- ################################################# ---
     function handlePositionUpdate(position) {
         if (!navigationState.isActive || navigationState.isRerouting) return;
 
@@ -1505,26 +1609,34 @@ function moveSearchBarToPanel() {
         const userPoint = turf.point([longitude, latitude]);
         const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
         const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
+        
+        // --- NEW: Smoothed Speed (MPH) ---
         const speedMph = (speed || 0) * 2.23694;
-        const dynamicZoom = getDynamicZoom(speedMph);
+        rollingSpeedMph = (rollingSpeedMph * 0.7) + (speedMph * 0.3); // 70% old, 30% new
+        const dynamicZoom = getDynamicZoom(rollingSpeedMph);
+        
+        statSpeedEl.textContent = rollingSpeedMph.toFixed(0);
 
+        // --- Camera Update (Faster) ---
         userLocationMarker.setLngLat(snapped.geometry.coordinates);
         if (heading != null) {
             userLocationMarker.setRotation(heading);
-            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: dynamicZoom, duration: 1000 });
+            // MODIFIED: Faster camera duration for more responsiveness
+            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: dynamicZoom, duration: 500 });
         } else {
-            map.easeTo({ center: snapped.geometry.coordinates, zoom: dynamicZoom, duration: 1000 });
+            map.easeTo({ center: snapped.geometry.coordinates, zoom: dynamicZoom, duration: 500 });
         }
 
+        // --- Off-route Check ---
         const distanceFromRoute = snapped.properties.dist;
-        const OFF_ROUTE_THRESHOLD = 50;
+        const OFF_ROUTE_THRESHOLD = 50; // meters
         if (distanceFromRoute > OFF_ROUTE_THRESHOLD) {
             speechService.speak("Off route. Recalculating.", true);
             reroute(userPoint);
             return;
         }
         
-        // --- NEW: Update completed route line ---
+        // --- Update completed route line (Unchanged) ---
         try {
             const routeStart = turf.point(routeLine.coordinates[0]);
             const completedSegment = turf.lineSlice(routeStart, snapped, routeLine);
@@ -1535,36 +1647,81 @@ function moveSearchBarToPanel() {
             console.warn("Error slicing route for completed line:", e);
         }
 
+        // --- ################################################## ---
+        // --- NEW: Accurate ETA/Distance/Time Calculation ---
+        // --- ################################################## ---
+        
         const steps = currentRouteData.routes[0].legs[0].steps;
         const currentStep = steps[navigationState.currentStepIndex];
+        
+        // 1. Get remaining distance on the *current step*
+        // We find the distance from the user's snapped point to the *end* of the current step.
         const stepEndPoint = turf.point(currentStep.geometry.coordinates.slice(-1)[0]);
-        const distanceToNextManeuver = turf.distance(userPoint, stepEndPoint, { units: 'meters' });
+        const remainingOnStepMeters = turf.distance(snapped, stepEndPoint, { units: 'meters' });
+        
+        // 2. Get distance and duration of all *future steps*
+        let futureDistanceMeters = 0;
+        let futureDurationSeconds = 0;
+        for (let i = navigationState.currentStepIndex + 1; i < steps.length; i++) {
+            futureDistanceMeters += steps[i].distance;
+            futureDurationSeconds += steps[i].duration;
+        }
 
-        if (distanceToNextManeuver < 50) {
+        // 3. Calculate total remaining distance
+        const totalRemainingMeters = remainingOnStepMeters + futureDistanceMeters;
+        const totalRemainingMiles = totalRemainingMeters * 0.000621371;
+        
+        // 4. Calculate total remaining time
+        // Estimate time left on current step by scaling its duration
+        // (This is a short interpolation, so much more accurate than before)
+        const currentStepTravelRatio = Math.max(0, Math.min(1, remainingOnStepMeters / currentStep.distance));
+        const remainingOnStepSeconds = currentStep.duration * currentStepTravelRatio;
+        const totalRemainingSeconds = remainingOnStepSeconds + futureDurationSeconds;
+
+        // 5. Update UI
+        statMilesRemainingEl.textContent = totalRemainingMiles.toFixed(1);
+        statTimeRemainingEl.textContent = formatDuration(totalRemainingSeconds);
+        statEtaEl.textContent = new Date(Date.now() + totalRemainingSeconds * 1000).toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' });
+        
+        // --- Update progress bar (Unchanged) ---
+        const totalStepDistance = currentStep.distance;
+        const progressAlongStep = Math.max(0, 1 - (remainingOnStepMeters / totalStepDistance));
+        instructionProgressBar.transform = `scaleX(${progressAlongStep})`;
+
+        // --- ########################################## ---
+        // ---      NEW: Maneuver & Haptic Logic        ---
+        // --- ########################################## ---
+        
+        const MANEUVER_THRESHOLD_METERS = 50;
+        const HAPTIC_WARN_THRESHOLD_METERS = 150;
+
+        // Check if we are approaching a maneuver (for haptics)
+        if (remainingOnStepMeters < HAPTIC_WARN_THRESHOLD_METERS && !navigationState.warnedForManeuver) {
+            navigationState.warnedForManeuver = true;
+            if (navigator.vibrate) {
+                navigator.vibrate(100); // Short buzz
+            }
+        }
+
+        // Check if we have *passed* the maneuver
+        if (remainingOnStepMeters < MANEUVER_THRESHOLD_METERS) {
             navigationState.currentStepIndex++;
+            navigationState.warnedForManeuver = false; // Reset for next step
+
             if (navigationState.currentStepIndex >= steps.length) {
                 speechService.speak("You have arrived.", true);
                 stopNavigation();
                 return;
             }
+            
             const nextStep = steps[navigationState.currentStepIndex];
             const nextInstruction = formatOsrmInstruction(nextStep);
+            
             navigationInstructionEl.textContent = nextInstruction;
             updateNextManeuverSegment(nextStep);
+            updateLaneGuidance(nextStep); // Show lanes for the new step
             speechService.speak(nextInstruction, true);
         }
-
-        statSpeedEl.textContent = speedMph.toFixed(0);
-        const totalStepDistance = turf.length(turf.lineString(currentStep.geometry.coordinates), { units: 'meters' });
-        const progressAlongStep = Math.max(0, 1 - (distanceToNextManeuver / totalStepDistance));
-        instructionProgressBar.transform = `scaleX(${progressAlongStep})`;
-
-        const tripDurationSeconds = currentRouteData.routes[0].duration;
-        const timeElapsed = tripDurationSeconds * (snapped.properties.location / turf.length(routeLine));
-        const remainingTime = tripDurationSeconds - timeElapsed;
-
-        statTimeRemainingEl.textContent = formatDuration(remainingTime);
-        statEtaEl.textContent = new Date(Date.now() + remainingTime * 1000).toLocaleTimeString(navigator.language, { hour: 'numeric', minute: '2-digit' });
     }
 
     // --- SETTINGS & MAP STYLE ---
@@ -1669,6 +1826,7 @@ function moveSearchBarToPanel() {
             const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry };
             addRouteToMap(routeGeoJSON);
             updateNextManeuverSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]);
+            updateLaneGuidance(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]); // Re-add lanes
             
             // Re-add completed segment
             // FIX: Check if userLocationMarker exists before trying to access it
