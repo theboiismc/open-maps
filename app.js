@@ -28,19 +28,66 @@ const authService = {
 };
 
 // --- UTILITY FUNCTIONS ---
+// REPLACED: New toast function
+let currentToast = null; // Variable to track the active toast
+
+/**
+ * Shows a modern, non-stacking toast message at the bottom of the screen.
+ * @param {string} message The message to display.
+ * @param {'info' | 'success' | 'error'} type The type of toast.
+ * @param {number} duration How long to show the toast (in ms).
+ */
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
     if (!container) return;
+
+    // If a toast is already showing, hide it immediately
+    if (currentToast) {
+        currentToast.classList.remove('show');
+        currentToast.classList.add('hide'); // Add hide for fade-out
+        // Remove it from DOM after transition
+        currentToast.addEventListener('transitionend', () => currentToast.remove(), { once: true });
+        currentToast = null;
+    }
+
+    // Create new toast
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
     container.appendChild(toast);
-    setTimeout(() => toast.classList.add('show'), 10);
+    currentToast = toast;
+
+    // Trigger fade-in
     setTimeout(() => {
-        toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => toast.remove());
+        if (currentToast === toast) { // Ensure it hasn't been replaced
+            toast.classList.add('show');
+        }
+    }, 10); // Short delay to allow CSS transition
+
+    // Set timer to hide
+    const hideTimer = setTimeout(() => {
+        if (currentToast === toast) {
+            toast.classList.add('hide');
+        }
     }, duration);
+
+    // Add transitionend listener to remove from DOM
+    toast.addEventListener('transitionend', () => {
+        if (toast.classList.contains('hide')) {
+            toast.remove();
+            if (currentToast === toast) {
+                currentToast = null;
+            }
+        }
+    }, { once: true });
+
+    // Optional: allow clicking to dismiss
+    toast.addEventListener('click', () => {
+        clearTimeout(hideTimer);
+        toast.classList.add('hide');
+    }, { once: true });
 }
+
 
 // --- MAIN APPLICATION INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -95,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settingsIconBtn = document.getElementById('settings-icon-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
-    const globeToggle = document.getElementById('globe-toggle');
+    // REMOVED: const globeToggle = document.getElementById('globe-toggle');
 
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
@@ -233,6 +280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderWorldCopies: false,
         maxZoom: 18,
         minZoom: 1,
+        projection: 'mercator' // REMOVED GLOBE: Locked projection to mercator
     });
 
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -257,29 +305,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isMobile) {
             showPanel('welcome-panel');
         }
-        initializeGlobeView();
+        // REMOVED: initializeGlobeView();
     });
 
-    // --- GLOBE VIEW LOGIC ---
-    function setGlobeView(enableGlobe) {
-        if (!map || !map.isStyleLoaded()) return;
-        try {
-            const currentProjection = map.getProjection().name;
-            if (enableGlobe && currentProjection !== 'globe') {
-                const defaultFog = { "range": [0.8, 8], "color": "rgb(186, 210, 235)", "horizon-blend": 0.05, "high-color": "rgb(220, 225, 235)", "space-color": "rgb(11, 11, 25)", "star-intensity": 0.15 };
-                map.setFog(defaultFog);
-                map.setProjection('globe');
-                map.easeTo({ zoom: 2.5, pitch: 45, duration: 1500 });
-            } else if (!enableGlobe && currentProjection === 'globe') {
-                map.setFog(null);
-                map.setProjection('mercator');
-                map.easeTo({ pitch: 0, bearing: 0, duration: 1500 });
-            }
-        } catch (e) {
-            console.error("Error toggling globe view:", e);
-            showToast("Could not switch map view.", "error");
-        }
-    }
+    // --- GLOBE VIEW LOGIC (REMOVED) ---
+    // REMOVED: setGlobeView function
 
     // --- CONTEXT MENU LOGIC ---
     map.on('contextmenu', (e) => {
@@ -1105,12 +1135,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     styleRadioButtons.forEach(radio => radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); closeAfterSetting(); }));
     trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
-    globeToggle.addEventListener('change', () => {
-        const isEnabled = globeToggle.checked;
-        localStorage.setItem('mapGlobeEnabled', isEnabled);
-        setGlobeView(isEnabled);
-        closeAfterSetting();
-    });
+    
+    // REMOVED: globeToggle.addEventListener
 
     // --- THEME MANAGEMENT ---
     const systemThemeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
@@ -1146,11 +1172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyTheme(savedTheme);
     }
 
-    function initializeGlobeView() {
-        const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
-        globeToggle.checked = savedGlobeState;
-        setGlobeView(savedGlobeState);
-    }
+    // REMOVED: initializeGlobeView function
 
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
@@ -1168,6 +1190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+fs
     function removeTrafficLayer() {
         if (map.getSource(TRAFFIC_SOURCE_ID)) {
             map.removeLayer(TRAFFIC_LAYER_ID);
@@ -1241,3 +1264,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeTheme();
     getInitialRouteFromUrl();
 });
+
