@@ -31,11 +31,9 @@
     </noscript>
 
     <!-- 
-      REMOVED: libs/css/maplibre-gl-4.1.0.css 
-      The MapTiler SDK CSS replaces this.
+      REVERT: Back to standalone MapLibre CSS
     -->
-    <!-- MapTiler SDK JS CSS -->
-    <link href="https://cdn.maptiler.com/maptiler-sdk-js/v1.1.1/maptiler-sdk.css" rel="stylesheet" />
+    <link rel="stylesheet" href="libs/css/maplibre-gl-4.1.0.css">
     <link rel="stylesheet" href="libs/css/styles.css">
 
     <!-- New Toast CSS -->
@@ -45,7 +43,7 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 2000;
+            z-index: 2000; /* High z-index for toasts */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -377,13 +375,14 @@
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
     <script src='libs/js/turf-6.5.0.min.js' defer></script>
     
-    <!-- 
-      REMOVED: <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
-      This was conflicting with the MapTiler SDK.
-    -->
+    <!-- REVERT: Back to standalone MapLibre JS -->
+    <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
     
-    <!-- MapTiler SDK JS (provides maplibregl and maptilersdk objects) -->
-    <script src="https://cdn.maptiler.com/maptiler-sdk-js/v1.1.1/maptiler-sdk.umd.min.js" defer></script>
+    <!-- 
+      REPLACE: Use standalone MapTiler Client for Routing/Geocoding API
+      This has no UI and will not conflict with MapLibre.
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/@maptiler/client/dist/maptiler-client.umd.min.js" defer></script>
     
     <!-- Main app script, runs last -->
     <script src="app.js" defer></script>
