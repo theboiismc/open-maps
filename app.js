@@ -29,7 +29,7 @@ const authService = {
 
 // --- CONSTANTS & SDK INIT ---
 const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
-// We initialize the SDK inside DOMContentLoaded to ensure maptilersdk is defined
+// We will initialize the standalone MapTiler client inside DOMContentLoaded
 
 // --- UTILITY FUNCTIONS ---
 let currentToast = null; // Variable to track the active toast
@@ -95,13 +95,15 @@ function showToast(message, type = 'info', duration = 3000) {
 document.addEventListener('DOMContentLoaded', async () => {
     
     // --- SDK INITIALIZATION ---
-    // Moved initialization here to guarantee all scripts are loaded
+    let maptilerClient;
     try {
-         maptilersdk.config.apiKey = MAPTILER_KEY; // Initialize MapTiler SDK
+        // Initialize the standalone MapTiler API client
+        // This assumes the UMD library creates a 'maptiler' global
+        maptilerClient = new maptiler.client.MaptilerClient({ apiKey: MAPTILER_KEY });
     } catch (e) {
-        console.error("MapTiler SDK failed to initialize.", e);
-        showToast("Error: Could not load mapping service.", "error", 10000);
-        return; // Stop execution if the SDK failed
+        console.error("MapTiler Client failed to initialize.", e);
+        showToast("Error: Could not load API services.", "error", 10000);
+        return; // Stop execution if the client failed
     }
 
     // --- ELEMENT SELECTORS ---
@@ -299,8 +301,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // --- MAP INITIALIZATION ---
-    // FIX: Use maptilersdk.Map instead of maptilersdk.maplibregl.Map
-    const map = new maptilersdk.Map({
+    // REVERT: Back to maplibregl
+    const map = new maplibregl.Map({
         container: "map",
         style: STYLES.default,
         center: [-95, 39],
@@ -315,10 +317,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         projection: 'mercator' // Explicitly set to mercator
     });
 
-    // FIX: Use maptilersdk.NavigationControl
-    map.addControl(new maptilersdk.NavigationControl(), "bottom-right");
-    // FIX: Use maptilersdk.GeolocateControl
-    const geolocateControl = new maptilersdk.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
+    // REVERT: Back to maplibregl
+    map.addControl(new maplibregl.NavigationControl(), "bottom-right");
+    const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
 
     map.on('load', async () => {
@@ -510,10 +511,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const query = inputEl.value.trim();
         if (!query) return;
         const center = map.getCenter();
-        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=1`;
         try {
-            const res = await fetch(url);
-            const data = await res.json();
+            // UPDATE: Use maptilerClient
+            const data = await maptilerClient.geocoding.forward(query, {
+                proximity: [center.lng, center.lat],
+                limit: 1
+            });
+            
             if (data.features.length > 0) {
                 const item = data.features[0];
                 onSelect({ lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox });
@@ -582,10 +586,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         initialSuggestionsView.hidden = true;
         apiSuggestionsView.hidden = false;
         const center = map.getCenter();
-        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
         try {
-            const res = await fetch(url);
-            const data = await res.json();
+            // UPDATE: Use maptilerClient
+            const data = await maptilerClient.geocoding.forward(query, {
+                proximity: [center.lng, center.lat],
+                limit: 5
+            });
+
             apiSuggestionsView.innerHTML = "";
             data.features.forEach(item => {
                 const el = document.createElement("div");
@@ -624,10 +631,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fetchAndDisplaySuggestions = async (query) => {
             if (query.length < 3) { suggestionsEl.style.display = "none"; return; }
             const center = map.getCenter();
-            const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
+            
             try {
-                const res = await fetch(url);
-                const data = await res.json();
+                // UPDATE: Use maptilerClient
+                const data = await maptilerClient.geocoding.forward(query, {
+                    proximity: [center.lng, center.lat],
+                    limit: 5
+                });
+                
                 suggestionsEl.innerHTML = "";
                 data.features.forEach(item => {
                     const el = document.createElement("div");
@@ -648,10 +659,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     attachSuggestionListener(toInput, document.getElementById('panel-to-suggestions'), (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
 
     async function reverseGeocodeAndShowInfo(lngLat) {
-        const url = `https://api.maptiler.com/geocoding/${lngLat.lng},${lngLat.lat}.json?key=${MAPTILER_KEY}&limit=1`;
         try {
-            const res = await fetch(url);
-            const data = await res.json();
+            // UPDATE: Use maptilerClient
+            const data = await maptilerClient.geocoding.reverse([lngLat.lng, lngLat.lat], { limit: 1 });
+            
             if (data.features?.length > 0) {
                 const item = data.features[0];
                 const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox };
@@ -669,15 +680,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (clickedLocationMarker) clickedLocationMarker.remove();
 
-        // FIX: Use maptilersdk.Marker
-        clickedLocationMarker = new maptilersdk.Marker()
+        // REVERT: Back to maplibregl
+        clickedLocationMarker = new maplibregl.Marker()
             .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
             .addTo(map);
 
-        // FIX: Use maptilersdk.LngLatBounds
+        // REVERT: Back to maplibregl
         if (place.bbox) {
-             // maptilersdk.LngLatBounds takes bounds as [minLng, minLat, maxLng, maxLat]
-            const bounds = new maptilersdk.LngLatBounds([place.bbox[0], place.bbox[1]], [place.bbox[2], place.bbox[3]]);
+            const bounds = new maplibregl.LngLatBounds([place.bbox[0], place.bbox[1]], [place.bbox[2], place.bbox[3]]);
             map.fitBounds(bounds, { padding: 100, essential: true });
         }
         else map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
@@ -727,19 +737,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             return item;
         }).sort((a, b) => a.distance - b.distance);
         
-        // FIX: Use maptilersdk.LngLatBounds
-        const bounds = new maptilersdk.LngLatBounds();
+        // REVERT: Back to maplibregl
+        const bounds = new maplibregl.LngLatBounds();
         bounds.extend(userCoords);
 
         featuresWithDistance.forEach(item => {
             const displayName = item.tags?.name || 'Unnamed Place';
             const place = { lon: item.lon, lat: item.lat, display_name: displayName };
             
-            // FIX: Use maptilersdk.Marker
-            const marker = new maptilersdk.Marker({ color: '#E53935' })
+            // REVERT: Back to maplibregl
+            const marker = new maplibregl.Marker({ color: '#E53935' })
                 .setLngLat([place.lon, place.lat])
-                // FIX: Use maptilersdk.Popup
-                .setPopup(new maptilersdk.Popup({ offset: 25 }).setText(displayName))
+                // REVERT: Back to maplibregl
+                .setPopup(new maplibregl.Popup({ offset: 25 }).setText(displayName))
                 .addTo(map);
 
             marker.getElement().addEventListener('click', (e) => { e.stopPropagation(); processPlaceResult(place) });
@@ -894,7 +904,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- ROUTING & NAVIGATION (Updated for MapTiler SDK) ---
+    // --- ROUTING & NAVIGATION (Updated for MapTiler CLIENT) ---
     function openDirectionsPanel() {
         showPanel('directions-panel-redesign');
         if (currentPlace) {
@@ -952,9 +962,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function geocode(inputEl) {
         if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
-        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(inputEl.value)}.json?key=${MAPTILER_KEY}&limit=1`;
-        const res = await fetch(url);
-        const data = await res.json();
+        
+        // UPDATE: Use maptilerClient
+        const data = await maptilerClient.geocoding.forward(inputEl.value, { limit: 1 });
+        
         if (!data.features.length) throw new Error(`Could not find: ${inputEl.value}`);
         const feature = data.features[0];
         inputEl.value = feature.place_name;
@@ -1000,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', async () => {
      */
     function formatMaptilerInstruction(step) {
         if (!step || !step.maneuver || !step.maneuver.instruction) return 'Continue';
-        // MapTiler SDK provides a clean instruction string directly.
+        // MapTiler client provides a clean instruction string directly.
         return step.maneuver.instruction;
     }
 
@@ -1010,9 +1021,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
 
-            // Use MapTiler SDK for routing
-            const result = await maptilersdk.routing.directions([start, end], {
-                profile: maptilersdk.RoutingProfiles.DRIVING,
+            // UPDATE: Use maptilerClient
+            const result = await maptilerClient.routing.directions([start, end], {
+                profile: 'driving', // Use string for profile
                 steps: true,
                 overview: 'full',
                 geometries: 'geojson'
@@ -1024,8 +1035,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const route = result.routes[0];
             addRouteToMap({ type: 'Feature', geometry: route.geometry });
 
-            // FIX: Use maptilersdk.LngLatBounds
-            const bounds = new maptilersdk.LngLatBounds();
+            // REVERT: Back to maplibregl
+            const bounds = new maplibregl.LngLatBounds();
             route.geometry.coordinates.forEach(coord => bounds.extend(coord));
 
             if (fromInput.value.trim() === "Your Location") {
@@ -1053,9 +1064,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const end = navigationState.destinationCoords.geometry.coordinates;
         
         try {
-            // Use MapTiler SDK for rerouting
-            const result = await maptilersdk.routing.directions([start, end], {
-                profile: maptilersdk.RoutingProfiles.DRIVING,
+            // UPDATE: Use maptilerClient
+            const result = await maptilerClient.routing.directions([start, end], {
+                profile: 'driving',
                 steps: true,
                 overview: 'full',
                 geometries: 'geojson'
@@ -1108,8 +1119,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!userLocationMarker) {
             const el = document.createElement('div');
             el.className = 'user-location-marker';
-            // FIX: Use maptilersdk.Marker
-            userLocationMarker = new maptilersdk.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
+            // REVERT: Back to maplibregl
+            userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
 
         map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
