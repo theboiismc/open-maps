@@ -555,11 +555,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 <div class="layers-panel-style-group">
                     <button class="layers-panel-style-btn active" data-style="default">
-                        <img src="https://placehold.co/80x80/e0e0e0/757575?text=Map" alt="Default Map Style">
+                        <img src="https://placehold.co/80x80/dcfce7/166534?text=Map" alt="Default Map Style">
                         <span>Default</span>
                     </button>
                     <button class="layers-panel-style-btn" data-style="satellite">
-                        <img src="https://placehold.co/80x80/303030/ffffff?text=Satellite" alt="Satellite Map Style">
+                        <img src="https://placehold.co/80x80/262626/ffffff?text=Satellite" alt="Satellite Map Style">
                         <span>Satellite</span>
                     </button>
                 </div>
@@ -1544,7 +1544,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // (Traffic Layer section remains unchanged)
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
-    const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
+    const trafficSource = { type: 'vector', url: `https://api.maptiler.com/maps/traffic/tiles.json?key=${MAPTILER_KEY}` };
     const trafficLayer = { id: TRAFFIC_LAYER_ID, type: 'line', source: TRAFFIC_SOURCE_ID, 'source-layer': 'traffic', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 2, 'line-color': ['match', ['get', 'congestion'], 'low', '#30c83a', 'moderate', '#ff9a00', 'heavy', '#ff3d3d', 'severe', '#a00000', '#a0a0a0'] } };
 
     function addTrafficLayer() {
@@ -1729,3 +1729,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeTheme();
     getInitialRouteFromUrl();
 });
+
