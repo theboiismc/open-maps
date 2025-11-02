@@ -87,9 +87,101 @@ function showToast(message, type = 'info', duration = 3000) {
     }, { once: true });
 }
 
+// --- NEW: APPLICATION SETTINGS SERVICE ---
+const SETTINGS_KEY = 'theboiismc-maps-settings';
+const DEFAULT_SETTINGS = {
+    // Default priority of tile source *names*
+    tilePriority: ['OpenFreeMap', 'MapTiler Streets', 'TheBoiisMC Custom'],
+    language: 'en',
+    privacy: {
+        clearRecentsOnExit: false,
+        disableSuggestions: false,
+    }
+};
+
+const appSettings = {
+    current: {},
+
+    load() {
+        try {
+            const stored = localStorage.getItem(SETTINGS_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                // Merge stored settings with defaults to ensure all keys exist
+                this.current = {
+                    ...DEFAULT_SETTINGS,
+                    ...parsed,
+                    privacy: {
+                        ...DEFAULT_SETTINGS.privacy,
+                        ...(parsed.privacy || {}),
+                    },
+                };
+                // Ensure tilePriority array is valid and contains all sources
+                this.validateTilePriority();
+            } else {
+                this.current = { ...DEFAULT_SETTINGS };
+            }
+        } catch (e) {
+            console.error("Failed to load settings, using defaults.", e);
+            this.current = { ...DEFAULT_SETTINGS };
+        }
+        return this.current;
+    },
+
+    save() {
+        try {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.current));
+        } catch (e) {
+            console.error("Failed to save settings.", e);
+        }
+    },
+
+    get(key) {
+        return this.current[key];
+    },
+
+    set(key, value) {
+        this.current[key] = value;
+        this.save();
+    },
+
+    // Ensures the saved priority list contains all available sources
+    // and no duplicates or obsolete sources.
+    validateTilePriority() {
+        const masterSourceNames = MASTER_TILE_SOURCES.map(s => s.name);
+        let savedPriority = this.current.tilePriority || [];
+
+        // Filter out any sources that no longer exist
+        let validSaved = savedPriority.filter(name => masterSourceNames.includes(name));
+
+        // Add any new sources that are not in the saved list
+        masterSourceNames.forEach(name => {
+            if (!validSaved.includes(name)) {
+                validSaved.push(name);
+            }
+        });
+
+        this.current.tilePriority = validSaved;
+    },
+
+    // Applies settings that need to run on startup
+    apply() {
+        // Apply privacy settings
+        if (this.get('privacy').clearRecentsOnExit) {
+            window.addEventListener('beforeunload', () => {
+                localStorage.removeItem(RECENT_SEARCHES_KEY);
+            });
+        }
+    }
+};
+
 
 // --- MAIN APPLICATION INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
+    
+    // --- LOAD SETTINGS FIRST ---
+    appSettings.load();
+
     // --- ELEMENT SELECTORS ---
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
@@ -141,6 +233,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settingsIconBtn = document.getElementById('settings-icon-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
+    const advancedSettingsBtn = document.getElementById('advanced-settings-btn');
+
+    // NEW: Advanced Settings Modal Selectors
+    const advancedSettingsModal = document.getElementById('advanced-settings-modal');
+    const modalOverlayAdvanced = document.getElementById('modal-overlay-advanced');
+    const closeAdvancedSettingsBtn = document.getElementById('close-advanced-settings-btn');
+    const tilePriorityList = document.getElementById('tile-priority-list');
+    const languageSelect = document.getElementById('language-select');
+    const privacyClearRecentsToggle = document.getElementById('privacy-clear-recents-toggle');
+    const privacyDisableSuggestionsToggle = document.getElementById('privacy-disable-suggestions-toggle');
+
 
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
@@ -211,16 +314,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // --- NEW Tile Source Failover List ---
-    const TILE_SOURCES = [
+    // --- NEW: Master Tile Source List (for settings) ---
+    // This list defines *all* available sources.
+    const MASTER_TILE_SOURCES = [
         { name: 'OpenFreeMap', style: STYLES.default },
         { name: 'MapTiler Streets', style: STYLES.maptiler },
         { name: 'TheBoiisMC Custom', style: STYLES.custom }
     ];
+
+    // --- NEW: Prioritized Tile Source List (from settings) ---
+    // This list is what the app will actually use, ordered by user preference.
+    let prioritizedTileSources = [];
+    
+    function updatePrioritizedTileSources() {
+        const priorityNames = appSettings.get('tilePriority');
+        prioritizedTileSources = priorityNames
+            .map(name => MASTER_TILE_SOURCES.find(source => source.name === name))
+            .filter(Boolean); // Filter out any that might be undefined
+    }
+    
+    // --- APPLY STARTUP SETTINGS ---
+    appSettings.apply(); // Apply settings like 'clear recents on exit'
+    updatePrioritizedTileSources(); // Create the prioritized list
+    
     let currentStyleIndex = 0; // Tracks the currently active *default* style
     const LOAD_TIMEOUT_MS = 10000; // 10 seconds
 
     // --- AUTHENTICATION UI LOGIC ---
+    // (This section remains unchanged)
     const updateAuthUI = (user) => {
         currentUser = user && !user.expired ? user : null;
         const isLoggedIn = !!currentUser;
@@ -272,6 +393,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- UI EVENT LISTENERS ---
+    // (This section remains mostly unchanged)
     profileButton.addEventListener('click', () => {
         profileDropdown.style.display = (profileDropdown.style.display === 'block') ? 'none' : 'block';
         servicesDropdown.classList.remove('open');
@@ -313,18 +435,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     /**
      * --- MAP STYLE FAILOVER LOGIC ---
-     * Attempts to load map styles from a prioritized list,
+     * Attempts to load map styles from the *prioritized* list,
      * falling back to the next one on error or timeout.
      */
     function loadMapStyle(sourceIndex) {
-        if (sourceIndex >= TILE_SOURCES.length) {
+        // --- MODIFIED: Use prioritizedTileSources ---
+        if (sourceIndex >= prioritizedTileSources.length) {
             showToast("All map providers are currently unavailable.", "error");
             document.getElementById('map').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;font-weight:bold;color:var(--text-secondary);">Map services are offline.</div>';
             return;
         }
 
         currentStyleIndex = sourceIndex; // Store current index for style switching
-        const source = TILE_SOURCES[sourceIndex];
+        // --- MODIFIED: Use prioritizedTileSources ---
+        const source = prioritizedTileSources[sourceIndex];
         let loadTimeout;
 
         const onError = (e) => {
@@ -364,6 +488,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // --- LOAD INITIAL MAP STYLE ---
+    // This now loads based on user's priority
     loadMapStyle(0);
 
 
@@ -372,7 +497,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.addControl(geolocateControl, "bottom-right");
 
     // --- CRITICAL: Changed to map.once('load', ...) ---
-    // This now runs *only* after the *first* successful style load
+    // (This section remains unchanged)
     map.once('load', async () => {
         if (navigator.geolocation && navigator.permissions) {
             try {
@@ -394,6 +519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // --- CONTEXT MENU LOGIC ---
+    // (This section remains unchanged)
     map.on('contextmenu', (e) => {
         e.preventDefault();
         contextMenuLngLat = e.lngLat;
@@ -438,6 +564,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // --- NAVIGATION STATE & SPEECH SERVICE ---
+    // (This section remains unchanged)
     let navigationState = {};
     function resetNavigationState() {
         navigationState = {
@@ -494,6 +621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // --- SIDE PANEL MANAGEMENT ---
+    // (This section remains unchanged)
     function clearSearchResultMarkers() {
         searchResultMarkers.forEach(marker => marker.remove());
         searchResultMarkers = [];
@@ -544,6 +672,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- SEARCH & GEOCODING ---
+    // (This section remains unchanged)
     function debounce(func, delay) {
         let timeout;
         return function (...args) {
@@ -572,6 +701,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- ENHANCED SEARCH LOGIC (Main search bar) ---
+    // (This section remains unchanged)
     function showInitialSuggestions() {
         recentSearchesContainer.innerHTML = '';
         const recents = getRecentSearches();
@@ -599,6 +729,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const fetchApiSuggestions = debounce(async (query) => {
+        // --- MODIFIED: Check privacy setting ---
+        if (appSettings.get('privacy').disableSuggestions) {
+            apiSuggestionsView.innerHTML = "";
+            apiSuggestionsView.hidden = true;
+            initialSuggestionsView.hidden = false;
+            return;
+        }
+
         if (query.length < 3) return;
         initialSuggestionsView.hidden = true;
         apiSuggestionsView.hidden = false;
@@ -643,7 +781,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function attachSuggestionListener(inputEl, suggestionsEl, onSelect) {
         const fetchAndDisplaySuggestions = async (query) => {
+            // --- MODIFIED: Check privacy setting ---
+            if (appSettings.get('privacy').disableSuggestions) {
+                suggestionsEl.style.display = "none";
+                return;
+            }
             if (query.length < 3) { suggestionsEl.style.display = "none"; return; }
+            
             const center = map.getCenter();
             const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
             try {
@@ -668,6 +812,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     attachSuggestionListener(fromInput, document.getElementById('panel-from-suggestions'), (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
     attachSuggestionListener(toInput, document.getElementById('panel-to-suggestions'), (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
 
+    // (Rest of Search & Geocoding section is unchanged)
     async function reverseGeocodeAndShowInfo(lngLat) {
         const url = `https://api.maptiler.com/geocoding/${lngLat.lng},${lngLat.lat}.json?key=${MAPTILER_KEY}&limit=1`;
         try {
@@ -715,6 +860,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- CATEGORY SEARCH ---
+    // (This section remains unchanged)
     function getIconForCategory(query) {
         const q = query.toLowerCase();
         if (q.includes('restaurant')) return 'restaurant';
@@ -831,6 +977,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // --- DATA FETCHING FOR INFO PANEL ---
+    // (This section remains unchanged)
     async function fetchAndSetPlaceImage(query, lon, lat) {
         const imgEl = document.getElementById('info-image');
         imgEl.alt = 'Loading image...';
@@ -907,6 +1054,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- ROUTING & NAVIGATION ---
+    // (This section remains unchanged)
     function openDirectionsPanel() {
         showPanel('directions-panel-redesign');
         if (currentPlace) {
@@ -1212,6 +1360,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeSettingsBtn.addEventListener('click', closeSettings);
     modalOverlay.addEventListener('click', closeSettings);
 
+    // --- NEW: Advanced Settings Modal Listeners ---
+    function openAdvancedSettings() {
+        populateTilePriorityList();
+        populateAdvancedSettings();
+        advancedSettingsModal.classList.add('open');
+    }
+    function closeAdvancedSettings() { advancedSettingsModal.classList.remove('open'); }
+
+    advancedSettingsBtn.addEventListener('click', () => {
+        closeSettings();
+        // Delay opening advanced to allow first modal to close
+        setTimeout(openAdvancedSettings, 50); 
+    });
+    closeAdvancedSettingsBtn.addEventListener('click', closeAdvancedSettings);
+    modalOverlayAdvanced.addEventListener('click', closeAdvancedSettings);
+
+
     const closeAfterSetting = () => { if (isMobile) setTimeout(closeSettings, 200); };
 
     // --- UPDATED Style Radio Button Listener ---
@@ -1223,6 +1388,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             // User selected "Default". We re-run the failover logic
             // to ensure we get the best available default map, starting from index 0.
+            // This now respects the user's saved priority.
+            updatePrioritizedTileSources();
             loadMapStyle(0); 
         }
         closeAfterSetting();
@@ -1232,6 +1399,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
     
     // --- THEME MANAGEMENT ---
+    // (This section remains unchanged)
     const systemThemeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
 
     function applyTheme(theme) {
@@ -1265,6 +1433,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyTheme(savedTheme);
     }
 
+    // (Traffic Layer section remains unchanged)
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
     const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
@@ -1288,7 +1457,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // This listener re-applies route and traffic layers whenever the style changes
+    // (Map 'styledata' listener remains unchanged)
     map.on('styledata', () => {
         if (navigationState.isActive && currentRouteData) {
             addRouteToMap({ type: 'Feature', geometry: currentRouteData.routes[0].geometry });
@@ -1297,7 +1466,102 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (trafficToggle.checked) addTrafficLayer();
     });
 
+    // --- NEW: Advanced Settings Logic ---
+
+    // Populates the advanced settings inputs with saved values
+    function populateAdvancedSettings() {
+        const settings = appSettings.load();
+        languageSelect.value = settings.language;
+        privacyClearRecentsToggle.checked = settings.privacy.clearRecentsOnExit;
+        privacyDisableSuggestionsToggle.checked = settings.privacy.disableSuggestions;
+    }
+
+    // Populates the draggable list for tile priority
+    function populateTilePriorityList() {
+        tilePriorityList.innerHTML = '';
+        const priority = appSettings.get('tilePriority');
+        priority.forEach(name => {
+            const item = document.createElement('li');
+            item.className = 'sortable-item';
+            item.draggable = true;
+            item.textContent = name;
+            item.dataset.name = name;
+            tilePriorityList.appendChild(item);
+        });
+    }
+
+    // Saves the new order from the draggable list
+    function saveTilePriority() {
+        const newPriority = [];
+        tilePriorityList.querySelectorAll('.sortable-item').forEach(item => {
+            newPriority.push(item.dataset.name);
+        });
+        appSettings.set('tilePriority', newPriority);
+        updatePrioritizedTileSources(); // Update the app's internal list
+        loadMapStyle(0); // Reload the map with the new priority
+        showToast("Map priority saved. Reloading map...", 'success');
+    }
+
+    // Event listeners for advanced settings inputs
+    languageSelect.addEventListener('change', () => {
+        appSettings.set('language', languageSelect.value);
+        showToast('Language setting saved.', 'info');
+        // Future: Add logic to actually change language
+    });
+
+    privacyClearRecentsToggle.addEventListener('change', () => {
+        const privacy = appSettings.get('privacy');
+        privacy.clearRecentsOnExit = privacyClearRecentsToggle.checked;
+        appSettings.set('privacy', privacy);
+        // Re-apply settings immediately
+        appSettings.apply();
+    });
+
+    privacyDisableSuggestionsToggle.addEventListener('change', () => {
+        const privacy = appSettings.get('privacy');
+        privacy.disableSuggestions = privacyDisableSuggestionsToggle.checked;
+        appSettings.set('privacy', privacy);
+    });
+
+    // Drag-and-drop logic for tile priority list
+    let draggedItem = null;
+    tilePriorityList.addEventListener('dragstart', (e) => {
+        draggedItem = e.target;
+        setTimeout(() => e.target.classList.add('dragging'), 0);
+    });
+
+    tilePriorityList.addEventListener('dragend', () => {
+        draggedItem.classList.remove('dragging');
+        draggedItem = null;
+        saveTilePriority(); // Save the new order
+    });
+
+    tilePriorityList.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(tilePriorityList, e.clientY);
+        const dragging = document.querySelector('.dragging');
+        if (afterElement == null) {
+            tilePriorityList.appendChild(dragging);
+        } else {
+            tilePriorityList.insertBefore(dragging, afterElement);
+        }
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.sortable-item:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
     // --- MOBILE-SPECIFIC PANEL DRAGGING ---
+    // (This section remains unchanged)
     if (isMobile) {
         let panelDragState = { isDragging: false, startY: 0, dragOffset: 0 };
         const panelDragStart = (e) => {
@@ -1324,6 +1588,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- INITIALIZATION ON LOAD ---
+    // (This section remains unchanged)
     function getInitialRouteFromUrl() {
         const params = new URLSearchParams(window.location.search);
         const fromCoords = params.get('from');
