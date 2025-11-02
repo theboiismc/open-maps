@@ -27,85 +27,23 @@ const authService = {
     async handleCallback() { return userManager.signinRedirectCallback(); }
 };
 
-// --- CONSTANTS & SDK INIT ---
-const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
-// We will initialize the standalone MapTiler client inside DOMContentLoaded
-
 // --- UTILITY FUNCTIONS ---
-let currentToast = null; // Variable to track the active toast
-
-/**
- * Shows a modern, non-stacking toast message at the bottom of the screen.
- * @param {string} message The message to display.
- * @param {'info' | 'success' | 'error'} type The type of toast.
- * @param {number} duration How long to show the toast (in ms).
- */
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
     if (!container) return;
-
-    // If a toast is already showing, hide it immediately
-    if (currentToast) {
-        currentToast.classList.remove('show');
-        currentToast.classList.add('hide'); // Add hide for fade-out
-        // Remove it from DOM after transition
-        currentToast.addEventListener('transitionend', () => currentToast.remove(), { once: true });
-        currentToast = null;
-    }
-
-    // Create new toast
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
     container.appendChild(toast);
-    currentToast = toast;
-
-    // Trigger fade-in
+    setTimeout(() => toast.classList.add('show'), 10);
     setTimeout(() => {
-        if (currentToast === toast) { // Ensure it hasn't been replaced
-            toast.classList.add('show');
-        }
-    }, 10); // Short delay to allow CSS transition
-
-    // Set timer to hide
-    const hideTimer = setTimeout(() => {
-        if (currentToast === toast) {
-            toast.classList.add('hide');
-        }
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
     }, duration);
-
-    // Add transitionend listener to remove from DOM
-    toast.addEventListener('transitionend', () => {
-        if (toast.classList.contains('hide')) {
-            toast.remove();
-            if (currentToast === toast) {
-                currentToast = null;
-            }
-        }
-    }, { once: true });
-
-    // Optional: allow clicking to dismiss
-    toast.addEventListener('click', () => {
-        clearTimeout(hideTimer);
-        toast.classList.add('hide');
-    }, { once: true });
 }
 
 // --- MAIN APPLICATION INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
-    
-    // --- SDK INITIALIZATION ---
-    let maptilerClient;
-    try {
-        // Initialize the standalone MapTiler API client
-        // This assumes the UMD library creates a 'maptiler' global
-        maptilerClient = new maptiler.client.MaptilerClient({ apiKey: MAPTILER_KEY });
-    } catch (e) {
-        console.error("MapTiler Client failed to initialize.", e);
-        showToast("Error: Could not load API services.", "error", 10000);
-        return; // Stop execution if the client failed
-    }
-
     // --- ELEMENT SELECTORS ---
     const profileArea = document.getElementById('profile-area');
     const profileButton = document.getElementById('profile-button');
@@ -117,7 +55,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loginBtn = document.getElementById('login-btn');
     const signupBtn = document.getElementById('signup-btn');
     const logoutBtn = document.getElementById('logout-btn');
-    const historyBtn = document.getElementById('history-btn'); // New
     const appMenuButton = document.getElementById('app-menu-button');
     const servicesDropdown = document.getElementById('services-dropdown');
     const sidePanel = document.getElementById("side-panel");
@@ -152,20 +89,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backFromResultsBtn = document.getElementById('back-from-results-btn');
     const searchResultsQueryEl = document.getElementById('search-results-query');
     const searchResultsListEl = document.getElementById('search-results-list');
-    const historyPanel = document.getElementById('history-panel'); // New
-    const backFromHistoryBtn = document.getElementById('back-from-history-btn'); // New
-    const fullHistoryListEl = document.getElementById('full-history-list'); // New
 
     // Settings Modal Selectors
     const settingsModal = document.getElementById('settings-modal');
     const settingsIconBtn = document.getElementById('settings-icon-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
-    // Removed globeToggle selector
+    const globeToggle = document.getElementById('globe-toggle');
 
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
-    const MAX_RECENT_SEARCHES_DROPDOWN = 5; // Limit for dropdown
+    const MAX_RECENT_SEARCHES = 5;
 
     function getRecentSearches() {
         return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY)) || [];
@@ -174,11 +108,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function addRecentSearch(place) {
         if (!place || !place.display_name) return;
         let searches = getRecentSearches();
-        // Remove duplicates
         searches = searches.filter(item => item.display_name !== place.display_name);
-        // Add to the front
         searches.unshift(place);
-        // No truncation here - we store full history
+        if (searches.length > MAX_RECENT_SEARCHES) {
+            searches.length = MAX_RECENT_SEARCHES;
+        }
         localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
     }
 
@@ -203,6 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- CONSTANTS ---
+    const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     const STYLES = {
@@ -285,23 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (closeInfoBtn) closeInfoBtn.addEventListener('click', closePanel);
     document.getElementById('welcome-directions-btn').addEventListener('click', openDirectionsPanel);
 
-    // New history panel listeners
-    historyBtn.addEventListener('click', () => {
-        showFullHistory();
-        profileDropdown.style.display = 'none';
-    });
-    backFromHistoryBtn.addEventListener('click', () => {
-        // Go back to welcome panel or just close
-        if (isMobile) {
-            showPanel('welcome-panel');
-        } else {
-            closePanel();
-        }
-    });
-
-
     // --- MAP INITIALIZATION ---
-    // REVERT: Back to maplibregl
     const map = new maplibregl.Map({
         container: "map",
         style: STYLES.default,
@@ -311,13 +230,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         dragRotate: true,
         touchPitch: false,
         scrollZoom: true,
-        renderWorldCopies: false, // Keep this as globe is removed
+        renderWorldCopies: false,
         maxZoom: 18,
         minZoom: 1,
-        projection: 'mercator' // Explicitly set to mercator
     });
 
-    // REVERT: Back to maplibregl
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
@@ -340,12 +257,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isMobile) {
             showPanel('welcome-panel');
         }
-        // Removed initializeGlobeView();
+        initializeGlobeView();
     });
 
-    // --- GLOBE VIEW LOGIC (REMOVED) ---
-    // setGlobeView function removed
-    // globe-toggle listener removed from settings
+    // --- GLOBE VIEW LOGIC ---
+    function setGlobeView(enableGlobe) {
+        if (!map || !map.isStyleLoaded()) return;
+        try {
+            const currentProjection = map.getProjection().name;
+            if (enableGlobe && currentProjection !== 'globe') {
+                const defaultFog = { "range": [0.8, 8], "color": "rgb(186, 210, 235)", "horizon-blend": 0.05, "high-color": "rgb(220, 225, 235)", "space-color": "rgb(11, 11, 25)", "star-intensity": 0.15 };
+                map.setFog(defaultFog);
+                map.setProjection('globe');
+                map.easeTo({ zoom: 2.5, pitch: 45, duration: 1500 });
+            } else if (!enableGlobe && currentProjection === 'globe') {
+                map.setFog(null);
+                map.setProjection('mercator');
+                map.easeTo({ pitch: 0, bearing: 0, duration: 1500 });
+            }
+        } catch (e) {
+            console.error("Error toggling globe view:", e);
+            showToast("Could not switch map view.", "error");
+        }
+    }
 
     // --- CONTEXT MENU LOGIC ---
     map.on('contextmenu', (e) => {
@@ -454,8 +388,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     function showPanel(viewId) {
-        // Added 'history-panel' to the list
-        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel', 'history-panel'].forEach(id => {
+        ['info-panel-redesign', 'directions-panel-redesign', 'route-section', 'route-preview-panel', 'welcome-panel', 'search-results-panel'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.hidden = id !== viewId;
         });
@@ -511,13 +444,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const query = inputEl.value.trim();
         if (!query) return;
         const center = map.getCenter();
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=1`;
         try {
-            // UPDATE: Use maptilerClient
-            const data = await maptilerClient.geocoding.forward(query, {
-                proximity: [center.lng, center.lat],
-                limit: 1
-            });
-            
+            const res = await fetch(url);
+            const data = await res.json();
             if (data.features.length > 0) {
                 const item = data.features[0];
                 onSelect({ lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox });
@@ -532,9 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- ENHANCED SEARCH LOGIC (Main search bar) ---
     function showInitialSuggestions() {
         recentSearchesContainer.innerHTML = '';
-        // Get only the 5 most recent for the dropdown
-        const recents = getRecentSearches().slice(0, MAX_RECENT_SEARCHES_DROPDOWN); 
-        
+        const recents = getRecentSearches();
         if (recents.length > 0) {
             const header = document.createElement('div');
             header.className = 'suggestions-header';
@@ -543,7 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             recents.forEach(place => {
                 const item = document.createElement('div');
-                item.className = 'recent-item'; // Use 'recent-item' class from your HTML
+                item.className = 'recent-item';
                 item.innerHTML = `<span class="material-symbols-outlined">history</span> <span>${place.display_name}</span>`;
                 item.addEventListener('mousedown', (e) => {
                     e.preventDefault();
@@ -558,41 +486,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         mainSuggestions.style.display = 'block';
     }
 
-    // --- Full Search History Panel ---
-    function showFullHistory() {
-        fullHistoryListEl.innerHTML = '';
-        const allSearches = getRecentSearches();
-
-        if (allSearches.length === 0) {
-            fullHistoryListEl.innerHTML = '<p style="padding: 16px; color: var(--text-secondary);">No search history found.</p>';
-        } else {
-            allSearches.forEach(place => {
-                const item = document.createElement('div');
-                item.className = 'history-item'; // New class for styling
-                item.innerHTML = `<span class="material-symbols-outlined">history</span> <span>${place.display_name}</span>`;
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    processPlaceResult(place);
-                });
-                fullHistoryListEl.appendChild(item);
-            });
-        }
-        showPanel('history-panel');
-    }
-
-
     const fetchApiSuggestions = debounce(async (query) => {
         if (query.length < 3) return;
         initialSuggestionsView.hidden = true;
         apiSuggestionsView.hidden = false;
         const center = map.getCenter();
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
         try {
-            // UPDATE: Use maptilerClient
-            const data = await maptilerClient.geocoding.forward(query, {
-                proximity: [center.lng, center.lat],
-                limit: 5
-            });
-
+            const res = await fetch(url);
+            const data = await res.json();
             apiSuggestionsView.innerHTML = "";
             data.features.forEach(item => {
                 const el = document.createElement("div");
@@ -631,14 +533,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fetchAndDisplaySuggestions = async (query) => {
             if (query.length < 3) { suggestionsEl.style.display = "none"; return; }
             const center = map.getCenter();
-            
+            const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${MAPTILER_KEY}&proximity=${center.lng},${center.lat}&limit=5`;
             try {
-                // UPDATE: Use maptilerClient
-                const data = await maptilerClient.geocoding.forward(query, {
-                    proximity: [center.lng, center.lat],
-                    limit: 5
-                });
-                
+                const res = await fetch(url);
+                const data = await res.json();
                 suggestionsEl.innerHTML = "";
                 data.features.forEach(item => {
                     const el = document.createElement("div");
@@ -659,10 +557,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     attachSuggestionListener(toInput, document.getElementById('panel-to-suggestions'), (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
 
     async function reverseGeocodeAndShowInfo(lngLat) {
+        const url = `https://api.maptiler.com/geocoding/${lngLat.lng},${lngLat.lat}.json?key=${MAPTILER_KEY}&limit=1`;
         try {
-            // UPDATE: Use maptilerClient
-            const data = await maptilerClient.geocoding.reverse([lngLat.lng, lngLat.lat], { limit: 1 });
-            
+            const res = await fetch(url);
+            const data = await res.json();
             if (data.features?.length > 0) {
                 const item = data.features[0];
                 const place = { lon: item.center[0], lat: item.center[1], display_name: item.place_name, bbox: item.bbox };
@@ -680,16 +578,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (clickedLocationMarker) clickedLocationMarker.remove();
 
-        // REVERT: Back to maplibregl
         clickedLocationMarker = new maplibregl.Marker()
             .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
             .addTo(map);
 
-        // REVERT: Back to maplibregl
-        if (place.bbox) {
-            const bounds = new maplibregl.LngLatBounds([place.bbox[0], place.bbox[1]], [place.bbox[2], place.bbox[3]]);
-            map.fitBounds(bounds, { padding: 100, essential: true });
-        }
+        if (place.bbox) map.fitBounds(place.bbox, { padding: 100, essential: true });
         else map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
 
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
@@ -737,7 +630,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return item;
         }).sort((a, b) => a.distance - b.distance);
         
-        // REVERT: Back to maplibregl
         const bounds = new maplibregl.LngLatBounds();
         bounds.extend(userCoords);
 
@@ -745,10 +637,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const displayName = item.tags?.name || 'Unnamed Place';
             const place = { lon: item.lon, lat: item.lat, display_name: displayName };
             
-            // REVERT: Back to maplibregl
             const marker = new maplibregl.Marker({ color: '#E53935' })
                 .setLngLat([place.lon, place.lat])
-                // REVERT: Back to maplibregl
                 .setPopup(new maplibregl.Popup({ offset: 25 }).setText(displayName))
                 .addTo(map);
 
@@ -904,7 +794,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- ROUTING & NAVIGATION (Updated for MapTiler CLIENT) ---
+    // --- ROUTING & NAVIGATION ---
     function openDirectionsPanel() {
         showPanel('directions-panel-redesign');
         if (currentPlace) {
@@ -962,10 +852,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function geocode(inputEl) {
         if (inputEl.dataset.coords) return inputEl.dataset.coords.split(',').map(Number);
-        
-        // UPDATE: Use maptilerClient
-        const data = await maptilerClient.geocoding.forward(inputEl.value, { limit: 1 });
-        
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(inputEl.value)}.json?key=${MAPTILER_KEY}&limit=1`;
+        const res = await fetch(url);
+        const data = await res.json();
         if (!data.features.length) throw new Error(`Could not find: ${inputEl.value}`);
         const feature = data.features[0];
         inputEl.value = feature.place_name;
@@ -1004,15 +893,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    /**
-     * Formats a MapTiler route step into a human-readable instruction.
-     * @param {object} step - The MapTiler route step object.
-     * @returns {string} A readable instruction.
-     */
-    function formatMaptilerInstruction(step) {
-        if (!step || !step.maneuver || !step.maneuver.instruction) return 'Continue';
-        // MapTiler client provides a clean instruction string directly.
-        return step.maneuver.instruction;
+    function formatOsrmInstruction(step) {
+        if (!step || !step.maneuver) return 'Continue';
+        const { type, modifier } = step.maneuver;
+        const name = step.name.split(',')[0];
+        const onto = (str) => (name ? `${str} onto ${name}` : str);
+        const on = (str) => (name ? `${str} on ${name}` : str);
+        switch (type) {
+            case 'depart': return `Head ${modifier || ''} ${on('')}`.trim();
+            case 'arrive': return `Your destination is on the ${modifier}`;
+            case 'turn':
+            case 'off ramp': return (modifier === 'straight') ? on('Continue straight') : onto(`Turn ${modifier}`);
+            case 'fork': return onto(`Keep ${modifier} at the fork`);
+            case 'roundabout':
+                const exit = step.maneuver.exit;
+                const nth = new Intl.PluralRules('en-US', { type: 'ordinal' }).select(exit);
+                const suffix = { one: 'st', two: 'nd', few: 'rd', other: 'th' }[nth];
+                return onto(`Take the ${exit}${suffix} exit`);
+            case 'merge': return onto(`Merge ${modifier}`);
+            default: return on(`Continue ${modifier || ''}`.trim());
+        }
     }
 
     async function getRoute() {
@@ -1020,22 +920,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearRouteFromMap();
         try {
             const [start, end] = await Promise.all([geocode(fromInput), geocode(toInput)]);
+            const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.code !== "Ok" || !data.routes.length) return showToast(data.message || "A route could not be found.", "error");
 
-            // UPDATE: Use maptilerClient
-            const result = await maptilerClient.routing.directions([start, end], {
-                profile: 'driving', // Use string for profile
-                steps: true,
-                overview: 'full',
-                geometries: 'geojson'
-            });
-
-            if (!result.routes.length) return showToast("A route could not be found.", "error");
-
-            currentRouteData = result; // Store the whole result
-            const route = result.routes[0];
+            currentRouteData = data;
+            const route = data.routes[0];
             addRouteToMap({ type: 'Feature', geometry: route.geometry });
 
-            // REVERT: Back to maplibregl
             const bounds = new maplibregl.LngLatBounds();
             route.geometry.coordinates.forEach(coord => bounds.extend(coord));
 
@@ -1062,24 +955,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const start = currentUserPoint.geometry.coordinates;
         const end = navigationState.destinationCoords.geometry.coordinates;
-        
+        const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
+
         try {
-            // UPDATE: Use maptilerClient
-            const result = await maptilerClient.routing.directions([start, end], {
-                profile: 'driving',
-                steps: true,
-                overview: 'full',
-                geometries: 'geojson'
-            });
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.code !== "Ok" || !data.routes.length) throw new Error("Could not find a new route.");
 
-            if (!result.routes.length) throw new Error("Could not find a new route.");
-
-            currentRouteData = result;
-            addRouteToMap({ type: 'Feature', geometry: result.routes[0].geometry });
+            currentRouteData = data;
+            addRouteToMap({ type: 'Feature', geometry: data.routes[0].geometry });
 
             navigationState.currentStepIndex = 0;
             const nextStep = currentRouteData.routes[0].legs[0].steps[0];
-            const nextInstruction = formatMaptilerInstruction(nextStep);
+            const nextInstruction = formatOsrmInstruction(nextStep);
             navigationInstructionEl.textContent = nextInstruction;
             updateHighlightedSegment(nextStep);
             speechService.speak(`Recalculated. ${nextInstruction}`, true);
@@ -1110,7 +998,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         navigationState.destinationCoords = turf.point(toInput.dataset.coords.split(',').map(Number));
 
         const firstStep = currentRouteData.routes[0].legs[0].steps[0];
-        const instruction = formatMaptilerInstruction(firstStep); // Use new formatter
+        const instruction = formatOsrmInstruction(firstStep);
         navigationInstructionEl.textContent = instruction;
         updateHighlightedSegment(firstStep);
         navigationStatusPanel.style.display = 'flex';
@@ -1119,7 +1007,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!userLocationMarker) {
             const el = document.createElement('div');
             el.className = 'user-location-marker';
-            // REVERT: Back to maplibregl
             userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
 
@@ -1181,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             const nextStep = steps[navigationState.currentStepIndex];
-            const nextInstruction = formatMaptilerInstruction(nextStep); // Use new formatter
+            const nextInstruction = formatOsrmInstruction(nextStep);
             navigationInstructionEl.textContent = nextInstruction;
             updateHighlightedSegment(nextStep);
             speechService.speak(nextInstruction, true);
@@ -1218,7 +1105,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     styleRadioButtons.forEach(radio => radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); closeAfterSetting(); }));
     trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
-    // Removed globeToggle listener
+    globeToggle.addEventListener('change', () => {
+        const isEnabled = globeToggle.checked;
+        localStorage.setItem('mapGlobeEnabled', isEnabled);
+        setGlobeView(isEnabled);
+        closeAfterSetting();
+    });
 
     // --- THEME MANAGEMENT ---
     const systemThemeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
@@ -1254,7 +1146,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyTheme(savedTheme);
     }
 
-    // Removed initializeGlobeView function
+    function initializeGlobeView() {
+        const savedGlobeState = localStorage.getItem('mapGlobeEnabled') === 'true';
+        globeToggle.checked = savedGlobeState;
+        setGlobeView(savedGlobeState);
+    }
 
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
@@ -1343,7 +1239,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     initializeTheme();
-    // Removed initializeGlobeView();
     getInitialRouteFromUrl();
 });
-
