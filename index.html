@@ -33,6 +33,64 @@
     <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     <link rel="stylesheet" href="libs/css/styles.css">
 
+    <!-- New Toast CSS Added -->
+    <style>
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000; /* High z-index for toasts */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .toast {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--panel-bg);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-color);
+            margin-top: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .toast.hide {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .toast.success {
+            background-color: #2e7d32; /* Example success color */
+            color: white;
+            border-color: #2e7d32;
+        }
+
+        .toast.error {
+            background-color: #d32f2f; /* Example error color */
+            color: white;
+            border-color: #d32f2f;
+        }
+
+        .toast.info {
+            background-color: #0288d1; /* Example info color */
+            color: white;
+            border-color: #0288d1;
+        }
+    </style>
+
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -255,8 +313,9 @@
                 <hr>
                 <div class="setting-group"><span class="setting-label">Live Traffic</span><div class="toggle-switch"><input type="checkbox" id="traffic-toggle" name="map-traffic"><label for="traffic-toggle"></label></div></div>
                 <hr>
-                <div class="setting-group"><span class="setting-label">Globe View</span><div class="toggle-switch"><input type="checkbox" id="globe-toggle" name="map-globe"><label for="globe-toggle"></label></div></div>
-                <hr>
+                <!-- 
+                  REMOVED: Globe View setting group
+                -->
                 <div class="setting-group"><span class="setting-label">Units</span><div class="radio-group"><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
                 <hr>
                 <div class="setting-group"><span class="setting-label">Navigation Voice</span><div class="radio-group"><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
