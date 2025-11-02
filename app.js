@@ -299,8 +299,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // --- MAP INITIALIZATION ---
-    // FIX: Use maptilersdk.maplibregl instead of maplibregl
-    const map = new maptilersdk.maplibregl.Map({
+    // FIX: Use maptilersdk.Map instead of maptilersdk.maplibregl.Map
+    const map = new maptilersdk.Map({
         container: "map",
         style: STYLES.default,
         center: [-95, 39],
@@ -315,9 +315,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         projection: 'mercator' // Explicitly set to mercator
     });
 
-    // FIX: Use maptilersdk.maplibregl
-    map.addControl(new maptilersdk.maplibregl.NavigationControl(), "bottom-right");
-    const geolocateControl = new maptilersdk.maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
+    // FIX: Use maptilersdk.NavigationControl
+    map.addControl(new maptilersdk.NavigationControl(), "bottom-right");
+    // FIX: Use maptilersdk.GeolocateControl
+    const geolocateControl = new maptilersdk.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
 
     map.on('load', async () => {
@@ -668,13 +669,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (clickedLocationMarker) clickedLocationMarker.remove();
 
-        // FIX: Use maptilersdk.maplibregl
-        clickedLocationMarker = new maptilersdk.maplibregl.Marker()
+        // FIX: Use maptilersdk.Marker
+        clickedLocationMarker = new maptilersdk.Marker()
             .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
             .addTo(map);
 
-        // FIX: Use maptilersdk.maplibregl
-        if (place.bbox) map.fitBounds(new maptilersdk.maplibregl.LngLatBounds(place.bbox), { padding: 100, essential: true });
+        // FIX: Use maptilersdk.LngLatBounds
+        if (place.bbox) {
+             // maptilersdk.LngLatBounds takes bounds as [minLng, minLat, maxLng, maxLat]
+            const bounds = new maptilersdk.LngLatBounds([place.bbox[0], place.bbox[1]], [place.bbox[2], place.bbox[3]]);
+            map.fitBounds(bounds, { padding: 100, essential: true });
+        }
         else map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
 
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
@@ -722,19 +727,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             return item;
         }).sort((a, b) => a.distance - b.distance);
         
-        // FIX: Use maptilersdk.maplibregl
-        const bounds = new maptilersdk.maplibregl.LngLatBounds();
+        // FIX: Use maptilersdk.LngLatBounds
+        const bounds = new maptilersdk.LngLatBounds();
         bounds.extend(userCoords);
 
         featuresWithDistance.forEach(item => {
             const displayName = item.tags?.name || 'Unnamed Place';
             const place = { lon: item.lon, lat: item.lat, display_name: displayName };
             
-            // FIX: Use maptilersdk.maplibregl
-            const marker = new maptilersdk.maplibregl.Marker({ color: '#E53935' })
+            // FIX: Use maptilersdk.Marker
+            const marker = new maptilersdk.Marker({ color: '#E53935' })
                 .setLngLat([place.lon, place.lat])
-                // FIX: Use maptilersdk.maplibregl
-                .setPopup(new maptilersdk.maplibregl.Popup({ offset: 25 }).setText(displayName))
+                // FIX: Use maptilersdk.Popup
+                .setPopup(new maptilersdk.Popup({ offset: 25 }).setText(displayName))
                 .addTo(map);
 
             marker.getElement().addEventListener('click', (e) => { e.stopPropagation(); processPlaceResult(place) });
@@ -1019,8 +1024,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const route = result.routes[0];
             addRouteToMap({ type: 'Feature', geometry: route.geometry });
 
-            // FIX: Use maptilersdk.maplibregl
-            const bounds = new maptilersdk.maplibregl.LngLatBounds();
+            // FIX: Use maptilersdk.LngLatBounds
+            const bounds = new maptilersdk.LngLatBounds();
             route.geometry.coordinates.forEach(coord => bounds.extend(coord));
 
             if (fromInput.value.trim() === "Your Location") {
@@ -1103,8 +1108,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!userLocationMarker) {
             const el = document.createElement('div');
             el.className = 'user-location-marker';
-            // FIX: Use maptilersdk.maplibregl
-            userLocationMarker = new maptilersdk.maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
+            // FIX: Use maptilersdk.Marker
+            userLocationMarker = new maptilersdk.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
         }
 
         map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
