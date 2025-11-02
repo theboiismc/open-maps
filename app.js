@@ -1229,6 +1229,7 @@ function moveSearchBarToPanel() {
     });
 
     function clearRouteFromMap() {
+        // FIX: Check if layer and source exist before trying to remove
         if (map.getLayer('route-line-completed')) map.removeLayer('route-line-completed');
         if (map.getSource('route-completed')) map.removeSource('route-completed');
         
@@ -1527,7 +1528,9 @@ function moveSearchBarToPanel() {
         try {
             const routeStart = turf.point(routeLine.coordinates[0]);
             const completedSegment = turf.lineSlice(routeStart, snapped, routeLine);
-            map.getSource('route-completed').setData(completedSegment);
+            if (map.getSource('route-completed')) {
+                map.getSource('route-completed').setData(completedSegment);
+            }
         } catch(e) {
             console.warn("Error slicing route for completed line:", e);
         }
@@ -1619,7 +1622,6 @@ function moveSearchBarToPanel() {
         closeAfterSetting();
     }
 
-SYSTEM: ... existing code ...
     systemThemeWatcher.addEventListener('change', (e) => {
         const savedTheme = localStorage.getItem('mapTheme') || 'auto';
         if (savedTheme === 'auto') {
@@ -1669,15 +1671,20 @@ SYSTEM: ... existing code ...
             updateNextManeuverSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]);
             
             // Re-add completed segment
-            try {
-                const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
-                const userPoint = userLocationMarker.getLngLat();
-                const snapped = turf.nearestPointOnLine(routeLine, [userPoint.lng, userPoint.lat], { units: 'meters' });
-                const routeStart = turf.point(routeLine.coordinates[0]);
-                const completedSegment = turf.lineSlice(routeStart, snapped, routeLine);
-                map.getSource('route-completed').setData(completedSegment);
-            } catch(e) {
-                console.warn("Error re-slicing route on style change:", e);
+            // FIX: Check if userLocationMarker exists before trying to access it
+            if (userLocationMarker) { 
+                try {
+                    const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
+                    const userPoint = userLocationMarker.getLngLat();
+                    const snapped = turf.nearestPointOnLine(routeLine, [userPoint.lng, userPoint.lat], { units: 'meters' });
+                    const routeStart = turf.point(routeLine.coordinates[0]);
+                    const completedSegment = turf.lineSlice(routeStart, snapped, routeLine);
+                    if (map.getSource('route-completed')) {
+                        map.getSource('route-completed').setData(completedSegment);
+                    }
+                } catch(e) {
+                    console.warn("Error re-slicing route on style change:", e);
+                }
             }
         }
         // UPDATED to use new state variable
