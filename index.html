@@ -30,85 +30,8 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
     </noscript>
 
-    <!-- 
-      REVERT: Back to standalone MapLibre CSS
-    -->
-    <link rel="stylesheet" href="libs/css/maplibre-gl-4.1.0.css">
+    <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     <link rel="stylesheet" href="libs/css/styles.css">
-
-    <!-- New Toast CSS -->
-    <style>
-        #toast-container {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 2000; /* High z-index for toasts */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .toast {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--panel-bg);
-            color: var(--text-primary);
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            border: 1px solid var(--border-color);
-            margin-top: 10px;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .toast.hide {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        .toast.success {
-            background-color: #2e7d32; /* Example success color */
-            color: white;
-            border-color: #2e7d32;
-        }
-
-        .toast.error {
-            background-color: #d32f2f; /* Example error color */
-            color: white;
-            border-color: #d32f2f;
-        }
-
-        .toast.info {
-            background-color: #0288d1; /* Example info color */
-            color: white;
-            border-color: #0288d1;
-        }
-
-        /* Style for full history list items */
-        #full-history-list .history-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 8px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-color);
-        }
-        #full-history-list .history-item:hover {
-            background-color: var(--hover-bg);
-        }
-        #full-history-list .history-item span {
-            margin-left: 12px;
-            font-size: 14px;
-        }
-    </style>
 
     <script type="application/ld+json">
     {
@@ -150,8 +73,6 @@
                     <hr/>
                     <div class="profile-actions">
                         <a id="saved-places-btn">Saved Places</a>
-                        <!-- Added Search History Button -->
-                        <a id="history-btn">Search History</a>
                     </div>
                     <hr/>
                     <div class="profile-actions">
@@ -253,19 +174,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Added History Panel -->
-            <div id="history-panel" hidden>
-                <div class="info-content-padding">
-                    <button id="back-from-history-btn" class="back-button">
-                        <span class="material-symbols-outlined">arrow_back</span> Back
-                    </button>
-                    <h3 class="results-header">Full Search History</h3>
-                    <div id="full-history-list">
-                        <!-- History items will be populated by app.js -->
-                    </div>
-                </div>
-            </div>
             
             <div id="info-panel-redesign" hidden>
                 <div class="header-image-container">
@@ -347,7 +255,8 @@
                 <hr>
                 <div class="setting-group"><span class="setting-label">Live Traffic</span><div class="toggle-switch"><input type="checkbox" id="traffic-toggle" name="map-traffic"><label for="traffic-toggle"></label></div></div>
                 <hr>
-                <!-- Removed Globe View Setting -->
+                <div class="setting-group"><span class="setting-label">Globe View</span><div class="toggle-switch"><input type="checkbox" id="globe-toggle" name="map-globe"><label for="globe-toggle"></label></div></div>
+                <hr>
                 <div class="setting-group"><span class="setting-label">Units</span><div class="radio-group"><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
                 <hr>
                 <div class="setting-group"><span class="setting-label">Navigation Voice</span><div class="radio-group"><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
@@ -368,23 +277,9 @@
     <button id="search-this-area-btn" class="search-area-btn" hidden>Search this area</button>
     <div id="toast-container"></div>
     
-    <!-- 
-      SCRIPT LOADING ORDER FIXED
-      All libraries are loaded with `defer` first, then app.js.
-    -->
-    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
-    <script src='libs/js/turf-6.5.0.min.js' defer></script>
-    
-    <!-- REVERT: Back to standalone MapLibre JS -->
+    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
     <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
-    
-    <!-- 
-      REPLACE: Use standalone MapTiler Client for Routing/Geocoding API
-      This has no UI and will not conflict with MapLibre.
-    -->
-    <script src="https://cdn.jsdelivr.net/npm/@maptiler/client/dist/maptiler-client.umd.min.js" defer></script>
-    
-    <!-- Main app script, runs last -->
+    <script src='libs/js/turf-6.5.0.min.js' defer></script>
     <script src="app.js" defer></script>
 </body>
 </html>
