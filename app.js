@@ -273,6 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let navigationWatcherId = null;
     let userLocationMarker = null;
     let searchResultMarkers = [];
+    let isTrafficEnabled = false; // NEW: State for traffic layer
 
     // --- HELPER FUNCTIONS ---
     function formatDuration(totalSeconds) {
@@ -409,6 +410,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!profileArea.contains(e.target)) profileDropdown.style.display = 'none';
         if (!appMenuButton.contains(e.target) && !servicesDropdown.contains(e.target)) servicesDropdown.classList.remove('open');
         if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) contextMenu.style.display = 'none';
+        
+        // NEW: Close layers panel if clicking outside
+        const layersControl = document.querySelector('.maplibregl-ctrl-layers');
+        if (layersControl && !layersControl.contains(e.target)) {
+            layersControl.classList.remove('open');
+        }
     });
 
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
@@ -495,6 +502,121 @@ document.addEventListener('DOMContentLoaded', async () => {
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
+    
+    // --- NEW: LAYERS CONTROL ---
+    
+    /**
+     * Implements a custom MapLibre control for changing map layers.
+     * Mimics the Google Maps layers button and panel.
+     */
+    class LayersControl {
+        onAdd(map) {
+            this._map = map;
+            this._container = document.createElement('div');
+            this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group maplibregl-ctrl-layers';
+
+            // Create the animated button
+            this._button = document.createElement('button');
+            this._button.className = 'maplibregl-ctrl-layers-btn';
+            this._button.setAttribute('aria-label', 'Map layers');
+            this._button.setAttribute('aria-expanded', 'false');
+            this._button.innerHTML = `
+                <span class="material-symbols-outlined">layers</span>
+                <span class="maplibregl-ctrl-layers-label">Layers</span>
+            `;
+            
+            // Create the panel
+            this._panel = document.createElement('div');
+            this._panel.className = 'maplibregl-ctrl-layers-panel';
+            this._buildPanelContent();
+
+            // Button click toggles the panel
+            this._button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = this._container.classList.toggle('open');
+                this._button.setAttribute('aria-expanded', isOpen);
+            });
+            
+            this._container.appendChild(this._button);
+            this._container.appendChild(this._panel);
+
+            return this._container;
+        }
+
+        onRemove() {
+            this._container.parentNode.removeChild(this._container);
+            this._map = undefined;
+        }
+
+        _buildPanelContent() {
+            this._panel.innerHTML = `
+                <div class="layers-panel-header">
+                    <h4>Map Type</h4>
+                </div>
+                <div class="layers-panel-style-group">
+                    <button class="layers-panel-style-btn active" data-style="default">
+                        <img src="https://placehold.co/80x80/e0e0e0/757575?text=Map" alt="Default Map Style">
+                        <span>Default</span>
+                    </button>
+                    <button class="layers-panel-style-btn" data-style="satellite">
+                        <img src="https://placehold.co/80x80/303030/ffffff?text=Satellite" alt="Satellite Map Style">
+                        <span>Satellite</span>
+                    </button>
+                </div>
+                <hr>
+                <div class="layers-panel-section">
+                    <h4>Map Details</h4>
+                    <div class="setting-group">
+                        <span class="setting-label">Live Traffic</span>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="layers-traffic-toggle" name="map-traffic">
+                            <label for="layers-traffic-toggle"></label>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const styleButtons = this._panel.querySelectorAll('.layers-panel-style-btn');
+            styleButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    styleButtons.forEach(b => b.classList.remove('active'));
+                    // Add active class to clicked button
+                    btn.classList.add('active');
+                    
+                    const style = btn.dataset.style;
+                    if (style === 'satellite') {
+                        this._map.setStyle(STYLES.satellite);
+                    } else {
+                        // Re-run failover logic for default style
+                        updatePrioritizedTileSources();
+                        loadMapStyle(0);
+                    }
+                });
+            });
+
+            // Set default active button based on current style
+            // Note: This is a simple check; a more robust check would inspect the style object
+            if (currentStyleIndex > 0) { // Assuming non-zero index means not satellite
+                 this._panel.querySelector('.layers-panel-style-btn[data-style="default"]').classList.add('active');
+            }
+
+            const trafficToggle = this._panel.querySelector('#layers-traffic-toggle');
+            trafficToggle.checked = isTrafficEnabled; // Sync with global state
+            
+            trafficToggle.addEventListener('change', () => {
+                isTrafficEnabled = trafficToggle.checked; // Update global state
+                if (isTrafficEnabled) {
+                    addTrafficLayer();
+                } else {
+                    removeTrafficLayer();
+                }
+            });
+        }
+    }
+    
+    // Add the new custom control
+    map.addControl(new LayersControl(), 'bottom-right');
 
     // --- CRITICAL: Changed to map.once('load', ...) ---
     // (This section remains unchanged)
@@ -553,6 +675,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     map.on('click', async (e) => {
         const target = e.originalEvent.target;
+        // Updated to include check for new layers control
         if (target.closest('.maplibregl-ctrl, #side-panel, #context-menu, .maplibregl-marker')) return;
         if (map.queryRenderedFeatures(e.point, { layers: ['route-line'] }).length > 0) return;
         const poi = map.queryRenderedFeatures(e.point, { layers: ['poi-label'] })[0];
@@ -1348,8 +1471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- SETTINGS & MAP STYLE ---
-    const styleRadioButtons = document.querySelectorAll('input[name="map-style"]');
-    const trafficToggle = document.getElementById('traffic-toggle');
+    // REMOVED: styleRadioButtons and trafficToggle selectors and listeners
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
     const themeRadioButtons = document.querySelectorAll('input[name="map-theme"]');
 
@@ -1379,23 +1501,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const closeAfterSetting = () => { if (isMobile) setTimeout(closeSettings, 200); };
 
-    // --- UPDATED Style Radio Button Listener ---
-    styleRadioButtons.forEach(radio => radio.addEventListener('change', () => {
-        const selectedStyleValue = radio.value;
-        if (selectedStyleValue === 'satellite') {
-            // Manually setting satellite is fine, no failover needed here.
-            map.setStyle(STYLES.satellite);
-        } else {
-            // User selected "Default". We re-run the failover logic
-            // to ensure we get the best available default map, starting from index 0.
-            // This now respects the user's saved priority.
-            updatePrioritizedTileSources();
-            loadMapStyle(0); 
-        }
-        closeAfterSetting();
-    }));
+    // REMOVED: styleRadioButtons.forEach(...)
+    // REMOVED: trafficToggle.addEventListener(...)
 
-    trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
     
     // --- THEME MANAGEMENT ---
@@ -1457,13 +1565,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // (Map 'styledata' listener remains unchanged)
+    // (Map 'styledata' listener is UPDATED)
     map.on('styledata', () => {
         if (navigationState.isActive && currentRouteData) {
             addRouteToMap({ type: 'Feature', geometry: currentRouteData.routes[0].geometry });
             updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]);
         }
-        if (trafficToggle.checked) addTrafficLayer();
+        // UPDATED to use new state variable
+        if (isTrafficEnabled) addTrafficLayer();
     });
 
     // --- NEW: Advanced Settings Logic ---
