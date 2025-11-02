@@ -28,7 +28,6 @@ const authService = {
 };
 
 // --- UTILITY FUNCTIONS ---
-// REPLACED: New toast function
 let currentToast = null; // Variable to track the active toast
 
 /**
@@ -142,7 +141,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const settingsIconBtn = document.getElementById('settings-icon-btn');
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
-    // REMOVED: const globeToggle = document.getElementById('globe-toggle');
 
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
@@ -187,10 +185,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+    
+    // --- UPDATED Map Style Definitions ---
     const STYLES = {
         default: `https://tiles.openfreemap.org/styles/liberty`,
-        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] }
+        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] },
+        maptiler: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
+        custom: {
+            version: 8,
+            sources: {
+                "theboiismc": {
+                    type: "raster",
+                    tiles: ["https://tiles.theboiismc.com/{z}/{x}/{y}.png"],
+                    tileSize: 256,
+                    attribution: '© TheBoiisMC'
+                }
+            },
+            layers: [{
+                id: "theboiismc-layer",
+                type: "raster",
+                source: "theboiismc",
+                minzoom: 0,
+                maxzoom: 22
+            }]
+        }
     };
+
+    // --- NEW Tile Source Failover List ---
+    const TILE_SOURCES = [
+        { name: 'OpenFreeMap', style: STYLES.default },
+        { name: 'MapTiler Streets', style: STYLES.maptiler },
+        { name: 'TheBoiisMC Custom', style: STYLES.custom }
+    ];
+    let currentStyleIndex = 0; // Tracks the currently active *default* style
+    const LOAD_TIMEOUT_MS = 10000; // 10 seconds
 
     // --- AUTHENTICATION UI LOGIC ---
     const updateAuthUI = (user) => {
@@ -270,7 +298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- MAP INITIALIZATION ---
     const map = new maplibregl.Map({
         container: "map",
-        style: STYLES.default,
+        // style is removed, will be set by loadMapStyle()
         center: [-95, 39],
         zoom: 3,
         pitch: 0,
@@ -280,14 +308,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderWorldCopies: false,
         maxZoom: 18,
         minZoom: 1,
-        projection: 'mercator' // REMOVED GLOBE: Locked projection to mercator
+        projection: 'mercator'
     });
+
+    /**
+     * --- MAP STYLE FAILOVER LOGIC ---
+     * Attempts to load map styles from a prioritized list,
+     * falling back to the next one on error or timeout.
+     */
+    function loadMapStyle(sourceIndex) {
+        if (sourceIndex >= TILE_SOURCES.length) {
+            showToast("All map providers are currently unavailable.", "error");
+            document.getElementById('map').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;font-weight:bold;color:var(--text-secondary);">Map services are offline.</div>';
+            return;
+        }
+
+        currentStyleIndex = sourceIndex; // Store current index for style switching
+        const source = TILE_SOURCES[sourceIndex];
+        let loadTimeout;
+
+        const onError = (e) => {
+            console.warn(`Failed to load style: ${source.name}`, e);
+            clearTimeout(loadTimeout);
+            map.off('error', onError);
+            map.off('load', onLoad);
+            showToast(`${source.name} failed. Trying fallback...`, 'error');
+            loadMapStyle(sourceIndex + 1);
+        };
+
+        const onLoad = () => {
+            clearTimeout(loadTimeout);
+            map.off('error', onError);
+            map.off('load', onLoad);
+            if (sourceIndex > 0) {
+                showToast(`Using fallback map: ${source.name}`, 'info');
+            }
+            console.log(`Successfully loaded style: ${source.name}`);
+        };
+
+        loadTimeout = setTimeout(() => {
+            map.off('error', onError);
+            map.off('load', onLoad);
+            showToast(`${source.name} timed out. Trying fallback...`, 'error');
+            loadMapStyle(sourceIndex + 1);
+        }, LOAD_TIMEOUT_MS);
+
+        map.once('error', onError);
+        map.once('load', onLoad); // This is for the *style* load, not the full app load
+        
+        try {
+            map.setStyle(source.style);
+        } catch (e) {
+            onError(e); // Catch synchronous errors (e.g., invalid style object)
+        }
+    }
+    
+    // --- LOAD INITIAL MAP STYLE ---
+    loadMapStyle(0);
+
 
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
 
-    map.on('load', async () => {
+    // --- CRITICAL: Changed to map.once('load', ...) ---
+    // This now runs *only* after the *first* successful style load
+    map.once('load', async () => {
         if (navigator.geolocation && navigator.permissions) {
             try {
                 const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
@@ -305,11 +391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isMobile) {
             showPanel('welcome-panel');
         }
-        // REMOVED: initializeGlobeView();
     });
-
-    // --- GLOBE VIEW LOGIC (REMOVED) ---
-    // REMOVED: setGlobeView function
 
     // --- CONTEXT MENU LOGIC ---
     map.on('contextmenu', (e) => {
@@ -1132,12 +1214,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const closeAfterSetting = () => { if (isMobile) setTimeout(closeSettings, 200); };
 
-    styleRadioButtons.forEach(radio => radio.addEventListener('change', () => { map.setStyle(STYLES[radio.value]); closeAfterSetting(); }));
+    // --- UPDATED Style Radio Button Listener ---
+    styleRadioButtons.forEach(radio => radio.addEventListener('change', () => {
+        const selectedStyleValue = radio.value;
+        if (selectedStyleValue === 'satellite') {
+            // Manually setting satellite is fine, no failover needed here.
+            map.setStyle(STYLES.satellite);
+        } else {
+            // User selected "Default". We re-run the failover logic
+            // to ensure we get the best available default map, starting from index 0.
+            loadMapStyle(0); 
+        }
+        closeAfterSetting();
+    }));
+
     trafficToggle.addEventListener('change', () => { if (trafficToggle.checked) addTrafficLayer(); else removeTrafficLayer(); closeAfterSetting(); });
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
     
-    // REMOVED: globeToggle.addEventListener
-
     // --- THEME MANAGEMENT ---
     const systemThemeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -1172,8 +1265,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyTheme(savedTheme);
     }
 
-    // REMOVED: initializeGlobeView function
-
     const TRAFFIC_SOURCE_ID = 'maptiler-traffic';
     const TRAFFIC_LAYER_ID = 'traffic-lines';
     const trafficSource = { type: 'vector', url: `https://api.maptiler.com/tiles/traffic/tiles.json?key=${MAPTILER_KEY}` };
@@ -1190,7 +1281,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // REMOVED STRAY 'fs' TYPO HERE
     function removeTrafficLayer() {
         if (map.getSource(TRAFFIC_SOURCE_ID)) {
             map.removeLayer(TRAFFIC_LAYER_ID);
@@ -1198,6 +1288,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // This listener re-applies route and traffic layers whenever the style changes
     map.on('styledata', () => {
         if (navigationState.isActive && currentRouteData) {
             addRouteToMap({ type: 'Feature', geometry: currentRouteData.routes[0].geometry });
@@ -1264,4 +1355,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeTheme();
     getInitialRouteFromUrl();
 });
-
