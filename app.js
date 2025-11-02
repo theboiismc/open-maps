@@ -1190,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-fs
+    // REMOVED STRAY 'fs' TYPO HERE
     function removeTrafficLayer() {
         if (map.getSource(TRAFFIC_SOURCE_ID)) {
             map.removeLayer(TRAFFIC_LAYER_ID);
