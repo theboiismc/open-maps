@@ -6,19 +6,16 @@
 
     <title>TheBoiisMC Maps - Private Navigation & Directions</title>
 
+    <!-- ... other meta tags ... -->
     <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
-    
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
-
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
-
     <meta name="theme-color" content="#00796b" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon512_rounded.png">
-
     <meta property="og:title" content="TheBoiisMC Maps - Private Navigation & Directions" />
     <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps." />
     <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
@@ -30,27 +27,77 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
     </noscript>
 
-    <!-- 
-      REMOVED: libs/css/maplibre-gl-4.1.0.css 
-      The MapTiler SDK CSS replaces this.
-    -->
     <!-- MapTiler SDK JS CSS -->
     <link href="https://cdn.maptiler.com/maptiler-sdk-js/v1.1.1/maptiler-sdk.css" rel="stylesheet" />
     <link rel="stylesheet" href="libs/css/styles.css">
 
-    <!-- New Toast CSS -->
+    <!-- 
+      FIX: Z-INDEX STYLING
+      This new style block fixes the click/interaction issues by forcing
+      the UI elements to be on top of the map container.
+    -->
     <style>
+        #map {
+            /* Set map as the base layer */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        #top-banner {
+            /* Ensure banner is above map and search */
+            z-index: 1010; 
+            position: relative; /* Needed for z-index to apply */
+        }
+        
+        #top-search-wrapper {
+            /* Ensure search is above map */
+            z-index: 1000;
+            position: relative;
+        }
+
+        #side-panel {
+            /* Side panel must be above map and top search */
+            z-index: 1020;
+            position: relative;
+        }
+
+        #navigation-status {
+            /* Nav status needs to be above map */
+            z-index: 999;
+        }
+
+        #context-menu {
+            /* Context menu above everything except modal/toast */
+            z-index: 1500;
+        }
+
+        .modal-container {
+            /* Modal container must be very high */
+            z-index: 2000;
+        }
+
+        .modal-overlay {
+            /* Overlay must be just below modal content */
+            z-index: 1999; 
+        }
+
         #toast-container {
+            /* Toasts must be on top of all elements */
             position: fixed;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 2000;
+            z-index: 2001; /* Highest */
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
+        /* --- Toast Styles (from previous step) --- */
         .toast {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--panel-bg);
@@ -66,36 +113,13 @@
             font-size: 14px;
             font-weight: 500;
         }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.hide { opacity: 0; transform: translateY(20px); }
+        .toast.success { background-color: #2e7d32; color: white; border-color: #2e7d32; }
+        .toast.error { background-color: #d32f2f; color: white; border-color: #d32f2f; }
+        .toast.info { background-color: #0288d1; color: white; border-color: #0288d1; }
 
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .toast.hide {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        .toast.success {
-            background-color: #2e7d32; /* Example success color */
-            color: white;
-            border-color: #2e7d32;
-        }
-
-        .toast.error {
-            background-color: #d32f2f; /* Example error color */
-            color: white;
-            border-color: #d32f2f;
-        }
-
-        .toast.info {
-            background-color: #0288d1; /* Example info color */
-            color: white;
-            border-color: #0288d1;
-        }
-
-        /* Style for full history list items */
+        /* --- History Panel Styles (from previous step) --- */
         #full-history-list .history-item {
             display: flex;
             align-items: center;
@@ -103,13 +127,8 @@
             cursor: pointer;
             border-bottom: 1px solid var(--border-color);
         }
-        #full-history-list .history-item:hover {
-            background-color: var(--hover-bg);
-        }
-        #full-history-list .history-item span {
-            margin-left: 12px;
-            font-size: 14px;
-        }
+        #full-history-list .history-item:hover { background-color: var(--hover-bg); }
+        #full-history-list .history-item span { margin-left: 12px; font-size: 14px; }
     </style>
 
     <script type="application/ld+json">
@@ -130,6 +149,10 @@
     </script>
 </head>
 <body>
+    <!-- 
+      All your body HTML remains the same as the previous correct version.
+      The z-index fixes above will make these elements clickable again.
+    -->
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
@@ -152,7 +175,6 @@
                     <hr/>
                     <div class="profile-actions">
                         <a id="saved-places-btn">Saved Places</a>
-                        <!-- Added Search History Button -->
                         <a id="history-btn">Search History</a>
                     </div>
                     <hr/>
@@ -256,7 +278,6 @@
                 </div>
             </div>
 
-            <!-- Added History Panel -->
             <div id="history-panel" hidden>
                 <div class="info-content-padding">
                     <button id="back-from-history-btn" class="back-button">
@@ -264,7 +285,6 @@
                     </button>
                     <h3 class="results-header">Full Search History</h3>
                     <div id="full-history-list">
-                        <!-- History items will be populated by app.js -->
                     </div>
                 </div>
             </div>
@@ -318,7 +338,7 @@
                         <h3 id="route-summary-time">--</h3>
                         <div id="route-summary-distance"></div>
                     </div>
-                    <div class="action-buttons">
+                    <div classs="action-buttons">
                         <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
                         <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
                         <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined">list</span></div><div class="btn-label">Steps</div></div>
@@ -339,7 +359,7 @@
     
     <div id="settings-modal" class="modal-container">
         <div id="modal-overlay" class="modal-overlay"></div>
-        <div class="modal-content">
+        <div classss="modal-content">
             <div class="modal-header">
                 <h4>Map Settings</h4>
                 <button id="close-settings-btn" class="modal-close-btn" aria-label="Close Settings">&times;</button>
@@ -349,7 +369,6 @@
                 <hr>
                 <div class="setting-group"><span class="setting-label">Live Traffic</span><div class="toggle-switch"><input type="checkbox" id="traffic-toggle" name="map-traffic"><label for="traffic-toggle"></label></div></div>
                 <hr>
-                <!-- Removed Globe View Setting -->
                 <div class="setting-group"><span class="setting-label">Units</span><div class="radio-group"><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
                 <hr>
                 <div class="setting-group"><span class="setting-label">Navigation Voice</span><div class="radio-group"><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
@@ -370,22 +389,10 @@
     <button id="search-this-area-btn" class="search-area-btn" hidden>Search this area</button>
     <div id="toast-container"></div>
     
-    <!-- 
-      SCRIPT LOADING ORDER FIXED
-      All libraries are loaded with `defer` first, then app.js.
-    -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
     <script src='libs/js/turf-6.5.0.min.js' defer></script>
-    
-    <!-- 
-      REMOVED: <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
-      This was conflicting with the MapTiler SDK.
-    -->
-    
-    <!-- MapTiler SDK JS (provides maplibregl and maptilersdk objects) -->
     <script src="https://cdn.maptiler.com/maptiler-sdk-js/v1.1.1/maptiler-sdk.umd.min.js" defer></script>
-    
-    <!-- Main app script, runs last -->
     <script src="app.js" defer></script>
 </body>
 </html>
