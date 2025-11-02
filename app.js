@@ -778,7 +778,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    function moveSearchBarToPanel() {
+function moveSearchBarToPanel() {
         if (!isMobile) {
             panelSearchPlaceholder.appendChild(mainSearchContainer);
             panelSearchPlaceholder.hidden = false;
@@ -1142,6 +1142,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) { /* Do nothing */ }
     }
 
+
+
     function getWeatherDescription(code) {
         const descriptions = { 0: 'Clear', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 61: 'Rain', 63: 'Rain', 65: 'Heavy rain', 71: 'Snow', 73: 'Snow', 75: 'Heavy snow', 80: 'Showers', 95: 'Thunderstorm' };
         return descriptions[code] || "Weather unavailable";
@@ -1227,10 +1229,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     function clearRouteFromMap() {
-        if (map.getLayer('route-line')) map.removeLayer('route-line');
+        if (map.getLayer('route-line-completed')) map.removeLayer('route-line-completed');
+        if (map.getSource('route-completed')) map.removeSource('route-completed');
+        
+        if (map.getLayer('route-line-main')) map.removeLayer('route-line-main');
         if (map.getSource('route')) map.removeSource('route');
-        if (map.getLayer('highlighted-route-segment')) map.removeLayer('highlighted-route-segment');
-        if (map.getSource('highlighted-route-segment')) map.removeSource('highlighted-route-segment');
+
+        if (map.getLayer('route-line-casing')) map.removeLayer('route-line-casing');
+        if (map.getSource('route-casing')) map.removeSource('route-casing');
+        
+        if (map.getLayer('next-maneuver-segment')) map.removeLayer('next-maneuver-segment');
+        if (map.getSource('next-maneuver-segment')) map.removeSource('next-maneuver-segment');
     }
 
     async function geocode(inputEl) {
@@ -1246,33 +1255,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function addRouteToMap(routeGeoJSON) {
+        // Casing
+        if (!map.getSource('route-casing')) {
+            map.addSource('route-casing', { type: 'geojson', data: routeGeoJSON });
+            map.addLayer({
+                id: 'route-line-casing',
+                type: 'line',
+                source: 'route-casing',
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: { 'line-color': '#0055ff', 'line-width': 12, 'line-opacity': 0.4 }
+            }, 'road-label'); // Place it under labels
+        } else {
+            map.getSource('route-casing').setData(routeGeoJSON);
+        }
+
+        // Main (Upcoming) Route
         if (map.getSource('route')) {
             map.getSource('route').setData(routeGeoJSON);
         } else {
             map.addSource('route', { type: 'geojson', data: routeGeoJSON });
             map.addLayer({
-                id: 'route-line',
+                id: 'route-line-main',
                 type: 'line',
                 source: 'route',
                 layout: { 'line-join': 'round', 'line-cap': 'round' },
-                paint: { 'line-color': '#0d89ec', 'line-width': 8, 'line-opacity': 0.7 }
-            });
+                paint: { 'line-color': '#0d89ec', 'line-width': 8, 'line-opacity': 0.9 }
+            }, 'route-line-casing'); // On top of casing
+        }
+        
+        // Completed Route (starts empty)
+        const emptyGeoJSON = { type: 'FeatureCollection', features: [] };
+        if (!map.getSource('route-completed')) {
+            map.addSource('route-completed', { type: 'geojson', data: emptyGeoJSON });
+            map.addLayer({
+                id: 'route-line-completed',
+                type: 'line',
+                source: 'route-completed',
+                layout: { 'line-join': 'round', 'line-cap': 'round' },
+                paint: { 'line-color': '#909090', 'line-width': 8, 'line-opacity': 0.8 }
+            }, 'route-line-main'); // On top of main route
+        } else {
+            map.getSource('route-completed').setData(emptyGeoJSON);
         }
     }
 
-    function updateHighlightedSegment(step) {
+    function updateNextManeuverSegment(step) {
         if (!step || !step.geometry) return;
         const geojson = { type: 'Feature', geometry: step.geometry };
-        if (map.getSource('highlighted-route-segment')) {
-            map.getSource('highlighted-route-segment').setData(geojson);
+        if (map.getSource('next-maneuver-segment')) {
+            map.getSource('next-maneuver-segment').setData(geojson);
         } else {
-            map.addSource('highlighted-route-segment', { type: 'geojson', data: geojson });
+            map.addSource('next-maneuver-segment', { type: 'geojson', data: geojson });
             map.addLayer({
-                id: 'highlighted-route-segment',
+                id: 'next-maneuver-segment',
                 type: 'line',
-                source: 'highlighted-route-segment',
-                paint: { 'line-color': '#0055ff', 'line-width': 9, 'line-opacity': 0.9 }
-            }, 'route-line');
+                source: 'next-maneuver-segment',
+                paint: { 'line-color': '#FFFFFF', 'line-width': 9, 'line-opacity': 0.8, 'line-dasharray': [0, 2] }
+            }, 'route-line-completed'); // On top of completed line
         }
     }
 
@@ -1352,7 +1391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const nextStep = currentRouteData.routes[0].legs[0].steps[0];
             const nextInstruction = formatOsrmInstruction(nextStep);
             navigationInstructionEl.textContent = nextInstruction;
-            updateHighlightedSegment(nextStep);
+            updateNextManeuverSegment(nextStep);
             speechService.speak(`Recalculated. ${nextInstruction}`, true);
 
         } catch (err) {
@@ -1361,6 +1400,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         } finally {
             navigationState.isRerouting = false;
         }
+    }
+
+    function getDynamicZoom(speedMph) {
+        const minZoom = 16;
+        const maxZoom = 18;
+        const maxSpeed = 45; // Speed at which zoom is at its minimum
+        
+        if (speedMph < 5) return maxZoom;
+        if (speedMph > maxSpeed) return minZoom;
+
+        // Linear interpolation between maxZoom and minZoom
+        const speedFraction = speedMph / maxSpeed;
+        return maxZoom - (speedFraction * (maxZoom - minZoom));
     }
 
     async function startNavigation() {
@@ -1383,14 +1435,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         const firstStep = currentRouteData.routes[0].legs[0].steps[0];
         const instruction = formatOsrmInstruction(firstStep);
         navigationInstructionEl.textContent = instruction;
-        updateHighlightedSegment(firstStep);
+        updateNextManeuverSegment(firstStep);
         navigationStatusPanel.style.display = 'flex';
         speechService.speak(`Starting route. ${instruction}`, true);
 
         if (!userLocationMarker) {
             const el = document.createElement('div');
-            el.className = 'user-location-marker';
-            userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' }).setLngLat([0, 0]).addTo(map);
+            el.className = 'user-location-navigation-icon';
+            // Modern SVG icon (chevron)
+            el.innerHTML = `
+                <svg viewBox="0 0 24 24" width="28" height="28">
+                    <defs>
+                        <linearGradient id="grad_chevron" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#1a73e8;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" fill="url(#grad_chevron)" stroke="#FFFFFF" stroke-width="1.5" stroke-linejoin="round"/>
+                </svg>
+            `;
+            userLocationMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' })
+                .setLngLat([0, 0])
+                .addTo(map);
+        }
+
+        // Show 3D buildings if available
+        const layers = map.getStyle().layers;
+        for (const layer of layers) {
+            if (layer.type === 'fill-extrusion') {
+                map.setLayoutProperty(layer.id, 'visibility', 'visible');
+            }
         }
 
         map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
@@ -1406,6 +1480,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         resetNavigationState();
         navigationStatusPanel.style.display = 'none';
         speechService.synthesis.cancel();
+
+        // Hide 3D buildings
+        const layers = map.getStyle().layers;
+        for (const layer of layers) {
+            if (layer.type === 'fill-extrusion') {
+                map.setLayoutProperty(layer.id, 'visibility', 'none');
+            }
+        }
+
         map.easeTo({ pitch: 0, bearing: 0 });
     }
 
@@ -1421,13 +1504,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userPoint = turf.point([longitude, latitude]);
         const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
         const snapped = turf.nearestPointOnLine(routeLine, userPoint, { units: 'meters' });
+        const speedMph = (speed || 0) * 2.23694;
+        const dynamicZoom = getDynamicZoom(speedMph);
 
         userLocationMarker.setLngLat(snapped.geometry.coordinates);
         if (heading != null) {
             userLocationMarker.setRotation(heading);
-            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, duration: 500 });
+            map.easeTo({ center: snapped.geometry.coordinates, bearing: heading, zoom: dynamicZoom, duration: 1000 });
         } else {
-            map.easeTo({ center: snapped.geometry.coordinates, duration: 500 });
+            map.easeTo({ center: snapped.geometry.coordinates, zoom: dynamicZoom, duration: 1000 });
         }
 
         const distanceFromRoute = snapped.properties.dist;
@@ -1436,6 +1521,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             speechService.speak("Off route. Recalculating.", true);
             reroute(userPoint);
             return;
+        }
+        
+        // --- NEW: Update completed route line ---
+        try {
+            const routeStart = turf.point(routeLine.coordinates[0]);
+            const completedSegment = turf.lineSlice(routeStart, snapped, routeLine);
+            map.getSource('route-completed').setData(completedSegment);
+        } catch(e) {
+            console.warn("Error slicing route for completed line:", e);
         }
 
         const steps = currentRouteData.routes[0].legs[0].steps;
@@ -1453,11 +1547,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const nextStep = steps[navigationState.currentStepIndex];
             const nextInstruction = formatOsrmInstruction(nextStep);
             navigationInstructionEl.textContent = nextInstruction;
-            updateHighlightedSegment(nextStep);
+            updateNextManeuverSegment(nextStep);
             speechService.speak(nextInstruction, true);
         }
 
-        statSpeedEl.textContent = ((speed || 0) * 2.23694).toFixed(0);
+        statSpeedEl.textContent = speedMph.toFixed(0);
         const totalStepDistance = turf.length(turf.lineString(currentStep.geometry.coordinates), { units: 'meters' });
         const progressAlongStep = Math.max(0, 1 - (distanceToNextManeuver / totalStepDistance));
         instructionProgressBar.transform = `scaleX(${progressAlongStep})`;
@@ -1525,6 +1619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeAfterSetting();
     }
 
+SYSTEM: ... existing code ...
     systemThemeWatcher.addEventListener('change', (e) => {
         const savedTheme = localStorage.getItem('mapTheme') || 'auto';
         if (savedTheme === 'auto') {
@@ -1568,8 +1663,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     // (Map 'styledata' listener is UPDATED)
     map.on('styledata', () => {
         if (navigationState.isActive && currentRouteData) {
-            addRouteToMap({ type: 'Feature', geometry: currentRouteData.routes[0].geometry });
-            updateHighlightedSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]);
+            // Re-add all route components on style change
+            const routeGeoJSON = { type: 'Feature', geometry: currentRouteData.routes[0].geometry };
+            addRouteToMap(routeGeoJSON);
+            updateNextManeuverSegment(currentRouteData.routes[0].legs[0].steps[navigationState.currentStepIndex]);
+            
+            // Re-add completed segment
+            try {
+                const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
+                const userPoint = userLocationMarker.getLngLat();
+                const snapped = turf.nearestPointOnLine(routeLine, [userPoint.lng, userPoint.lat], { units: 'meters' });
+                const routeStart = turf.point(routeLine.coordinates[0]);
+                const completedSegment = turf.lineSlice(routeStart, snapped, routeLine);
+                map.getSource('route-completed').setData(completedSegment);
+            } catch(e) {
+                console.warn("Error re-slicing route on style change:", e);
+            }
         }
         // UPDATED to use new state variable
         if (isTrafficEnabled) addTrafficLayer();
