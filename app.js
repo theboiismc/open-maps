@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- UPDATED Map Style Definitions ---
     const STYLES = {
         default: `https://tiles.openfreemap.org/styles/liberty`,
-        satellite: { version: 8, sources: { "esri-world-imagery": { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: 'Tiles © Esri' } }, layers: [{ id: "satellite-layer", type: "raster", source: "esri-world-imagery" }] },
+        satellite:`https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`,
         maptiler: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
         custom: {
             version: 8,
