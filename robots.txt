@@ -1,10 +1,4 @@
-#
-# OPTIMIZED ROBOTS.TXT POLICY
-#
-# This file ensures top-tier SEO by allowing major search engines and
-# explicitly permits AI crawlers like Gemini (via Googlebot) and GPTBot.
 
-# 1. ALLOW GOOGLE (For Search and Gemini)
 User-agent: Googlebot
 Allow: /
 # This is the primary crawler for Google Search, which is crucial for SEO.
