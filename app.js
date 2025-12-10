@@ -295,26 +295,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         default: `https://tiles.openfreemap.org/styles/liberty`,
         satellite:`https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`,
         maptiler: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
-        custom: {
-            version: 8,
-            sources: {
-                "theboiismc": {
-                    type: "raster",
-                    tiles: ["https://tiles.theboiismc.com/{z}/{x}/{y}.png"],
-                    tileSize: 256,
-                    attribution: '© TheBoiisMC'
-                }
-            },
-            layers: [{
-                id: "theboiismc-layer",
-                type: "raster",
-                source: "theboiismc",
-                minzoom: 0,
-                maxzoom: 22
-            }]
-        }
-    };
-
+        custom: 'https://tiles.theboiismc.com/styles/Default/style.json'
     // --- NEW: Master Tile Source List (for settings) ---
     // This list defines *all* available sources.
     const MASTER_TILE_SOURCES = [
