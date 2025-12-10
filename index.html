@@ -11,8 +11,6 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
 
     <meta name="theme-color" content="#00796b" />
@@ -25,11 +23,8 @@
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
-    </noscript>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+    
     <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     <link rel="stylesheet" href="libs/css/styles.css">
 
@@ -118,10 +113,6 @@
             display: flex;
             align-items: center;
         }
-        .saved-place-item .details {
-            flex: 1;
-            overflow: hidden;
-        }
         .saved-place-item .name {
             font-weight: 500;
             color: var(--text-primary, #333);
@@ -147,6 +138,25 @@
             color: #d32f2f; 
             background-color: rgba(211, 47, 47, 0.1);
         }
+        
+        /* NEW Copyright Footer Style */
+        #copyright-footer {
+            position: absolute;
+            bottom: 5px; 
+            right: 50px; 
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.4);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
+            border-radius: 4px;
+            z-index: 5; 
+            pointer-events: none; 
+        }
+        #copyright-footer a {
+            color: #fff;
+            text-decoration: underline;
+            pointer-events: auto;
+        }
     </style>
 
     <script type="application/ld+json">
@@ -170,15 +180,15 @@
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
-            <button id="settings-icon-btn" aria-label="Map Settings"><span class="material-symbols-outlined">tune</span></button>
-            <button id="profile-button" aria-label="User Profile"><span class="material-symbols-outlined">account_circle</span></button>
-            <button id="app-menu-button" aria-label="TheBoiisMC Apps"><span class="material-symbols-outlined">apps</span></button>
+            <button id="settings-icon-btn" aria-label="Map Settings"><i class="fa-solid fa-gear"></i></button>
+            <button id="profile-button" aria-label="User Profile"><i class="fa-solid fa-user"></i></button>
+            <button id="app-menu-button" aria-label="TheBoiisMC Apps"><i class="fa-solid fa-grip"></i></button>
             
             <div id="services-dropdown">
-                <a href="https://search.theboiismc.com" class="service-item"><span class="material-symbols-outlined">search</span><span class="service-name">Search</span></a>
-                <a href="https://maps.theboiismc.com" class="service-item"><span class="material-symbols-outlined">map</span><span class="service-name">Maps</span></a>
-                <a href="https://drive.theboiismc.com" class="service-item"><span class="material-symbols-outlined">cloud</span><span class="service-name">Drive</span></a>
-                <a href="https://myaccount.theboiismc.com" class="service-item"><span class="material-symbols-outlined">account_circle</span><span class="service-name">Account</span></a>
+                <a href="https://search.theboiismc.com" class="service-item"><i class="fa-solid fa-magnifying-glass"></i><span class="service-name">Search</span></a>
+                <a href="https://maps.theboiismc.com" class="service-item"><i class="fa-solid fa-map"></i><span class="service-name">Maps</span></a>
+                <a href="https://drive.theboiismc.com" class="service-item"><i class="fa-solid fa-cloud"></i><span class="service-name">Drive</span></a>
+                <a href="https://myaccount.theboiismc.com" class="service-item"><i class="fa-solid fa-user"></i><span class="service-name">Account</span></a>
             </div>
 
             <div id="profile-dropdown">
@@ -226,9 +236,9 @@
     
     <div id="top-search-wrapper">
         <div id="main-search-container">
-            <span id="search-icon-inside" class="material-symbols-outlined">search</span>
+            <i id="search-icon-inside" class="fa-solid fa-magnifying-glass"></i>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
-            <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
+            <i id="main-directions-icon" class="fa-solid fa-route"></i>
             <div id="main-suggestions" class="suggestions-dropdown">
                 <div id="initial-suggestions-view">
                     <div id="recent-searches-container"></div>
@@ -251,21 +261,21 @@
                     <h3 class="find-nearby-header" style="margin-top: 24px;">Find Nearby</h3>
                     <div class="category-pills">
                         <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant">
-                            <span class="material-symbols-outlined">restaurant</span> Restaurants
+                            <i class="fa-solid fa-utensils"></i> Restaurants
                         </button>
                         <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel">
-                            <span class="material-symbols-outlined">local_gas_station</span> Gas
+                            <i class="fa-solid fa-gas-pump"></i> Gas
                         </button>
                         <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe">
-                            <span class="material-symbols-outlined">coffee</span> Coffee
+                            <i class="fa-solid fa-mug-saucer"></i> Coffee
                         </button>
                         <button class="category-pill" data-query="parks" data-osm-tag="leisure=park">
-                            <span class="material-symbols-outlined">park</span> Parks
+                            <i class="fa-solid fa-tree"></i> Parks
                         </button>
                     </div>
 
                     <div class="action-buttons" style="margin-top: 24px;">
-                        <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><i class="fa-solid fa-route"></i></div><div class="btn-label">Directions</div></div>
                     </div>
                 </div>
                 <div class="legal-footer">
@@ -279,7 +289,7 @@
             <div id="saved-places-panel" hidden>
                 <div class="info-content-padding">
                     <button id="back-from-saved-btn" class="back-button">
-                        <span class="material-symbols-outlined">arrow_back</span> Back
+                        <i class="fa-solid fa-arrow-left"></i> Back
                     </button>
                     <h3 class="results-header">Saved Places</h3>
                     <div id="saved-places-list">
@@ -290,7 +300,7 @@
             <div id="search-results-panel" hidden>
                 <div class="info-content-padding">
                     <button id="back-from-results-btn" class="back-button">
-                        <span class="material-symbols-outlined">arrow_back</span> Back
+                        <i class="fa-solid fa-arrow-left"></i> Back
                     </button>
                     <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
                     <div class="sort-controls">
@@ -304,16 +314,16 @@
             <div id="info-panel-redesign" hidden>
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the location" loading="lazy"/>
-                    <button id="close-info-btn"><span class="material-symbols-outlined">arrow_back</span></button>
+                    <button id="close-info-btn"><i class="fa-solid fa-arrow-left"></i></button>
                 </div>
                 <div class="info-content-padding">
                     <h3 id="info-name"></h3>
                     <div class="address" id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-outlined">public</span></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark_border</span></div><div class="btn-label">Save</div></div>
+                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><i class="fa-solid fa-route"></i></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><i class="fa-solid fa-globe"></i></div><div class="btn-label">Website</div></div>
+                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><i class="fa-solid fa-bookmark"></i></div><div class="btn-label">Save</div></div>
                     </div>
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
@@ -323,23 +333,23 @@
                 <div class="info-content-padding">
                     <div class="travel-modes">
                         <button class="travel-mode-btn active" data-mode="driving" aria-label="Driving">
-                            <span class="material-symbols-outlined">directions_car</span>
+                            <i class="fa-solid fa-car"></i>
                         </button>
                         <button class="travel-mode-btn" data-mode="walking" aria-label="Walking">
-                            <span class="material-symbols-outlined">directions_walk</span>
+                            <i class="fa-solid fa-person-walking"></i>
                         </button>
                         <button class="travel-mode-btn" data-mode="cycling" aria-label="Cycling">
-                            <span class="material-symbols-outlined">directions_bike</span>
+                            <i class="fa-solid fa-person-biking"></i>
                         </button>
                     </div>
                     <div class="dir-input-group">
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><i class="fa-solid fa-circle"></i><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
                         <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
+                        <div class="dir-input-wrapper"><i class="fa-solid fa-location-dot"></i><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
                         <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                        <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
+                        <button id="swap-btn"><i class="fa-solid fa-arrows-up-down"></i></button>
                     </div>
-                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
+                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><i class="fa-solid fa-location-crosshairs"></i></div>Your location</div>
                     <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
                 </div>
             </div>
@@ -351,9 +361,9 @@
                         <div id="route-summary-distance"></div>
                     </div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
-                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
-                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined">list</span></div><div class="btn-label">Steps</div></div>
+                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><i class="fa-solid fa-compass"></i></div><div class="btn-label">Start Trip</div></div>
+                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><i class="fa-solid fa-share-nodes"></i></div><div class="btn-label">Share</div></div>
+                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><i class="fa-solid fa-list"></i></div><div class="btn-label">Steps</div></div>
                     </div>
                     <button id="back-to-directions-btn">Back</button>
                 </div>
@@ -438,12 +448,16 @@
 
     <div id="context-menu">
         <div id="context-menu-coords"></div>
-        <div class="context-menu-item" id="ctx-directions-from"><span class="material-symbols-outlined">near_me</span><span>Directions from here</span></div>
-        <div class="context-menu-item" id="ctx-directions-to"><span class="material-symbols-outlined">place</span><span>Directions to here</span></div>
-        <div class="context-menu-item" id="ctx-whats-here"><span class="material-symbols-outlined">help_outline</span><span>What's here?</span></div>
+        <div class="context-menu-item" id="ctx-directions-from"><i class="fa-solid fa-location-arrow"></i><span>Directions from here</span></div>
+        <div class="context-menu-item" id="ctx-directions-to"><i class="fa-solid fa-location-dot"></i><span>Directions to here</span></div>
+        <div class="context-menu-item" id="ctx-whats-here"><i class="fa-solid fa-circle-question"></i><span>What's here?</span></div>
     </div>
     
     <div id="map"></div>
+    
+    <div id="copyright-footer">
+        <p>Copyright &copy; <span id="current-year"></span> TheBoiisMC. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</p>
+    </div>
 
     <div id="rerouting-overlay">Rerouting...</div>
     
@@ -455,5 +469,9 @@
     <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
     <script src='libs/js/turf-6.5.0.min.js' defer></script>
     <script src="app.js" defer></script>
+    <script>
+        // Set the current year for the copyright footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    </script>
 </body>
 </html>
