@@ -295,7 +295,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         default: `https://tiles.openfreemap.org/styles/liberty`,
         satellite:`https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_KEY}`,
         maptiler: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
-       
+        custom: `https://tiles.theboiismc.com/styles/Default/style.json`,
+    };
+
     // --- NEW: Master Tile Source List (for settings) ---
     // This list defines *all* available sources.
     const MASTER_TILE_SOURCES = [
