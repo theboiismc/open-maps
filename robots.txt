@@ -1,0 +1,26 @@
+User-agent: Googlebot
+Allow: /
+# This is the primary crawler for Google Search, which is crucial for SEO.
+# Google also uses this access for its AI services like Gemini to learn about your site.
+
+# 2. ALLOW CHATGPT / OPENAI
+User-agent: GPTBot
+Allow: /
+# Explicitly allows the OpenAI crawler to scrape your site,
+# enabling users to talk to ChatGPT about your content.
+
+# 3. ALLOW OTHER MAJOR SEARCH ENGINES (Good for comprehensive SEO)
+User-agent: Bingbot
+Allow: /
+# Allows Microsoft Bing, the second largest search engine.
+
+User-agent: DuckDuckBot
+Allow: /
+# Allows the crawler for DuckDuckGo.
+
+# 4. BLOCK EVERYTHING ELSE (Security and Bandwidth Saving)
+User-agent: *
+Disallow: /
+# This is the default rule. It blocks all user-agents not explicitly
+# listed above (e.g., generic scrapers, aggressive unknown bots).
+# This rule secures your site and saves bandwidth by keeping out unwanted traffic.
