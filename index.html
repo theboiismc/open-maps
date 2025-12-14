@@ -1,24 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 
     <title>TheBoiisMC Maps - Private Navigation & Directions</title>
 
-    <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
+    <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution."
+/>
     
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
     <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
 
-    <meta name="theme-color" content="#00796b" />
+    <meta name="theme-color" content="#030712" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/assets/icon512_rounded.png">
 
     <meta property="og:title" content="TheBoiisMC Maps - Private Navigation & Directions" />
-    <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps." />
+    <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps."
+/>
     <meta property="og:image" content="https://maps.theboiismc.com/assets/icon512_rounded.png" />
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -48,7 +50,7 @@
             color: #999;
         }
         .lane-icon.active {
-            color: #3b82f6; /* Blue for active lane */
+            color: var(--accent-color); /* Use CSS variable for consistency */
         }
 
         #rerouting-overlay {
@@ -74,7 +76,7 @@
             visibility: visible;
         }
 
-        /* Profile Avatar Styles */
+        /* Profile Avatar Styles - (Kept for compatibility, but styles.txt defines the look) */
         .profile-avatar {
             width: 32px;
             height: 32px;
@@ -85,7 +87,7 @@
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background-color: var(--primary-color, #00796b);
+            background-color: var(--primary-color, #3B82F6);
             color: white;
             display: flex;
             align-items: center;
@@ -94,32 +96,33 @@
             font-size: 14px;
         }
 
-        /* Saved Places List Styles */
+        /* Saved Places List Styles - (Kept for compatibility, but styles.txt defines the look) */
         .saved-place-item {
             display: flex;
             align-items: center;
             padding: 12px 0;
-            border-bottom: 1px solid var(--border-color, #e0e0e0);
+            border-bottom: 1px solid var(--border-color);
             cursor: pointer;
             transition: background 0.2s;
         }
         .saved-place-item:hover {
-            background-color: rgba(0,0,0,0.03);
+            background-color: var(--hover-bg); /* Use hover variable */
         }
-        .saved-place-item:last-child { border-bottom: none; }
+        .saved-place-item:last-child { border-bottom: none;
+        }
         .saved-place-item .icon {
-            color: var(--text-secondary, #666);
+            color: var(--text-secondary);
             margin-right: 12px;
             display: flex;
             align-items: center;
         }
         .saved-place-item .name {
             font-weight: 500;
-            color: var(--text-primary, #333);
+            color: var(--text-primary);
         }
         .saved-place-item .addr {
             font-size: 0.85rem;
-            color: var(--text-secondary, #666);
+            color: var(--text-secondary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -127,7 +130,7 @@
         .saved-place-item .delete-btn {
             background: none;
             border: none;
-            color: var(--text-secondary, #666);
+            color: var(--text-secondary);
             cursor: pointer;
             padding: 8px;
             border-radius: 50%;
@@ -135,7 +138,7 @@
             align-items: center;
         }
         .saved-place-item .delete-btn:hover { 
-            color: #d32f2f; 
+            color: #d32f2f;
             background-color: rgba(211, 47, 47, 0.1);
         }
         
@@ -178,7 +181,19 @@
 </head>
 <body>
     <div id="top-banner">
-        <span id="site-title">TheBoiisMC Maps</span>
+        <a href="/" aria-label="TheBoiisMC Homepage" style="display: flex; align-items: center; gap: 8px; text-decoration: none;" class="group">
+            <div style="width: 32px; height: 32px; border-radius: 8px; 
+                        background: linear-gradient(to bottom right, #6366F1, #3b82f6); /* Indigo to Blue Gradient */
+                        display: flex; align-items: center; justify-content: center; color: white; 
+                        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); transition: box-shadow 0.3s;"
+                 onmouseover="this.style.boxShadow='0 4px 15px rgba(99, 102, 241, 0.5)'"
+                 onmouseout="this.style.boxShadow='0 4px 10px rgba(99, 102, 241, 0.3)'">
+                <i class="fa-solid fa-cloud" style="font-size: 20px;"></i>
+            </div>
+            <span style="font-size: 18px; font-weight: bold; letter-spacing: -0.5px; color: var(--text-primary);">
+              TheBoiis<span style="color: #6366F1;">MC</span>
+            </span>
+        </a>
         <div id="profile-area">
             <button id="settings-icon-btn" aria-label="Map Settings"><i class="fa-solid fa-gear"></i></button>
             <button id="profile-button" aria-label="User Profile"><i class="fa-solid fa-user"></i></button>
@@ -194,7 +209,8 @@
             <div id="profile-dropdown">
                 <div id="logged-in-view" hidden>
                     <div class="profile-section profile-section-header">
-                        <img id="dropdown-avatar" class="profile-dropdown-avatar" src="" alt="User Avatar" hidden />
+                        <img id="dropdown-avatar" 
+                        class="profile-dropdown-avatar" src="" alt="User Avatar" hidden />
                         <div class="username">User</div>
                         <div class="email">user@example.com</div>
                     </div>
@@ -208,7 +224,8 @@
                     </div>
                 </div>
                 <div id="logged-out-view" hidden>
-                    <div class="profile-section" style="text-align:center; font-weight: 500; color: var(--text-secondary);">Sign in to save and view places</div>
+                    <div class="profile-section" style="text-align:center; font-weight: 500;
+                    color: var(--text-secondary);">Sign in to save and view places</div>
                     <hr/>
                     <div class="auth-buttons">
                         <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
@@ -229,7 +246,8 @@
             <div class="stat-item"><span id="stat-speed">--</span><span class="stat-label">mph</span></div>
             <div class="stat-item"><span id="stat-miles-remaining">--.-</span><span class="stat-label">mi</span></div>
             <div class="stat-item"><span id="stat-time-remaining">-- min</span><span class="stat-label">Time</span></div>
-            <div class="stat-item"><span id="stat-eta">--:--</span><span class="stat-label">ETA</span></div>
+            <div class="stat-item"><span id="stat-eta">--:--</span><span 
+            class="stat-label">ETA</span></div>
         </div>
         <button id="end-navigation-btn">End Trip</button>
     </div>
@@ -247,6 +265,7 @@
             </div>
         </div>
     </div>
+ 
     
     <div id="side-panel">
         <div id="panel-grabber"></div>
@@ -255,8 +274,10 @@
             
             <div id="welcome-panel" hidden>
                 <div class="info-content-padding">
-                    <h3>Welcome to TheBoiisMC Maps</h3>
-                    <p style="margin-top: 8px; color: var(--text-secondary);">Your private, modern mapping experience. Search for a place or plan a route to get started.</p>
+                    <h3>Welcome 
+                    to TheBoiisMC Maps</h3>
+                    <p style="margin-top: 8px;
+                    color: var(--text-secondary);">Your private, modern mapping experience. Search for a place or plan a route to get started.</p>
 
                     <h3 class="find-nearby-header" style="margin-top: 24px;">Find Nearby</h3>
                     <div class="category-pills">
@@ -278,10 +299,11 @@
                         <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><i class="fa-solid fa-route"></i></div><div class="btn-label">Directions</div></div>
                     </div>
                 </div>
+ 
                 <div class="legal-footer">
-                    <a href="https://www.theboiismc.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+                    <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Privacy</a>
                     <span>&middot;</span>
-                    <a href="https://www.theboiismc.com/terms" target="_blank" rel="noopener noreferrer">Terms</a>
+                    <a href="/terms.html" target="_blank" rel="noopener noreferrer">Terms</a>
                     <p>Copyright &copy; 2025 TheBoiisMC</p>
                 </div>
             </div>
@@ -293,7 +315,8 @@
                     </button>
                     <h3 class="results-header">Saved Places</h3>
                     <div id="saved-places-list">
-                        </div>
+                      
+                    </div>
                 </div>
             </div>
             
@@ -329,6 +352,7 @@
                 </div>
             </div>
             
+ 
             <div id="directions-panel-redesign" hidden>
                 <div class="info-content-padding">
                     <div class="travel-modes">
@@ -354,6 +378,7 @@
                 </div>
             </div>
             
+           
             <div id="route-preview-panel" hidden>
                 <div class="info-content-padding">
                     <div class="route-summary">
@@ -368,6 +393,7 @@
                     <button id="back-to-directions-btn">Back</button>
                 </div>
             </div>
+        
             
             <div id="route-section" hidden>
                 <div class="info-content-padding">
@@ -389,11 +415,13 @@
             <div class="modal-body">
                 <div class="setting-group"><span class="setting-label">Globe View</span><div class="toggle-switch"><input type="checkbox" id="globe-toggle" name="map-globe"><label for="globe-toggle"></label></div></div>
                 <hr>
-                <div class="setting-group"><span class="setting-label">Units</span><div class="radio-group"><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
+                <div class="setting-group"><span 
+                class="setting-label">Units</span><div class="radio-group"><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
                 <hr>
                 <div class="setting-group"><span class="setting-label">Navigation Voice</span><div class="radio-group"><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
                 <hr>
-                <div class="setting-group"><span class="setting-label">Theme</span><div class="radio-group"><input type="radio" id="theme-auto" name="map-theme" value="auto"><label for="theme-auto">Auto</label><input type="radio" id="theme-light" name="map-theme" value="light"><label for="theme-light">Light</label><input type="radio" id="theme-dark" name="map-theme" value="dark"><label for="theme-dark">Dark</label></div></div>
+                <div class="setting-group"><span class="setting-label">Theme</span><div class="radio-group"><input type="radio" id="theme-auto" name="map-theme" value="auto"><label for="theme-auto">Auto</label><input 
+                type="radio" id="theme-light" name="map-theme" value="light"><label for="theme-light">Light</label><input type="radio" id="theme-dark" name="map-theme" value="dark"><label for="theme-dark">Dark</label></div></div>
                 
                 <hr>
                 <button id="advanced-settings-btn" class="btn-link">Advanced Settings...</button>
@@ -402,46 +430,56 @@
     </div>
 
     <div id="advanced-settings-modal" class="modal-container">
-        <div id="modal-overlay-advanced" class="modal-overlay"></div>
+        <div id="modal-overlay-advanced" 
+        class="modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">
                 <h4>Advanced Settings</h4>
                 <button id="close-advanced-settings-btn" class="modal-close-btn" aria-label="Close Advanced Settings">&times;</button>
             </div>
             <div class="modal-body">
+               
                 <div class="setting-group-column">
                     <span class="setting-label">Tile Service Priority</span>
-                    <span class="setting-description">Drag to re-order. The app will try to load maps from the top of the list first.</span>
+                    <span class="setting-description">Drag to re-order.
+                    The app will try to load maps from the top of the list first.</span>
                     <ul id="tile-priority-list" class="sortable-list">
                         </ul>
                 </div>
                 <hr>
+         
                 <div class="setting-group">
                     <span class="setting-label">Language</span>
                     <select id="language-select" class="styled-select">
                         <option value="en">English</option>
+                        
                         <option value="es">Español (coming soon)</option>
                         <option value="fr">Français (coming soon)</option>
                     </select>
                 </div>
                 <hr>
                 <div class="setting-group-column">
+ 
                     <span class="setting-label">Privacy</span>
                     <div class="setting-group">
                         <span class="setting-label-inner">Clear Recent Searches on Exit</span>
                         <div class="toggle-switch">
+     
                             <input type="checkbox" id="privacy-clear-recents-toggle" name="privacy-clear-recents">
                             <label for="privacy-clear-recents-toggle"></label>
                         </div>
                     </div>
+ 
                     <div class="setting-group">
                         <span class="setting-label-inner">Disable Search Suggestions</span>
                         <div class="toggle-switch">
+                            
                             <input type="checkbox" id="privacy-disable-suggestions-toggle" name="privacy-disable-suggestions">
                             <label for="privacy-disable-suggestions-toggle"></label>
                         </div>
                     </div>
                 </div>
+        
             </div>
         </div>
     </div>
@@ -456,6 +494,7 @@
     <div id="map"></div>
     
     <div id="copyright-footer">
+       
         <p>Copyright &copy; <span id="current-year"></span> TheBoiisMC. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</p>
     </div>
 
@@ -471,7 +510,8 @@
     <script src="app.js" defer></script>
     <script>
         // Set the current year for the copyright footer
-        document.getElementById('current-year').textContent = new Date().getFullYear();
+        document.getElementById('current-year').textContent 
+        = new Date().getFullYear();
     </script>
 </body>
 </html>
