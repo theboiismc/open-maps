@@ -17,7 +17,6 @@ const authConfig = {
     response_type: 'code',
     automaticSilentRenew: true,
 };
-
 const userManager = new oidc.UserManager(authConfig);
 
 const authService = {
@@ -39,7 +38,6 @@ let currentToast = null; // Variable to track the active toast
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
     if (!container) return;
-
     // If a toast is already showing, hide it immediately
     if (currentToast) {
         currentToast.classList.remove('show');
@@ -55,13 +53,13 @@ function showToast(message, type = 'info', duration = 3000) {
     toast.textContent = message;
     container.appendChild(toast);
     currentToast = toast;
-
     // Trigger fade-in
     setTimeout(() => {
         if (currentToast === toast) { // Ensure it hasn't been replaced
             toast.classList.add('show');
         }
-    }, 10); // Short delay to allow CSS transition
+    }, 10);
+    // Short delay to allow CSS transition
 
     // Set timer to hide
     const hideTimer = setTimeout(() => {
@@ -69,7 +67,6 @@ function showToast(message, type = 'info', duration = 3000) {
             toast.classList.add('hide');
         }
     }, duration);
-
     // Add transitionend listener to remove from DOM
     toast.addEventListener('transitionend', () => {
         if (toast.classList.contains('hide')) {
@@ -79,12 +76,28 @@ function showToast(message, type = 'info', duration = 3000) {
             }
         }
     }, { once: true });
-
     // Optional: allow clicking to dismiss
     toast.addEventListener('click', () => {
         clearTimeout(hideTimer);
         toast.classList.add('hide');
     }, { once: true });
+}
+
+// --- NEW UTILITY FUNCTION: Throttling (PERFORMANCE FIX) ---
+/**
+ * Limits a function's execution to once every 'limit' milliseconds.
+ */
+function throttle(func, limit) {
+    let inThrottle;
+    return function() {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    }
 }
 
 // --- NEW: APPLICATION SETTINGS SERVICE ---
@@ -98,7 +111,6 @@ const DEFAULT_SETTINGS = {
         disableSuggestions: false,
     }
 };
-
 const appSettings = {
     current: {},
 
@@ -153,14 +165,12 @@ const appSettings = {
 
         // Filter out any sources that no longer exist
         let validSaved = savedPriority.filter(name => masterSourceNames.includes(name));
-
         // Add any new sources that are not in the saved list
         masterSourceNames.forEach(name => {
             if (!validSaved.includes(name)) {
                 validSaved.push(name);
             }
         });
-
         this.current.tilePriority = validSaved;
     },
 
@@ -234,7 +244,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeSettingsBtn = document.getElementById('close-settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
     const advancedSettingsBtn = document.getElementById('advanced-settings-btn');
-
     // NEW: Advanced Settings Modal Selectors
     const advancedSettingsModal = document.getElementById('advanced-settings-modal');
     const modalOverlayAdvanced = document.getElementById('modal-overlay-advanced');
@@ -243,12 +252,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const languageSelect = document.getElementById('language-select');
     const privacyClearRecentsToggle = document.getElementById('privacy-clear-recents-toggle');
     const privacyDisableSuggestionsToggle = document.getElementById('privacy-disable-suggestions-toggle');
-
-
+    
     // --- RECENT SEARCH MANAGEMENT ---
     const RECENT_SEARCHES_KEY = 'theboiismc-maps-recent-searches';
     const MAX_RECENT_SEARCHES = 5;
-
     function getRecentSearches() {
         return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY)) || [];
     }
@@ -274,6 +281,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userLocationMarker = null;
     let searchResultMarkers = [];
     let isTrafficEnabled = false; // NEW: State for traffic layer
+    let isGlobeViewEnabled = false; // NEW: State for globe view (for consistency)
+
 
     // --- HELPER FUNCTIONS ---
     function formatDuration(totalSeconds) {
@@ -289,7 +298,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const MAPTILER_KEY = 'F3cdRiC1r36tcrNrvrcV';
     const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
     const geolocationOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-    
     // --- UPDATED Map Style Definitions ---
     const STYLES = {
         default: `https://tiles.openfreemap.org/styles/liberty`,
@@ -297,7 +305,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         maptiler: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
         custom: `https://tiles.theboiismc.com/styles/Default/style.json`,
     };
-
     // --- NEW: Master Tile Source List (for settings) ---
     // This list defines *all* available sources.
     const MASTER_TILE_SOURCES = [
@@ -305,7 +312,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         { name: 'MapTiler Streets', style: STYLES.maptiler },
         { name: 'TheBoiisMC Custom', style: STYLES.custom }
     ];
-
     // --- NEW: Prioritized Tile Source List (from settings) ---
     // This list is what the app will actually use, ordered by user preference.
     let prioritizedTileSources = [];
@@ -331,13 +337,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isLoggedIn = !!currentUser;
         loggedInView.hidden = !isLoggedIn;
         loggedOutView.hidden = isLoggedIn;
-
         if (isLoggedIn) {
             const userFirstName = currentUser.profile.name.split(' ')[0];
             loggedInView.querySelector('.username').textContent = currentUser.profile.name || 'User';
             loggedInView.querySelector('.email').textContent = currentUser.profile.email || '';
             mainSearchInput.placeholder = `Where to, ${userFirstName}?`;
-
             if (currentUser.profile.picture) {
                 profileButton.innerHTML = `<img class="profile-avatar" src="${currentUser.profile.picture}" alt="User Profile"/>`;
                 if (dropdownAvatar) { dropdownAvatar.src = currentUser.profile.picture; dropdownAvatar.hidden = false; }
@@ -350,7 +354,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             mainSearchInput.placeholder = 'Search TheBoiisMC Maps';
         }
     };
-
     if (window.location.pathname.endsWith("callback.html")) {
         try {
             await authService.handleCallback();
@@ -382,13 +385,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         profileDropdown.style.display = (profileDropdown.style.display === 'block') ? 'none' : 'block';
         servicesDropdown.classList.remove('open');
     });
-
     appMenuButton.addEventListener('click', (e) => {
         e.stopPropagation();
         servicesDropdown.classList.toggle('open');
         profileDropdown.style.display = 'none';
     });
-
     document.addEventListener('click', (e) => {
         if (!profileArea.contains(e.target)) profileDropdown.style.display = 'none';
         if (!appMenuButton.contains(e.target) && !servicesDropdown.contains(e.target)) servicesDropdown.classList.remove('open');
@@ -400,7 +401,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             layersControl.classList.remove('open');
         }
     });
-
     loginBtn.addEventListener('click', (e) => { e.preventDefault(); authService.login(); });
     signupBtn.addEventListener('click', (e) => { e.preventDefault(); window.location.href = "https://accounts.theboiismc.com/if/flow/default-user-settings-flow/"; });
     logoutBtn.addEventListener('click', (e) => { e.preventDefault(); authService.logout(); });
@@ -422,7 +422,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         minZoom: 1,
         projection: 'mercator'
     });
-
     /**
      * --- MAP STYLE FAILOVER LOGIC ---
      * Attempts to load map styles from the *prioritized* list,
@@ -449,7 +448,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast(`${source.name} failed. Trying fallback...`, 'error');
             loadMapStyle(sourceIndex + 1);
         };
-
         const onLoad = () => {
             clearTimeout(loadTimeout);
             map.off('error', onError);
@@ -459,14 +457,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             console.log(`Successfully loaded style: ${source.name}`);
         };
-
         loadTimeout = setTimeout(() => {
             map.off('error', onError);
             map.off('load', onLoad);
             showToast(`${source.name} timed out. Trying fallback...`, 'error');
             loadMapStyle(sourceIndex + 1);
         }, LOAD_TIMEOUT_MS);
-
         map.once('error', onError);
         map.once('load', onLoad); // This is for the *style* load, not the full app load
         
@@ -480,8 +476,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- LOAD INITIAL MAP STYLE ---
     // This now loads based on user's priority
     loadMapStyle(0);
-
-
     map.addControl(new maplibregl.NavigationControl(), "bottom-right");
     const geolocateControl = new maplibregl.GeolocateControl({ positionOptions: geolocationOptions, trackUserLocation: true, showUserHeading: true });
     map.addControl(geolocateControl, "bottom-right");
@@ -507,7 +501,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="material-symbols-outlined">layers</span>
                 <span class="maplibregl-ctrl-layers-label">Layers</span>
             `;
-            
             // Create the panel
             this._panel = document.createElement('div');
             this._panel.className = 'maplibregl-ctrl-layers-panel';
@@ -519,7 +512,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const isOpen = this._container.classList.toggle('open');
                 this._button.setAttribute('aria-expanded', isOpen);
             });
-            
             this._container.appendChild(this._button);
             this._container.appendChild(this._panel);
 
@@ -558,7 +550,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
             `;
-
             const styleButtons = this._panel.querySelectorAll('.layers-panel-style-btn');
             styleButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -577,9 +568,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
             });
-
             // Set default active button based on current style
-            // Note: This is a simple check; a more robust check would inspect the style object
+            // Note: This is a simple check;
+            // a more robust check would inspect the style object
             if (currentStyleIndex > 0) { // Assuming non-zero index means not satellite
                  this._panel.querySelector('.layers-panel-style-btn[data-style="default"]').classList.add('active');
             }
@@ -633,7 +624,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         contextMenu.style.top = `${e.point.y}px`;
         contextMenu.style.display = 'block';
     });
-
     document.getElementById('ctx-directions-from').addEventListener('click', () => {
         openDirectionsPanel();
         fromInput.value = `${contextMenuLngLat.lat.toFixed(5)}, ${contextMenuLngLat.lng.toFixed(5)}`;
@@ -642,7 +632,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         toInput.dataset.coords = '';
         toInput.focus();
     });
-
     document.getElementById('ctx-directions-to').addEventListener('click', () => {
         openDirectionsPanel();
         toInput.value = `${contextMenuLngLat.lat.toFixed(5)}, ${contextMenuLngLat.lng.toFixed(5)}`;
@@ -651,11 +640,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         fromInput.dataset.coords = '';
         fromInput.focus();
     });
-
     document.getElementById('ctx-whats-here').addEventListener('click', () => {
         reverseGeocodeAndShowInfo(contextMenuLngLat);
     });
-
     map.on('click', async (e) => {
         const target = e.originalEvent.target;
         // Updated to include check for new layers control
@@ -917,8 +904,7 @@ function moveSearchBarToPanel() {
 
     attachSuggestionListener(fromInput, document.getElementById('panel-from-suggestions'), (place) => { fromInput.value = place.display_name; fromInput.dataset.coords = `${place.lon},${place.lat}`; });
     attachSuggestionListener(toInput, document.getElementById('panel-to-suggestions'), (place) => { toInput.value = place.display_name; toInput.dataset.coords = `${place.lon},${place.lat}`; });
-
-    // (Rest of Search & Geocoding section is unchanged)
+    
     async function reverseGeocodeAndShowInfo(lngLat) {
         const url = `https://api.maptiler.com/geocoding/${lngLat.lng},${lngLat.lat}.json?key=${MAPTILER_KEY}&limit=1`;
         try {
@@ -944,10 +930,8 @@ function moveSearchBarToPanel() {
         clickedLocationMarker = new maplibregl.Marker()
             .setLngLat([parseFloat(place.lon), parseFloat(place.lat)])
             .addTo(map);
-
         if (place.bbox) map.fitBounds(place.bbox, { padding: 100, essential: true });
         else map.flyTo({ center: [parseFloat(place.lon), parseFloat(place.lat)], zoom: 14 });
-
         mainSearchInput.value = place.display_name.split(',').slice(0, 2).join(',');
         infoNameEl.textContent = place.display_name.split(',')[0];
         infoAddressEl.textContent = place.display_name;
@@ -993,7 +977,6 @@ function moveSearchBarToPanel() {
             item.distance = turf.distance(userPoint, placePoint, { units: 'miles' });
             return item;
         }).sort((a, b) => a.distance - b.distance);
-        
         const bounds = new maplibregl.LngLatBounds();
         bounds.extend(userCoords);
 
@@ -1041,7 +1024,6 @@ function moveSearchBarToPanel() {
         }
         
         showToast(`Searching for ${query}...`, 'info');
-        
         const getLocation = new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, geolocationOptions));
 
         let userCoords;
@@ -1058,7 +1040,6 @@ function moveSearchBarToPanel() {
         const searchRadiusMeters = 10000;
         const overpassQuery = `[out:json];node(around:${searchRadiusMeters},${userCoords[1]},${userCoords[0]})["${tagKey}"="${tagValue}"];out;`;
         const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
-
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error("Overpass API request failed.");
@@ -1337,7 +1318,6 @@ function moveSearchBarToPanel() {
 
             const bounds = new maplibregl.LngLatBounds();
             route.geometry.coordinates.forEach(coord => bounds.extend(coord));
-
             if (fromInput.value.trim() === "Your Location") {
                 map.fitBounds(bounds, { padding: isMobile ? { top: 150, bottom: 250, left: 50, right: 50 } : 100 });
                 closePanel();
@@ -1362,12 +1342,10 @@ function moveSearchBarToPanel() {
         const start = currentUserPoint.geometry.coordinates;
         const end = navigationState.destinationCoords.geometry.coordinates;
         const url = `https://router.project-osrm.org/route/v1/driving/${start.join(',')};${end.join(',')}?overview=full&geometries=geojson&steps=true`;
-
         try {
             const res = await fetch(url);
             const data = await res.json();
             if (data.code !== "Ok" || !data.routes.length) throw new Error("Could not find a new route.");
-
             currentRouteData = data;
             addRouteToMap({ type: 'Feature', geometry: data.routes[0].geometry });
 
@@ -1452,7 +1430,9 @@ function moveSearchBarToPanel() {
         }
 
         map.easeTo({ pitch: 60, zoom: 17, duration: 1500 });
-        navigationWatcherId = navigator.geolocation.watchPosition(handlePositionUpdate, handlePositionError, geolocationOptions);
+        
+        // CRITICAL PERFORMANCE FIX: Use throttled position handler
+        navigationWatcherId = navigator.geolocation.watchPosition(throttledPositionUpdate, handlePositionError, geolocationOptions);
         endNavigationBtn.addEventListener('click', stopNavigation, { once: true });
     }
 
@@ -1480,10 +1460,12 @@ function moveSearchBarToPanel() {
         showToast(`Geolocation error: ${error.message}.`, "error");
         stopNavigation();
     }
+    
+    // CRITICAL PERFORMANCE FIX: Throttled function for heavy calculations
+    const throttledPositionUpdate = throttle(handlePositionUpdate, 1000); 
 
     function handlePositionUpdate(position) {
         if (!navigationState.isActive || navigationState.isRerouting) return;
-
         const { latitude, longitude, heading, speed } = position.coords;
         const userPoint = turf.point([longitude, latitude]);
         const routeLine = turf.lineString(currentRouteData.routes[0].geometry.coordinates);
@@ -1551,16 +1533,45 @@ function moveSearchBarToPanel() {
     }
 
     // --- SETTINGS & MAP STYLE ---
-    // REMOVED: styleRadioButtons and trafficToggle selectors and listeners
+    const globeToggle = document.getElementById('globe-toggle'); // NEW Selector
     const voiceRadioButtons = document.querySelectorAll('input[name="nav-voice"]');
     const themeRadioButtons = document.querySelectorAll('input[name="map-theme"]');
 
-    function openSettings() { settingsModal.classList.add('open'); }
+    function openSettings() { 
+        // Ensure settings UI reflects current state before opening
+        globeToggle.checked = isGlobeViewEnabled;
+        settingsModal.classList.add('open'); 
+    }
     function closeSettings() { settingsModal.classList.remove('open'); }
 
     settingsIconBtn.addEventListener('click', openSettings);
     closeSettingsBtn.addEventListener('click', closeSettings);
     modalOverlay.addEventListener('click', closeSettings);
+    
+    // --- GLOBE VIEW TOGGLE LISTENER (For consistency) ---
+    function setGlobeView(enabled) {
+        map.setProjection(enabled ? 'globe' : 'mercator');
+        isGlobeViewEnabled = enabled; // Sync state
+        if (enabled) {
+            map.setFog({
+                'range': [0.8, 1.2],
+                'color': '#dc9f9f',
+                'horizon-blend': 0.5,
+                'high-color': '#245b64',
+                'space-color': '#000000',
+                'star-intensity': 0.15
+            });
+        } else {
+            map.setFog({});
+        }
+    }
+
+    globeToggle.addEventListener('change', () => {
+        setGlobeView(globeToggle.checked);
+        showToast(`Globe View ${globeToggle.checked ? 'Enabled' : 'Disabled'}`, 'info');
+        closeAfterSetting();
+    });
+    // --- END GLOBE VIEW ---
 
     // --- NEW: Advanced Settings Modal Listeners ---
     function openAdvancedSettings() {
@@ -1581,15 +1592,11 @@ function moveSearchBarToPanel() {
 
     const closeAfterSetting = () => { if (isMobile) setTimeout(closeSettings, 200); };
 
-    // REMOVED: styleRadioButtons.forEach(...)
-    // REMOVED: trafficToggle.addEventListener(...)
-
     voiceRadioButtons.forEach(radio => radio.addEventListener('change', () => { speechService.setVoice(radio.value); speechService.speak("Voice has been changed.", true); closeAfterSetting(); }));
     
     // --- THEME MANAGEMENT ---
     // (This section remains unchanged)
     const systemThemeWatcher = window.matchMedia('(prefers-color-scheme: dark)');
-
     function applyTheme(theme) {
         if (theme === 'auto') {
             document.documentElement.setAttribute('data-theme', systemThemeWatcher.matches ? 'dark' : 'light');
@@ -1611,7 +1618,6 @@ function moveSearchBarToPanel() {
             document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
         }
     });
-
     themeRadioButtons.forEach(radio => radio.addEventListener('change', handleThemeSelection));
 
     function initializeTheme() {
@@ -1626,7 +1632,6 @@ function moveSearchBarToPanel() {
     const TRAFFIC_LAYER_ID = 'traffic-lines';
     const trafficSource = { type: 'vector', url: `https://api.maptiler.com/maps/traffic/tiles.json?key=${MAPTILER_KEY}` };
     const trafficLayer = { id: TRAFFIC_LAYER_ID, type: 'line', source: TRAFFIC_SOURCE_ID, 'source-layer': 'traffic', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 2, 'line-color': ['match', ['get', 'congestion'], 'low', '#30c83a', 'moderate', '#ff9a00', 'heavy', '#ff3d3d', 'severe', '#a00000', '#a0a0a0'] } };
-
     function addTrafficLayer() {
         if (!map.getSource(TRAFFIC_SOURCE_ID)) {
             map.addSource(TRAFFIC_SOURCE_ID, trafficSource);
@@ -1680,6 +1685,8 @@ function moveSearchBarToPanel() {
     function populateAdvancedSettings() {
         const settings = appSettings.load();
         languageSelect.value = settings.language;
+        
+        // VISUAL CONSISTENCY FIX: Ensure toggles reflect saved state
         privacyClearRecentsToggle.checked = settings.privacy.clearRecentsOnExit;
         privacyDisableSuggestionsToggle.checked = settings.privacy.disableSuggestions;
     }
@@ -1716,7 +1723,6 @@ function moveSearchBarToPanel() {
         showToast('Language setting saved.', 'info');
         // Future: Add logic to actually change language
     });
-
     privacyClearRecentsToggle.addEventListener('change', () => {
         const privacy = appSettings.get('privacy');
         privacy.clearRecentsOnExit = privacyClearRecentsToggle.checked;
@@ -1724,26 +1730,23 @@ function moveSearchBarToPanel() {
         // Re-apply settings immediately
         appSettings.apply();
     });
-
     privacyDisableSuggestionsToggle.addEventListener('change', () => {
         const privacy = appSettings.get('privacy');
         privacy.disableSuggestions = privacyDisableSuggestionsToggle.checked;
         appSettings.set('privacy', privacy);
     });
-
+    
     // Drag-and-drop logic for tile priority list
     let draggedItem = null;
     tilePriorityList.addEventListener('dragstart', (e) => {
         draggedItem = e.target;
         setTimeout(() => e.target.classList.add('dragging'), 0);
     });
-
     tilePriorityList.addEventListener('dragend', () => {
         draggedItem.classList.remove('dragging');
         draggedItem = null;
         saveTilePriority(); // Save the new order
     });
-
     tilePriorityList.addEventListener('dragover', (e) => {
         e.preventDefault();
         const afterElement = getDragAfterElement(tilePriorityList, e.clientY);
@@ -1754,7 +1757,6 @@ function moveSearchBarToPanel() {
             tilePriorityList.insertBefore(dragging, afterElement);
         }
     });
-
     function getDragAfterElement(container, y) {
         const draggableElements = [...container.querySelectorAll('.sortable-item:not(.dragging)')];
         return draggableElements.reduce((closest, child) => {
@@ -1824,7 +1826,6 @@ function moveSearchBarToPanel() {
         const radio = document.querySelector(`input[name="nav-voice"][value="${savedVoice}"]`);
         if (radio) radio.checked = true;
     });
-
     initializeTheme();
     getInitialRouteFromUrl();
 });
