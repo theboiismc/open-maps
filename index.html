@@ -4,10 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 
-    <title>TheBoiisMC Maps - Private Navigation & Directions</title>
+    <title>TheBoiisMC Maps - Private, Zero-Tracking Navigation & Directions</title>
 
-    <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution."
-/>
+    <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution with zero tracking." />
     
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
@@ -19,8 +18,7 @@
     <link rel="apple-touch-icon" href="/assets/icon512_rounded.png">
 
     <meta property="og:title" content="TheBoiisMC Maps - Private Navigation & Directions" />
-    <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps."
-/>
+    <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps." />
     <meta property="og:image" content="https://maps.theboiismc.com/assets/icon512_rounded.png" />
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -50,7 +48,8 @@
             color: #999;
         }
         .lane-icon.active {
-            color: var(--accent-color); /* Use CSS variable for consistency */
+            color: var(--accent-color);
+            /* Use CSS variable for consistency */
         }
 
         #rerouting-overlay {
@@ -106,7 +105,8 @@
             transition: background 0.2s;
         }
         .saved-place-item:hover {
-            background-color: var(--hover-bg); /* Use hover variable */
+            background-color: var(--hover-bg);
+            /* Use hover variable */
         }
         .saved-place-item:last-child { border-bottom: none;
         }
@@ -128,6 +128,9 @@
             text-overflow: ellipsis;
         }
         .saved-place-item .delete-btn {
+            /* Ensure delete button is large enough for touch target (min 44x44) */
+            min-width: 44px; 
+            min-height: 44px;
             background: none;
             border: none;
             color: var(--text-secondary);
@@ -136,6 +139,7 @@
             border-radius: 50%;
             display: flex;
             align-items: center;
+            justify-content: center; /* Center the icon */
         }
         .saved-place-item .delete-btn:hover { 
             color: #d32f2f;
@@ -145,20 +149,36 @@
         /* NEW Copyright Footer Style */
         #copyright-footer {
             position: absolute;
-            bottom: 5px; 
-            right: 50px; 
+            bottom: 5px;
+            right: 50px;
             padding: 5px 10px;
             background: rgba(0, 0, 0, 0.4);
             color: rgba(255, 255, 255, 0.7);
             font-size: 10px;
             border-radius: 4px;
-            z-index: 5; 
+            z-index: 5;
+            /* Allow map interaction beneath the general text */
             pointer-events: none; 
         }
         #copyright-footer a {
             color: #fff;
             text-decoration: underline;
+            /* Re-enable pointer events for the link itself */
             pointer-events: auto;
+        }
+        
+        /* Accessibility: Visual focus indicator */
+        .btn-wrapper:focus-within, 
+        .travel-mode-btn:focus-visible, 
+        #end-navigation-btn:focus-visible {
+            outline: 2px solid var(--accent-color, #6366F1);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        /* Added larger hit area for category pills for touch accessibility */
+        .category-pill {
+            padding: 10px 14px !important; 
         }
     </style>
 
@@ -180,11 +200,18 @@
     </script>
 </head>
 <body>
+    
+    <a href="#map" class="sr-only focus:not-sr-only fixed top-0 left-1/2 -translate-x-1/2 z-[9999] bg-blue-500 text-white p-3 rounded-b-lg font-semibold transition-all">
+      Skip to Map
+    </a>
+    
     <div id="top-banner">
-        <a href="/" aria-label="TheBoiisMC Homepage" style="display: flex; align-items: center; gap: 8px; text-decoration: none;" class="group">
+        <a href="/" aria-label="TheBoiisMC Homepage" style="display: flex; align-items: center; gap: 8px; text-decoration: none;"
+        class="group">
             <div style="width: 32px; height: 32px; border-radius: 8px; 
                         background: linear-gradient(to bottom right, #6366F1, #3b82f6); /* Indigo to Blue Gradient */
                         display: flex; align-items: center; justify-content: center; color: white; 
+              
                         box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); transition: box-shadow 0.3s;"
                  onmouseover="this.style.boxShadow='0 4px 15px rgba(99, 102, 241, 0.5)'"
                  onmouseout="this.style.boxShadow='0 4px 10px rgba(99, 102, 241, 0.3)'">
@@ -197,8 +224,9 @@
         <div id="profile-area">
             <button id="settings-icon-btn" aria-label="Map Settings"><i class="fa-solid fa-gear"></i></button>
             <button id="profile-button" aria-label="User Profile"><i class="fa-solid fa-user"></i></button>
-            <button id="app-menu-button" aria-label="TheBoiisMC Apps"><i class="fa-solid fa-grip"></i></button>
+            <button id="app-menu-button" aria-label="TheBoiisMC Apps Menu"><i class="fa-solid fa-grip"></i></button>
             
+           
             <div id="services-dropdown">
                 <a href="https://search.theboiismc.com" class="service-item"><i class="fa-solid fa-magnifying-glass"></i><span class="service-name">Search</span></a>
                 <a href="https://maps.theboiismc.com" class="service-item"><i class="fa-solid fa-map"></i><span class="service-name">Maps</span></a>
@@ -206,40 +234,47 @@
                 <a href="https://myaccount.theboiismc.com" class="service-item"><i class="fa-solid fa-user"></i><span class="service-name">Account</span></a>
             </div>
 
+  
             <div id="profile-dropdown">
                 <div id="logged-in-view" hidden>
                     <div class="profile-section profile-section-header">
                         <img id="dropdown-avatar" 
+                       
                         class="profile-dropdown-avatar" src="" alt="User Avatar" hidden />
                         <div class="username">User</div>
                         <div class="email">user@example.com</div>
                     </div>
                     <hr/>
+    
                     <div class="profile-actions">
                         <a href="#" id="saved-places-btn">Saved Places</a>
                     </div>
                     <hr/>
+                
                     <div class="profile-actions">
                         <a href="#" id="logout-btn">Log Out</a>
                     </div>
                 </div>
                 <div id="logged-out-view" hidden>
+              
                     <div class="profile-section" style="text-align:center; font-weight: 500;
                     color: var(--text-secondary);">Sign in to save and view places</div>
                     <hr/>
                     <div class="auth-buttons">
-                        <a href="#" id="login-btn" class="btn btn-primary">Log In</a>
-                        <a href="#" id="signup-btn" class="btn btn-secondary">Sign Up</a>
+                        <a href="#" id="login-btn" class="btn btn-primary" role="button">Log In</a>
+                       
+                        <a href="#" id="signup-btn" class="btn btn-secondary" role="button">Sign Up</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div id="navigation-status">
+    <div id="navigation-status" role="region" aria-label="Navigation Status">
         <div id="lane-guidance-container"></div>
         <div id="instruction-container">
-            <div id="navigation-instruction">Starting navigation...</div>
+       
+            <div id="navigation-instruction" aria-live="polite">Starting navigation...</div>
             <div id="instruction-progress-bar" style="transform: scaleX(0);"></div>
         </div>
         <div id="trip-stats-container">
@@ -249,31 +284,35 @@
             <div class="stat-item"><span id="stat-eta">--:--</span><span 
             class="stat-label">ETA</span></div>
         </div>
-        <button id="end-navigation-btn">End Trip</button>
+        <button id="end-navigation-btn" aria-label="End Navigation Trip">End Trip</button>
     </div>
     
     <div id="top-search-wrapper">
         <div id="main-search-container">
-            <i id="search-icon-inside" class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
-            <i id="main-directions-icon" class="fa-solid fa-route"></i>
-            <div id="main-suggestions" class="suggestions-dropdown">
+            <i id="search-icon-inside" class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" aria-label="Search TheBoiisMC Maps" />
+            <button id="main-directions-icon" aria-label="Get Directions">
+                <i class="fa-solid fa-route"></i>
+            </button>
+            <div id="main-suggestions" class="suggestions-dropdown" role="listbox">
                 <div id="initial-suggestions-view">
                     <div id="recent-searches-container"></div>
                 </div>
                 <div id="api-suggestions-view" hidden></div>
             </div>
+ 
         </div>
     </div>
  
     
-    <div id="side-panel">
-        <div id="panel-grabber"></div>
+    <div id="side-panel" role="complementary" aria-label="Map Information and Search Panel">
+        <div id="panel-grabber" role="separator" aria-orientation="vertical" aria-label="Drag to resize panel"></div>
         <div id="panel-search-placeholder" hidden></div>
         <div class="panel-content">
             
             <div id="welcome-panel" hidden>
                 <div class="info-content-padding">
+        
                     <h3>Welcome 
                     to TheBoiisMC Maps</h3>
                     <p style="margin-top: 8px;
@@ -281,22 +320,26 @@
 
                     <h3 class="find-nearby-header" style="margin-top: 24px;">Find Nearby</h3>
                     <div class="category-pills">
-                        <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant">
-                            <i class="fa-solid fa-utensils"></i> Restaurants
+                        <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant" aria-label="Find Nearby Restaurants">
+            
+                            <i class="fa-solid fa-utensils" aria-hidden="true"></i> Restaurants
                         </button>
-                        <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel">
-                            <i class="fa-solid fa-gas-pump"></i> Gas
+                        <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel" aria-label="Find Nearby Gas Stations">
+                            <i 
+                            class="fa-solid fa-gas-pump" aria-hidden="true"></i> Gas
                         </button>
-                        <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe">
-                            <i class="fa-solid fa-mug-saucer"></i> Coffee
+                        <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe" aria-label="Find Nearby Coffee Shops">
+                            <i class="fa-solid fa-mug-saucer" aria-hidden="true"></i> Coffee
+                
                         </button>
-                        <button class="category-pill" data-query="parks" data-osm-tag="leisure=park">
-                            <i class="fa-solid fa-tree"></i> Parks
+                        <button class="category-pill" data-query="parks" data-osm-tag="leisure=park" aria-label="Find Nearby Parks">
+                            <i class="fa-solid fa-tree" aria-hidden="true"></i> Parks
                         </button>
+          
                     </div>
 
                     <div class="action-buttons" style="margin-top: 24px;">
-                        <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><i class="fa-solid fa-route"></i></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="welcome-directions-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-route"></i></div><div class="btn-label">Directions</div></div>
                     </div>
                 </div>
  
@@ -304,93 +347,118 @@
                     <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Privacy</a>
                     <span>&middot;</span>
                     <a href="/terms.html" target="_blank" rel="noopener noreferrer">Terms</a>
+               
                     <p>Copyright &copy; 2025 TheBoiisMC</p>
                 </div>
             </div>
 
             <div id="saved-places-panel" hidden>
                 <div class="info-content-padding">
-                    <button id="back-from-saved-btn" class="back-button">
-                        <i class="fa-solid fa-arrow-left"></i> Back
+                    <button id="back-from-saved-btn" class="back-button" aria-label="Back to previous view">
+           
+                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back
                     </button>
                     <h3 class="results-header">Saved Places</h3>
-                    <div id="saved-places-list">
-                      
+                    <div id="saved-places-list" role="list">
+                     
                     </div>
                 </div>
             </div>
             
             <div id="search-results-panel" hidden>
                 <div class="info-content-padding">
-                    <button id="back-from-results-btn" class="back-button">
-                        <i class="fa-solid fa-arrow-left"></i> Back
+        
+                    <button id="back-from-results-btn" class="back-button" aria-label="Back to previous view">
+                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back
                     </button>
                     <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
+               
                     <div class="sort-controls">
-                        <button id="sort-by-distance-btn" class="sort-btn active" data-sort="distance">Distance</button>
-                        <button id="sort-by-rating-btn" class="sort-btn" data-sort="rating">Rating</button>
+                        <button id="sort-by-distance-btn" class="sort-btn active" data-sort="distance" aria-pressed="true">Distance</button>
+                        <button id="sort-by-rating-btn" class="sort-btn" data-sort="rating" aria-pressed="false">Rating</button>
                     </div>
-                    <div id="search-results-list"></div>
+                   
+                    <div id="search-results-list" role="list"></div>
                 </div>
             </div>
             
             <div id="info-panel-redesign" hidden>
                 <div class="header-image-container">
-                    <img class="header-image" id="info-image" src="" alt="Image of the location" loading="lazy"/>
-                    <button id="close-info-btn"><i class="fa-solid fa-arrow-left"></i></button>
+                    <img class="header-image" id="info-image" src="" alt="Image of the 
+                    location" loading="lazy"/>
+                    <button id="close-info-btn" aria-label="Close Information Panel"><i class="fa-solid fa-arrow-left"></i></button>
                 </div>
                 <div class="info-content-padding">
                     <h3 id="info-name"></h3>
-                    <div class="address" id="info-address"></div>
+                    <div class="address" 
+                    id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><i class="fa-solid fa-route"></i></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><i class="fa-solid fa-globe"></i></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><i class="fa-solid fa-bookmark"></i></div><div class="btn-label">Save</div></div>
+                        <div class="btn-wrapper" id="info-directions-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-route"></i></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-website-btn" 
+                        style="display: none;" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-globe"></i></div><div class="btn-label">Website</div></div>
+                        <div class="btn-wrapper" id="info-save-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-bookmark"></i></div><div class="btn-label">Save</div></div>
                     </div>
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
+      
             </div>
             
  
             <div id="directions-panel-redesign" hidden>
                 <div class="info-content-padding">
-                    <div class="travel-modes">
-                        <button class="travel-mode-btn active" data-mode="driving" aria-label="Driving">
+                    <div class="travel-modes" role="radiogroup" aria-label="Travel Mode">
+                        <button class="travel-mode-btn active" data-mode="driving" aria-label="Driving Mode" role="radio" aria-checked="true">
+ 
                             <i class="fa-solid fa-car"></i>
                         </button>
-                        <button class="travel-mode-btn" data-mode="walking" aria-label="Walking">
+                        <button class="travel-mode-btn" data-mode="walking" aria-label="Walking Mode" role="radio" aria-checked="false">
+                    
                             <i class="fa-solid fa-person-walking"></i>
                         </button>
-                        <button class="travel-mode-btn" data-mode="cycling" aria-label="Cycling">
+                        <button class="travel-mode-btn" data-mode="cycling" aria-label="Cycling Mode" role="radio" aria-checked="false">
                             <i class="fa-solid fa-person-biking"></i>
+         
                         </button>
                     </div>
                     <div class="dir-input-group">
-                        <div class="dir-input-wrapper"><i class="fa-solid fa-circle"></i><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
-                        <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                        <div class="dir-input-wrapper"><i class="fa-solid fa-location-dot"></i><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
-                        <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                        <button id="swap-btn"><i class="fa-solid fa-arrows-up-down"></i></button>
+                        <div class="dir-input-wrapper">
+                            <i class="fa-solid fa-circle" aria-hidden="true"></i>
+                            <input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off" aria-label="Choose starting point"/>
+                        </div>
+           
+                        <div id="panel-from-suggestions" class="suggestions-dropdown" role="listbox"></div>
+                        <div class="dir-input-wrapper">
+                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                            <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off" aria-label="Choose destination"/>
+                        </div>
+                        <div id="panel-to-suggestions" class="suggestions-dropdown" role="listbox"></div>
+                        <button id="swap-btn" aria-label="Swap Start and End Points"><i class="fa-solid 
+                        fa-arrows-up-down"></i></button>
                     </div>
-                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><i class="fa-solid fa-location-crosshairs"></i></div>Your location</div>
-                    <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
+                    <div class="dir-quick-select" id="dir-use-my-location" role="button" tabindex="0" aria-label="Use My Current Location"><div class="icon-wrapper"><i class="fa-solid fa-location-crosshairs"></i></div>Your location</div>
+                    <button id="get-route-btn">Get Route</button>
+                    <button id="back-to-info-btn">Back</button>
                 </div>
             </div>
+   
             
            
             <div id="route-preview-panel" hidden>
                 <div class="info-content-padding">
                     <div class="route-summary">
                         <h3 id="route-summary-time">--</h3>
+   
                         <div id="route-summary-distance"></div>
                     </div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><i class="fa-solid fa-compass"></i></div><div class="btn-label">Start Trip</div></div>
-                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><i class="fa-solid fa-share-nodes"></i></div><div class="btn-label">Share</div></div>
-                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><i class="fa-solid fa-list"></i></div><div class="btn-label">Steps</div></div>
+                        <div class="btn-wrapper" id="start-navigation-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-compass"></i></div><div class="btn-label">Start Trip</div></div>
+      
+                        <div class="btn-wrapper" id="share-route-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-share-nodes"></i></div><div class="btn-label">Share</div></div>
+                        <div class="btn-wrapper" id="view-steps-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-list"></i></div><div class="btn-label">Steps</div></div>
                     </div>
                     <button id="back-to-directions-btn">Back</button>
+     
                 </div>
             </div>
         
@@ -398,84 +466,96 @@
             <div id="route-section" hidden>
                 <div class="info-content-padding">
                     <h3>Route Steps</h3>
+     
                     <button id="exit-route-btn">Back</button>
-                    <ol id="route-steps"></ol>
+                    <ol id="route-steps" role="list"></ol>
                 </div>
             </div>
         </div>
     </div>
     
-    <div id="settings-modal" class="modal-container">
+    <div id="settings-modal" class="modal-container" role="dialog" aria-modal="true" aria-labelledby="settings-modal-header">
         <div id="modal-overlay" class="modal-overlay"></div>
+   
         <div class="modal-content">
             <div class="modal-header">
-                <h4>Map Settings</h4>
+                <h4 id="settings-modal-header">Map Settings</h4>
                 <button id="close-settings-btn" class="modal-close-btn" aria-label="Close Settings">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="setting-group"><span class="setting-label">Globe View</span><div class="toggle-switch"><input type="checkbox" id="globe-toggle" name="map-globe"><label for="globe-toggle"></label></div></div>
+                <div class="setting-group"><span class="setting-label">Globe 
+                    View</span><div class="toggle-switch"><input type="checkbox" id="globe-toggle" name="map-globe"><label for="globe-toggle">Toggle Globe View</label></div></div>
                 <hr>
                 <div class="setting-group"><span 
-                class="setting-label">Units</span><div class="radio-group"><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
+                class="setting-label">Units</span><div class="radio-group" role="radiogroup" aria-labelledby="units-label"><span id="units-label" class="sr-only">Select Units</span><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
                 <hr>
-                <div class="setting-group"><span class="setting-label">Navigation Voice</span><div class="radio-group"><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
+                <div 
+                class="setting-group"><span class="setting-label">Navigation Voice</span><div class="radio-group" role="radiogroup" aria-labelledby="voice-label"><span id="voice-label" class="sr-only">Select Navigation Voice</span><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
                 <hr>
-                <div class="setting-group"><span class="setting-label">Theme</span><div class="radio-group"><input type="radio" id="theme-auto" name="map-theme" value="auto"><label for="theme-auto">Auto</label><input 
+                <div class="setting-group"><span class="setting-label">Theme</span><div class="radio-group" role="radiogroup" aria-labelledby="theme-label"><span id="theme-label" class="sr-only">Select Theme</span><input type="radio" id="theme-auto" name="map-theme" value="auto"><label for="theme-auto">Auto</label><input 
                 type="radio" id="theme-light" name="map-theme" value="light"><label for="theme-light">Light</label><input type="radio" id="theme-dark" name="map-theme" value="dark"><label for="theme-dark">Dark</label></div></div>
                 
+    
                 <hr>
                 <button id="advanced-settings-btn" class="btn-link">Advanced Settings...</button>
             </div>
         </div>
     </div>
 
-    <div id="advanced-settings-modal" class="modal-container">
+    <div id="advanced-settings-modal" class="modal-container" role="dialog" aria-modal="true" aria-labelledby="advanced-settings-modal-header">
         <div id="modal-overlay-advanced" 
         class="modal-overlay"></div>
         <div class="modal-content">
+            
             <div class="modal-header">
-                <h4>Advanced Settings</h4>
+                <h4 id="advanced-settings-modal-header">Advanced Settings</h4>
                 <button id="close-advanced-settings-btn" class="modal-close-btn" aria-label="Close Advanced Settings">&times;</button>
             </div>
             <div class="modal-body">
                
                 <div class="setting-group-column">
+    
                     <span class="setting-label">Tile Service Priority</span>
                     <span class="setting-description">Drag to re-order.
                     The app will try to load maps from the top of the list first.</span>
-                    <ul id="tile-priority-list" class="sortable-list">
+                    <ul id="tile-priority-list" class="sortable-list" role="list">
                         </ul>
                 </div>
                 <hr>
          
                 <div class="setting-group">
-                    <span class="setting-label">Language</span>
+                    <label for="language-select" class="setting-label">Language</label>
                     <select id="language-select" class="styled-select">
                         <option value="en">English</option>
-                        
+               
                         <option value="es">Español (coming soon)</option>
                         <option value="fr">Français (coming soon)</option>
                     </select>
                 </div>
+ 
                 <hr>
                 <div class="setting-group-column">
  
                     <span class="setting-label">Privacy</span>
                     <div class="setting-group">
-                        <span class="setting-label-inner">Clear Recent Searches on Exit</span>
+                        <span 
+                        class="setting-label-inner">Clear Recent Searches on Exit</span>
                         <div class="toggle-switch">
      
                             <input type="checkbox" id="privacy-clear-recents-toggle" name="privacy-clear-recents">
-                            <label for="privacy-clear-recents-toggle"></label>
+                            <label for="privacy-clear-recents-toggle">Toggle clear searches on exit</label>
+      
                         </div>
                     </div>
  
                     <div class="setting-group">
                         <span class="setting-label-inner">Disable Search Suggestions</span>
+             
                         <div class="toggle-switch">
                             
                             <input type="checkbox" id="privacy-disable-suggestions-toggle" name="privacy-disable-suggestions">
-                            <label for="privacy-disable-suggestions-toggle"></label>
+                            <label 
+                            for="privacy-disable-suggestions-toggle">Toggle search suggestions</label>
                         </div>
                     </div>
                 </div>
@@ -484,25 +564,27 @@
         </div>
     </div>
 
-    <div id="context-menu">
-        <div id="context-menu-coords"></div>
-        <div class="context-menu-item" id="ctx-directions-from"><i class="fa-solid fa-location-arrow"></i><span>Directions from here</span></div>
-        <div class="context-menu-item" id="ctx-directions-to"><i class="fa-solid fa-location-dot"></i><span>Directions to here</span></div>
-        <div class="context-menu-item" id="ctx-whats-here"><i class="fa-solid fa-circle-question"></i><span>What's here?</span></div>
+    <div id="context-menu" role="menu" hidden>
+   
+        <div id="context-menu-coords" aria-live="polite"></div>
+        <div class="context-menu-item" id="ctx-directions-from" role="menuitem"><i class="fa-solid fa-location-arrow" aria-hidden="true"></i><span>Directions from here</span></div>
+        <div class="context-menu-item" id="ctx-directions-to" role="menuitem"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><span>Directions to here</span></div>
+        <div class="context-menu-item" id="ctx-whats-here" role="menuitem"><i class="fa-solid fa-circle-question" aria-hidden="true"></i><span>What's here?</span></div>
     </div>
     
-    <div id="map"></div>
+    <div id="map" role="application" aria-label="Interactive Map Display"></div>
     
     <div id="copyright-footer">
        
-        <p>Copyright &copy; <span id="current-year"></span> TheBoiisMC. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</p>
+        <p>Copyright &copy;
+            <span id="current-year"></span> TheBoiisMC. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</p>
     </div>
 
-    <div id="rerouting-overlay">Rerouting...</div>
+    <div id="rerouting-overlay" role="alert" aria-live="assertive">Rerouting...</div>
     
-    <button id="search-this-area-btn" class="search-area-btn" hidden>Search this area</button>
+    <button id="search-this-area-btn" class="search-area-btn" hidden aria-label="Search this visible map area">Search this area</button>
     
-    <div id="toast-container"></div>
+    <div id="toast-container" role="status" aria-live="polite"></div>
     
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
     <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
