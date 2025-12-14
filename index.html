@@ -30,11 +30,9 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
     </noscript>
 
-    <!-- Use the existing styles.css file -->
     <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     <link rel="stylesheet" href="libs/css/styles.css">
 
-    <!-- ADDED: Simple styles for new navigation UI elements -->
     <style>
         #lane-guidance-container {
             display: flex;
@@ -99,7 +97,6 @@
     </script>
 </head>
 <body>
-    <!-- Top banner remains the same -->
     <div id="top-banner">
         <span id="site-title">TheBoiisMC Maps</span>
         <div id="profile-area">
@@ -140,19 +137,15 @@
         </div>
     </div>
     
-    <!-- Navigation panel -->
     <div id="navigation-status">
-        <!-- NEW: Added lane guidance -->
         <div id="lane-guidance-container">
-            <!-- Lane icons will be injected here by app.js -->
-        </div>
+            </div>
         <div id="instruction-container">
             <div id="navigation-instruction">Starting navigation...</div>
             <div id="instruction-progress-bar" style="transform: scaleX(0);"></div>
         </div>
         <div id="trip-stats-container">
             <div class="stat-item"><span id="stat-speed">--</span><span class="stat-label">mph</span></div>
-            <!-- NEW: Added Miles Remaining -->
             <div class="stat-item"><span id="stat-miles-remaining">--.-</span><span class="stat-label">mi</span></div>
             <div class="stat-item"><span id="stat-time-remaining">-- min</span><span class="stat-label">Time</span></div>
             <div class="stat-item"><span id="stat-eta">--:--</span><span class="stat-label">ETA</span></div>
@@ -160,7 +153,6 @@
         <button id="end-navigation-btn">End Trip</button>
     </div>
     
-    <!-- Search wrapper remains the same -->
     <div id="top-search-wrapper">
         <div id="main-search-container">
             <span id="search-icon-inside" class="material-symbols-outlined">search</span>
@@ -170,14 +162,13 @@
                 <div id="initial-suggestions-view">
                     <div id="recent-searches-container">
                     </div>
-                    </div>
+                </div>
                 <div id="api-suggestions-view" hidden>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Side panel remains the same -->
     <div id="side-panel">
         <div id="panel-grabber"></div>
         <div id="panel-search-placeholder" hidden></div>
@@ -301,7 +292,6 @@
         </div>
     </div>
     
-    <!-- Existing Map Settings Modal -->
     <div id="settings-modal" class="modal-container">
         <div id="modal-overlay" class="modal-overlay"></div>
         <div class="modal-content">
@@ -310,8 +300,6 @@
                 <button id="close-settings-btn" class="modal-close-btn" aria-label="Close Settings">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- REMOVED Map Style -->
-                <!-- REMOVED Live Traffic -->
                 <div class="setting-group"><span class="setting-label">Globe View</span><div class="toggle-switch"><input type="checkbox" id="globe-toggle" name="map-globe"><label for="globe-toggle"></label></div></div>
                 <hr>
                 <div class="setting-group"><span class="setting-label">Units</span><div class="radio-group"><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
@@ -320,14 +308,12 @@
                 <hr>
                 <div class="setting-group"><span class="setting-label">Theme</span><div class="radio-group"><input type="radio" id="theme-auto" name="map-theme" value="auto"><label for="theme-auto">Auto</label><input type="radio" id="theme-light" name="map-theme" value="light"><label for="theme-light">Light</label><input type="radio" id="theme-dark" name="map-theme" value="dark"><label for="theme-dark">Dark</label></div></div>
                 
-                <!-- NEW: Link to Advanced Settings -->
                 <hr>
                 <button id="advanced-settings-btn" class="btn-link">Advanced Settings...</button>
             </div>
         </div>
     </div>
 
-    <!-- NEW: Advanced Settings Modal -->
     <div id="advanced-settings-modal" class="modal-container">
         <div id="modal-overlay-advanced" class="modal-overlay"></div>
         <div class="modal-content">
@@ -336,16 +322,13 @@
                 <button id="close-advanced-settings-btn" class="modal-close-btn" aria-label="Close Advanced Settings">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- Tile Provider Priority -->
                 <div class="setting-group-column">
                     <span class="setting-label">Tile Service Priority</span>
                     <span class="setting-description">Drag to re-order. The app will try to load maps from the top of the list first.</span>
                     <ul id="tile-priority-list" class="sortable-list">
-                        <!-- Items will be populated by app.js -->
-                    </ul>
+                        </ul>
                 </div>
                 <hr>
-                <!-- Language Settings -->
                 <div class="setting-group">
                     <span class="setting-label">Language</span>
                     <select id="language-select" class="styled-select">
@@ -355,9 +338,9 @@
                     </select>
                 </div>
                 <hr>
-                <!-- Privacy Settings -->
                 <div class="setting-group-column">
                     <span class="setting-label">Privacy</span>
+                    
                     <div class="setting-group">
                         <span class="setting-label-inner">Clear Recent Searches on Exit</span>
                         <div class="toggle-switch">
@@ -365,6 +348,7 @@
                             <label for="privacy-clear-recents-toggle"></label>
                         </div>
                     </div>
+                    
                     <div class="setting-group">
                         <span class="setting-label-inner">Disable Search Suggestions</span>
                         <div class="toggle-switch">
@@ -377,7 +361,6 @@
         </div>
     </div>
 
-    <!-- Context Menu remains the same -->
     <div id="context-menu">
         <div id="context-menu-coords"></div>
         <div class="context-menu-item" id="ctx-directions-from"><span class="material-symbols-outlined">near_me</span><span>Directions from here</span></div>
@@ -386,7 +369,6 @@
     </div>
     
     <div id="map"></div>
-    <!-- NEW: Rerouting overlay -->
     <div id="rerouting-overlay">Rerouting...</div>
     <button id="search-this-area-btn" class="search-area-btn" hidden>Search this area</button>
     <div id="toast-container"></div>
@@ -394,7 +376,6 @@
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
     <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
     <script src='libs/js/turf-6.5.0.min.js' defer></script>
-    <!-- Use the new app.js file -->
     <script src="app.js" defer></script>
 </body>
 </html>
