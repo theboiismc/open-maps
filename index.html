@@ -23,8 +23,7 @@
     <meta property="og:url" content="https://maps.theboiismc.com" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
-    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet" />
     <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     <link rel="stylesheet" href="libs/css/styles.css">
 
@@ -180,6 +179,15 @@
         .category-pill {
             padding: 10px 14px !important; 
         }
+
+        /* Material Symbols require a different class for styling/rendering */
+        .material-symbols-rounded {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
     </style>
 
     <script type="application/ld+json">
@@ -215,23 +223,23 @@
                         box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); transition: box-shadow 0.3s;"
                  onmouseover="this.style.boxShadow='0 4px 15px rgba(99, 102, 241, 0.5)'"
                  onmouseout="this.style.boxShadow='0 4px 10px rgba(99, 102, 241, 0.3)'">
-                <i class="fa-solid fa-cloud" style="font-size: 20px;"></i>
+                <i class="material-symbols-rounded" style="font-size: 20px;">cloud</i>
             </div>
             <span style="font-size: 18px; font-weight: bold; letter-spacing: -0.5px; color: var(--text-primary);">
               TheBoiis<span style="color: #6366F1;">MC</span>
             </span>
         </a>
         <div id="profile-area">
-            <button id="settings-icon-btn" aria-label="Map Settings"><i class="fa-solid fa-gear"></i></button>
-            <button id="profile-button" aria-label="User Profile"><i class="fa-solid fa-user"></i></button>
-            <button id="app-menu-button" aria-label="TheBoiisMC Apps Menu"><i class="fa-solid fa-grip"></i></button>
+            <button id="settings-icon-btn" aria-label="Map Settings"><i class="material-symbols-rounded">settings</i></button>
+            <button id="profile-button" aria-label="User Profile"><i class="material-symbols-rounded">account_circle</i></button>
+            <button id="app-menu-button" aria-label="TheBoiisMC Apps Menu"><i class="material-symbols-rounded">apps</i></button>
             
            
             <div id="services-dropdown">
-                <a href="https://search.theboiismc.com" class="service-item"><i class="fa-solid fa-magnifying-glass"></i><span class="service-name">Search</span></a>
-                <a href="https://maps.theboiismc.com" class="service-item"><i class="fa-solid fa-map"></i><span class="service-name">Maps</span></a>
-                <a href="https://drive.theboiismc.com" class="service-item"><i class="fa-solid fa-cloud"></i><span class="service-name">Drive</span></a>
-                <a href="https://myaccount.theboiismc.com" class="service-item"><i class="fa-solid fa-user"></i><span class="service-name">Account</span></a>
+                <a href="https://search.theboiismc.com" class="service-item"><i class="material-symbols-rounded">search</i><span class="service-name">Search</span></a>
+                <a href="https://maps.theboiismc.com" class="service-item"><i class="material-symbols-rounded">map</i><span class="service-name">Maps</span></a>
+                <a href="https://drive.theboiismc.com" class="service-item"><i class="material-symbols-rounded">cloud</i><span class="service-name">Drive</span></a>
+                <a href="https://myaccount.theboiismc.com" class="service-item"><i class="material-symbols-rounded">account_circle</i><span class="service-name">Account</span></a>
             </div>
 
   
@@ -289,10 +297,10 @@
     
     <div id="top-search-wrapper">
         <div id="main-search-container">
-            <i id="search-icon-inside" class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <i id="search-icon-inside" class="material-symbols-rounded" aria-hidden="true">search</i>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" aria-label="Search TheBoiisMC Maps" />
             <button id="main-directions-icon" aria-label="Get Directions">
-                <i class="fa-solid fa-route"></i>
+                <i class="material-symbols-rounded">route</i>
             </button>
             <div id="main-suggestions" class="suggestions-dropdown" role="listbox">
                 <div id="initial-suggestions-view">
@@ -321,25 +329,24 @@
                     <h3 class="find-nearby-header" style="margin-top: 24px;">Find Nearby</h3>
                     <div class="category-pills">
                         <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant" aria-label="Find Nearby Restaurants">
-            
-                            <i class="fa-solid fa-utensils" aria-hidden="true"></i> Restaurants
+                            <i class="material-symbols-rounded" aria-hidden="true">restaurant</i> Restaurants
                         </button>
                         <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel" aria-label="Find Nearby Gas Stations">
                             <i 
-                            class="fa-solid fa-gas-pump" aria-hidden="true"></i> Gas
+                            class="material-symbols-rounded" aria-hidden="true">local_gas_station</i> Gas
                         </button>
                         <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe" aria-label="Find Nearby Coffee Shops">
-                            <i class="fa-solid fa-mug-saucer" aria-hidden="true"></i> Coffee
+                            <i class="material-symbols-rounded" aria-hidden="true">local_cafe</i> Coffee
                 
                         </button>
                         <button class="category-pill" data-query="parks" data-osm-tag="leisure=park" aria-label="Find Nearby Parks">
-                            <i class="fa-solid fa-tree" aria-hidden="true"></i> Parks
+                            <i class="material-symbols-rounded" aria-hidden="true">park</i> Parks
                         </button>
           
                     </div>
 
                     <div class="action-buttons" style="margin-top: 24px;">
-                        <div class="btn-wrapper" id="welcome-directions-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-route"></i></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="welcome-directions-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">route</i></div><div class="btn-label">Directions</div></div>
                     </div>
                 </div>
  
@@ -355,8 +362,7 @@
             <div id="saved-places-panel" hidden>
                 <div class="info-content-padding">
                     <button id="back-from-saved-btn" class="back-button" aria-label="Back to previous view">
-           
-                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back
+                        <i class="material-symbols-rounded" aria-hidden="true">arrow_back</i> Back
                     </button>
                     <h3 class="results-header">Saved Places</h3>
                     <div id="saved-places-list" role="list">
@@ -369,7 +375,7 @@
                 <div class="info-content-padding">
         
                     <button id="back-from-results-btn" class="back-button" aria-label="Back to previous view">
-                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back
+                        <i class="material-symbols-rounded" aria-hidden="true">arrow_back</i> Back
                     </button>
                     <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
                
@@ -386,7 +392,7 @@
                 <div class="header-image-container">
                     <img class="header-image" id="info-image" src="" alt="Image of the 
                     location" loading="lazy"/>
-                    <button id="close-info-btn" aria-label="Close Information Panel"><i class="fa-solid fa-arrow-left"></i></button>
+                    <button id="close-info-btn" aria-label="Close Information Panel"><i class="material-symbols-rounded">arrow_back</i></button>
                 </div>
                 <div class="info-content-padding">
                     <h3 id="info-name"></h3>
@@ -394,10 +400,10 @@
                     id="info-address"></div>
                     <div class="weather" id="info-weather"></div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-route"></i></div><div class="btn-label">Directions</div></div>
+                        <div class="btn-wrapper" id="info-directions-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">route</i></div><div class="btn-label">Directions</div></div>
                         <div class="btn-wrapper" id="info-website-btn" 
-                        style="display: none;" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-globe"></i></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-bookmark"></i></div><div class="btn-label">Save</div></div>
+                        style="display: none;" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">language</i></div><div class="btn-label">Website</div></div>
+                        <div class="btn-wrapper" id="info-save-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">bookmark</i></div><div class="btn-label">Save</div></div>
                     </div>
                     <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
                 </div>
@@ -409,34 +415,32 @@
                 <div class="info-content-padding">
                     <div class="travel-modes" role="radiogroup" aria-label="Travel Mode">
                         <button class="travel-mode-btn active" data-mode="driving" aria-label="Driving Mode" role="radio" aria-checked="true">
- 
-                            <i class="fa-solid fa-car"></i>
+                            <i class="material-symbols-rounded">directions_car</i>
                         </button>
                         <button class="travel-mode-btn" data-mode="walking" aria-label="Walking Mode" role="radio" aria-checked="false">
+                            <i class="material-symbols-rounded">directions_walk</i>
                     
-                            <i class="fa-solid fa-person-walking"></i>
                         </button>
                         <button class="travel-mode-btn" data-mode="cycling" aria-label="Cycling Mode" role="radio" aria-checked="false">
-                            <i class="fa-solid fa-person-biking"></i>
+                            <i class="material-symbols-rounded">directions_bike</i>
          
                         </button>
                     </div>
                     <div class="dir-input-group">
                         <div class="dir-input-wrapper">
-                            <i class="fa-solid fa-circle" aria-hidden="true"></i>
+                            <i class="material-symbols-rounded" aria-hidden="true">trip_origin</i>
                             <input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off" aria-label="Choose starting point"/>
                         </div>
            
                         <div id="panel-from-suggestions" class="suggestions-dropdown" role="listbox"></div>
                         <div class="dir-input-wrapper">
-                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                            <i class="material-symbols-rounded" aria-hidden="true">location_on</i>
                             <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off" aria-label="Choose destination"/>
                         </div>
                         <div id="panel-to-suggestions" class="suggestions-dropdown" role="listbox"></div>
-                        <button id="swap-btn" aria-label="Swap Start and End Points"><i class="fa-solid 
-                        fa-arrows-up-down"></i></button>
+                        <button id="swap-btn" aria-label="Swap Start and End Points"><i class="material-symbols-rounded">swap_vert</i></button>
                     </div>
-                    <div class="dir-quick-select" id="dir-use-my-location" role="button" tabindex="0" aria-label="Use My Current Location"><div class="icon-wrapper"><i class="fa-solid fa-location-crosshairs"></i></div>Your location</div>
+                    <div class="dir-quick-select" id="dir-use-my-location" role="button" tabindex="0" aria-label="Use My Current Location"><div class="icon-wrapper"><i class="material-symbols-rounded">my_location</i></div>Your location</div>
                     <button id="get-route-btn">Get Route</button>
                     <button id="back-to-info-btn">Back</button>
                 </div>
@@ -452,10 +456,10 @@
                         <div id="route-summary-distance"></div>
                     </div>
                     <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-compass"></i></div><div class="btn-label">Start Trip</div></div>
+                        <div class="btn-wrapper" id="start-navigation-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">navigation</i></div><div class="btn-label">Start Trip</div></div>
       
-                        <div class="btn-wrapper" id="share-route-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-share-nodes"></i></div><div class="btn-label">Share</div></div>
-                        <div class="btn-wrapper" id="view-steps-btn" role="button" tabindex="0"><div class="icon-circle"><i class="fa-solid fa-list"></i></div><div class="btn-label">Steps</div></div>
+                        <div class="btn-wrapper" id="share-route-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">share</i></div><div class="btn-label">Share</div></div>
+                        <div class="btn-wrapper" id="view-steps-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">list</i></div><div class="btn-label">Steps</div></div>
                     </div>
                     <button id="back-to-directions-btn">Back</button>
      
@@ -567,9 +571,9 @@
     <div id="context-menu" role="menu" hidden>
    
         <div id="context-menu-coords" aria-live="polite"></div>
-        <div class="context-menu-item" id="ctx-directions-from" role="menuitem"><i class="fa-solid fa-location-arrow" aria-hidden="true"></i><span>Directions from here</span></div>
-        <div class="context-menu-item" id="ctx-directions-to" role="menuitem"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><span>Directions to here</span></div>
-        <div class="context-menu-item" id="ctx-whats-here" role="menuitem"><i class="fa-solid fa-circle-question" aria-hidden="true"></i><span>What's here?</span></div>
+        <div class="context-menu-item" id="ctx-directions-from" role="menuitem"><i class="material-symbols-rounded" aria-hidden="true">near_me_disabled</i><span>Directions from here</span></div>
+        <div class="context-menu-item" id="ctx-directions-to" role="menuitem"><i class="material-symbols-rounded" aria-hidden="true">location_on</i><span>Directions to here</span></div>
+        <div class="context-menu-item" id="ctx-whats-here" role="menuitem"><i class="material-symbols-rounded" aria-hidden="true">help</i><span>What's here?</span></div>
     </div>
     
     <div id="map" role="application" aria-label="Interactive Map Display"></div>
