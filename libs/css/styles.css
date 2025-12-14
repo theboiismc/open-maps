@@ -1,615 +1,901 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="dark">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-
-    <title>TheBoiisMC Maps - Private, Zero-Tracking Navigation & Directions</title>
-
-    <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution with zero tracking." />
+/*
+ * Full CSS with Dark Theme Rebrand to match TheBoiisMC Main Site
+ * Key changes: Updated color variables for dark mode consistency.
+ */
+:root {
+    /* Shared Variables */
+    --panel-width: 400px;
+    --panel-mobile-height: 65vh;
+    --panel-mobile-peek: 220px;
+    --banner-height: 50px;
     
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://maps.theboiismc.com/" />
+    /* --- Light Theme (Default) --- */
+    --background-dark: #F8F9FA;
+    --background-light: #FFFFFF;
+    --border-color: #DEE2E6;
+    --accent-color: #3B82F6; /* Keeping a strong blue for functional elements */
+    --accent-hover: #2563EB;
+    --text-primary: #212529;
+    --text-secondary: #6C757D;
+    --input-bg: #F8F9FA;
+    --brand-color: var(--accent-color);
+    --hover-bg: #f1f3f5;
+    --surface-secondary: #f1f3f5;
+    --surface-tertiary: #e9ecef;
+    --text-tertiary: #868e96;
+    --accent-color-light: #e7f5ff;
+}
 
-    <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin> 
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+html[data-theme="dark"] {
+    /* --- Dark Theme Palette (TheBoiisMC Style) --- */
+    --background-dark: #030712; /* Deepest black/gray (bg-bg-main) */
+    --background-light: #111827; /* Dark surface (bg-surface) */
+    --border-color: #334155;
+    --accent-color: #3B82F6; /* Bright Blue */
+    --accent-hover: #2563EB;
+    --text-primary: #F1F5F9; /* Light text */
+    --text-secondary: #94A3B8; /* Grayish blue secondary text */
+    --input-bg: #334155;
+    --hover-bg: #1E293B; /* Slightly darker hover for dark mode */
+    --surface-secondary: #1E293B;
+    --surface-tertiary: #334155;
+    --text-tertiary: #64748B;
+    --accent-color-light: #1e293b;
+}
 
-    <meta name="theme-color" content="#030712" />
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="/assets/icon512_rounded.png">
+* {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
 
-    <meta property="og:title" content="TheBoiisMC Maps - Private Navigation & Directions" />
-    <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps." />
-    <meta property="og:image" content="https://maps.theboiismc.com/assets/logo-full-wide.png" /> 
-    <meta property="og:url" content="https://maps.theboiismc.com" />
-    
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="en_US" />
-    <meta property="og:image:width" content="1200" /> 
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/png" />
-    
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://maps.theboiismc.com/assets/logo-full-wide.png" />
+html, body, #map {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background-color: var(--background-dark);
+    color: var(--text-primary);
+}
 
-    <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet" />
-    
-    <link href="libs/css/maplibre-gl-4.1.0.css" rel="stylesheet">
-    <link rel="preload" href="libs/css/styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="libs/css/styles.css"></noscript>
+#map {
+    position: fixed;
+    top: 0;
+    left: 0;
+}
 
-    <style>
-        /* Navigation UI */
-        #lane-guidance-container {
-            display: flex;
-            gap: 2px;
-            position: absolute;
-            top: 8px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.6);
-            padding: 4px 8px;
-            border-radius: 16px;
-            z-index: 10;
-        }
-        .lane-icon {
-            font-size: 24px;
-            font-weight: bold;
-            color: #999;
-        }
-        .lane-icon.active {
-            color: var(--accent-color);
-            /* Use CSS variable for consistency */
-        }
+/* --- UPDATED Toast Notification Styles --- */
+#toast-container { 
+    position: fixed; 
+    bottom: 20px; 
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 10px;
+    pointer-events: none;
+}
+.toast { 
+    background-color: var(--background-light); 
+    color: var(--text-primary); 
+    padding: 12px 18px;
+    border-radius: 8px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+    opacity: 0; 
+    transform: translateY(20px); 
+    transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1); 
+    font-size: 14px;
+    font-weight: 500; 
+    border: 1px solid var(--border-color); 
+    pointer-events: all;
+    cursor: pointer;
+    max-width: 90vw;
+    text-align: center;
+}
+.toast.show { 
+    opacity: 1; 
+    transform: translateY(0);
+}
+/* NEW: Added hide style for smooth exit */
+.toast.hide {
+    opacity: 0;
+    transform: translateY(20px);
+}
+.toast.error { 
+    background-color: #d9534f; 
+    color: white; 
+    border: none; 
+}
+.toast.success { 
+    background-color: #5cb85c;
+    color: white; 
+    border: none; 
+}
 
-        #rerouting-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.5rem;
-            font-weight: 500;
-            z-index: 10000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s;
-        }
-        #rerouting-overlay.visible {
-            opacity: 1;
-            visibility: visible;
-        }
+/* --- Skeleton Loader Styles --- */
+@keyframes skeleton-pulse { 0% { background-color: var(--surface-tertiary);
+} 50% { background-color: var(--hover-bg); } 100% { background-color: var(--surface-tertiary); }}
+.skeleton-line { width: 90%; height: 1em; background-color: var(--surface-tertiary); border-radius: 4px;
+animation: skeleton-pulse 1.5s infinite ease-in-out; margin-bottom: 8px;}
+.skeleton-line:last-child { width: 60%;}
 
-        /* Profile Avatar Styles - (Kept for compatibility, but styles.txt defines the look) */
-        .profile-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        .profile-avatar-placeholder {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background-color: var(--primary-color, #3B82F6);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
+/* --- Universal Icon Styling --- */
+.material-symbols-outlined { font-size: 24px;
+vertical-align: middle; user-select: none; }
 
-        /* Saved Places List Styles - (Kept for compatibility, but styles.txt defines the look) */
-        .saved-place-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .saved-place-item:hover {
-            background-color: var(--hover-bg);
-            /* Use hover variable */
-        }
-        .saved-place-item:last-child { border-bottom: none;
-        }
-        .saved-place-item .icon {
-            color: var(--text-secondary);
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-        }
-        .saved-place-item .name {
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-        .saved-place-item .addr {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .saved-place-item .delete-btn {
-            /* Ensure delete button is large enough for touch target (min 44x44) */
-            min-width: 44px; 
-            min-height: 44px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center; /* Center the icon */
-        }
-        .saved-place-item .delete-btn:hover { 
-            color: #d32f2f;
-            background-color: rgba(211, 47, 47, 0.1);
-        }
-        
-        /* NEW Copyright Footer Style */
-        #copyright-footer {
-            position: absolute;
-            bottom: 5px;
-            right: 50px;
-            padding: 5px 10px;
-            background: rgba(0, 0, 0, 0.4);
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 10px;
-            border-radius: 4px;
-            z-index: 5;
-            /* Allow map interaction beneath the general text */
-            pointer-events: none; 
-        }
-        #copyright-footer a {
-            color: #fff;
-            text-decoration: underline;
-            /* Re-enable pointer events for the link itself */
-            pointer-events: auto;
-        }
-        
-        /* Accessibility: Visual focus indicator */
-        .btn-wrapper:focus-within, 
-        .travel-mode-btn:focus-visible, 
-        #end-navigation-btn:focus-visible {
-            outline: 2px solid var(--accent-color, #6366F1);
-            outline-offset: 2px;
-            border-radius: 4px;
-        }
+#top-banner { position: fixed; top: 0; left: 0; width: 100%; height: var(--banner-height); background-color: var(--background-dark); color: var(--text-primary);
+display: flex; align-items: center; justify-content: space-between; z-index: 100; font-weight: 600; padding: 0 10px 0 20px;
+border-bottom: 1px solid var(--border-color);}
+#site-title { font-size: 18px;}
+#profile-area { position: relative; display: flex; align-items: center; gap: 5px;
+}
+#settings-icon-btn, #profile-button, #app-menu-button { width: 40px; height: 40px; border-radius: 50%; background-color: transparent; border: none; cursor: pointer; display: flex; align-items: center;
+justify-content: center; padding: 0; transition: background-color 0.2s; color: var(--text-primary); }
+#settings-icon-btn:hover, #profile-button:hover, #app-menu-button:hover { background-color: var(--input-bg);}
+#profile-button .profile-avatar { width: 32px;
+height: 32px; border-radius: 50%; object-fit: cover; }
 
-        /* Added larger hit area for category pills for touch accessibility */
-        .category-pill {
-            padding: 10px 14px !important; 
-        }
-        /* Material Symbols style to match the rounded style used */
-        .material-symbols-rounded {
-            font-variation-settings:
-            'FILL' 0,
-            'wght' 400,
-            'GRAD' 0,
-            'opsz' 24
-        }
-    </style>
+/* --- App Menu & Profile Dropdown Styles --- */
+#services-dropdown, #profile-dropdown { display: none;
+position: absolute; top: calc(100% + 10px); right: 0; background: var(--background-light); color: var(--text-primary); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+min-width: 240px; z-index: 101; overflow: hidden; border: 1px solid var(--border-color); }
+#services-dropdown { width: 280px; padding: 8px; }
+#services-dropdown.open { display: block;
+}
+.service-item { display: flex; align-items: center; padding: 12px; text-decoration: none; color: var(--text-primary); border-radius: 6px; transition: background-color 0.2s;
+}
+.service-item:hover { background-color: var(--border-color); }
+.service-item .material-symbols-outlined { margin-right: 16px; color: var(--text-secondary); }
+.service-item .service-name { font-size: 14px; font-weight: 500;
+}
 
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "TheBoiisMC Maps",
-      "url": "https://maps.theboiismc.com/",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://maps.theboiismc.com/?q={search_term_string}"
-        },
-        "query-input": "required name=search_term_string"
-      }
+.profile-section { padding: 15px;}
+.profile-section-header { display: flex; flex-direction: column; align-items: center; padding-bottom: 10px; }
+.profile-dropdown-avatar { width: 60px; height: 60px;
+border-radius: 50%; object-fit: cover; margin-bottom: 12px; border: 2px solid var(--border-color); }
+.profile-section-header .username { font-size: 16px; font-weight: 600;
+margin-bottom: 5px;}.profile-section-header .email { font-size: 12px; color: var(--text-secondary);}.profile-actions a { display: block; padding: 10px 15px; color: var(--text-primary); text-decoration: none;
+font-weight: 500; cursor: pointer;}.profile-actions a:hover { background-color: var(--border-color);}
+hr { border: none; border-top: 1px solid var(--border-color); margin: 0;}.auth-buttons { padding: 15px;
+display: flex; flex-direction: column; gap: 10px;}.auth-buttons .btn { text-align: center; padding: 8px 12px; border-radius: 5px; text-decoration: none; font-weight: 600;
+}.btn-primary { background-color: var(--accent-color); color: white;}.btn-secondary { background-color: var(--input-bg); color: var(--text-primary);}
+#top-search-wrapper { position: fixed; top: calc(var(--banner-height) + 15px); left: 50%;
+transform: translateX(-50%); z-index: 60; width: 400px; transition: opacity 0.2s ease;}
+#panel-search-placeholder { padding: 15px; background-color: var(--background-light);
+border-bottom: 1px solid var(--border-color);}
+#main-search-container { width: 100%; background: var(--background-light); border-radius: 28px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+padding: 0 15px; display: flex; align-items: center; position: relative; gap: 10px; border: 1px solid var(--border-color);}
+#main-search { width: 100%; border: none;
+outline: none; background: transparent; height: 48px; font-size: 16px; color: var(--text-primary);}
+#main-search::placeholder { color: var(--text-secondary); }
+#main-search-container .material-symbols-outlined { cursor: pointer;
+color: var(--text-secondary);}
+.suggestions-dropdown { position: absolute; background: var(--background-light); border: 1px solid var(--border-color); width: 100%; max-height: 200px; overflow-y: auto; border-radius: 8px;
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); z-index: 70; top: 110%; left: 0; display: none;
+padding: 0;}.suggestions-dropdown .search-result { padding: 12px 15px; cursor: pointer;}.suggestions-dropdown .search-result:hover { background-color: var(--border-color);}
+#side-panel { position: fixed; z-index: 55; background: var(--background-light);
+top: 0; left: -100%; width: var(--panel-width); height: 100%; box-shadow: 2px 0 15px rgba(0,0,0,0.2); transition: left 0.3s ease-in-out; overflow: hidden;
+display: flex; flex-direction: column; padding-top: var(--banner-height);}
+#side-panel.open { left: 0;}
+#panel-grabber { display: none;}
+#close-panel-btn { display: none; }
+.panel-content { flex-grow: 1;
+overflow-y: auto;}.header-image-container { position: relative; width: 100%; height: 200px;}.panel-content .header-image { width: 100%; height: 100%; object-fit: cover; background-color: var(--input-bg);
+display: block;}
+#close-info-btn { position: absolute; top: 10px; left: 10px; background-color: rgba(0, 0, 0, 0.4); border: none; color: white; width: 36px;
+height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
+transition: background-color 0.2s;}
+#close-info-btn:hover { background-color: rgba(0, 0, 0, 0.6);}
+.panel-content .info-content-padding { padding: 20px;}.panel-content h3 { margin: 0 0 5px 0;
+font-size: 24px; color: var(--text-primary); }.panel-content .address { color: var(--text-secondary); margin-bottom: 10px;}.panel-content .weather { display: flex; align-items: center; color: var(--text-secondary);
+margin-bottom: 20px; min-height: 32px;}.action-buttons { display: flex; justify-content: space-around; text-align: center;
+margin-bottom: 25px;}.action-buttons .btn-wrapper { cursor: pointer;}.action-buttons .icon-circle { width: 44px; height: 44px; border-radius: 50%; background-color: var(--accent-color); color: white; display: flex;
+align-items: center; justify-content: center; margin: 0 auto 5px auto;}.action-buttons .btn-label { color: var(--accent-color);
+font-weight: 600;}
+#quick-facts h4 { border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px;}
+#quick-facts-content { color: var(--text-primary);
+line-height: 1.6;}
+#directions-panel-redesign .dir-input-group { position: relative;}
+#directions-panel-redesign .dir-input-wrapper { display: flex; align-items: center; margin-bottom: 10px; position: relative;
+}
+#directions-panel-redesign .dir-input-wrapper .material-symbols-outlined { margin-right: 15px; color: var(--text-secondary);}
+#directions-panel-redesign .dir-input-wrapper input { width: 100%; padding: 12px; border: 1px solid var(--border-color);
+border-radius: 8px; background-color: var(--input-bg); color: var(--text-primary); }
+#swap-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin-top: -25px; width: 36px;
+height: 36px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--background-light); cursor: pointer; display: flex; align-items: center;
+justify-content: center;}
+#swap-btn .material-symbols-outlined { color: var(--text-secondary);}
+#directions-panel-redesign .dir-quick-select { display: flex; align-items: center; padding: 12px 0; cursor: pointer;
+border-bottom: 1px solid var(--border-color); color: var(--text-primary);}
+#directions-panel-redesign .dir-quick-select .icon-wrapper { margin-right: 15px; display: flex;
+align-items: center;}
+#directions-panel-redesign .dir-quick-select .material-symbols-outlined { color: var(--text-secondary);}
+#get-route-btn { background-color: var(--accent-color); color: white; border: none; padding: 12px 24px; font-size: 16px;
+font-weight: 600; border-radius: 8px; cursor: pointer; margin-top: 20px; width: 100%;
+transition: background-color 0.2s;}
+#get-route-btn:hover { background-color: var(--accent-hover);}
+#back-to-info-btn, #exit-route-btn, #back-to-directions-btn { background: none; border: none; color: var(--text-secondary); font-size: 14px; font-weight: 600;
+cursor: pointer; display: block; width: 100%; text-align: center; margin-top: 10px;}
+#route-section h3 { margin-top: 0;}
+#route-steps { list-style: none; padding: 0;
+margin: 0;}
+#route-steps li { padding: 15px 0; border-bottom: 1px solid var(--border-color); font-size: 16px;
+color: var(--text-primary);}
+#route-steps li:last-child { border-bottom: none;}
+#route-preview-panel .route-summary { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px 0;
+border-bottom: 1px solid var(--border-color); margin-bottom: 20px;}
+#route-preview-panel .route-summary h3 { font-size: 48px; font-weight: 700; color: var(--text-primary);
+margin: 0;}
+#route-preview-panel .route-summary div { font-size: 18px; color: var(--text-secondary); margin-top: 5px;}
+.user-location-marker { width: 20px; height: 20px; background-color: #1a73e8;
+border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.3);}
+#navigation-status { position: fixed; top: calc(var(--banner-height) + 15px); left: 15px;
+right: 15px; background: var(--background-light); z-index: 65; padding: 10px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: none; flex-direction: column;
+align-items: stretch; border: 1px solid var(--border-color); }
+#instruction-container { background-color: var(--accent-color); color: white; padding: 15px; border-radius: 10px; margin-bottom: 10px;
+box-shadow: 0 2px 8px rgba(0,0,0,0.1);}
+#navigation-instruction { font-size: 20px; font-weight: 700; margin-bottom: 8px;}
+#instruction-progress-bar { width: 100%; height: 5px;
+background-color: rgba(255, 255, 255, 0.4); border-radius: 2.5px; overflow: hidden; transform-origin: left; transition: transform 0.2s linear;}
+#trip-stats-container { display: flex; justify-content: space-around;
+padding: 10px 0; margin-bottom: 10px;}.stat-item { text-align: center;}
+#stat-speed, #stat-eta, #stat-time-remaining { font-size: 22px; font-weight: 600; display: block;
+color: var(--text-primary);}.stat-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase;}
+#end-navigation-btn { background-color: #d9534f; color: white; border: none; padding: 12px; font-size: 16px;
+font-weight: 600; border-radius: 8px; cursor: pointer;}
+#end-navigation-btn:hover { background-color: #c9302c;}
+.setting-group { display: flex; justify-content: space-between; align-items: center;}.setting-label { display: block;
+font-size: 14px; font-weight: 500; color: var(--text-primary); } .radio-group { display: flex; border: 1px solid var(--border-color); border-radius: 8px;
+overflow: hidden;}.radio-group label { flex: 1; text-align: center; padding: 10px 5px; cursor: pointer; transition: background-color 0.2s; font-weight: 500; color: var(--text-primary);
+}.radio-group input[type="radio"] { display: none;}.radio-group input[type="radio"]:checked + label { background-color: var(--accent-color);
+color: white;}.radio-group label:not(:last-of-type) { border-right: 1px solid var(--border-color);}
+.toggle-switch input { opacity: 0; width: 0; height: 0;}.toggle-switch label { cursor: pointer;
+width: 48px; height: 26px; background: var(--input-bg); display: block; border-radius: 26px; position: relative; transition: background-color 0.2s;}.toggle-switch label:after { content: '';
+position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; background: #fff; border-radius: 22px;
+transition: 0.2s;}.toggle-switch input:checked + label { background: var(--accent-color);}.toggle-switch input:checked + label:after { left: calc(100% - 2px);
+transform: translateX(-100%);}
+@media (max-width: 768px) and (pointer: coarse) { #top-search-wrapper { width: 90vw; left: 5vw; transform: none;
+} #profile-area { flex-grow: 1; justify-content: flex-end; } #site-title { flex-grow: 1; } #side-panel { top: auto; left: 0;
+width: 100%; height: var(--panel-mobile-height); border-radius: 20px 20px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,0.25); bottom: -100%;
+transition: bottom 0.35s cubic-bezier(0.25, 0.1, 0.25, 1); padding-top: 0; } #side-panel.peek { bottom: calc(-1 * (var(--panel-mobile-height) - var(--panel-mobile-peek)));
+} #side-panel.open { left: 0; bottom: 0; } #panel-grabber { display: block; width: 40px; height: 5px; background-color: var(--border-color); border-radius: 2.5px;
+position: absolute; top: 8px; left: 50%; transform: translateX(-50%); cursor: grab; } #map-watermark { display: none; } #navigation-status { left: 5px;
+right: 5px; border-radius: 15px; } #end-navigation-btn { text-align: center; }}
+
+/* Styles for the context menu */
+#context-menu { position: absolute;
+display: none; background-color: var(--background-light); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); padding: 8px 0; z-index: 1000;
+min-width: 220px; font-size: 14px; }
+#context-menu-coords { padding: 8px 16px; font-weight: 500; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); margin-bottom: 8px;
+}
+.context-menu-item { display: flex; align-items: center; padding: 8px 16px; cursor: pointer; color: var(--text-primary); }
+.context-menu-item:hover { background-color: var(--border-color);
+}
+.context-menu-item .material-symbols-outlined { margin-right: 16px; font-size: 20px; color: var(--text-secondary); }
+
+/* --- New Enhanced Search Styles --- */
+#initial-suggestions-view .suggestions-section { padding: 8px 16px 16px 16px;
+}
+#initial-suggestions-view .suggestions-header { font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 12px; }
+#recent-searches-container .recent-item { display: flex; align-items: center;
+padding: 12px 16px; cursor: pointer; border-radius: 6px; }
+#recent-searches-container .recent-item:hover { background-color: var(--border-color); }
+#recent-searches-container .recent-item .material-symbols-outlined { margin-right: 16px; color: var(--text-secondary);
+font-size: 20px; }
+.category-pills { display: flex; flex-wrap: wrap; gap: 10px; }
+.category-pill { display: flex; align-items: center; gap: 8px; background-color: var(--input-bg);
+border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; color: var(--text-primary);
+}
+.category-pill:hover { background-color: var(--border-color); }
+#api-suggestions-view .search-result { padding: 12px 16px;
+}
+
+/* --- New Unified Settings Modal Styles --- */
+.modal-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+z-index: 200; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.modal-overlay { position: absolute; top: 0; left: 0; width: 100%;
+height: 100%; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s ease; }
+.modal-content { background: var(--background-light); border: 1px solid var(--border-color); border-radius: 12px;
+box-shadow: 0 5px 25px rgba(0,0,0,0.25); width: 90%; max-width: 450px; opacity: 0; transform: scale(0.95); transition: opacity 0.3s ease, transform 0.3s ease;
+z-index: 201; }
+.modal-container.open { pointer-events: auto; }
+.modal-container.open .modal-overlay { opacity: 1; }
+.modal-container.open .modal-content { opacity: 1; transform: scale(1);
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); }
+.modal-header h4 { margin: 0;
+font-size: 18px; font-weight: 600; color: var(--text-primary); }
+.modal-close-btn { background: none; border: none; font-size: 28px; line-height: 1; padding: 0 5px;
+cursor: pointer; color: var(--text-secondary); }
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 15px; max-height: 70vh;
+overflow-y: auto;}
+.modal-body hr { margin: 0; }
+.setting-group { margin-bottom: 0; } 
+@media (max-width: 768px) { .modal-container { align-items: flex-end;
+} .modal-content { width: 100%; max-width: 100%; border-radius: 20px 20px 0 0; transform: translateY(100%);
+transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); } .modal-container.open .modal-content { transform: translateY(0);
+} }
+
+/* --- Travel Mode Selector Styles --- */
+.travel-modes {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 20px;
+}
+.travel-mode-btn {
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+color: var(--text-secondary);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.travel-mode-btn:hover {
+    background-color: var(--border-color);
+    color: var(--text-primary);
+}
+.travel-mode-btn.active {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+/* --- NEW STYLES FOR SEARCH RESULTS PANEL --- */
+
+/* Lays out the back button and header */
+.results-header {
+    margin-top: 0;
+margin-bottom: 16px;
+    font-size: 1.25rem;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+padding: 8px 0;
+    margin-bottom: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.8;
+}
+.back-button:hover {
+    opacity: 1;
+    color: var(--text-primary);
+}
+.back-button .material-symbols-outlined {
+    margin-right: 8px;
+}
+
+/* Main container for each result item */
+.search-result-item {
+    display: flex;
+align-items: center;
+    gap: 16px;
+    padding: 16px 8px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* Hover effect for interactivity */
+.search-result-item:hover {
+    background-color: var(--hover-bg);
+}
+
+/* Styles for the category icon (restaurant, gas, etc.) */
+.result-item-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+border-radius: 50%;
+    background-color: var(--accent-color-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-color);
+}
+.result-item-icon .material-symbols-outlined {
+    font-size: 24px;
+}
+
+/* Container for the name and address, allows it to take up available space */
+.result-item-details {
+    flex-grow: 1;
+overflow: hidden;
+}
+
+/* Title of the place */
+.result-item-details h4 {
+    margin: 0;
+font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Address or "Address not available" text */
+.result-item-details p {
+    margin: 4px 0 0;
+    font-size: 0.875rem;
+color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The distance text on the right */
+.result-item-distance {
+    flex-shrink: 0;
+font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Message for when no results are found */
+.no-results {
+    padding: 24px;
+text-align: center;
+    color: var(--text-secondary);
+}
+
+/* --- Styles for Sort Controls --- */
+
+.sort-controls {
+    display: flex;
+    gap: 8px;
+margin-bottom: 16px;
+}
+
+.sort-btn {
+    flex-grow: 1;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+background-color: transparent;
+    color: var(--text-secondary);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sort-btn.active,
+.sort-btn:hover {
+    background-color: var(--accent-color-light);
+color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+
+/* Updated styles for the Category Pills container to create a grid */
+.category-pills {
+    display: grid;
+grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 8px;
+}
+
+/* Updated styles for individual Category Pills */
+.category-pill {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    background-color: var(--surface-secondary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+transition: background-color 0.2s ease;
+}
+
+.category-pill:hover {
+    background-color: var(--surface-tertiary);
+}
+
+.category-pill .material-symbols-outlined {
+    font-size: 24px;
+color: var(--accent-color);
+}
+
+
+
+/* Allows the main content area to grow and fill available space */
+#welcome-panel .info-content-padding {
+    flex-grow: 1;
+}
+
+/* Styles for the Category Pills container to create a grid */
+.category-pills {
+    display: grid;
+grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 8px;
+}
+
+/* Styles for individual Category Pills */
+.category-pill {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+padding: 12px;
+    border: none;
+    border-radius: 12px;
+    background-color: var(--surface-secondary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+transition: background-color 0.2s ease;
+}
+
+.category-pill:hover {
+    background-color: var(--surface-tertiary);
+}
+
+.category-pill .material-symbols-outlined {
+    font-size: 24px;
+color: var(--accent-color);
+}
+
+/* --- STYLES FOR THE LEGAL FOOTER --- */
+.legal-footer {
+    padding: 16px;
+    text-align: center;
+font-size: 0.75rem;
+    color: var(--text-tertiary);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+}
+
+.legal-footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin: 0 4px;
+}
+
+.legal-footer a:hover {
+    text-decoration: underline;
+}
+
+.legal-footer p {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+/* --- NEW: Advanced Settings Styles --- */
+
+/* Link-style button for opening advanced settings */
+.btn-link {
+    background: none;
+border: none;
+    color: var(--accent-color);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 0;
+    text-align: center;
+    width: 100%;
+}
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+/* Column layout for setting groups */
+.setting-group-column {
+    display: flex;
+flex-direction: column;
+    gap: 8px;
+}
+
+.setting-description {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.setting-label-inner {
+    font-size: 14px;
+    color: var(--text-primary);
+    flex-grow: 1;
+}
+
+/* Styled select dropdown */
+.styled-select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+color: var(--text-primary);
+    font-size: 14px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23868e96' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+background-position: right 12px center;
+    background-size: 1em;
+    padding-right: 2.5em;
+}
+
+html[data-theme="dark"] .styled-select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+}
+
+/* Sortable list for tile priority */
+.sortable-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.sortable-item {
+    padding: 12px 16px;
+    background-color: var(--background-light);
+border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+    cursor: grab;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.sortable-item:last-child {
+    border-bottom: none;
+}
+
+.sortable-item:hover {
+    background-color: var(--hover-bg);
+}
+
+/* Style for the item being dragged */
+.sortable-item.dragging {
+    opacity: 0.5;
+    background-color: var(--accent-color-light);
+}
+
+/* Style for the drag handle */
+.sortable-item::before {
+    content: 'drag_indicator';
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+-webkit-font-smoothing: antialiased;
+    color: var(--text-secondary);
+}
+
+/* --- NEW: CUSTOM LAYERS CONTROL STYLES --- */
+.maplibregl-ctrl-layers {
+    position: relative;
+box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* The animated button */
+.maplibregl-ctrl-layers-btn {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+background-color: var(--background-light);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-primary);
+}
+
+.maplibregl-ctrl-layers-btn .material-symbols-outlined {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.maplibregl-ctrl-layers-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 8px;
+    white-space: nowrap;
+    opacity: 0;
+    width: 0;
+transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover animation for non-touch devices */
+@media (hover: hover) {
+    .maplibregl-ctrl-layers:not(.open) .maplibregl-ctrl-layers-btn:hover {
+        width: 95px;
     }
-    </script>
-</head>
-<body>
-    
-    <a href="#map" class="sr-only focus:not-sr-only fixed top-0 left-1/2 -translate-x-1/2 z-[9999] bg-blue-500 text-white p-3 rounded-b-lg font-semibold transition-all">
-      Skip to Map
-    </a>
-    
-    <div id="top-banner">
-        <a href="/" aria-label="TheBoiisMC Homepage" style="display: flex; align-items: center; gap: 8px; text-decoration: none;"
-        class="group">
-            <div style="width: 32px; height: 32px; border-radius: 8px; 
-                        background: linear-gradient(to bottom right, #6366F1, #3b82f6); /* Indigo to Blue Gradient */
-                        display: flex; align-items: center; justify-content: center; color: white; 
-              
-                        box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); transition: box-shadow 0.3s;"
-                 onmouseover="this.style.boxShadow='0 4px 15px rgba(99, 102, 241, 0.5)'"
-                 onmouseout="this.style.boxShadow='0 4px 10px rgba(99, 102, 241, 0.3)'">
-                <i class="material-symbols-rounded" style="font-size: 20px;">cloud</i>
-            </div>
-            <span style="font-size: 18px; font-weight: bold; letter-spacing: -0.5px; color: var(--text-primary);">
-              TheBoiis<span style="color: #6366F1;">MC</span>
-            </span>
-        </a>
-        <div id="profile-area">
-            <button id="settings-icon-btn" aria-label="Map Settings"><i class="material-symbols-rounded">settings</i></button>
-            <button id="profile-button" aria-label="User Profile"><i class="material-symbols-rounded">account_circle</i></button>
-            <button id="app-menu-button" aria-label="TheBoiisMC Apps Menu"><i class="material-symbols-rounded">apps</i></button>
-            
-           
-            <div id="services-dropdown">
-                <a href="https://search.theboiismc.com" class="service-item"><i class="material-symbols-rounded">search</i><span class="service-name">Search</span></a>
-                <a href="https://maps.theboiismc.com" class="service-item"><i class="material-symbols-rounded">map</i><span class="service-name">Maps</span></a>
-                <a href="https://drive.theboiismc.com" class="service-item"><i class="material-symbols-rounded">cloud</i><span class="service-name">Drive</span></a>
-                <a href="https://myaccount.theboiismc.com" class="service-item"><i class="material-symbols-rounded">account_circle</i><span class="service-name">Account</span></a>
-            </div>
+    .maplibregl-ctrl-layers:not(.open) .maplibregl-ctrl-layers-btn:hover .maplibregl-ctrl-layers-label {
+        opacity: 1;
+width: auto;
+    }
+}
 
-  
-            <div id="profile-dropdown">
-                <div id="logged-in-view" hidden>
-                    <div class="profile-section profile-section-header">
-                        <img id="dropdown-avatar" 
-                       
-                        class="profile-dropdown-avatar" src="" alt="User Avatar" hidden />
-                        <div class="username">User</div>
-                        <div class="email">user@example.com</div>
-                    </div>
-                    <hr/>
-    
-                    <div class="profile-actions">
-                        <a href="#" id="saved-places-btn">Saved Places</a>
-                    </div>
-                    <hr/>
-                
-                    <div class="profile-actions">
-                        <a href="#" id="logout-btn">Log Out</a>
-                    </div>
-                </div>
-                <div id="logged-out-view" hidden>
-              
-                    <div class="profile-section" style="text-align:center; font-weight: 500;
-                    color: var(--text-secondary);">Sign in to save and view places</div>
-                    <hr/>
-                    <div class="auth-buttons">
-                        <a href="#" id="login-btn" class="btn btn-primary" role="button">Log In</a>
-                       
-                        <a href="#" id="signup-btn" class="btn btn-secondary" role="button">Sign Up</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="navigation-status" role="region" aria-label="Navigation Status">
-        <div id="lane-guidance-container"></div>
-        <div id="instruction-container">
-       
-            <div id="navigation-instruction" aria-live="polite">Starting navigation...</div>
-            <div id="instruction-progress-bar" style="transform: scaleX(0);"></div>
-        </div>
-        <div id="trip-stats-container">
-            <div class="stat-item"><span id="stat-speed">--</span><span class="stat-label">mph</span></div>
-            <div class="stat-item"><span id="stat-miles-remaining">--.-</span><span class="stat-label">mi</span></div>
-            <div class="stat-item"><span id="stat-time-remaining">-- min</span><span class="stat-label">Time</span></div>
-            <div class="stat-item"><span id="stat-eta">--:--</span><span 
-            class="stat-label">ETA</span></div>
-        </div>
-        <button id="end-navigation-btn" aria-label="End Navigation Trip">End Trip</button>
-    </div>
-    
-    <div id="top-search-wrapper">
-        <div id="main-search-container">
-            <i id="search-icon-inside" class="material-symbols-rounded" aria-hidden="true">search</i>
-            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" aria-label="Search TheBoiisMC Maps" />
-            <button id="main-directions-icon" aria-label="Get Directions">
-                <i class="material-symbols-rounded">route</i>
-            </button>
-            <div id="main-suggestions" class="suggestions-dropdown" role="listbox">
-                <div id="initial-suggestions-view">
-                    <div id="recent-searches-container"></div>
-                </div>
-                <div id="api-suggestions-view" hidden></div>
-            </div>
- 
-        </div>
-    </div>
- 
-    
-    <div id="side-panel" role="complementary" aria-label="Map Information and Search Panel">
-        <div id="panel-grabber" role="separator" aria-orientation="vertical" aria-label="Drag to resize panel"></div>
-        <div id="panel-search-placeholder" hidden></div>
-        <div class="panel-content">
-            
-            <div id="welcome-panel" hidden>
-                <div class="info-content-padding">
-        
-                    <h3>Welcome 
-                    to TheBoiisMC Maps</h3>
-                    <p style="margin-top: 8px;
-                    color: var(--text-secondary);">Your private, modern mapping experience. Search for a place or plan a route to get started.</p>
+/* Style for when panel is open */
+.maplibregl-ctrl-layers.open .maplibregl-ctrl-layers-btn {
+    background-color: var(--hover-bg);
+}
 
-                    <h3 class="find-nearby-header" style="margin-top: 24px;">Find Nearby</h3>
-                    <div class="category-pills">
-                        <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant" aria-label="Find Nearby Restaurants">
-                            <i class="material-symbols-rounded" aria-hidden="true">restaurant</i> Restaurants
-                        </button>
-                        <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel" aria-label="Find Nearby Gas Stations">
-                            <i 
-                            class="material-symbols-rounded" aria-hidden="true">local_gas_station</i> Gas
-                        </button>
-                        <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe" aria-label="Find Nearby Coffee Shops">
-                            <i class="material-symbols-rounded" aria-hidden="true">local_cafe</i> Coffee
-                
-                        </button>
-                        <button class="category-pill" data-query="parks" data-osm-tag="leisure=park" aria-label="Find Nearby Parks">
-                            <i class="material-symbols-rounded" aria-hidden="true">park</i> Parks
-                        </button>
-          
-                    </div>
+/* The pop-up panel */
+.maplibregl-ctrl-layers-panel {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: 0;
+    width: 300px;
+    background-color: var(--background-light);
+    border-radius: 12px;
+box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    border: 1px solid var(--border-color);
+    z-index: -1;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
 
-                    <div class="action-buttons" style="margin-top: 24px;">
-                        <div class="btn-wrapper" id="welcome-directions-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">route</i></div><div class="btn-label">Directions</div></div>
-                    </div>
-                </div>
- 
-                <div class="legal-footer">
-                    <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Privacy</a>
-                    <span>&middot;</span>
-                    <a href="/terms.html" target="_blank" rel="noopener noreferrer">Terms</a>
-               
-                    <p>Copyright &copy; 2025 TheBoiisMC</p>
-                </div>
-            </div>
+.maplibregl-ctrl-layers.open .maplibregl-ctrl-layers-panel {
+    opacity: 1;
+    visibility: visible;
+transform: translateY(0);
+    z-index: 1;
+}
 
-            <div id="saved-places-panel" hidden>
-                <div class="info-content-padding">
-                    <button id="back-from-saved-btn" class="back-button" aria-label="Back to previous view">
-                        <i class="material-symbols-rounded" aria-hidden="true">arrow_back</i> Back
-                    </button>
-                    <h3 class="results-header">Saved Places</h3>
-                    <div id="saved-places-list" role="list">
-                     
-                    </div>
-                </div>
-            </div>
-            
-            <div id="search-results-panel" hidden>
-                <div class="info-content-padding">
-        
-                    <button id="back-from-results-btn" class="back-button" aria-label="Back to previous view">
-                        <i class="material-symbols-rounded" aria-hidden="true">arrow_back</i> Back
-                    </button>
-                    <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
-               
-                    <div class="sort-controls">
-                        <button id="sort-by-distance-btn" class="sort-btn active" data-sort="distance" aria-pressed="true">Distance</button>
-                        <button id="sort-by-rating-btn" class="sort-btn" data-sort="rating" aria-pressed="false">Rating</button>
-                    </div>
-                   
-                    <div id="search-results-list" role="list"></div>
-                </div>
-            </div>
-            
-            <div id="info-panel-redesign" hidden>
-                <div class="header-image-container">
-                    <img class="header-image" id="info-image" src="" alt="Image of the 
-                    location" loading="lazy"/>
-                    <button id="close-info-btn" aria-label="Close Information Panel"><i class="material-symbols-rounded">arrow_back</i></button>
-                </div>
-                <div class="info-content-padding">
-                    <h3 id="info-name"></h3>
-                    <div class="address" 
-                    id="info-address"></div>
-                    <div class="weather" id="info-weather"></div>
-                    <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">route</i></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-website-btn" 
-                        style="display: none;" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">language</i></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">bookmark</i></div><div class="btn-label">Save</div></div>
-                    </div>
-                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
-                </div>
-      
-            </div>
-            
- 
-            <div id="directions-panel-redesign" hidden>
-                <div class="info-content-padding">
-                    <div class="travel-modes" role="radiogroup" aria-label="Travel Mode">
-                        <button class="travel-mode-btn active" data-mode="driving" aria-label="Driving Mode" role="radio" aria-checked="true">
-                            <i class="material-symbols-rounded">directions_car</i>
-                        </button>
-                        <button class="travel-mode-btn" data-mode="walking" aria-label="Walking Mode" role="radio" aria-checked="false">
-                            <i class="material-symbols-rounded">directions_walk</i>
-                    
-                        </button>
-                        <button class="travel-mode-btn" data-mode="cycling" aria-label="Cycling Mode" role="radio" aria-checked="false">
-                            <i class="material-symbols-rounded">directions_bike</i>
-         
-                        </button>
-                    </div>
-                    <div class="dir-input-group">
-                        <div class="dir-input-wrapper">
-                            <i class="material-symbols-rounded" aria-hidden="true">trip_origin</i>
-                            <input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off" aria-label="Choose starting point"/>
-                        </div>
-           
-                        <div id="panel-from-suggestions" class="suggestions-dropdown" role="listbox"></div>
-                        <div class="dir-input-wrapper">
-                            <i class="material-symbols-rounded" aria-hidden="true">location_on</i>
-                            <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off" aria-label="Choose destination"/>
-                        </div>
-                        <div id="panel-to-suggestions" class="suggestions-dropdown" role="listbox"></div>
-                        <button id="swap-btn" aria-label="Swap Start and End Points"><i class="material-symbols-rounded">swap_vert</i></button>
-                    </div>
-                    <div class="dir-quick-select" id="dir-use-my-location" role="button" tabindex="0" aria-label="Use My Current Location"><div class="icon-wrapper"><i class="material-symbols-rounded">my_location</i></div>Your location</div>
-                    <button id="get-route-btn">Get Route</button>
-                    <button id="back-to-info-btn">Back</button>
-                </div>
-            </div>
-   
-            
-           
-            <div id="route-preview-panel" hidden>
-                <div class="info-content-padding">
-                    <div class="route-summary">
-                        <h3 id="route-summary-time">--</h3>
-   
-                        <div id="route-summary-distance"></div>
-                    </div>
-                    <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">navigation</i></div><div class="btn-label">Start Trip</div></div>
-      
-                        <div class="btn-wrapper" id="share-route-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">share</i></div><div class="btn-label">Share</div></div>
-                        <div class="btn-wrapper" id="view-steps-btn" role="button" tabindex="0"><div class="icon-circle"><i class="material-symbols-rounded">list</i></div><div class="btn-label">Steps</div></div>
-                    </div>
-                    <button id="back-to-directions-btn">Back</button>
-     
-                </div>
-            </div>
-        
-            
-            <div id="route-section" hidden>
-                <div class="info-content-padding">
-                    <h3>Route Steps</h3>
-     
-                    <button id="exit-route-btn">Back</button>
-                    <ol id="route-steps" role="list"></ol>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="settings-modal" class="modal-container" role="dialog" aria-modal="true" aria-labelledby="settings-modal-header">
-        <div id="modal-overlay" class="modal-overlay"></div>
-   
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 id="settings-modal-header">Map Settings</h4>
-                <button id="close-settings-btn" class="modal-close-btn" aria-label="Close Settings">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="setting-group"><span class="setting-label">Globe 
-                    View</span><div class="toggle-switch"><input type="checkbox" id="globe-toggle" name="map-globe"><label for="globe-toggle">Toggle Globe View</label></div></div>
-                <hr>
-                <div class="setting-group"><span 
-                class="setting-label">Units</span><div class="radio-group" role="radiogroup" aria-labelledby="units-label"><span id="units-label" class="sr-only">Select Units</span><input type="radio" id="units-imperial" name="map-units" value="imperial" checked><label for="units-imperial">Imperial</label><input type="radio" id="units-metric" name="map-units" value="metric"><label for="units-metric">Metric</label></div></div>
-                <hr>
-                <div 
-                class="setting-group"><span class="setting-label">Navigation Voice</span><div class="radio-group" role="radiogroup" aria-labelledby="voice-label"><span id="voice-label" class="sr-only">Select Navigation Voice</span><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
-                <hr>
-                <div class="setting-group"><span class="setting-label">Theme</span><div class="radio-group" role="radiogroup" aria-labelledby="theme-label"><span id="theme-label" class="sr-only">Select Theme</span><input type="radio" id="theme-auto" name="map-theme" value="auto"><label for="theme-auto">Auto</label><input 
-                type="radio" id="theme-light" name="map-theme" value="light"><label for="theme-light">Light</label><input type="radio" id="theme-dark" name="map-theme" value="dark"><label for="theme-dark">Dark</label></div></div>
-                
-    
-                <hr>
-                <button id="advanced-settings-btn" class="btn-link">Advanced Settings...</button>
-            </div>
-        </div>
-    </div>
+.layers-panel-header {
+    padding: 12px 16px;
+border-bottom: 1px solid var(--border-color);
+}
 
-    <div id="advanced-settings-modal" class="modal-container" role="dialog" aria-modal="true" aria-labelledby="advanced-settings-modal-header">
-        <div id="modal-overlay-advanced" 
-        class="modal-overlay"></div>
-        <div class="modal-content">
-            
-            <div class="modal-header">
-                <h4 id="advanced-settings-modal-header">Advanced Settings</h4>
-                <button id="close-advanced-settings-btn" class="modal-close-btn" aria-label="Close Advanced Settings">&times;</button>
-            </div>
-            <div class="modal-body">
-               
-                <div class="setting-group-column">
-    
-                    <span class="setting-label">Tile Service Priority</span>
-                    <span class="setting-description">Drag to re-order.
-                    The app will try to load maps from the top of the list first.</span>
-                    <ul id="tile-priority-list" class="sortable-list" role="list">
-                        </ul>
-                </div>
-                <hr>
-         
-                <div class="setting-group">
-                    <label for="language-select" class="setting-label">Language</label>
-                    <select id="language-select" class="styled-select">
-                        <option value="en">English</option>
-               
-                        <option value="es">Español (coming soon)</option>
-                        <option value="fr">Français (coming soon)</option>
-                    </select>
-                </div>
- 
-                <hr>
-                <div class="setting-group-column">
- 
-                    <span class="setting-label">Privacy</span>
-                    <div class="setting-group">
-                        <span 
-                        class="setting-label-inner">Clear Recent Searches on Exit</span>
-                        <div class="toggle-switch">
-     
-                            <input type="checkbox" id="privacy-clear-recents-toggle" name="privacy-clear-recents">
-                            <label for="privacy-clear-recents-toggle">Toggle clear searches on exit</label>
-      
-                        </div>
-                    </div>
- 
-                    <div class="setting-group">
-                        <span class="setting-label-inner">Disable Search Suggestions</span>
-             
-                        <div class="toggle-switch">
-                            
-                            <input type="checkbox" id="privacy-disable-suggestions-toggle" name="privacy-disable-suggestions">
-                            <label 
-                            for="privacy-disable-suggestions-toggle">Toggle search suggestions</label>
-                        </div>
-                    </div>
-                </div>
-        
-            </div>
-        </div>
-    </div>
+.layers-panel-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
 
-    <div id="context-menu" role="menu" hidden>
-   
-        <div id="context-menu-coords" aria-live="polite"></div>
-        <div class="context-menu-item" id="ctx-directions-from" role="menuitem"><i class="material-symbols-rounded" aria-hidden="true">near_me_disabled</i><span>Directions from here</span></div>
-        <div class="context-menu-item" id="ctx-directions-to" role="menuitem"><i class="material-symbols-rounded" aria-hidden="true">location_on</i><span>Directions to here</span></div>
-        <div class="context-menu-item" id="ctx-whats-here" role="menuitem"><i class="material-symbols-rounded" aria-hidden="true">help</i><span>What's here?</span></div>
-    </div>
-    
-    <div id="map" role="application" aria-label="Interactive Map Display"></div>
-    
-    <div id="copyright-footer">
-       
-        <p>Copyright &copy;
-            <span id="current-year"></span> TheBoiisMC. Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</p>
-    </div>
+/* Style selectors (e.g., Default, Satellite) */
+.layers-panel-style-group {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+}
 
-    <div id="rerouting-overlay" role="alert" aria-live="assertive">Rerouting...</div>
-    
-    <button id="search-this-area-btn" class="search-area-btn" hidden aria-label="Search this visible map area">Search this area</button>
-    
-    <div id="toast-container" role="status" aria-live="polite"></div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js" defer></script>
-    <script src="libs/js/maplibre-gl-4.1.0.js" defer></script>
-    <script src='libs/js/turf-6.5.0.min.js' defer></script>
-    <script src="app.js" defer></script>
-    <script>
-        // Set the current year for the copyright footer
-        document.getElementById('current-year').textContent 
-        = new Date().getFullYear();
-    </script>
-</body>
-</html>
+.layers-panel-style-btn {
+    flex: 1;
+    background: none;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 0;
+    cursor: pointer;
+font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.layers-panel-style-btn img {
+    width: 100%;
+    height: auto;
+aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
+    margin-bottom: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.layers-panel-style-btn:hover {
+    color: var(--text-primary);
+}
+
+.layers-panel-style-btn.active {
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.layers-panel-section {
+    padding: 12px 16px 16px 16px;
+}
+
+.layers-panel-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Profile Avatar */
+.profile-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.profile-avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* Saved Places List */
+.saved-place-item {
+    display: flex;
+align-items: center;
+padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+}
+.saved-place-item:last-child { border-bottom: none;
+}
+.saved-place-item .icon {
+    color: var(--text-secondary);
+    margin-right: 12px;
+}
+.saved-place-item .details {
+    flex: 1;
+    overflow: hidden;
+}
+.saved-place-item .name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.saved-place-item .addr {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.saved-place-item .delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+padding: 4px;
+}
+.saved-place-item .delete-btn:hover { color: #d32f2f; }
