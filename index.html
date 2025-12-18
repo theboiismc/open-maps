@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
 
-    <meta name="theme-color" content="#00796b" />
+    <meta name="theme-color" content="#030712" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/assets/icon512_rounded.png">
 
@@ -31,20 +31,20 @@
     </noscript>
 
     <link href="https://static.theboiismc.com/css/maplibre-gl-4.1.0.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://static.theboiismc.com/css/styles.css">
+    <link rel="stylesheet" href="styles.css">
 
     <style>
         #lane-guidance-container {
             display: flex;
             gap: 2px;
             position: absolute;
-            top: 8px;
+            top: 70px; /* Adjusted for larger header */
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.8);
             padding: 4px 8px;
-            border-radius: 16px;
-            z-index: 10;
+            border-radius: 12px;
+            z-index: 80;
         }
         .lane-icon {
             font-size: 24px;
@@ -52,7 +52,7 @@
             color: #999;
         }
         .lane-icon.active {
-            color: #3b82f6; /* Blue for active lane */
+            color: #6366F1; /* Brand Indigo */
         }
 
         #rerouting-overlay {
@@ -98,11 +98,19 @@
 </head>
 <body>
     <div id="top-banner">
-        <span id="site-title">TheBoiisMC Maps</span>
+        <a href="/" class="brand-logo-container">
+            <div class="brand-icon-box">
+                <span class="material-symbols-outlined" style="font-size: 20px;">cloud</span>
+            </div>
+            <span class="brand-text">
+                TheBoiis<span class="text-brand">Maps</span>
+            </span>
+        </a>
         <div id="profile-area">
             <button id="settings-icon-btn" aria-label="Map Settings"><span class="material-symbols-outlined">tune</span></button>
             <button id="profile-button" aria-label="User Profile"><span class="material-symbols-outlined">account_circle</span></button>
             <button id="app-menu-button" aria-label="TheBoiisMC Apps"><span class="material-symbols-outlined">apps</span></button>
+     
             <div id="services-dropdown">
                 <a href="https://search.theboiismc.com" class="service-item"><span class="material-symbols-outlined">search</span><span class="service-name">Search</span></a>
                 <a href="https://maps.theboiismc.com" class="service-item"><span class="material-symbols-outlined">map</span><span class="service-name">Maps</span></a>
@@ -138,8 +146,7 @@
     </div>
     
     <div id="navigation-status">
-        <div id="lane-guidance-container">
-            </div>
+        <div id="lane-guidance-container"></div>
         <div id="instruction-container">
             <div id="navigation-instruction">Starting navigation...</div>
             <div id="instruction-progress-bar" style="transform: scaleX(0);"></div>
