@@ -1,52 +1,76 @@
-const CACHE_NAME = 'theboiismc-maps-cache-v2';
+const CACHE_NAME = 'theboiismc-maps-cache-v4'; // Updated version
+
 const urlsToCache = [
   '/',
   '/index.html',
-  '/app.js',
-  '/callback.html',
-  '/callback.js',
   '/manifest.json',
   '/favicon.ico',
-  '/icon-192x192.png',
-  '/icon512_rounded.png',
-  '/icon512_maskable.png',
+  '/assets/icon512_rounded.png', // Ensure this image exists on your server
   
-  // Local resources as specified in your HTML
-  '/libs/css/maplibre-gl-4.1.0.css',
-  '/libs/css/styles.css',
-  '/libs/js/maplibre-gl-4.1.0.js',
-  '/libs/js/turf-6.5.0.min.js',
+  // Static Resources from your static server
+  'https://static.theboiismc.com/css/maplibre-gl-4.1.0.css',
+  'https://static.theboiismc.com/css/styles.css',
+  'https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js',
+  'https://static.theboiismc.com/js/maps/turf.js',
+  'https://static.theboiismc.com/js/maps/app.js'
+];
 
 // Install event - cache all resources
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+      .then(cache => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
       .then(() => self.skipWaiting())
   );
 });
 
-// Activate event - remove old caches if they don't match the current CACHE_NAME
+// Activate event - remove old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) return caches.delete(cache);
+          if (cache !== CACHE_NAME) {
+            console.log('Deleting old cache:', cache);
+            return caches.delete(cache);
+          }
         })
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Fetch event - serve cached content first, then try network if not cached
+// Fetch event - Stale-While-Revalidate strategy
 self.addEventListener('fetch', event => {
+  // Skip cross-origin authentication requests or non-GET requests
   if (event.request.method !== 'GET' || event.request.url.startsWith('https://accounts.theboiismc.com')) {
     return;
   }
+
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
+    caches.match(event.request).then(cachedResponse => {
+      const fetchPromise = fetch(event.request).then(networkResponse => {
+        // Valid response check
+        if (!networkResponse || networkResponse.status !== 200 || (networkResponse.type !== 'basic' && networkResponse.type !== 'cors')) {
+          return networkResponse;
+        }
+
+        // Update cache with new version
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, responseToCache);
+        });
+
+        return networkResponse;
+      }).catch(() => {
+        // Fallback logic could go here
+      });
+
+      // Return cached response immediately if available, otherwise wait for network
+      return cachedResponse || fetchPromise;
     })
   );
 });
