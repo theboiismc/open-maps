@@ -27,68 +27,6 @@
     <link href="https://static.theboiismc.com/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     <link rel="stylesheet" href="https://static.theboiismc.com/css/styles.css">
 
-    <style>
-        /* --- BRANDING HEADER STYLES --- */
-        /* These ensure the logo looks exactly like your main site */
-        .brand-link {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            color: var(--text-primary);
-            cursor: pointer;
-        }
-
-        .brand-icon-box {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 0.5rem;
-            /* TheBoiisMC Indigo Gradient */
-            background: linear-gradient(to bottom right, #6366F1, #2563eb);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .brand-link:hover .brand-icon-box {
-            box-shadow: 0 6px 15px rgba(99, 102, 241, 0.5);
-            transform: translateY(-1px);
-        }
-
-        .brand-text {
-            font-size: 1.25rem;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-            color: var(--text-primary);
-            line-height: 1;
-            margin-left: 8px;
-        }
-
-        .brand-highlight {
-            color: #6366F1; /* Brand Indigo */
-        }
-
-        /* --- MAP UI SPECIFIC STYLES --- */
-        #lane-guidance-container {
-            display: flex; gap: 2px; position: absolute; top: 8px; left: 50%;
-            transform: translateX(-50%); background: rgba(0,0,0,0.8);
-            padding: 6px 10px; border-radius: 20px; z-index: 10;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .lane-icon { font-size: 24px; font-weight: bold; color: #777; }
-        .lane-icon.active { color: #3b82f6; } 
-        
-        #rerouting-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6); 
-            backdrop-filter: blur(4px); color: white;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 1.5rem; font-weight: 600; z-index: 10000;
-            opacity: 0; visibility: hidden; transition: opacity 0.3s;
-        }
-        #rerouting-overlay.visible { opacity: 1; visibility: visible; }
-    </style>
 
     <script type="application/ld+json">
     {
