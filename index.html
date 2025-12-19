@@ -32,9 +32,13 @@
 
     <link href="https://static.theboiismc.com/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     
-    <link rel="stylesheet" href="https://static.theboiismc.com/css/mapstyles.css">
-
-  
+    <script>
+        var cssLink = document.createElement("link");
+        cssLink.rel = "stylesheet";
+        // Ensure this filename matches what is on your server (mapstyles.css)
+        cssLink.href = "https://static.theboiismc.com/css/mapstyles.css?v=" + new Date().getTime();
+        document.head.appendChild(cssLink);
+    </script>
 
     <script type="application/ld+json">
     {
@@ -344,6 +348,11 @@
     <script src="https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js" defer></script>
     <script src='https://static.theboiismc.com/js/maps/turf.js' defer></script>
     
-    <script src="https://static.theboiismc.com/js/maps/app.js" defer></script>
+    <script>
+        var appScript = document.createElement("script");
+        appScript.src = "https://static.theboiismc.com/js/maps/app.js?v=" + new Date().getTime();
+        appScript.defer = true;
+        document.body.appendChild(appScript);
+    </script>
 </body>
 </html>
