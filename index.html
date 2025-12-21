@@ -7,7 +7,7 @@
     <title>TheBoiisMC Maps - Private Navigation & Directions</title>
 
     <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
-    9
+    
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
@@ -209,23 +209,61 @@
             </div>
             
             <div id="info-panel-redesign" hidden>
-                <div class="header-image-container">
-                    <img class="header-image" id="info-image" src="" alt="Image of the location" loading="lazy"/>
-                    <button id="close-info-btn"><span class="material-symbols-outlined">arrow_back</span></button>
-                </div>
-                <div class="info-content-padding">
-                    <h3 id="info-name"></h3>
-                    <div class="address" id="info-address"></div>
-                    <div class="weather" id="info-weather"></div>
-                    <div class="action-buttons">
-                        <div class="btn-wrapper" id="info-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
-                        <div class="btn-wrapper" id="info-website-btn" style="display: none;"><div class="icon-circle"><span class="material-symbols-outlined">public</span></div><div class="btn-label">Website</div></div>
-                        <div class="btn-wrapper" id="info-save-btn"><div class="icon-circle"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></div>
+                <div class="panel-hero">
+                    <div class="hero-image-wrapper">
+                        <img id="info-image" src="" alt="Location Image" loading="lazy" />
+                        <div class="hero-gradient"></div>
                     </div>
-                    <div id="quick-facts"><h4>Quick facts</h4><p id="quick-facts-content"></p></div>
+                    <button id="close-info-btn" aria-label="Close">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                    </button>
+                    <div class="hero-text-content">
+                        <h3 id="info-name">Location Name</h3>
+                        <div id="info-weather" class="weather-badge" hidden>
+                            <span class="material-symbols-outlined">cloud</span>
+                            <span id="weather-text">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-content-padding">
+                    <div class="address-row">
+                        <span class="material-symbols-outlined">location_on</span>
+                        <p id="info-address"></p>
+                    </div>
+
+                    <div class="action-buttons modern-actions">
+                        <div class="btn-wrapper" id="info-directions-btn">
+                            <div class="icon-circle primary">
+                                <span class="material-symbols-outlined">directions</span>
+                            </div>
+                            <div class="btn-label">Directions</div>
+                        </div>
+                        <div class="btn-wrapper" id="info-website-btn" style="display: none;">
+                            <div class="icon-circle secondary">
+                                <span class="material-symbols-outlined">public</span>
+                            </div>
+                            <div class="btn-label">Website</div>
+                        </div>
+                        <div class="btn-wrapper" id="info-save-btn">
+                            <div class="icon-circle secondary">
+                                <span class="material-symbols-outlined">bookmark_border</span>
+                            </div>
+                            <div class="btn-label">Save</div>
+                        </div>
+                    </div>
+
+                    <hr class="panel-divider" />
+
+                    <div class="panel-card">
+                        <div class="card-header">
+                            <span class="material-symbols-outlined">info</span>
+                            <h4>About</h4>
+                        </div>
+                        <p id="quick-facts-content">Loading info...</p>
+                    </div>
                 </div>
             </div>
-            
             <div id="directions-panel-redesign" hidden>
                 <div class="info-content-padding">
                     <div class="travel-modes">
