@@ -31,25 +31,7 @@
     </noscript>
 
     <link href="https://static.theboiismc.com/css/maplibre-gl-4.1.0.css" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://static.theboiismc.com/css/mapsyles19.css">
-
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "TheBoiisMC Maps",
-      "url": "https://maps.theboiismc.com/",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://maps.theboiismc.com/?q={search_term_string}"
-        },
-        "query-input": "required name=search_term_string"
-      }
-    }
-    </script>
 </head>
 <body>
     <div id="top-banner">
@@ -136,181 +118,12 @@
     
     <div id="side-panel">
         <div id="panel-grabber"></div>
+        
         <div id="panel-search-placeholder" hidden></div>
+
         <div class="panel-content">
-            
-            <div id="welcome-panel" hidden>
-                <div class="info-content-padding">
-                    
-                    <div class="welcome-header-section">
-                        <h3>Explore</h3>
-                        <p>Navigate the world privately.</p>
-                    </div>
-
-                    <div class="category-pills">
-                        <button class="category-pill card-style" data-query="restaurants" data-osm-tag="amenity=restaurant">
-                            <div class="cat-icon-box color-orange">
-                                <span class="material-symbols-outlined">restaurant</span>
-                            </div>
-                            <span class="cat-label">Restaurants</span>
-                        </button>
-                        
-                        <button class="category-pill card-style" data-query="gas stations" data-osm-tag="amenity=fuel">
-                            <div class="cat-icon-box color-blue">
-                                <span class="material-symbols-outlined">local_gas_station</span>
-                            </div>
-                            <span class="cat-label">Gas</span>
-                        </button>
-                        
-                        <button class="category-pill card-style" data-query="coffee" data-osm-tag="amenity=cafe">
-                            <div class="cat-icon-box color-brown">
-                                <span class="material-symbols-outlined">coffee</span>
-                            </div>
-                            <span class="cat-label">Coffee</span>
-                        </button>
-                        
-                        <button class="category-pill card-style" data-query="parks" data-osm-tag="leisure=park">
-                            <div class="cat-icon-box color-green">
-                                <span class="material-symbols-outlined">park</span>
-                            </div>
-                            <span class="cat-label">Parks</span>
-                        </button>
-                    </div>
-
-                    <div class="action-buttons-modern">
-                        <button id="welcome-directions-btn" class="modern-primary-btn">
-                            <span class="material-symbols-outlined">directions</span>
-                            Plan a Drive
-                        </button>
-                    </div>
+            <div id="dynamic-content">
                 </div>
-
-                <div class="legal-footer">
-                    <a href="https://www.theboiismc.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
-                    <span>&middot;</span>
-                    <a href="https://www.theboiismc.com/terms" target="_blank" rel="noopener noreferrer">Terms</a>
-                    <p>Copyright &copy; 2025 TheBoiisMC</p>
-                </div>
-            </div>
-            
-            <div id="search-results-panel" hidden>
-                <div class="info-content-padding">
-                    <button id="back-from-results-btn" class="back-button">
-                        <span class="material-symbols-outlined">arrow_back</span> Back
-                    </button>
-                    <h3 class="results-header">Results for "<span id="search-results-query"></span>"</h3>
-                    <div class="sort-controls">
-                        <button id="sort-by-distance-btn" class="sort-btn active" data-sort="distance">Distance</button>
-                        <button id="sort-by-rating-btn" class="sort-btn" data-sort="rating">Rating</button>
-                    </div>
-                    <div id="search-results-list">
-                    </div>
-                </div>
-            </div>
-            
-            <div id="info-panel-redesign" hidden>
-                <div class="panel-hero">
-                    <div class="hero-image-wrapper">
-                        <img id="info-image" src="" alt="Location Image" loading="lazy" />
-                        <div class="hero-gradient"></div>
-                    </div>
-                    <button id="close-info-btn" aria-label="Close">
-                        <span class="material-symbols-outlined">arrow_back</span>
-                    </button>
-                    <div class="hero-text-content">
-                        <h3 id="info-name">Location Name</h3>
-                        <div id="info-weather" class="weather-badge" hidden>
-                            <span class="material-symbols-outlined">cloud</span>
-                            <span id="weather-text">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="info-content-padding">
-                    <div class="address-row">
-                        <span class="material-symbols-outlined">location_on</span>
-                        <p id="info-address"></p>
-                    </div>
-
-                    <div class="action-buttons modern-actions">
-                        <div class="btn-wrapper" id="info-directions-btn">
-                            <div class="icon-circle primary">
-                                <span class="material-symbols-outlined">directions</span>
-                            </div>
-                            <div class="btn-label">Directions</div>
-                        </div>
-                        <div class="btn-wrapper" id="info-website-btn" style="display: none;">
-                            <div class="icon-circle secondary">
-                                <span class="material-symbols-outlined">public</span>
-                            </div>
-                            <div class="btn-label">Website</div>
-                        </div>
-                        <div class="btn-wrapper" id="info-save-btn">
-                            <div class="icon-circle secondary">
-                                <span class="material-symbols-outlined">bookmark_border</span>
-                            </div>
-                            <div class="btn-label">Save</div>
-                        </div>
-                    </div>
-
-                    <hr class="panel-divider" />
-
-                    <div class="panel-card">
-                        <div class="card-header">
-                            <span class="material-symbols-outlined">info</span>
-                            <h4>About</h4>
-                        </div>
-                        <p id="quick-facts-content">Loading info...</p>
-                    </div>
-                </div>
-            </div>
-            <div id="directions-panel-redesign" hidden>
-                <div class="info-content-padding">
-                    <div class="travel-modes">
-                        <button class="travel-mode-btn active" data-mode="driving" aria-label="Driving">
-                            <span class="material-symbols-outlined">directions_car</span>
-                        </button>
-                        <button class="travel-mode-btn" data-mode="walking" aria-label="Walking">
-                            <span class="material-symbols-outlined">directions_walk</span>
-                        </button>
-                        <button class="travel-mode-btn" data-mode="cycling" aria-label="Cycling">
-                            <span class="material-symbols-outlined">directions_bike</span>
-                        </button>
-                    </div>
-                    <div class="dir-input-group">
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off"/></div>
-                        <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                        <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off"/></div>
-                        <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                        <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
-                    </div>
-                    <div class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</div>
-                    <button id="get-route-btn">Get Route</button><button id="back-to-info-btn">Back</button>
-                </div>
-            </div>
-            
-            <div id="route-preview-panel" hidden>
-                <div class="info-content-padding">
-                    <div class="route-summary">
-                        <h3 id="route-summary-time">--</h3>
-                        <div id="route-summary-distance"></div>
-                    </div>
-                    <div class="action-buttons">
-                        <div class="btn-wrapper" id="start-navigation-btn"><div class="icon-circle"><span class="material-symbols-outlined">navigation</span></div><div class="btn-label">Start Trip</div></div>
-                        <div class="btn-wrapper" id="share-route-btn"><div class="icon-circle"><span class="material-symbols-outlined">share</span></div><div class="btn-label">Share</div></div>
-                        <div class="btn-wrapper" id="view-steps-btn"><div class="icon-circle"><span class="material-symbols-outlined">list</span></div><div class="btn-label">Steps</div></div>
-                    </div>
-                    <button id="back-to-directions-btn">Back</button>
-                </div>
-            </div>
-            
-            <div id="route-section" hidden>
-                <div class="info-content-padding">
-                    <h3>Route Steps</h3>
-                    <button id="exit-route-btn">Back</button>
-                    <ol id="route-steps"></ol>
-                </div>
-            </div>
         </div>
     </div>
     
@@ -399,6 +212,6 @@
     <script src="https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js" defer></script>
     <script src='https://static.theboiismc.com/js/maps/turf.js' defer></script>
     
-    <script src="https://static.theboiismc.com/js/maps/maps88.js" defer></script>
+    <script src="https://static.theboiismc.com/js/maps/mapl.js" defer></script>
 </body>
 </html>
