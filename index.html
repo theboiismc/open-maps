@@ -7,7 +7,7 @@
     <title>TheBoiisMC Maps - Private Navigation & Directions</title>
 
     <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
-    
+    9
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
@@ -32,9 +32,7 @@
 
     <link href="https://static.theboiismc.com/css/maplibre-gl-4.1.0.css" rel="stylesheet">
     
-    <link rel="stylesheet" href="https://static.theboiismc.com/css/mapstyles3.css">
-
-  
+    <link rel="stylesheet" href="https://static.theboiismc.com/css/mapstyles7.css">
 
     <script type="application/ld+json">
     {
@@ -140,31 +138,50 @@
         <div id="panel-grabber"></div>
         <div id="panel-search-placeholder" hidden></div>
         <div class="panel-content">
+            
             <div id="welcome-panel" hidden>
                 <div class="info-content-padding">
                     
-                    <h3>Welcome to TheBoiisMC Maps</h3>
-                    <p style="margin-top: 8px; color: var(--text-secondary);">Your private, modern mapping experience. Search for a place or plan a route to get started.</p>
+                    <div class="welcome-header-section">
+                        <h3>Explore</h3>
+                        <p>Navigate the world privately.</p>
+                    </div>
 
-                    <h3 class="find-nearby-header" style="margin-top: 24px;">Find Nearby</h3>
-                    
                     <div class="category-pills">
-                        <button class="category-pill" data-query="restaurants" data-osm-tag="amenity=restaurant">
-                            <span class="material-symbols-outlined">restaurant</span> Restaurants
+                        <button class="category-pill card-style" data-query="restaurants" data-osm-tag="amenity=restaurant">
+                            <div class="cat-icon-box color-orange">
+                                <span class="material-symbols-outlined">restaurant</span>
+                            </div>
+                            <span class="cat-label">Restaurants</span>
                         </button>
-                        <button class="category-pill" data-query="gas stations" data-osm-tag="amenity=fuel">
-                            <span class="material-symbols-outlined">local_gas_station</span> Gas
+                        
+                        <button class="category-pill card-style" data-query="gas stations" data-osm-tag="amenity=fuel">
+                            <div class="cat-icon-box color-blue">
+                                <span class="material-symbols-outlined">local_gas_station</span>
+                            </div>
+                            <span class="cat-label">Gas</span>
                         </button>
-                        <button class="category-pill" data-query="coffee" data-osm-tag="amenity=cafe">
-                            <span class="material-symbols-outlined">coffee</span> Coffee
+                        
+                        <button class="category-pill card-style" data-query="coffee" data-osm-tag="amenity=cafe">
+                            <div class="cat-icon-box color-brown">
+                                <span class="material-symbols-outlined">coffee</span>
+                            </div>
+                            <span class="cat-label">Coffee</span>
                         </button>
-                        <button class="category-pill" data-query="parks" data-osm-tag="leisure=park">
-                            <span class="material-symbols-outlined">park</span> Parks
+                        
+                        <button class="category-pill card-style" data-query="parks" data-osm-tag="leisure=park">
+                            <div class="cat-icon-box color-green">
+                                <span class="material-symbols-outlined">park</span>
+                            </div>
+                            <span class="cat-label">Parks</span>
                         </button>
                     </div>
 
-                    <div class="action-buttons" style="margin-top: 24px;">
-                        <div class="btn-wrapper" id="welcome-directions-btn"><div class="icon-circle"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></div>
+                    <div class="action-buttons-modern">
+                        <button id="welcome-directions-btn" class="modern-primary-btn">
+                            <span class="material-symbols-outlined">directions</span>
+                            Plan a Drive
+                        </button>
                     </div>
                 </div>
 
@@ -344,6 +361,6 @@
     <script src="https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js" defer></script>
     <script src='https://static.theboiismc.com/js/maps/turf.js' defer></script>
     
-    <script src="https://static.theboiismc.com/js/maps/app.js" defer></script>
+    <script src="https://static.theboiismc.com/js/maps/mapjs.js" defer></script>
 </body>
 </html>
