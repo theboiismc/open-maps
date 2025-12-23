@@ -37,7 +37,7 @@
     <div id="top-banner">
         <a href="/" class="brand-logo-container">
             <div class="brand-icon-box">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="white">
+               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="white">
                     <path d="M0 336c0 79.5 64.5 144 144 144H512c70.7 0 128-57.3 128-128c0-61.9-44-113.6-102.4-125.4c4.1-10.7 6.4-22.4 6.4-34.6c0-53-43-96-96-96c-19.7 0-38.1 6-53.3 16.2C363.2 41.9 307.2 0 240 0 151.6 0 80 71.6 80 160c0 36.3 11.9 69.9 32.3 96.6C47.8 266 0 302.3 0 336z"/>
                 </svg>
             </div>
@@ -116,14 +116,40 @@
         </div>
     </div>
     
+    <div id="directions-top-panel" hidden>
+        <div class="dir-header-row">
+            <button id="close-dir-btn" class="icon-btn"><span class="material-symbols-outlined">arrow_back</span></button>
+            <div class="travel-modes-mini">
+                <button class="mode-btn active" data-mode="driving"><span class="material-symbols-outlined">directions_car</span></button>
+                <button class="mode-btn" data-mode="walking"><span class="material-symbols-outlined">directions_walk</span></button>
+                <button class="mode-btn" data-mode="cycling"><span class="material-symbols-outlined">directions_bike</span></button>
+            </div>
+            <button id="dir-options-btn" class="icon-btn"><span class="material-symbols-outlined">more_vert</span></button>
+        </div>
+        
+        <div class="dir-inputs-container">
+            <div class="connector-line">
+                <div class="dot start"></div>
+                <div class="line"></div>
+                <div class="dot end"></div>
+            </div>
+            <div class="inputs-stack">
+                <input type="text" id="top-from-input" placeholder="My Location" autocomplete="off">
+                <div class="separator"></div>
+                <input type="text" id="top-to-input" placeholder="Choose destination" autocomplete="off">
+            </div>
+            <button id="top-swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
+        </div>
+        
+        <div id="top-dir-suggestions" class="suggestions-dropdown" style="display:none;"></div>
+    </div>
+
     <div id="side-panel">
         <div id="panel-grabber"></div>
-        
         <div id="panel-search-placeholder" hidden></div>
-
         <div class="panel-content">
             <div id="dynamic-content">
-                </div>
+            </div>
         </div>
     </div>
     
@@ -142,7 +168,6 @@
                 <div class="setting-group"><span class="setting-label">Navigation Voice</span><div class="radio-group"><input type="radio" id="voice-female" name="nav-voice" value="female" checked><label for="voice-female">Female</label><input type="radio" id="voice-male" name="nav-voice" value="male"><label for="voice-male">Male</label></div></div>
                 <hr>
                 <div class="setting-group"><span class="setting-label">Theme</span><div class="radio-group"><input type="radio" id="theme-auto" name="map-theme" value="auto"><label for="theme-auto">Auto</label><input type="radio" id="theme-light" name="map-theme" value="light"><label for="theme-light">Light</label><input type="radio" id="theme-dark" name="map-theme" value="dark"><label for="theme-dark">Dark</label></div></div>
-                
                 <hr>
                 <button id="advanced-settings-btn" class="btn-link">Advanced Settings...</button>
             </div>
@@ -175,7 +200,6 @@
                 <hr>
                 <div class="setting-group-column">
                     <span class="setting-label">Privacy</span>
-                    
                     <div class="setting-group">
                         <span class="setting-label-inner">Clear Recent Searches on Exit</span>
                         <div class="toggle-switch">
@@ -183,7 +207,6 @@
                             <label for="privacy-clear-recents-toggle"></label>
                         </div>
                     </div>
-                    
                     <div class="setting-group">
                         <span class="setting-label-inner">Disable Search Suggestions</span>
                         <div class="toggle-switch">
@@ -211,7 +234,6 @@
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
     <script src="https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js" defer></script>
     <script src='https://static.theboiismc.com/js/maps/turf.js' defer></script>
-    
     <script src="https://static.theboiismc.com/js/maps/mapn.js" defer></script>
 </body>
 </html>
