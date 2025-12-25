@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
     <title>TheBoiisMC Maps - Private Navigation & Directions</title>
 
@@ -31,7 +31,7 @@
     </noscript>
 
     <link href="https://static.theboiismc.com/css/maplibre-gl-4.1.0.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://static.theboiismc.com/css/mapstyle21.css">
+    <link rel="stylesheet" href="mapstyle21.css">
 </head>
 <body>
     <div id="top-banner">
@@ -57,6 +57,7 @@
                 <a href="https://drive.theboiismc.com" class="service-item"><span class="material-symbols-outlined">cloud</span><span class="service-name">Drive</span></a>
                 <a href="https://myaccount.theboiismc.com" class="service-item"><span class="material-symbols-outlined">account_circle</span><span class="service-name">Account</span></a>
             </div>
+
             <div id="profile-dropdown">
                 <div id="logged-in-view" hidden>
                     <div class="profile-section profile-section-header">
@@ -105,51 +106,23 @@
             <span id="search-icon-inside" class="material-symbols-outlined">search</span>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
             <span id="main-directions-icon" class="material-symbols-outlined">directions</span>
+           
             <div id="main-suggestions" class="suggestions-dropdown">
                 <div id="initial-suggestions-view">
                     <div id="recent-searches-container">
                     </div>
                 </div>
-                <div id="api-suggestions-view" hidden>
-                </div>
+                <div id="api-suggestions-view" hidden></div>
             </div>
         </div>
-    </div>
+        </div>
     
-    <div id="directions-top-panel" hidden>
-        <div class="dir-header-row">
-            <button id="close-dir-btn" class="icon-btn"><span class="material-symbols-outlined">arrow_back</span></button>
-            <div class="travel-modes-mini">
-                <button class="mode-btn active" data-mode="driving"><span class="material-symbols-outlined">directions_car</span></button>
-                <button class="mode-btn" data-mode="walking"><span class="material-symbols-outlined">directions_walk</span></button>
-                <button class="mode-btn" data-mode="cycling"><span class="material-symbols-outlined">directions_bike</span></button>
-            </div>
-            <button id="dir-options-btn" class="icon-btn"><span class="material-symbols-outlined">more_vert</span></button>
-        </div>
-        
-        <div class="dir-inputs-container">
-            <div class="connector-line">
-                <div class="dot start"></div>
-                <div class="line"></div>
-                <div class="dot end"></div>
-            </div>
-            <div class="inputs-stack">
-                <input type="text" id="top-from-input" placeholder="My Location" autocomplete="off">
-                <div class="separator"></div>
-                <input type="text" id="top-to-input" placeholder="Choose destination" autocomplete="off">
-            </div>
-            <button id="top-swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
-        </div>
-        
-        <div id="top-dir-suggestions" class="suggestions-dropdown" style="display:none;"></div>
-    </div>
-
     <div id="side-panel">
         <div id="panel-grabber"></div>
         <div id="panel-search-placeholder" hidden></div>
         <div class="panel-content">
             <div id="dynamic-content">
-            </div>
+                </div>
         </div>
     </div>
     
@@ -185,8 +158,7 @@
                 <div class="setting-group-column">
                     <span class="setting-label">Tile Service Priority</span>
                     <span class="setting-description">Drag to re-order. The app will try to load maps from the top of the list first.</span>
-                    <ul id="tile-priority-list" class="sortable-list">
-                        </ul>
+                    <ul id="tile-priority-list" class="sortable-list"></ul>
                 </div>
                 <hr>
                 <div class="setting-group">
@@ -234,6 +206,6 @@
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
     <script src="https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js" defer></script>
     <script src='https://static.theboiismc.com/js/maps/turf.js' defer></script>
-    <script src="https://static.theboiismc.com/js/maps/mapn.js" defer></script>
+    <script src="mapk.js" defer></script>
 </body>
 </html>
