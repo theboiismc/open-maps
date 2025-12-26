@@ -9,10 +9,10 @@ const urlsToCache = [
   
   // Static Resources from your static server
   'https://static.theboiismc.com/css/maplibre-gl-4.1.0.css',
-  'https://static.theboiismc.com/css/style2.css',
+  'https://static.theboiismc.com/css/map2.css',
   'https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js',
   'https://static.theboiismc.com/js/maps/turf.js',
-  'https://static.theboiismc.com/js/maps/mapo.js'
+  'https://static.theboiismc.com/js/maps/maps17.js'
 ];
 
 // Install event - cache all resources
