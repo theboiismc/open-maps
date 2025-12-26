@@ -37,7 +37,7 @@
     <div id="top-banner">
         <a href="/" class="brand-logo-container">
             <div class="brand-icon-box">
-               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="white">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="white">
                     <path d="M0 336c0 79.5 64.5 144 144 144H512c70.7 0 128-57.3 128-128c0-61.9-44-113.6-102.4-125.4c4.1-10.7 6.4-22.4 6.4-34.6c0-53-43-96-96-96c-19.7 0-38.1 6-53.3 16.2C363.2 41.9 307.2 0 240 0 151.6 0 80 71.6 80 160c0 36.3 11.9 69.9 32.3 96.6C47.8 266 0 302.3 0 336z"/>
                 </svg>
             </div>
@@ -115,7 +115,7 @@
                 <div id="api-suggestions-view" hidden></div>
             </div>
         </div>
-        </div>
+    </div>
     
     <div id="side-panel">
         <div id="panel-grabber"></div>
@@ -202,6 +202,123 @@
     <div id="rerouting-overlay">Rerouting...</div>
     <button id="search-this-area-btn" class="search-area-btn" hidden>Search this area</button>
     <div id="toast-container"></div>
+    
+    <template id="tmpl-home">
+        <div class="info-content-padding">
+            <div class="welcome-header-section">
+                <h3>Explore</h3>
+                <p>Latest in your area</p>
+            </div>
+            <div id="home-recents-list"></div>
+            <div class="legal-footer"><p>Copyright &copy; 2025 TheBoiisMC</p></div>
+        </div>
+    </template>
+
+    <template id="tmpl-place-details">
+        <div class="panel-hero">
+            <div class="hero-image-wrapper">
+                <img id="info-image" src="" style="opacity:0; transition:opacity 0.5s; width:100%; height:100%; object-fit:cover;" />
+                <div class="hero-gradient"></div>
+            </div>
+            <button id="details-back-btn" class="dynamic-back-btn" style="position:absolute; top:15px; left:15px; z-index:10; background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:40px; height:40px; cursor:pointer;">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </button>
+            <div class="hero-text-content">
+                <h3 id="info-name"></h3>
+                <div id="info-weather" class="weather-badge" hidden>Loading...</div>
+            </div>
+        </div>
+        <div class="info-content-padding">
+            <div class="address-row"><span class="material-symbols-outlined">location_on</span><p id="info-subtitle"></p></div>
+            <div class="action-buttons modern-actions">
+                <div class="btn-wrapper" id="btn-details-dir">
+                    <div class="icon-circle primary"><span class="material-symbols-outlined">directions</span></div>
+                    <div class="btn-label">Directions</div>
+                </div>
+                <div class="btn-wrapper" id="btn-details-save">
+                    <div class="icon-circle secondary"><span class="material-symbols-outlined">bookmark_border</span></div>
+                    <div class="btn-label">Save</div>
+                </div>
+            </div>
+            <hr class="panel-divider" />
+            <div class="panel-card">
+                <div class="card-header"><span class="material-symbols-outlined">info</span><h4>About</h4></div>
+                <p id="quick-facts-content">Loading info...</p>
+                <button id="info-website-btn" style="display:none; margin-top:10px;" class="btn-link">Visit Website</button>
+            </div>
+        </div>
+    </template>
+
+    <template id="tmpl-directions">
+        <div class="info-content-padding">
+            <div class="travel-modes">
+                <button class="travel-mode-btn active"><span class="material-symbols-outlined">directions_car</span></button>
+                <button class="travel-mode-btn"><span class="material-symbols-outlined">directions_walk</span></button>
+                <button class="travel-mode-btn"><span class="material-symbols-outlined">directions_bike</span></button>
+            </div>
+            <div class="dir-input-group">
+                <div class="dir-input-wrapper">
+                    <span class="material-symbols-outlined">trip_origin</span>
+                    <input type="text" id="panel-from-input" placeholder="My Location" autocomplete="off" />
+                </div>
+                <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
+                
+                <div class="dir-input-wrapper">
+                    <span class="material-symbols-outlined">location_on</span>
+                    <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off" />
+                </div>
+                <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
+                
+                <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
+            </div>
+            <div class="dir-quick-select" id="dir-use-my-location">
+                <div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location
+            </div>
+            <button id="get-route-btn" class="modern-primary-btn" style="width:100%; margin-top:10px;">Get Route</button>
+            <button id="cancel-route-btn" style="width:100%; margin-top:10px; background:transparent; border:none; padding:10px; color:var(--text-secondary);">Cancel</button>
+        </div>
+    </template>
+
+    <template id="tmpl-route-preview">
+        <div class="info-content-padding">
+            <div class="route-summary">
+                <h3 id="route-time-display" style="color:#10B981; font-size:42px; font-weight:800; margin:0; line-height:1;"></h3>
+                <div id="route-dist-display" style="font-size:18px; color:var(--text-secondary); margin-top:8px;"></div>
+            </div>
+            <div class="action-buttons">
+                <div class="btn-wrapper" id="start-navigation-btn">
+                    <div class="icon-circle" style="background-color:#10B981; color:white;"><span class="material-symbols-outlined">navigation</span></div>
+                    <div class="btn-label" style="color:#10B981;">Start Trip</div>
+                </div>
+                <div class="btn-wrapper">
+                    <div class="icon-circle"><span class="material-symbols-outlined">share</span></div>
+                    <div class="btn-label">Share</div>
+                </div>
+            </div>
+            <button id="back-to-directions-btn" style="width:100%; padding:12px; border:none; background:var(--surface-secondary); color:var(--text-secondary); border-radius:12px; font-weight:600; cursor:pointer;">Back</button>
+        </div>
+    </template>
+
+    <template id="tmpl-search-results">
+        <div class="info-content-padding">
+            <button id="results-back-btn" class="dynamic-back-btn" style="background:transparent; border:none; cursor:pointer; font-weight:600; color:var(--accent-color); display:flex; align-items:center; margin-bottom:10px;">
+                <span class="material-symbols-outlined">arrow_back</span> Back
+            </button>
+            <h3 id="results-header-text"></h3>
+            <div id="search-results-list"></div>
+        </div>
+    </template>
+
+    <template id="tmpl-result-item">
+        <div class="search-result-item">
+            <div class="result-item-icon"><span class="material-symbols-outlined">place</span></div>
+            <div class="result-item-details">
+                <h4 class="item-title"></h4>
+                <p class="item-subtitle"></p>
+            </div>
+            <div class="result-item-distance"></div>
+        </div>
+    </template>
     
     <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
     <script src="https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js" defer></script>
