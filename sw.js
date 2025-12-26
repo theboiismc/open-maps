@@ -1,39 +1,40 @@
-const CACHE_NAME = 'theboiismc-maps-cache-v4'; // Updated version
+const CACHE_NAME = 'theboiismc-maps-core-v5'; // Increment this to force update app shell
+const TILE_CACHE_NAME = 'theboiismc-map-tiles-v1'; // Separate bucket for heavy tiles
 
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.ico',
-  '/assets/icon512_rounded.png', // Ensure this image exists on your server
+  '/assets/icon512_rounded.png',
   
-  // Static Resources from your static server
+  // Static Resources
   'https://static.theboiismc.com/css/maplibre-gl-4.1.0.css',
   'https://static.theboiismc.com/css/map2.css',
   'https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js',
   'https://static.theboiismc.com/js/maps/turf.js',
-  'https://static.theboiismc.com/js/maps/maps17.js'
+  'https://static.theboiismc.com/js/maps/maps18.js'
 ];
 
-// Install event - cache all resources
+// 1. Install - Cache App Shell
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.log('Opened core cache');
         return cache.addAll(urlsToCache);
       })
       .then(() => self.skipWaiting())
   );
 });
 
-// Activate event - remove old caches
+// 2. Activate - Cleanup Old Caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) {
+          if (cache !== CACHE_NAME && cache !== TILE_CACHE_NAME) {
             console.log('Deleting old cache:', cache);
             return caches.delete(cache);
           }
@@ -43,33 +44,74 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch event - Stale-While-Revalidate strategy
+// 3. Fetch - Smart Strategies
 self.addEventListener('fetch', event => {
-  // Skip cross-origin authentication requests or non-GET requests
-  if (event.request.method !== 'GET' || event.request.url.startsWith('https://accounts.theboiismc.com')) {
+  const url = new URL(event.request.url);
+
+  // A. IGNORE: Cross-origin Auth & Non-GET
+  if (event.request.method !== 'GET' || url.hostname === 'accounts.theboiismc.com') {
     return;
   }
 
+  // B. MAP TILES STRATEGY: Cache First, falling back to Network
+  // Detects: .pbf (vector tiles), .png/.jpg (raster/satellite), fonts (.pbf), and styles (.json)
+  const isMapAsset = (
+    url.hostname.includes('maptiler') || 
+    url.hostname.includes('openfreemap') || 
+    url.hostname.includes('tiles.theboiismc.com')
+  ) && (
+    url.pathname.endsWith('.pbf') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.jpg') ||
+    url.pathname.endsWith('.json') ||
+    url.pathname.includes('/font/')
+  );
+
+  if (isMapAsset) {
+    event.respondWith(
+      caches.open(TILE_CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(cachedResponse => {
+          // 1. Return Cache if found (Fastest)
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+
+          // 2. Fetch from Network if missing
+          return fetch(event.request).then(networkResponse => {
+            // Validate response before caching
+            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'error') {
+              return networkResponse;
+            }
+
+            // Cache the new tile
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          }).catch(() => {
+             // Optional: Return a transparent placeholder image if offline and tile missing
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // C. APP SHELL STRATEGY: Stale-While-Revalidate
+  // Loads cache immediately, but updates in background for next time
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
       const fetchPromise = fetch(event.request).then(networkResponse => {
-        // Valid response check
         if (!networkResponse || networkResponse.status !== 200 || (networkResponse.type !== 'basic' && networkResponse.type !== 'cors')) {
           return networkResponse;
         }
-
-        // Update cache with new version
-        const responseToCache = networkResponse.clone();
+        
+        // Put in Core Cache
         caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
+          cache.put(event.request, networkResponse.clone());
         });
-
+        
         return networkResponse;
-      }).catch(() => {
-        // Fallback logic could go here
       });
 
-      // Return cached response immediately if available, otherwise wait for network
       return cachedResponse || fetchPromise;
     })
   );
