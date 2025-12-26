@@ -8,7 +8,14 @@
 
     <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
     
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.theboiismc.com; script-src 'self' https://*.theboiismc.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://*.theboiismc.com https://fonts.googleapis.com; font-src 'self' https://*.theboiismc.com https://fonts.gstatic.com; img-src 'self' https: data: blob:; connect-src 'self' https://*.theboiismc.com; worker-src 'self' blob:;">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self' https://*.theboiismc.com; 
+        script-src 'self' 'unsafe-inline' https://*.theboiismc.com https://cdn.jsdelivr.net https://unpkg.com; 
+        style-src 'self' 'unsafe-inline' https://*.theboiismc.com https://fonts.googleapis.com https://unpkg.com; 
+        font-src 'self' https://*.theboiismc.com https://fonts.gstatic.com; 
+        img-src 'self' https: data: blob:; 
+        connect-src 'self' https://*.theboiismc.com https://api.maptiler.com https://tiles.openfreemap.org https://router.project-osrm.org https://en.wikipedia.org https://api.open-meteo.com https://nominatim.openstreetmap.org; 
+        worker-src 'self' blob:;">
 
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
@@ -39,7 +46,7 @@
     <header id="top-banner" role="banner">
         <a href="/" class="brand-logo-container" aria-label="TheBoiisMC Maps Home">
             <div class="brand-icon-box" aria-hidden="true">
-               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="white">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="white">
                     <path d="M0 336c0 79.5 64.5 144 144 144H512c70.7 0 128-57.3 128-128c0-61.9-44-113.6-102.4-125.4c4.1-10.7 6.4-22.4 6.4-34.6c0-53-43-96-96-96c-19.7 0-38.1 6-53.3 16.2C363.2 41.9 307.2 0 240 0 151.6 0 80 71.6 80 160c0 36.3 11.9 69.9 32.3 96.6C47.8 266 0 302.3 0 336z"/>
                 </svg>
             </div>
@@ -52,7 +59,7 @@
             <button id="settings-icon-btn" aria-label="Map Settings"><span class="material-symbols-outlined" aria-hidden="true">tune</span></button>
             <button id="profile-button" aria-label="User Profile" aria-haspopup="true" aria-expanded="false"><span class="material-symbols-outlined" aria-hidden="true">account_circle</span></button>
             <button id="app-menu-button" aria-label="TheBoiisMC Apps" aria-haspopup="true" aria-expanded="false"><span class="material-symbols-outlined" aria-hidden="true">apps</span></button>
-     
+            
             <nav id="services-dropdown" aria-label="TheBoiisMC Services" hidden>
                 <a href="https://search.theboiismc.com" class="service-item"><span class="material-symbols-outlined" aria-hidden="true">search</span><span class="service-name">Search</span></a>
                 <a href="https://maps.theboiismc.com" class="service-item"><span class="material-symbols-outlined" aria-hidden="true">map</span><span class="service-name">Maps</span></a>
@@ -211,6 +218,7 @@
                             <label for="privacy-clear-recents-toggle" aria-hidden="true"></label>
                         </div>
                     </div>
+                    
                     <div class="setting-group">
                         <span class="setting-label-inner" id="label-disable-suggest">Disable Search Suggestions</span>
                         <div class="toggle-switch">
@@ -256,14 +264,14 @@
                 <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
             </button>
             <div class="hero-text-content">
-                 <h3 id="info-name"></h3>
+                <h3 id="info-name"></h3>
                 <div id="info-weather" class="weather-badge" hidden aria-label="Current Weather">Loading...</div>
             </div>
         </div>
         <div class="info-content-padding">
             <div class="address-row"><span class="material-symbols-outlined" aria-hidden="true">location_on</span><p id="info-subtitle"></p></div>
             <div class="action-buttons modern-actions">
-                 <button class="btn-wrapper" id="btn-details-dir" style="background:none; border:none; cursor:pointer;">
+                <button class="btn-wrapper" id="btn-details-dir" style="background:none; border:none; cursor:pointer;">
                     <div class="icon-circle primary"><span class="material-symbols-outlined" aria-hidden="true">directions</span></div>
                     <div class="btn-label">Directions</div>
                 </button>
