@@ -13,7 +13,7 @@ const urlsToCache = [
   'https://static.theboiismc.com/css/map2.css',
   'https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js',
   'https://static.theboiismc.com/js/maps/turf.js',
-  'https://static.theboiismc.com/js/maps/maps99.js'
+  'https://static.theboiismc.com/js/maps/mapsv.js'
 ];
 
 // 1. Install - Cache App Shell
