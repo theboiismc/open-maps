@@ -11,9 +11,9 @@ const urlsToCache = [
   // Static Resources
   'https://static.theboiismc.com/css/maplibre-gl-4.1.0.css',
   'https://static.theboiismc.com/css/map2.css',
-  'https://static.theboiismc.com/js/maps/maplibre-gl-4.1.0.js',
   'https://static.theboiismc.com/js/maps/turf.js',
-  'https://static.theboiismc.com/js/maps/mapsv.js'
+  'https://static.theboiismc.com/js/maps/mapsv.js',
+  'https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js',
 ];
 
 // 1. Install - Cache App Shell
