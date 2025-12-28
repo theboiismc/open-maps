@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
-    <link rel="preconnect" href="https://static.theboiismc.com" crossorigin>
+
     <meta name="theme-color" content="#030712" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/assets/icon512_rounded.png">
@@ -34,12 +34,7 @@
     <link rel="stylesheet" href="https://static.theboiismc.com/css/map2.css">
 </head>
 <body>
-    
     <header id="top-banner" role="banner">
-        <button id="main-menu-btn" class="icon-btn-ghost" aria-label="Open Menu" style="margin-right: 12px; color: var(--text-primary);">
-            <span class="material-symbols-outlined">menu</span>
-        </button>
-
         <a href="/" class="brand-logo-container" aria-label="TheBoiisMC Maps Home">
             <div class="brand-icon-box" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="white">
@@ -50,59 +45,50 @@
                 TheBoiis<span class="text-brand">MC</span>
             </span>
         </a>
+
+        <div id="profile-area">
+            <button id="settings-icon-btn" aria-label="Open Map Settings" aria-haspopup="dialog"><span class="material-symbols-outlined" aria-hidden="true">tune</span></button>
+            <button id="profile-button" aria-label="User Profile Menu" aria-haspopup="true" aria-expanded="false"><span class="material-symbols-outlined" aria-hidden="true">account_circle</span></button>
+            <button id="app-menu-button" aria-label="Open App Switcher" aria-haspopup="true" aria-expanded="false"><span class="material-symbols-outlined" aria-hidden="true">apps</span></button>
+   
+            <div id="services-dropdown" role="menu" aria-label="TheBoiisMC Apps">
+                <a href="https://search.theboiismc.com" class="service-item" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">search</span><span class="service-name">Search</span></a>
+                <a href="https://maps.theboiismc.com" class="service-item" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">map</span><span class="service-name">Maps</span></a>
+                <a href="https://drive.theboiismc.com" class="service-item" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">cloud</span><span class="service-name">Drive</span></a>
+                <a href="https://myaccount.theboiismc.com" class="service-item" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">account_circle</span><span class="service-name">Account</span></a>
+            </div>
+
+            <div id="profile-dropdown" role="menu" aria-label="Profile Options">
+                <div id="logged-in-view" hidden>
+                    <div class="profile-section profile-section-header">
+                        <img id="dropdown-avatar" class="profile-dropdown-avatar" src="" alt="Your Avatar" hidden />
+                        <div class="username">TheBoiisMC</div>
+                        <div class="email">user@example.com</div>
+                    </div>
+                    <hr aria-hidden="true"/>
+                    <div class="profile-actions">
+                        <a id="saved-places-btn" href="#" role="menuitem">Saved Places</a>
+                    </div>
+                    <hr aria-hidden="true"/>
+                    <div class="profile-actions">
+                        <a id="logout-btn" href="#" role="menuitem">Log Out</a>
+                    </div>
+                </div>
+                <div id="logged-out-view" hidden>
+                    <div class="profile-section" style="text-align:center; font-weight: 500; color: var(--text-secondary);">Sign in to save and view places</div>
+                    <hr aria-hidden="true"/>
+                    <div class="auth-buttons">
+                        <a href="#" id="login-btn" class="btn btn-primary" role="menuitem">Log In</a>
+                        <a href="#" id="signup-btn" class="btn btn-secondary" role="menuitem">Sign Up</a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </header>
-
-    <div id="left-menu-drawer" class="drawer-left">
-        <div class="drawer-header">
-            <h3 class="brand-text" style="color:var(--text-primary); margin:0;">Menu</h3>
-            <button id="close-menu-btn" class="icon-btn-ghost"><span class="material-symbols-outlined">close</span></button>
-        </div>
-        
-        <div class="drawer-content">
-            <div id="drawer-profile-section" class="drawer-section">
-                <div id="drawer-logged-in" hidden>
-                    <div class="profile-header">
-                        <img id="drawer-avatar" src="" alt="Avatar" />
-                        <div>
-                            <div id="drawer-username" class="u-name">User</div>
-                            <div id="drawer-email" class="u-email">email@example.com</div>
-                        </div>
-                    </div>
-                    <div class="drawer-actions">
-                        <a href="https://myaccount.theboiismc.com" class="drawer-link"><span class="material-symbols-outlined">manage_accounts</span>Account</a>
-                        <button id="drawer-logout-btn" class="drawer-link"><span class="material-symbols-outlined">logout</span>Log Out</button>
-                    </div>
-                </div>
-                <div id="drawer-logged-out">
-                    <p style="margin-bottom:10px; color:var(--text-secondary); font-size:14px;">Sign in to save places and customize your experience.</p>
-                    <button id="drawer-login-btn" class="modern-primary-btn" style="width:100%; padding:10px; background:var(--accent-color); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Log In</button>
-                </div>
-            </div>
-
-            <hr class="drawer-divider">
-
-            <div class="drawer-section">
-                <h4 class="drawer-section-title">TheBoiisMC Apps</h4>
-                <div class="drawer-grid">
-                    <a href="https://search.theboiismc.com" class="drawer-app-item"><span class="material-symbols-outlined">search</span><span>Search</span></a>
-                    <a href="https://drive.theboiismc.com" class="drawer-app-item"><span class="material-symbols-outlined">cloud</span><span>Drive</span></a>
-                    <a href="https://maps.theboiismc.com" class="drawer-app-item active"><span class="material-symbols-outlined">map</span><span>Maps</span></a>
-                </div>
-            </div>
-
-            <hr class="drawer-divider">
-
-            <div class="drawer-section">
-                 <button id="drawer-settings-btn" class="drawer-link"><span class="material-symbols-outlined">settings</span>Map Settings</button>
-                 <a href="mailto:support@theboiismc.com" class="drawer-link"><span class="material-symbols-outlined">help</span>Help & Feedback</a>
-            </div>
-        </div>
-    </div>
-
-    <div id="menu-overlay" class="modal-overlay"></div>
     
     <main id="navigation-status" role="region" aria-label="Navigation Status" aria-live="polite">
         <div id="lane-guidance-container"></div>
+        
         <div id="instruction-container" aria-live="assertive" aria-atomic="true">
             <div id="maneuver-icon-wrapper" aria-hidden="true">
                 <span id="maneuver-icon" class="material-symbols-outlined">straight</span>
@@ -126,7 +112,6 @@
         <div id="main-search-container">
             <span id="search-icon-inside" class="material-symbols-outlined" aria-hidden="true">search</span>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" aria-label="Search maps" autocomplete="off" />
-            
             <button id="main-directions-icon" class="icon-btn-ghost" aria-label="Get Directions">
                 <span class="material-symbols-outlined" aria-hidden="true">directions</span>
             </button>
@@ -144,7 +129,8 @@
         <div id="panel-grabber" aria-hidden="true"></div>
         <div id="panel-search-placeholder" hidden></div>
         <div class="panel-content">
-            <div id="dynamic-content" aria-live="polite"></div>
+            <div id="dynamic-content" aria-live="polite">
+                </div>
         </div>
     </aside>
     
@@ -226,6 +212,7 @@
                 <hr aria-hidden="true">
                 <div class="setting-group-column">
                     <span class="setting-label">Privacy</span>
+    
                     <div class="setting-group">
                         <span class="setting-label-inner" id="label-clear-recents">Clear Recent Searches on Exit</span>
                         <div class="toggle-switch">
@@ -375,9 +362,9 @@
         </div>
     </template>
     
-    <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/oidc-client-ts@2.2.0/dist/browser/oidc-client-ts.min.js"></script>
     <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js" defer></script>
     <script src='https://static.theboiismc.com/js/maps/turf.js' defer></script>
-    <script src="https://static.theboiismc.com/js/maps/mapsv.js" defer></script>
+    <script src="https://static.theboiismc.com/js/maps/maps_v1.js" defer></script>
 </body>
-</html>
+                                                                                                             </html>
