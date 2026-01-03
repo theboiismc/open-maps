@@ -35,16 +35,22 @@
 </head>
 <body>
     <div id="top-banner" role="banner">
-        <a href="/" class="brand-logo-container" aria-label="TheBoiisMC Maps Home">
-            <div class="brand-icon-box">
-               <svg role="img" aria-label="TheBoiisMC Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="white">
-                    <path d="M0 336c0 79.5 64.5 144 144 144H512c70.7 0 128-57.3 128-128c0-61.9-44-113.6-102.4-125.4c4.1-10.7 6.4-22.4 6.4-34.6c0-53-43-96-96-96c-19.7 0-38.1 6-53.3 16.2C363.2 41.9 307.2 0 240 0 151.6 0 80 71.6 80 160c0 36.3 11.9 69.9 32.3 96.6C47.8 266 0 302.3 0 336z"/>
-                </svg>
-            </div>
-            <span class="brand-text">
-                TheBoiis<span class="text-brand">MC</span>
-            </span>
-        </a>
+        <div class="brand-logo-container">
+            <button id="desktop-sidebar-toggle" aria-label="Toggle Side Panel">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            
+            <a href="/" class="brand-link" aria-label="TheBoiisMC Maps Home" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+                <div class="brand-icon-box">
+                   <svg role="img" aria-label="TheBoiisMC Logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" width="20" height="20" fill="white">
+                        <path d="M0 336c0 79.5 64.5 144 144 144H512c70.7 0 128-57.3 128-128c0-61.9-44-113.6-102.4-125.4c4.1-10.7 6.4-22.4 6.4-34.6c0-53-43-96-96-96c-19.7 0-38.1 6-53.3 16.2C363.2 41.9 307.2 0 240 0 151.6 0 80 71.6 80 160c0 36.3 11.9 69.9 32.3 96.6C47.8 266 0 302.3 0 336z"/>
+                    </svg>
+                </div>
+                <span class="brand-text">
+                    TheBoiis<span class="text-brand">MC</span>
+                </span>
+            </a>
+        </div>
 
         <div id="profile-area">
             <button id="settings-icon-btn" aria-label="Map Settings" aria-haspopup="dialog"><span class="material-symbols-outlined" aria-hidden="true">tune</span></button>
@@ -123,6 +129,7 @@
                 <div id="api-suggestions-view" hidden></div>
             </div>
         </div>
+        <div id="desktop-category-container"></div>
     </div>
     
     <div id="side-panel" role="complementary" aria-label="Place Details and Directions">
