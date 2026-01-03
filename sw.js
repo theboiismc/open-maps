@@ -10,9 +10,9 @@ const urlsToCache = [
   
   // Static Resources
   'https://static.theboiismc.com/css/maplibre-gl-4.1.0.css',
-  'https://static.theboiismc.com/css/map2.css',
+  'https://static.theboiismc.com/css/map3.css',
   'https://static.theboiismc.com/js/maps/turf.js',
-  'https://static.theboiismc.com/js/maps/mapsv.js',
+  'https://static.theboiismc.com/js/maps/maps_5.1.1.js',
   'https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js',
 ];
 
