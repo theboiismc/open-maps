@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
-    <meta name="theme-color" content="#030712" />
+    <meta name="theme-color" content="#ffffff" />
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/assets/icon512_rounded.png">
     
@@ -20,31 +20,23 @@
 </head>
 <body>
 
-    <div id="top-search-wrapper" role="search">
-        <div id="main-search-container">
-            
-            <button id="app-menu-button" aria-label="Main Menu" aria-haspopup="true" aria-expanded="false">
+    <div id="floating-left-panel">
+        <div id="search-card-container">
+            <button id="app-menu-button" aria-label="Menu" class="google-icon-btn">
                 <span class="material-symbols-outlined">menu</span>
             </button>
-            
-            <label for="main-search" class="sr-only">Search TheBoiisMC Maps</label>
-            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" aria-autocomplete="list" aria-controls="main-suggestions" />
-            
-            <button id="search-icon-inside" class="icon-btn" aria-label="Search">
-                <span class="material-symbols-outlined" aria-hidden="true">search</span>
+            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
+            <button id="search-icon-inside" class="google-icon-btn" aria-label="Search">
+                <span class="material-symbols-outlined">search</span>
             </button>
-            
             <div class="divider-vertical"></div>
-            
-            <button id="main-directions-icon" class="icon-btn" aria-label="Get Directions">
-                <span class="material-symbols-outlined" aria-hidden="true">directions</span>
-            </button>
-
-            <button id="profile-button" class="icon-btn" aria-label="User Profile Menu" aria-haspopup="true" aria-expanded="false">
-                <span class="material-symbols-outlined" aria-hidden="true">account_circle</span>
+            <button id="main-directions-icon" class="google-icon-btn blue-icon" aria-label="Directions">
+                <span class="material-symbols-outlined">directions</span>
             </button>
         </div>
 
+        <div id="desktop-category-container"></div>
+        
         <div id="main-suggestions" class="suggestions-dropdown" role="listbox">
             <div id="initial-suggestions-view">
                 <div id="recent-searches-container"></div>
@@ -52,301 +44,171 @@
             <div id="api-suggestions-view" hidden></div>
         </div>
 
-        <div id="desktop-category-container"></div>
+        <div id="side-panel" role="complementary">
+            <div id="panel-grabber" aria-hidden="true"></div>
+            <div id="panel-search-placeholder" hidden></div>
+            <div class="panel-content">
+                <div id="dynamic-content" aria-live="polite"></div>
+            </div>
+        </div>
+    </div>
 
-        <div id="services-dropdown" role="menu" aria-label="App Services">
-            <a href="https://search.theboiismc.com" class="service-item" role="menuitem"><span class="material-symbols-outlined">search</span><span class="service-name">Search</span></a>
-            <a href="https://maps.theboiismc.com" class="service-item" role="menuitem"><span class="material-symbols-outlined">map</span><span class="service-name">Maps</span></a>
-            <a href="https://drive.theboiismc.com" class="service-item" role="menuitem"><span class="material-symbols-outlined">cloud</span><span class="service-name">Drive</span></a>
-            <a href="https://myaccount.theboiismc.com" class="service-item" role="menuitem"><span class="material-symbols-outlined">account_circle</span><span class="service-name">Account</span></a>
-            <hr style="margin: 4px 0; border:0; border-top:1px solid var(--border-color);">
-            <button id="settings-icon-btn" class="service-item" style="width:100%; border:none; background:none; cursor:pointer;"><span class="material-symbols-outlined">tune</span><span class="service-name">Map Settings</span></button>
+    <div id="floating-right-panel">
+        <div class="right-btn-group">
+            <button id="apps-grid-btn" class="google-icon-btn" aria-label="Apps">
+                <span class="material-symbols-outlined">apps</span>
+            </button>
+             <button id="profile-button" class="profile-btn-circle" aria-label="Profile">
+                <span class="material-symbols-outlined">account_circle</span>
+            </button>
         </div>
 
-        <div id="profile-dropdown" role="menu" aria-label="User Options">
+        <div id="services-dropdown" class="google-dropdown">
+            <a href="https://search.theboiismc.com" class="service-item"><span class="material-symbols-outlined">search</span><span>Search</span></a>
+            <a href="https://maps.theboiismc.com" class="service-item"><span class="material-symbols-outlined">map</span><span>Maps</span></a>
+            <a href="https://drive.theboiismc.com" class="service-item"><span class="material-symbols-outlined">cloud</span><span>Drive</span></a>
+            <a href="https://myaccount.theboiismc.com" class="service-item"><span class="material-symbols-outlined">account_circle</span><span>Account</span></a>
+            <hr>
+            <button id="settings-icon-btn" class="service-item btn-reset"><span class="material-symbols-outlined">tune</span><span>Map Settings</span></button>
+        </div>
+
+        <div id="profile-dropdown" class="google-dropdown">
             <div id="logged-in-view" hidden>
-                <div class="profile-section profile-section-header">
-                    <img id="dropdown-avatar" class="profile-dropdown-avatar" src="" alt="Your Profile Picture" hidden />
+                <div class="profile-header">
                     <div class="username">TheBoiisMC</div>
                     <div class="email">user@example.com</div>
                 </div>
-                <hr aria-hidden="true"/>
-                <div class="profile-actions">
-                    <a id="saved-places-btn" href="#" role="menuitem">Saved Places</a>
-                </div>
-                <hr aria-hidden="true"/>
-                <div class="profile-actions">
-                    <a id="logout-btn" href="#" role="menuitem">Log Out</a>
-                </div>
+                <hr>
+                <a id="saved-places-btn" href="#" class="service-item">Saved Places</a>
+                <a id="logout-btn" href="#" class="service-item">Log Out</a>
             </div>
             <div id="logged-out-view" hidden>
-                <div class="profile-section" style="text-align:center; font-weight: 500; color: var(--text-secondary);">Sign in to save and view places</div>
-                <hr aria-hidden="true"/>
-                <div class="auth-buttons">
-                    <a href="#" id="login-btn" class="btn btn-primary" role="menuitem">Log In</a>
-                    <a href="#" id="signup-btn" class="btn btn-secondary" role="menuitem">Sign Up</a>
-                </div>
+                <div class="profile-header">Sign in</div>
+                <hr>
+                <a href="#" id="login-btn" class="service-item">Log In</a>
             </div>
         </div>
     </div>
     
-    <div id="navigation-status" role="region" aria-label="Turn-by-turn Navigation">
-        <div id="lane-guidance-container"></div>
-        <div id="instruction-container" aria-live="assertive" aria-atomic="true">
-            <div id="maneuver-icon-wrapper" aria-hidden="true">
-                <span id="maneuver-icon" class="material-symbols-outlined">straight</span>
-            </div>
+    <div id="navigation-status" role="region" hidden>
+        <div id="instruction-container">
+            <span id="maneuver-icon" class="material-symbols-outlined">straight</span>
             <div id="instruction-text-wrapper">
                 <div id="instruction-dist">--</div>
-                <div id="navigation-instruction">Starting navigation...</div>
+                <div id="navigation-instruction">Starting...</div>
             </div>
-            <div id="instruction-progress-bar" style="transform: scaleX(0);" role="progressbar" aria-label="Distance to next turn"></div>
         </div>
-        <div id="trip-stats-container" role="group" aria-label="Trip Statistics">
+        <div id="trip-stats-container">
             <div class="stat-item"><span id="stat-speed">--</span><span class="stat-label">mph</span></div>
-            <div class="stat-item"><span id="stat-miles-remaining">--.-</span><span class="stat-label">mi</span></div>
-            <div class="stat-item"><span id="stat-time-remaining">-- min</span><span class="stat-label">Time</span></div>
             <div class="stat-item"><span id="stat-eta">--:--</span><span class="stat-label">ETA</span></div>
-        </div>
-        <button id="end-navigation-btn" aria-label="End Navigation">End Trip</button>
-    </div>
-    
-    <div id="side-panel" role="complementary" aria-label="Place Details and Directions">
-        <div id="panel-grabber" aria-hidden="true"></div>
-        <div id="panel-search-placeholder" hidden></div>
-        <div class="panel-content">
-            <div id="dynamic-content" aria-live="polite"></div>
+            <button id="end-navigation-btn">Exit</button>
         </div>
     </div>
     
-    <div id="settings-modal" class="modal-container" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <div id="modal-overlay" class="modal-overlay" aria-hidden="true"></div>
+    <div id="settings-modal" class="modal-container">
+        <div id="modal-overlay" class="modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">
-                <h4 id="settings-title">Map Settings</h4>
-                <button id="close-settings-btn" class="modal-close-btn" aria-label="Close Settings">&times;</button>
+                <h4>Map Settings</h4>
+                <button id="close-settings-btn" class="modal-close-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="setting-group">
-                    <label for="globe-toggle" class="setting-label">Globe View</label>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="globe-toggle" name="map-globe">
-                        <label for="globe-toggle" aria-hidden="true"></label>
-                    </div>
+                    <label for="globe-toggle">Globe View</label>
+                    <div class="toggle-switch"><input type="checkbox" id="globe-toggle"><label for="globe-toggle"></label></div>
                 </div>
-                <hr aria-hidden="true">
-                <div class="setting-group" role="radiogroup" aria-labelledby="units-label">
-                    <span id="units-label" class="setting-label">Units</span>
+                <hr>
+                <div class="setting-group">
+                    <span class="setting-label">Theme</span>
                     <div class="radio-group">
-                        <input type="radio" id="units-imperial" name="map-units" value="imperial" checked>
-                        <label for="units-imperial">Imperial</label>
-                        <input type="radio" id="units-metric" name="map-units" value="metric">
-                        <label for="units-metric">Metric</label>
+                        <input type="radio" id="theme-auto" name="map-theme" value="auto"><label for="theme-auto">Auto</label>
+                        <input type="radio" id="theme-light" name="map-theme" value="light" checked><label for="theme-light">Light</label>
+                        <input type="radio" id="theme-dark" name="map-theme" value="dark"><label for="theme-dark">Dark</label>
                     </div>
                 </div>
-                <hr aria-hidden="true">
-                <div class="setting-group" role="radiogroup" aria-labelledby="voice-label">
-                    <span id="voice-label" class="setting-label">Navigation Voice</span>
-                    <div class="radio-group">
-                        <input type="radio" id="voice-female" name="nav-voice" value="female" checked>
-                        <label for="voice-female">Female</label>
-                        <input type="radio" id="voice-male" name="nav-voice" value="male">
-                        <label for="voice-male">Male</label>
-                    </div>
-                </div>
-                <hr aria-hidden="true">
-                <div class="setting-group" role="radiogroup" aria-labelledby="theme-label">
-                    <span id="theme-label" class="setting-label">Theme</span>
-                    <div class="radio-group">
-                        <input type="radio" id="theme-auto" name="map-theme" value="auto">
-                        <label for="theme-auto">Auto</label>
-                        <input type="radio" id="theme-light" name="map-theme" value="light">
-                        <label for="theme-light">Light</label>
-                        <input type="radio" id="theme-dark" name="map-theme" value="dark">
-                        <label for="theme-dark">Dark</label>
-                    </div>
-                </div>
-                <hr aria-hidden="true">
+                <hr>
                 <button id="advanced-settings-btn" class="btn-link">Advanced Settings...</button>
             </div>
         </div>
     </div>
 
-    <div id="advanced-settings-modal" class="modal-container" role="dialog" aria-modal="true" aria-labelledby="adv-settings-title">
-        <div id="modal-overlay-advanced" class="modal-overlay" aria-hidden="true"></div>
+    <div id="advanced-settings-modal" class="modal-container">
+        <div id="modal-overlay-advanced" class="modal-overlay"></div>
         <div class="modal-content">
-            <div class="modal-header">
-                <h4 id="adv-settings-title">Advanced Settings</h4>
-                <button id="close-advanced-settings-btn" class="modal-close-btn" aria-label="Close Advanced Settings">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="setting-group-column">
-                    <span id="tile-priority-label" class="setting-label">Tile Service Priority</span>
-                    <span class="setting-description">Drag to re-order. The app will try to load maps from the top of the list first.</span>
-                    <ul id="tile-priority-list" class="sortable-list" aria-labelledby="tile-priority-label" role="list"></ul>
-                </div>
-                <hr aria-hidden="true">
-                <div class="setting-group">
-                    <label for="language-select" class="setting-label">Language</label>
-                    <select id="language-select" class="styled-select">
-                        <option value="en">English</option>
-                        <option value="es">Español (coming soon)</option>
-                        <option value="fr">Français (coming soon)</option>
-                    </select>
-                </div>
-                <hr aria-hidden="true">
-                <div class="setting-group-column">
-                    <span class="setting-label">Privacy</span>
-                    <div class="setting-group">
-                        <label for="privacy-clear-recents-toggle" class="setting-label-inner">Clear Recent Searches on Exit</label>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="privacy-clear-recents-toggle" name="privacy-clear-recents">
-                            <label for="privacy-clear-recents-toggle" aria-hidden="true"></label>
-                        </div>
-                    </div>
-                    <div class="setting-group">
-                        <label for="privacy-disable-suggestions-toggle" class="setting-label-inner">Disable Search Suggestions</label>
-                        <div class="toggle-switch">
-                            <input type="checkbox" id="privacy-disable-suggestions-toggle" name="privacy-disable-suggestions">
-                            <label for="privacy-disable-suggestions-toggle" aria-hidden="true"></label>
-                        </div>
-                    </div>
-                </div>
-            </div>
+             <div class="modal-header"><h4>Advanced</h4><button id="close-advanced-settings-btn" class="modal-close-btn">&times;</button></div>
+             <div class="modal-body">
+                 <ul id="tile-priority-list" class="sortable-list"></ul>
+                 <div class="setting-group"><label>Clear Recents</label><input type="checkbox" id="privacy-clear-recents-toggle"></div>
+             </div>
         </div>
     </div>
 
-    <div id="context-menu" role="menu">
-        <div id="context-menu-coords" aria-label="Coordinates"></div>
-        <button class="context-menu-item" id="ctx-directions-from" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">near_me</span><span>Directions from here</span></button>
-        <button class="context-menu-item" id="ctx-directions-to" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">place</span><span>Directions to here</span></button>
-        <button class="context-menu-item" id="ctx-whats-here" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">help_outline</span><span>What's here?</span></button>
+    <div id="context-menu">
+        <div id="context-menu-coords"></div>
+        <button class="context-menu-item" id="ctx-directions-from">Directions from here</button>
+        <button class="context-menu-item" id="ctx-directions-to">Directions to here</button>
+        <button class="context-menu-item" id="ctx-whats-here">What's here?</button>
     </div>
     
-    <div id="map" aria-label="Interactive Map"></div>
-    <div id="rerouting-overlay" role="alert">Rerouting...</div>
-    <div id="toast-container" role="alert" aria-live="polite"></div>
+    <div id="map"></div>
+    <div id="toast-container"></div>
     
-    <template id="tmpl-home">
-        <div class="info-content-padding">
-            <div class="welcome-header-section">
-                <h3 tabindex="-1">Explore</h3>
-                <p>Latest in your area</p>
-            </div>
-            <div id="home-recents-list" role="list"></div>
-            <div class="legal-footer"><p>Copyright &copy; 2025 TheBoiisMC</p></div>
-        </div>
-    </template>
-
+    <template id="tmpl-home"><div class="info-content-padding"><h3>Explore</h3><div id="home-recents-list"></div></div></template>
     <template id="tmpl-place-details">
         <div class="panel-hero">
-            <div class="hero-image-wrapper">
-                <img id="info-image" src="" alt="Place image" style="opacity:0; transition:opacity 0.5s; width:100%; height:100%; object-fit:cover;"/>
-                <div class="hero-gradient"></div>
-            </div>
-            <button id="details-back-btn" aria-label="Go Back" class="dynamic-back-btn" style="position:absolute; top:15px; left:15px; z-index:10; background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:40px; height:40px; cursor:pointer;">
-                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-            </button>
-            <div class="hero-text-content">
-                <h3 id="info-name" tabindex="-1"></h3>
-                <div id="info-weather" class="weather-badge" hidden aria-label="Current Weather">Loading...</div>
-            </div>
+            <div class="hero-image-wrapper"><img id="info-image" src="" style="opacity:0; width:100%; height:100%; object-fit:cover;"/><div class="hero-gradient"></div></div>
+            <button id="details-back-btn" class="dynamic-back-btn" style="position:absolute; top:15px; left:15px; background:rgba(0,0,0,0.6); color:white; border-radius:50%; width:36px; height:36px; border:none;"><span class="material-symbols-outlined">arrow_back</span></button>
+            <div class="hero-text-content"><h3 id="info-name"></h3><div id="info-weather" hidden></div></div>
         </div>
         <div class="info-content-padding">
-            <div class="address-row"><span class="material-symbols-outlined" aria-hidden="true">location_on</span><p id="info-subtitle"></p></div>
+            <div class="address-row"><span class="material-symbols-outlined">location_on</span><p id="info-subtitle"></p></div>
             <div class="action-buttons modern-actions">
-                <button class="btn-wrapper" id="btn-details-dir" style="background:none; border:none;">
-                    <div class="icon-circle primary"><span class="material-symbols-outlined" aria-hidden="true">directions</span></div>
-                    <div class="btn-label">Directions</div>
-                </button>
-                <button class="btn-wrapper" id="btn-details-save" style="background:none; border:none;">
-                    <div class="icon-circle secondary"><span class="material-symbols-outlined" aria-hidden="true">bookmark_border</span></div>
-                    <div class="btn-label">Save</div>
-                </button>
+                <button class="btn-wrapper" id="btn-details-dir"><div class="icon-circle primary"><span class="material-symbols-outlined">directions</span></div><div class="btn-label">Directions</div></button>
+                <button class="btn-wrapper" id="btn-details-save"><div class="icon-circle secondary"><span class="material-symbols-outlined">bookmark</span></div><div class="btn-label">Save</div></button>
             </div>
-            <hr class="panel-divider" aria-hidden="true" />
-            <div class="panel-card">
-                <div class="card-header"><span class="material-symbols-outlined" aria-hidden="true">info</span><h4>About</h4></div>
-                <p id="quick-facts-content">Loading info...</p>
-                <button id="info-website-btn" style="display:none; margin-top:10px;" class="btn-link">Visit Website</button>
-            </div>
+            <div class="panel-card"><p id="quick-facts-content">Loading...</p><button id="info-website-btn" class="btn-link" style="display:none">Website</button></div>
         </div>
     </template>
-
     <template id="tmpl-directions">
         <div class="info-content-padding">
-            <div class="travel-modes" role="radiogroup" aria-label="Travel Mode">
-                <button class="travel-mode-btn active" aria-pressed="true" aria-label="Drive"><span class="material-symbols-outlined" aria-hidden="true">directions_car</span></button>
-                <button class="travel-mode-btn" aria-pressed="false" aria-label="Walk"><span class="material-symbols-outlined" aria-hidden="true">directions_walk</span></button>
-                <button class="travel-mode-btn" aria-pressed="false" aria-label="Bike"><span class="material-symbols-outlined" aria-hidden="true">directions_bike</span></button>
-            </div>
+            <div class="travel-modes"><button class="travel-mode-btn active"><span class="material-symbols-outlined">directions_car</span></button><button class="travel-mode-btn"><span class="material-symbols-outlined">directions_walk</span></button></div>
             <div class="dir-input-group">
-                <div class="dir-input-wrapper">
-                    <span class="material-symbols-outlined" aria-hidden="true">trip_origin</span>
-                    <label for="panel-from-input" class="sr-only">Start Location</label>
-                    <input type="text" id="panel-from-input" placeholder="My Location" autocomplete="off" />
-                </div>
-                <div id="panel-from-suggestions" class="suggestions-dropdown" role="listbox"></div>
-                <div class="dir-input-wrapper">
-                    <span class="material-symbols-outlined" aria-hidden="true">location_on</span>
-                    <label for="panel-to-input" class="sr-only">Destination</label>
-                    <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off" />
-                </div>
-                <div id="panel-to-suggestions" class="suggestions-dropdown" role="listbox"></div>
-                <button id="swap-btn" aria-label="Swap Start and Destination"><span class="material-symbols-outlined" aria-hidden="true">swap_vert</span></button>
+                <div class="dir-input-wrapper"><input type="text" id="panel-from-input" placeholder="Start location" /></div>
+                <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
+                <div class="dir-input-wrapper"><input type="text" id="panel-to-input" placeholder="Destination" /></div>
+                <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
+                <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
             </div>
-            <button class="dir-quick-select" id="dir-use-my-location" style="background:none; border:none; width:100%; text-align:left;">
-                <div class="icon-wrapper"><span class="material-symbols-outlined" aria-hidden="true">my_location</span></div>Your location
-            </button>
-            <button id="get-route-btn" class="modern-primary-btn" style="width:100%; margin-top:10px;">Get Route</button>
-            <button id="cancel-route-btn" style="width:100%; margin-top:10px; background:transparent; border:none; padding:10px; color:var(--text-secondary);">Cancel</button>
+            <button id="dir-use-my-location" class="dir-quick-select">Your location</button>
+            <button id="get-route-btn" class="modern-primary-btn">Get Route</button>
+            <button id="cancel-route-btn" style="width:100%; background:none; border:none; padding:10px; color:gray;">Cancel</button>
         </div>
     </template>
-
     <template id="tmpl-route-preview">
         <div class="info-content-padding">
-            <div class="route-summary">
-                <h3 id="route-time-display" style="color:#10B981; font-size:42px; font-weight:800; margin:0; line-height:1;" tabindex="-1"></h3>
-                <div id="route-dist-display" style="font-size:18px; color:var(--text-secondary); margin-top:8px;"></div>
-            </div>
-            <div class="action-buttons">
-                <button class="btn-wrapper" id="start-navigation-btn" style="background:none; border:none;">
-                    <div class="icon-circle" style="background-color:#10B981; color:white;"><span class="material-symbols-outlined" aria-hidden="true">navigation</span></div>
-                    <div class="btn-label" style="color:#10B981;">Start Trip</div>
-                </button>
-                <button class="btn-wrapper" style="background:none; border:none;">
-                    <div class="icon-circle"><span class="material-symbols-outlined" aria-hidden="true">share</span></div>
-                    <div class="btn-label">Share</div>
-                </button>
-            </div>
-            <button id="back-to-directions-btn" style="width:100%; padding:12px; border:none; background:var(--surface-secondary); color:var(--text-secondary); border-radius:12px; font-weight:600; cursor:pointer;">Back</button>
+            <div class="route-summary"><h3 id="route-time-display"></h3><div id="route-dist-display"></div></div>
+            <button id="start-navigation-btn" class="modern-primary-btn">Start Navigation</button>
+            <button id="back-to-directions-btn" style="width:100%; margin-top:10px; background:#f0f0f0; border:none; padding:10px; border-radius:8px;">Back</button>
         </div>
     </template>
-
     <template id="tmpl-search-results">
         <div class="info-content-padding">
-            <button id="results-back-btn" aria-label="Back to Search Results" class="dynamic-back-btn" style="background:transparent; border:none; cursor:pointer; font-weight:600; color:var(--accent-color); display:flex; align-items:center; margin-bottom:10px;">
-                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span> Back
-            </button>
-            <h3 id="results-header-text" tabindex="-1"></h3>
-            <div id="search-results-list" role="list"></div>
+            <button id="results-back-btn" style="background:none; border:none; cursor:pointer; display:flex; align-items:center; gap:5px; margin-bottom:10px;"><span class="material-symbols-outlined">arrow_back</span> Back</button>
+            <h3 id="results-header-text"></h3>
+            <div id="search-results-list"></div>
         </div>
     </template>
-
     <template id="tmpl-result-item">
-        <button class="search-result-item" role="listitem" style="width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--border-color);">
-            <div class="result-item-icon"><span class="material-symbols-outlined" aria-hidden="true">place</span></div>
-            <div class="result-item-details">
-                <h4 class="item-title"></h4>
-                <p class="item-subtitle"></p>
-            </div>
+        <button class="search-result-item">
+            <div class="result-item-icon"><span class="material-symbols-outlined">place</span></div>
+            <div class="result-item-details"><h4 class="item-title"></h4><p class="item-subtitle"></p></div>
             <div class="result-item-distance"></div>
         </button>
     </template>
-    
+
     <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js"></script>
     <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js" defer></script>
     <script src="https://static.theboiismc.com/js/maps/turf.js" defer></script>
-    <script src="https://static.theboiismc.com/js/maps/maps78.js" defer></script>
+    <script src="https://static.theboiismc.com/js/maps/maps77.js" defer></script>
 </body>
 </html>
