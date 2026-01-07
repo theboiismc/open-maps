@@ -30,6 +30,20 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
     </noscript>
 
+    <script>
+        (function() {
+            try {
+                var saved = localStorage.getItem('mapTheme');
+                // Only force an attribute if the user has explicitly overridden 'auto'
+                if (saved === 'dark' || saved === 'light') {
+                    document.documentElement.setAttribute('data-theme', saved);
+                }
+                // If saved is null or 'auto', we do NOTHING.
+                // This lets CSS @media (prefers-color-scheme) handle the colors dynamically.
+            } catch (e) {}
+        })();
+    </script>
+
     <link href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css" rel="stylesheet">
     <link rel="stylesheet" href="https://static.theboiismc.com/css/maps_v6.1.0.css">
 </head>
@@ -303,6 +317,7 @@
                 </button>
             </div>
             <hr class="panel-divider" aria-hidden="true" />
+            
             <div class="panel-card">
                 <div class="card-header"><span class="material-symbols-outlined" aria-hidden="true">info</span><h4>About</h4></div>
                 <p id="quick-facts-content">Loading info...</p>
