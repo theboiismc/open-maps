@@ -42,7 +42,7 @@
     </script>
 
     <link href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://static.theboiismc.com/css/maps_v7.0.0.css">
+    <link rel="stylesheet" href="https://static.theboiismc.com/css/maps_v6.3.3.css">
 </head>
 <body>
 
@@ -300,10 +300,10 @@
         </button>
     </template>
     
-    <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js"></script>
+    <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js" defer></script>
     <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js" defer></script>
     <script src="https://static.theboiismc.com/js/maps/turf.js" defer></script>
-    <script src="https://static.theboiismc.com/js/maps/maps_v7.0.0.js" defer></script>
+    <script src="https://static.theboiismc.com/js/maps/maps_v6.3.2.js" defer></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -333,25 +333,16 @@
             }
 
             // 2. PANEL CLOSING LOGIC OVERRIDE
-            // This ensures clicking "Close" or "Back" (when top level) closes the panel entirely
             const panel = document.getElementById('side-panel');
             
-            // Helper to close panel
             window.closePanelCompletely = function() {
                 panel.classList.remove('open');
                 panel.classList.remove('open-half');
                 panel.classList.remove('open-full');
             };
 
-            // Attach to template buttons when they are rendered
-            // Since templates are cloned, we use a delegation or observer, 
-            // but for simplicity, we assume your main JS calls closePanelCompletely()
-            // OR we listen for clicks on specific IDs if they exist in DOM
             document.body.addEventListener('click', (e) => {
-                // If clicking a "Close Directions" button
                 if(e.target.closest('#directions-close-btn') || e.target.closest('#cancel-route-btn')) {
-                    // Check if we should close or just clear. 
-                    // User requested "close intirely"
                     window.closePanelCompletely();
                 }
             });
