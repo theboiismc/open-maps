@@ -26,7 +26,6 @@ if (workbox) {
                 new workbox.cacheableResponse.CacheableResponsePlugin({
                     statuses: [0, 200],
                 }),
-                // THIS IS THE SAFETY VALVE:
                 new workbox.expiration.ExpirationPlugin({
                     maxEntries: 20, // Only keep the 20 most recent JS/CSS files
                     maxAgeSeconds: 30 * 24 * 60 * 60, // Delete anything older than 30 days
@@ -37,7 +36,6 @@ if (workbox) {
     );
 
     // --- NEW: Cache Heavy CDN Libraries (MapLibre, etc) ---
-    // This stops the browser from re-downloading the map engine on every visit.
     workbox.routing.registerRoute(
         ({url}) => url.origin === 'https://unpkg.com' || 
                    url.origin === 'https://cdn.jsdelivr.net' ||
@@ -50,27 +48,28 @@ if (workbox) {
                 }),
                 new workbox.expiration.ExpirationPlugin({
                     maxEntries: 20,
-                    maxAgeSeconds: 60 * 24 * 60 * 60, // Cache for 60 Days (Libraries don't change often)
+                    maxAgeSeconds: 60 * 24 * 60 * 60, // Cache for 60 Days
                     purgeOnQuotaError: true,
                 }),
             ],
         })
     );
 
-    // 3. Map Tiles (The biggest storage risk)
+    // 3. Map Tiles (UPDATED FOR OFFLINE STORAGE)
+    // Increases limit to 15,000 tiles and duration to 1 year for persistent offline use.
     workbox.routing.registerRoute(
         ({url}) => url.origin.includes('maptiler.com') || 
                    url.origin.includes('openfreemap.org') ||
                    url.origin.includes('tiles.theboiismc.com'),
         new workbox.strategies.CacheFirst({
-            cacheName: 'map-tiles',
+            cacheName: 'offline-map-tiles',
             plugins: [
                 new workbox.cacheableResponse.CacheableResponsePlugin({
                     statuses: [0, 200],
                 }),
                 new workbox.expiration.ExpirationPlugin({
-                    maxEntries: 2000, // Limit to 2000 tiles (approx 50-100MB)
-                    maxAgeSeconds: 60 * 24 * 60 * 60, // Keep tiles for 60 days
+                    maxEntries: 15000, 
+                    maxAgeSeconds: 365 * 24 * 60 * 60, // Keep tiles for 1 Year
                     purgeOnQuotaError: true, // Delete tiles if phone needs space
                 }),
             ],
