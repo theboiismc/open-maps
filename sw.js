@@ -36,6 +36,27 @@ if (workbox) {
         })
     );
 
+    // --- NEW: Cache Heavy CDN Libraries (MapLibre, etc) ---
+    // This stops the browser from re-downloading the map engine on every visit.
+    workbox.routing.registerRoute(
+        ({url}) => url.origin === 'https://unpkg.com' || 
+                   url.origin === 'https://cdn.jsdelivr.net' ||
+                   url.origin === 'https://storage.googleapis.com',
+        new workbox.strategies.CacheFirst({
+            cacheName: 'cdn-libraries',
+            plugins: [
+                new workbox.cacheableResponse.CacheableResponsePlugin({
+                    statuses: [0, 200],
+                }),
+                new workbox.expiration.ExpirationPlugin({
+                    maxEntries: 20,
+                    maxAgeSeconds: 60 * 24 * 60 * 60, // Cache for 60 Days (Libraries don't change often)
+                    purgeOnQuotaError: true,
+                }),
+            ],
+        })
+    );
+
     // 3. Map Tiles (The biggest storage risk)
     workbox.routing.registerRoute(
         ({url}) => url.origin.includes('maptiler.com') || 
