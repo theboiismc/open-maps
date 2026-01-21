@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Silent Callback</title>
+</head>
+<body>
+    <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js"></script>
+    <script>
+        // Silent handshake processor
+        const userManager = new oidc.UserManager({
+             response_mode: 'query',
+             userStore: new oidc.WebStorageStateStore({ store: window.sessionStorage })
+        });
+        
+        userManager.signinSilentCallback().catch(function(e) {
+            console.error(e);
+        });
+    </script>
+</body>
+</html>
