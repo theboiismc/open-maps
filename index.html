@@ -1,198 +1,376 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>TheBoiisMC Account</title>
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
-  
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: {
-            brand: { 500: '#6366f1', 600: '#4f46e5' },
-            // Deep Navy/Grey from your screenshots
-            surface: { 
-              900: '#0f172a', // Main background
-              800: '#1e293b', // Card/Menu background (Slate-800)
-              700: '#334155'  // Borders/Hover
-            }
-          }
-        }
-      }
-    }
-  </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <style>
-    body { background-color: #0f172a; color: #e2e8f0; }
+    <title>TheBoiisMC Maps - Private Navigation & Directions</title>
+
+    <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
     
-    /* The specific drop-shadow for the floating menus */
-    .menu-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3); }
-    
-    /* Animation for dropdowns */
-    .dropdown-enter {
-        animation: scaleIn 0.1s ease-out forwards;
-        transform-origin: top right;
-    }
-    @keyframes scaleIn {
-        from { opacity: 0; transform: scale(0.95); }
-        to { opacity: 1; transform: scale(1); }
-    }
-  </style>
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://maps.theboiismc.com/" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
+
+    <meta name="theme-color" content="#030712" />
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="/assets/icon512_rounded.png">
+
+    <meta property="og:title" content="TheBoiisMC Maps - Private Navigation & Directions" />
+    <meta property="og:description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps." />
+    <meta property="og:image" content="https://maps.theboiismc.com/icon512_rounded.png" />
+    <meta property="og:url" content="https://maps.theboiismc.com" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+    </noscript>
+
+    <script>
+        (function() {
+            try {
+                var saved = localStorage.getItem('mapTheme');
+                if (saved === 'dark' || saved === 'light') {
+                    document.documentElement.setAttribute('data-theme', saved);
+                }
+            } catch (e) {}
+        })();
+    </script>
+
+    <link href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://static.theboiismc.com/css/maps_v7.0.0.css">
 </head>
+<body>
 
-<body class="flex flex-col md:flex-row min-h-screen antialiased">
-
-  <header class="fixed top-0 w-full z-50 px-4 py-3 flex items-center justify-between bg-[#0f172a]/90 backdrop-blur-md border-b border-white/5">
-    
-    <div class="flex items-center gap-4">
-        <button id="mobile-menu-btn" class="md:hidden p-2 text-slate-400 hover:text-white rounded-full hover:bg-white/10 transition">
-            <span class="material-symbols-rounded">menu</span>
-        </button>
-        <a href="/" class="flex items-center gap-2 group">
-             <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">B</div>
-            <span class="font-medium text-lg text-white">TheBoiis<span class="text-slate-500">MC</span></span>
-        </a>
+    <div id="sidebar-drawer" class="sidebar-drawer" role="navigation" aria-label="Main Menu">
+        <div class="drawer-header">
+            <span class="brand-text" style="color:var(--text-primary); font-size:22px;">TheBoiis<span class="text-brand">MC</span></span>
+            <button id="close-drawer-btn" aria-label="Close Menu"><span class="material-symbols-outlined">chevron_left</span></button>
+        </div>
+        <div class="drawer-content">
+            <a href="/" class="drawer-item active"><span class="material-symbols-outlined">map</span> Maps</a>
+            <a href="https://search.theboiismc.com" class="drawer-item"><span class="material-symbols-outlined">search</span> Search</a>
+            <a href="https://drive.theboiismc.com" class="drawer-item"><span class="material-symbols-outlined">cloud</span> Drive</a>
+            <div class="drawer-divider"></div>
+            <div class="drawer-footer">
+                <p>&copy; 2026 TheBoiisMC</p>
+            </div>
+        </div>
     </div>
+    <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
 
-    <div class="flex items-center gap-2 md:gap-3">
+    <div id="floating-profile-controls">
+        <button id="app-menu-button" class="float-btn" aria-label="Open App Menu" aria-haspopup="true" aria-expanded="false">
+            <span class="material-symbols-outlined" aria-hidden="true">apps</span>
+        </button>
         
-        <button id="apps-btn" class="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition relative">
-            <span class="material-symbols-rounded text-[24px]">apps</span>
-        </button>
-
-        <button id="user-btn" class="ml-1 w-9 h-9 rounded-full bg-indigo-600 text-white font-medium flex items-center justify-center hover:ring-2 hover:ring-slate-500 transition overflow-hidden">
-            <span id="header-avatar">U</span>
-        </button>
-    </div>
-  </header>
-
-  <div id="apps-menu" class="hidden fixed top-16 right-4 w-[320px] bg-[#1e293b] rounded-3xl p-6 menu-shadow border border-white/5 z-[60] dropdown-enter">
-      <div class="grid grid-cols-3 gap-y-6 gap-x-2">
-          <a href="https://www.theboiismc.com" class="flex flex-col items-center gap-2 group hover:bg-white/5 p-2 rounded-xl transition">
-              <span class="material-symbols-rounded text-3xl text-indigo-400 bg-indigo-500/10 p-3 rounded-full">home</span>
-              <span class="text-xs font-medium text-slate-300">Home</span>
-          </a>
-          <a href="https://search.theboiismc.com" class="flex flex-col items-center gap-2 group hover:bg-white/5 p-2 rounded-xl transition">
-              <span class="material-symbols-rounded text-3xl text-blue-400 bg-blue-500/10 p-3 rounded-full">search</span>
-              <span class="text-xs font-medium text-slate-300">Search</span>
-          </a>
-          <a href="https://maps.theboiismc.com" class="flex flex-col items-center gap-2 group hover:bg-white/5 p-2 rounded-xl transition">
-              <span class="material-symbols-rounded text-3xl text-emerald-400 bg-emerald-500/10 p-3 rounded-full">map</span>
-              <span class="text-xs font-medium text-slate-300">Maps</span>
-          </a>
-          <a href="/" class="flex flex-col items-center gap-2 group hover:bg-white/5 p-2 rounded-xl transition">
-              <span class="material-symbols-rounded text-3xl text-purple-400 bg-purple-500/10 p-3 rounded-full">account_circle</span>
-              <span class="text-xs font-medium text-slate-300">Account</span>
-          </a>
-          <a href="https://drive.theboiismc.com" class="flex flex-col items-center gap-2 group hover:bg-white/5 p-2 rounded-xl transition">
-              <span class="material-symbols-rounded text-3xl text-yellow-400 bg-yellow-500/10 p-3 rounded-full">cloud</span>
-              <span class="text-xs font-medium text-slate-300">Drive</span>
-          </a>
-          <a href="https://photos.theboiismc.com" class="flex flex-col items-center gap-2 group hover:bg-white/5 p-2 rounded-xl transition">
-              <span class="material-symbols-rounded text-3xl text-red-400 bg-red-500/10 p-3 rounded-full">photo_library</span>
-              <span class="text-xs font-medium text-slate-300">Photos</span>
-          </a>
-      </div>
-  </div>
-
-  <div id="user-menu" class="hidden fixed top-16 right-4 w-[300px] bg-[#1e293b] rounded-3xl p-0 menu-shadow border border-white/5 z-[60] dropdown-enter overflow-hidden">
-      <div class="flex flex-col items-center pt-8 pb-6 px-6 bg-[#1e293b]">
-          <div id="menu-avatar-large" class="w-20 h-20 rounded-full bg-indigo-600 text-white text-3xl font-medium flex items-center justify-center mb-4 ring-4 ring-[#0f172a]">U</div>
-          <div id="menu-name" class="text-lg font-semibold text-white text-center">User</div>
-          <div id="menu-email" class="text-sm text-slate-400 text-center break-all">user@example.com</div>
-          <button onclick="switchTab('personal')" class="mt-4 text-xs border border-slate-600 hover:bg-white/5 text-slate-300 px-4 py-1.5 rounded-full transition">Manage Account</button>
-      </div>
-      
-      <div class="h-px bg-white/10 w-full"></div>
-
-      <div class="p-2">
-          <button onclick="switchTab('security')" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-white/5 hover:text-white rounded-xl transition text-left">
-              <span class="material-symbols-rounded text-[20px]">shield</span> Security Settings
-          </button>
-          
-          <a href="/logout" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-white/5 hover:text-white rounded-xl transition text-left">
-              <span class="material-symbols-rounded text-[20px]">logout</span> Log Out
-          </a>
-      </div>
-      
-      <div class="bg-black/20 p-3 text-center">
-          <span class="text-[10px] text-slate-600">Privacy Policy • Terms of Service</span>
-      </div>
-  </div>
-
-  <div class="flex flex-1 pt-16"> <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 transform -translate-x-full md:translate-x-0 transition-transform duration-300 md:relative bg-[#0f172a] border-r border-white/5 pt-20 md:pt-4 flex flex-col">
-        <nav class="flex-1 px-3 space-y-1">
-          <button onclick="switchTab('home')" id="nav-home" class="nav-link group active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-            <span class="material-symbols-rounded text-[20px] opacity-70 group-hover:opacity-100">dashboard</span> 
-            Dashboard
-          </button>
-          <button onclick="switchTab('personal')" id="nav-personal" class="nav-link group w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200">
-            <span class="material-symbols-rounded text-[20px] opacity-70 group-hover:opacity-100">badge</span> 
-            Personal Info
-          </button>
-          <button onclick="switchTab('security')" id="nav-security" class="nav-link group w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-200">
-            <span class="material-symbols-rounded text-[20px] opacity-70 group-hover:opacity-100">lock</span> 
-            Security
-          </button>
-        </nav>
-      </aside>
-      
-      <main class="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full">
-         
-         <div id="tab-home" class="tab-content space-y-8">
-            <h1 class="text-2xl font-semibold mb-6">Home</h1>
+        <div id="profile-area">
+            <button id="profile-button" class="float-btn profile-btn-circle" aria-label="User Profile Menu" aria-haspopup="true" aria-expanded="false">
+                <span class="material-symbols-outlined" aria-hidden="true">account_circle</span>
+            </button>
             
-            <div class="grid md:grid-cols-2 gap-4">
-               <div class="p-6 rounded-2xl bg-[#1e293b] border border-white/5">
-                   <h2 class="text-lg font-medium mb-2">Welcome</h2>
-                   <p class="text-slate-400 text-sm">Manage your info, privacy, and security to make TheBoiisMC work better for you.</p>
-               </div>
-               <div class="p-6 rounded-2xl bg-[#1e293b] border border-white/5">
-                   <h2 class="text-lg font-medium mb-2">Privacy suggestions</h2>
-                   <p class="text-slate-400 text-sm mb-4">Take the Privacy Checkup to review key settings.</p>
-                   <button onclick="switchTab('security')" class="text-indigo-400 text-sm font-medium hover:underline">Review settings</button>
-               </div>
+            <div id="services-dropdown" class="apps-dropdown-container" role="menu" aria-label="App Services">
+                <div id="apps-grid" class="apps-grid">
+                    </div>
             </div>
 
-            <h2 class="text-lg font-medium mt-8 mb-4">Your Services</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <a href="https://drive.theboiismc.com" class="p-4 bg-[#1e293b] rounded-2xl hover:bg-[#334155] transition flex flex-col items-center justify-center gap-2 h-32 border border-white/5">
-                    <span class="material-symbols-rounded text-3xl text-blue-400">cloud</span>
-                    <span class="text-sm font-medium">Drive</span>
-                </a>
-                <a href="https://photos.theboiismc.com" class="p-4 bg-[#1e293b] rounded-2xl hover:bg-[#334155] transition flex flex-col items-center justify-center gap-2 h-32 border border-white/5">
-                    <span class="material-symbols-rounded text-3xl text-red-400">photo_library</span>
-                    <span class="text-sm font-medium">Photos</span>
-                </a>
-                <a href="https://maps.theboiismc.com" class="p-4 bg-[#1e293b] rounded-2xl hover:bg-[#334155] transition flex flex-col items-center justify-center gap-2 h-32 border border-white/5">
-                    <span class="material-symbols-rounded text-3xl text-emerald-400">map</span>
-                    <span class="text-sm font-medium">Maps</span>
-                </a>
-                <a href="https://search.theboiismc.com" class="p-4 bg-[#1e293b] rounded-2xl hover:bg-[#334155] transition flex flex-col items-center justify-center gap-2 h-32 border border-white/5">
-                    <span class="material-symbols-rounded text-3xl text-indigo-400">search</span>
-                    <span class="text-sm font-medium">Search</span>
-                </a>
+            <div id="profile-dropdown" role="menu" aria-label="User Options">
+                <div id="logged-in-view" hidden>
+                    <div class="profile-section profile-section-header">
+                        <img id="dropdown-avatar" class="profile-dropdown-avatar" src="" alt="Your Profile Picture" hidden />
+                        <div class="username">TheBoiisMC</div>
+                        <div class="email">user@example.com</div>
+                    </div>
+                    <hr aria-hidden="true"/>
+                    <div class="profile-actions">
+                        <a id="saved-places-btn" href="#" role="menuitem">Saved Places</a>
+                    </div>
+                    <hr aria-hidden="true"/>
+                    <div class="profile-actions">
+                        <a id="logout-btn" href="#" role="menuitem">Log Out</a>
+                    </div>
+                </div>
+                <div id="logged-out-view" hidden>
+                    <div class="profile-section" style="text-align:center; font-weight: 500; color: var(--text-secondary);">Sign in to save and view places</div>
+                    <hr aria-hidden="true"/>
+                    <div class="auth-buttons">
+                        <a href="#" id="login-btn" class="btn btn-primary" role="menuitem">Log In</a>
+                        <a href="#" id="signup-btn" class="btn btn-secondary" role="menuitem">Sign Up</a>
+                    </div>
+                </div>
             </div>
-         </div>
-
-         <div id="tab-personal" class="tab-content hidden">
-            <h1 class="text-2xl font-semibold mb-6">Personal Info</h1>
+        </div>
+    </div>
+    
+    <div id="navigation-status" role="region" aria-label="Turn-by-turn Navigation">
+        <div id="lane-guidance-container"></div>
+        <div id="instruction-container" aria-live="assertive" aria-atomic="true">
+            <div id="maneuver-icon-wrapper" aria-hidden="true">
+                <span id="maneuver-icon" class="material-symbols-outlined">straight</span>
             </div>
-         <div id="tab-security" class="tab-content hidden">
-            <h1 class="text-2xl font-semibold mb-6">Security</h1>
+            <div id="instruction-text-wrapper">
+                <div id="instruction-dist">--</div>
+                <div id="navigation-instruction">Starting navigation...</div>
             </div>
-      </main>
-  </div>
+            <div id="instruction-progress-bar" style="transform: scaleX(0);" role="progressbar" aria-label="Distance to next turn"></div>
+        </div>
+        <div id="trip-stats-container" role="group" aria-label="Trip Statistics">
+            <div class="stat-item"><span id="stat-speed">--</span><span class="stat-label">mph</span></div>
+            <div class="stat-item"><span id="stat-miles-remaining">--.-</span><span class="stat-label">mi</span></div>
+            <div class="stat-item"><span id="stat-time-remaining">-- min</span><span class="stat-label">Time</span></div>
+            <div class="stat-item"><span id="stat-eta">--:--</span><span class="stat-label">ETA</span></div>
+        </div>
+        <button id="end-navigation-btn" aria-label="End Navigation">End Trip</button>
+    </div>
+    
+    <div id="top-search-wrapper" role="search">
+        <div id="main-search-container">
+            <button id="hamburger-btn" aria-label="Menu">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            
+            <label for="main-search" class="sr-only">Search for places, addresses, or coordinates</label>
+            <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" aria-autocomplete="list" aria-controls="main-suggestions" />
+            
+            <div class="search-divider"></div>
+            
+            <button id="search-trigger-btn" aria-label="Search" style="background:none; border:none; cursor:pointer;">
+                 <span id="search-icon-inside" class="material-symbols-outlined" aria-hidden="true">search</span>
+            </button>
+            
+            <button id="main-directions-icon" aria-label="Get Directions" style="background:none; border:none; cursor:pointer;">
+                <span class="material-symbols-outlined" aria-hidden="true">directions</span>
+            </button>
+           
+            <div id="main-suggestions" class="suggestions-dropdown" role="listbox">
+                <div id="initial-suggestions-view">
+                    <div id="recent-searches-container"></div>
+                </div>
+                <div id="api-suggestions-view" hidden></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="side-panel" role="complementary" aria-label="Place Details and Directions">
+        <div id="panel-grabber" aria-hidden="true"></div>
+        <button id="close-panel-btn" class="panel-close-btn" aria-label="Close Panel" style="display:none;"> </button>
+        <div id="panel-search-placeholder" hidden></div>
+        <div class="panel-content">
+            <div id="dynamic-content" aria-live="polite"></div>
+        </div>
+    </div>
+    
+    <div id="context-menu" role="menu">
+        <div id="context-menu-coords" aria-label="Coordinates"></div>
+        <button class="context-menu-item" id="ctx-directions-from" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">near_me</span><span>Directions from here</span></button>
+        <button class="context-menu-item" id="ctx-directions-to" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">place</span><span>Directions to here</span></button>
+        <button class="context-menu-item" id="ctx-whats-here" role="menuitem"><span class="material-symbols-outlined" aria-hidden="true">help_outline</span><span>What's here?</span></button>
+    </div>
+    
+    <div id="map" aria-label="Interactive Map"></div>
+    <div id="rerouting-overlay" role="alert">Rerouting...</div>
+    <button id="search-this-area-btn" class="search-area-btn" hidden>Search this area</button>
+    <div id="toast-container" role="alert" aria-live="polite"></div>
+    
+    <template id="tmpl-home">
+        <div class="info-content-padding mobile-only-home">
+            <div class="welcome-header-section">
+                <h3 tabindex="-1">Explore</h3>
+                <p>Latest in your area</p>
+            </div>
+            <div id="home-recents-list" role="list"></div>
+            <div class="legal-footer"><p>Copyright &copy; 2026 TheBoiisMC</p></div>
+        </div>
+    </template>
 
-  <div id="sidebar-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 hidden md:hidden"></div>
+    <template id="tmpl-place-details">
+        <div class="panel-hero">
+            <div class="hero-image-wrapper">
+                <img id="info-image" src="" alt="Place image" style="opacity:0; transition:opacity 0.5s; width:100%; height:100%; object-fit:cover;"/>
+                <div class="hero-gradient"></div>
+            </div>
+            <button id="details-back-btn" aria-label="Go Back" class="dynamic-back-btn" style="position:absolute; top:15px; left:15px; z-index:10; background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:40px; height:40px; cursor:pointer;">
+                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            </button>
+            <div class="hero-text-content">
+                <h3 id="info-name" tabindex="-1"></h3>
+                <div id="info-weather" class="weather-badge" hidden aria-label="Current Weather">Loading...</div>
+            </div>
+        </div>
+        <div class="info-content-padding">
+            <div class="address-row"><span class="material-symbols-outlined" aria-hidden="true">location_on</span><p id="info-subtitle"></p></div>
+            <div class="action-buttons modern-actions">
+                <button class="btn-wrapper" id="btn-details-dir" style="background:none; border:none;">
+                    <div class="icon-circle primary"><span class="material-symbols-outlined" aria-hidden="true">directions</span></div>
+                    <div class="btn-label">Directions</div>
+                </button>
+                <button class="btn-wrapper" id="btn-details-save" style="background:none; border:none;">
+                    <div class="icon-circle secondary"><span class="material-symbols-outlined" aria-hidden="true">bookmark_border</span></div>
+                    <div class="btn-label">Save</div>
+                </button>
+            </div>
+            <hr class="panel-divider" aria-hidden="true" />
+            
+            <div class="panel-card">
+                <div class="card-header"><span class="material-symbols-outlined" aria-hidden="true">info</span><h4>About</h4></div>
+                <p id="quick-facts-content">Loading info...</p>
+                <button id="info-website-btn" style="display:none; margin-top:10px;" class="btn-link">Visit Website</button>
+            </div>
+        </div>
+    </template>
 
-  <script src="/main.js"></script>
+    <template id="tmpl-directions">
+        <div class="info-content-padding">
+            <button id="directions-close-btn" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; margin-bottom:10px; display:flex; align-items:center; gap:5px;">
+                <span class="material-symbols-outlined">close</span> Close Directions
+            </button>
+
+            <div class="travel-modes" role="radiogroup" aria-label="Travel Mode">
+                <button class="travel-mode-btn active" aria-pressed="true" aria-label="Drive"><span class="material-symbols-outlined" aria-hidden="true">directions_car</span></button>
+                <button class="travel-mode-btn" aria-pressed="false" aria-label="Walk"><span class="material-symbols-outlined" aria-hidden="true">directions_walk</span></button>
+                <button class="travel-mode-btn" aria-pressed="false" aria-label="Bike"><span class="material-symbols-outlined" aria-hidden="true">directions_bike</span></button>
+            </div>
+            <div class="dir-input-group">
+                <div class="dir-input-wrapper">
+                    <span class="material-symbols-outlined" aria-hidden="true">trip_origin</span>
+                    <label for="panel-from-input" class="sr-only">Start Location</label>
+                    <input type="text" id="panel-from-input" placeholder="My Location" autocomplete="off" />
+                </div>
+                <div id="panel-from-suggestions" class="suggestions-dropdown" role="listbox"></div>
+                
+                <div class="dir-input-wrapper">
+                    <span class="material-symbols-outlined" aria-hidden="true">location_on</span>
+                    <label for="panel-to-input" class="sr-only">Destination</label>
+                    <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off" />
+                </div>
+                <div id="panel-to-suggestions" class="suggestions-dropdown" role="listbox"></div>
+                
+                <button id="swap-btn" aria-label="Swap Start and Destination"><span class="material-symbols-outlined" aria-hidden="true">swap_vert</span></button>
+            </div>
+            <button class="dir-quick-select" id="dir-use-my-location" style="background:none; border:none; width:100%; text-align:left;">
+                <div class="icon-wrapper"><span class="material-symbols-outlined" aria-hidden="true">my_location</span></div>Your location
+            </button>
+            <button id="get-route-btn" class="modern-primary-btn" style="width:100%; margin-top:10px;">Get Route</button>
+            <button id="cancel-route-btn" style="width:100%; margin-top:10px; background:transparent; border:none; padding:10px; color:var(--text-secondary);">Cancel</button>
+        </div>
+    </template>
+
+    <template id="tmpl-route-preview">
+        <div class="info-content-padding">
+            <div class="route-summary">
+                <h3 id="route-time-display" style="color:#10B981; font-size:42px; font-weight:800; margin:0; line-height:1;" tabindex="-1"></h3>
+                <div id="route-dist-display" style="font-size:18px; color:var(--text-secondary); margin-top:8px;"></div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn-wrapper" id="start-navigation-btn" style="background:none; border:none;">
+                    <div class="icon-circle" style="background-color:#10B981; color:white;"><span class="material-symbols-outlined" aria-hidden="true">navigation</span></div>
+                    <div class="btn-label" style="color:#10B981;">Start Trip</div>
+                </button>
+                <button class="btn-wrapper" style="background:none; border:none;">
+                    <div class="icon-circle"><span class="material-symbols-outlined" aria-hidden="true">share</span></div>
+                    <div class="btn-label">Share</div>
+                </button>
+            </div>
+            <button id="back-to-directions-btn" style="width:100%; padding:12px; border:none; background:var(--surface-secondary); color:var(--text-secondary); border-radius:12px; font-weight:600; cursor:pointer;">Back</button>
+        </div>
+    </template>
+
+    <template id="tmpl-search-results">
+        <div class="info-content-padding">
+            <button id="results-back-btn" aria-label="Back to Search Results" class="dynamic-back-btn" style="background:transparent; border:none; cursor:pointer; font-weight:600; color:var(--accent-color); display:flex; align-items:center; margin-bottom:10px;">
+                <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span> Back
+            </button>
+            <h3 id="results-header-text" tabindex="-1"></h3>
+            <div id="search-results-list" role="list"></div>
+        </div>
+    </template>
+
+    <template id="tmpl-result-item">
+        <button class="search-result-item" role="listitem" style="width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--border-color);">
+            <div class="result-item-icon"><span class="material-symbols-outlined" aria-hidden="true">place</span></div>
+            <div class="result-item-details">
+                <h4 class="item-title"></h4>
+                <p class="item-subtitle"></p>
+            </div>
+            <div class="result-item-distance"></div>
+        </button>
+    </template>
+    
+    <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js" defer></script>
+    <script src="https://static.theboiismc.com/js/maps/turf.js" defer></script>
+    <script src="https://static.theboiismc.com/js/maps/maps_v7.0.2.js" defer></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. DYNAMIC APPS CONFIGURATION
+            const SERVICES = [
+                { name: 'Home', icon: 'home', url: 'https://homeassistant.theboiismc.com' },
+                { name: 'Search', icon: 'search', url: 'https://search.theboiismc.com' },
+                { name: 'Maps', icon: 'map', url: 'https://maps.theboiismc.com' },
+                { name: 'Account', icon: 'account_circle', url: 'https://accounts.theboiismc.com' },
+                { name: 'Drive', icon: 'cloud', url: 'https://drive.theboiismc.com' },
+                { name: 'Photos', icon: 'photo_library', url: 'https://photos.theboiismc.com' }
+            ];
+
+            const appsGrid = document.getElementById('apps-grid');
+            if(appsGrid) {
+                appsGrid.innerHTML = '';
+                SERVICES.forEach(service => {
+                    const item = document.createElement('a');
+                    item.href = service.url;
+                    item.className = 'app-item';
+                    item.innerHTML = `
+                        <div class="app-icon-circle"><span class="material-symbols-outlined">${service.icon}</span></div>
+                        <span class="app-name">${service.name}</span>
+                    `;
+                    appsGrid.appendChild(item);
+                });
+            }
+
+            // 2. PANEL CLOSING LOGIC OVERRIDE
+            // This ensures clicking "Close" or "Back" (when top level) closes the panel entirely
+            const panel = document.getElementById('side-panel');
+            
+            // Helper to close panel
+            window.closePanelCompletely = function() {
+                panel.classList.remove('open');
+                panel.classList.remove('open-half');
+                panel.classList.remove('open-full');
+            };
+
+            // Attach to template buttons when they are rendered
+            // Since templates are cloned, we use a delegation or observer, 
+            // but for simplicity, we assume your main JS calls closePanelCompletely()
+            // OR we listen for clicks on specific IDs if they exist in DOM
+            document.body.addEventListener('click', (e) => {
+                // If clicking a "Close Directions" button
+                if(e.target.closest('#directions-close-btn') || e.target.closest('#cancel-route-btn')) {
+                    // Check if we should close or just clear. 
+                    // User requested "close intirely"
+                    window.closePanelCompletely();
+                }
+            });
+        });
+    </script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+    
 </body>
 </html>
