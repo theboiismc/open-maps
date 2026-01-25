@@ -7,13 +7,22 @@
     <title>TheBoiisMC Maps - Private Navigation & Directions</title>
 
     <meta name="description" content="Find driving directions, explore places, and get live traffic updates with TheBoiisMC Maps. Your private, modern, and secure mapping solution." />
+
+<meta http-equiv="Content-Security-Policy" content="
+    default-src 'self'; 
+    script-src 'self' https://unpkg.com https://static.theboiismc.com; 
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://static.theboiismc.com; 
+    img-src 'self' data: blob: https://*.theboiismc.com https://*.openstreetmap.org https://api.maptiler.com https://unpkg.com https://www.gravatar.com https://upload.wikimedia.org; 
+    connect-src 'self' https://*.theboiismc.com https://api.maptiler.com https://nominatim.openstreetmap.org https://router.project-osrm.org https://api.open-meteo.com https://en.wikipedia.org;
+    font-src 'self' https://fonts.gstatic.com;
+">
     
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin>
+    <link rel="preconnect" href="https://tiles.theboiismc.com" crossorigin> 
 
     <meta name="theme-color" content="#030712" />
     <link rel="manifest" href="manifest.json">
