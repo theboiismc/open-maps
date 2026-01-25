@@ -1,0 +1,15 @@
+[
+    { "label": "gas", "synonyms": ["fuel", "petrol", "diesel", "gas station"] },
+    { "label": "restaurant", "synonyms": ["food", "dinner", "lunch", "eating", "diner", "burgers", "pizza"] },
+    { "label": "bar", "synonyms": ["pub", "club", "drinks", "beer", "wine", "alcohol", "brewery"] },
+    { "label": "coffee", "synonyms": ["cafe", "espresso", "starbucks", "dunkin", "tea"] },
+    { "label": "supermarket", "synonyms": ["grocery", "food store", "market", "groceries", "walmart", "target"] },
+    { "label": "hotel", "synonyms": ["motel", "lodging", "inn", "room", "bnb"] },
+    { "label": "park", "synonyms": ["garden", "playground", "recreation", "hiking", "trail"] },
+    { "label": "hospital", "synonyms": ["doctor", "clinic", "er", "emergency", "medical"] },
+    { "label": "pharmacy", "synonyms": ["drugstore", "chemist", "rx", "cvs", "walgreens"] },
+    { "label": "school", "synonyms": ["university", "college", "education", "high school", "elementary"] },
+    { "label": "bus_station", "synonyms": ["bus", "transit", "stop", "bus stop"] },
+    { "label": "parking", "synonyms": ["lot", "garage", "parking lot"] },
+    { "label": "bank", "synonyms": ["atm", "cash", "credit union"] }
+]
