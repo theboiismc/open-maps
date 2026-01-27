@@ -47,12 +47,12 @@
             <span class="brand-text" style="color:var(--text-primary); font-size:22px;">TheBoiis<span class="text-brand">MC</span></span>
             <button id="close-drawer-btn" aria-label="Close Menu"><span class="material-symbols-outlined">chevron_left</span></button>
         </div>
-        <div id="drawer-links-container" class="drawer-content"></div>
-        
+        <div id="drawer-links-container" class="drawer-content">
+            </div>
         <div class="drawer-footer">
             <div class="drawer-divider"></div>
             <p>&copy; 2026 TheBoiisMC</p>
-            <p style="font-size:10px; opacity:0.6;">Version 8.2.2</p>
+            <p style="font-size:10px; opacity:0.6;">Version 8.2.3</p>
         </div>
     </div>
     <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
@@ -63,20 +63,50 @@
                 <h3 id="modal-title">Title</h3>
                 <button id="modal-close-btn" class="icon-btn"><span class="material-symbols-outlined">close</span></button>
             </div>
-            <div id="modal-body" class="modal-body">
-                </div>
+            <div id="modal-body" class="modal-body"></div>
         </div>
     </div>
 
     <div id="floating-profile-controls">
-        <button id="app-menu-button" class="float-btn" aria-label="Open App Menu"><span class="material-symbols-outlined">apps</span></button>
+        <button id="app-menu-button" class="float-btn" aria-label="Open App Menu" aria-haspopup="true" aria-expanded="false">
+            <span class="material-symbols-outlined">apps</span>
+        </button>
+        
         <div id="profile-area">
-            <button id="profile-button" class="float-btn profile-btn-circle" aria-label="User Profile"><span class="material-symbols-outlined">account_circle</span></button>
-            <div id="services-dropdown" class="apps-dropdown-container">
-                <div id="apps-grid" class="apps-grid"></div>
+            <button id="profile-button" class="float-btn profile-btn-circle" aria-label="User Profile Menu" aria-haspopup="true" aria-expanded="false">
+                <span class="material-symbols-outlined">account_circle</span>
+            </button>
+            
+            <div id="services-dropdown" class="apps-dropdown-container" role="menu" aria-label="App Services">
+                <div id="apps-grid" class="apps-grid">
+                    </div>
             </div>
-            <div id="profile-dropdown" role="menu">
+
+            <div id="profile-dropdown" role="menu" aria-label="User Options">
+                <div id="logged-in-view" hidden>
+                    <div class="profile-section profile-section-header">
+                        <img id="dropdown-avatar" class="profile-dropdown-avatar" src="" alt="Your Profile Picture" hidden />
+                        <div class="username">TheBoiisMC</div>
+                        <div class="email">user@example.com</div>
+                    </div>
+                    <hr aria-hidden="true"/>
+                    <div class="profile-actions">
+                        <a id="saved-places-btn" href="#" role="menuitem">Saved Places</a>
+                    </div>
+                    <hr aria-hidden="true"/>
+                    <div class="profile-actions">
+                        <a id="logout-btn" href="#" role="menuitem">Log Out</a>
+                    </div>
                 </div>
+                <div id="logged-out-view" hidden>
+                    <div class="profile-section" style="text-align:center; font-weight: 500; color: var(--text-secondary);">Sign in to save and view places</div>
+                    <hr aria-hidden="true"/>
+                    <div class="auth-buttons">
+                        <a href="#" id="login-btn" class="btn btn-primary" role="menuitem">Log In</a>
+                        <a href="#" id="signup-btn" class="btn btn-secondary" role="menuitem">Sign Up</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -99,12 +129,18 @@
     <div id="top-search-wrapper" role="search">
         <div id="main-search-container">
             <button id="hamburger-btn" aria-label="Menu"><span class="material-symbols-outlined">menu</span></button>
+            <label for="main-search" class="sr-only">Search</label>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
+            
             <div class="search-divider"></div>
-            <button id="search-trigger-btn"><span class="material-symbols-outlined">search</span></button>
-            <button id="main-directions-icon"><span class="material-symbols-outlined">directions</span></button>
+            
+            <button id="search-trigger-btn" aria-label="Search"><span class="material-symbols-outlined">search</span></button>
+            <button id="main-directions-icon" aria-label="Get Directions"><span class="material-symbols-outlined">directions</span></button>
+           
             <div id="main-suggestions" class="suggestions-dropdown">
-                <div id="initial-suggestions-view"><div id="recent-searches-container"></div></div>
+                <div id="initial-suggestions-view">
+                    <div id="recent-searches-container"></div>
+                </div>
                 <div id="api-suggestions-view" hidden></div>
             </div>
         </div>
@@ -112,9 +148,11 @@
     
     <div id="side-panel" role="complementary">
         <div id="panel-grabber"></div>
-        <div id="panel-search-placeholder" hidden></div>
         <button id="close-panel-btn" class="panel-close-btn"></button>
-        <div class="panel-content"><div id="dynamic-content"></div></div>
+        <div id="panel-search-placeholder" hidden></div>
+        <div class="panel-content">
+            <div id="dynamic-content"></div>
+        </div>
     </div>
     
     <div id="context-menu" role="menu">
@@ -131,10 +169,12 @@
     <template id="tmpl-place-details">
         <div class="panel-hero">
             <div class="hero-image-wrapper">
-                 <img id="info-image" src="" style="opacity:0; width:100%; height:100%; object-fit:cover;"/>
-                 <div class="hero-gradient"></div>
+                <img id="info-image" src="" alt="Place image" style="opacity:0; transition:opacity 0.5s; width:100%; height:100%; object-fit:cover;"/>
+                <div class="hero-gradient"></div>
             </div>
-            <button id="details-back-btn" class="dynamic-back-btn" style="position:absolute; top:15px; left:15px; z-index:10; background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:40px; height:40px; cursor:pointer;"><span class="material-symbols-outlined">arrow_back</span></button>
+            <button id="details-back-btn" class="dynamic-back-btn" style="position:absolute; top:15px; left:15px; z-index:10; background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:40px; height:40px; cursor:pointer;">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </button>
             <div class="hero-text-content">
                 <h3 id="info-name"></h3>
                 <div id="info-weather" class="weather-badge" hidden>Loading...</div>
@@ -152,7 +192,7 @@
                     <div class="btn-label">Save</div>
                 </button>
             </div>
-            <hr class="panel-divider"/>
+            <hr class="panel-divider" aria-hidden="true" />
             <div class="panel-card">
                 <div class="card-header"><span class="material-symbols-outlined">info</span><h4>About</h4></div>
                 <p id="quick-facts-content">Loading info...</p>
@@ -160,25 +200,35 @@
             </div>
         </div>
     </template>
-    
+
     <template id="tmpl-directions">
         <div class="info-content-padding">
-             <button id="directions-close-btn" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; margin-bottom:10px; display:flex; align-items:center; gap:5px;"><span class="material-symbols-outlined">close</span> Close</button>
-             <div class="travel-modes">
+            <button id="directions-close-btn" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; margin-bottom:10px; display:flex; align-items:center; gap:5px;">
+                <span class="material-symbols-outlined">close</span> Close Directions
+            </button>
+            <div class="travel-modes">
                 <button class="travel-mode-btn active"><span class="material-symbols-outlined">directions_car</span></button>
                 <button class="travel-mode-btn"><span class="material-symbols-outlined">directions_walk</span></button>
                 <button class="travel-mode-btn"><span class="material-symbols-outlined">directions_bike</span></button>
-             </div>
-             <div class="dir-input-group">
-                <div class="dir-input-wrapper"><span class="material-symbols-outlined">trip_origin</span><input type="text" id="panel-from-input" placeholder="My Location" /></div>
+            </div>
+            <div class="dir-input-group">
+                <div class="dir-input-wrapper">
+                    <span class="material-symbols-outlined">trip_origin</span>
+                    <input type="text" id="panel-from-input" placeholder="My Location" autocomplete="off" />
+                </div>
                 <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                <div class="dir-input-wrapper"><span class="material-symbols-outlined">location_on</span><input type="text" id="panel-to-input" placeholder="Destination" /></div>
+                <div class="dir-input-wrapper">
+                    <span class="material-symbols-outlined">location_on</span>
+                    <input type="text" id="panel-to-input" placeholder="Destination" autocomplete="off" />
+                </div>
                 <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
                 <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
-             </div>
-             <button class="dir-quick-select" id="dir-use-my-location"><div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location</button>
-             <button id="get-route-btn" class="modern-primary-btn" style="width:100%; margin-top:10px;">Get Route</button>
-             <button id="cancel-route-btn" style="width:100%; margin-top:10px; background:transparent; border:none; color:var(--text-secondary);">Cancel</button>
+            </div>
+            <button class="dir-quick-select" id="dir-use-my-location">
+                <div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location
+            </button>
+            <button id="get-route-btn" class="modern-primary-btn" style="width:100%; margin-top:10px;">Get Route</button>
+            <button id="cancel-route-btn" style="width:100%; margin-top:10px; background:transparent; border:none; color:var(--text-secondary);">Cancel</button>
         </div>
     </template>
 
@@ -191,29 +241,63 @@
             <div class="start-nav-btn-wrapper">
                 <button id="start-navigation-btn"><span class="material-symbols-outlined">navigation</span>Start Trip</button>
             </div>
-            <button id="back-to-directions-btn" style="width:100%; margin-top:10px;">Back</button>
+            <button id="back-to-directions-btn" style="width:100%; margin-top:10px; padding:12px; border:none; background:var(--surface-secondary); color:var(--text-secondary); border-radius:12px;">Back</button>
         </div>
     </template>
 
     <template id="tmpl-search-results">
         <div class="info-content-padding">
-            <button id="results-back-btn" class="dynamic-back-btn" style="background:transparent; border:none; cursor:pointer; color:var(--brand-primary); display:flex; align-items:center; margin-bottom:10px;"><span class="material-symbols-outlined">arrow_back</span> Back</button>
+            <button id="results-back-btn" class="dynamic-back-btn" style="background:transparent; border:none; cursor:pointer; color:var(--brand-primary); display:flex; align-items:center; margin-bottom:10px;">
+                <span class="material-symbols-outlined">arrow_back</span> Back
+            </button>
             <h3 id="results-header-text"></h3>
             <div id="search-results-list" role="list"></div>
         </div>
     </template>
-    
+
     <template id="tmpl-result-item">
         <button class="search-result-item" role="listitem" style="width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--border-color);">
             <div class="result-item-icon"><span class="material-symbols-outlined">place</span></div>
-            <div class="result-item-details"><h4 class="item-title"></h4><p class="item-subtitle"></p></div>
+            <div class="result-item-details">
+                <h4 class="item-title"></h4>
+                <p class="item-subtitle"></p>
+            </div>
             <div class="result-item-distance"></div>
         </button>
     </template>
-
+    
     <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js"></script>
     <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js" defer></script>
     <script src="https://static.theboiismc.com/js/maps/turf.js" defer></script>
-    <script src="https://static.theboiismc.com/js/maps/maps_v8.2.3.js" defer></script>
+    <script src="https://static.theboiismc.com/js/maps/maps_v8.2.2.js" defer></script>
+
+    <script>
+        // DYNAMIC APPS CONFIGURATION (Restored functionality)
+        document.addEventListener('DOMContentLoaded', () => {
+            const SERVICES = [
+                { name: 'Home', icon: 'home', url: 'https://homeassistant.theboiismc.com' },
+                { name: 'Search', icon: 'search', url: 'https://search.theboiismc.com' },
+                { name: 'Maps', icon: 'map', url: 'https://maps.theboiismc.com' },
+                { name: 'Account', icon: 'account_circle', url: 'https://accounts.theboiismc.com' },
+                { name: 'Drive', icon: 'cloud', url: 'https://drive.theboiismc.com' },
+                { name: 'Photos', icon: 'photo_library', url: 'https://photos.theboiismc.com' }
+            ];
+
+            const appsGrid = document.getElementById('apps-grid');
+            if(appsGrid) {
+                appsGrid.innerHTML = '';
+                SERVICES.forEach(service => {
+                    const item = document.createElement('a');
+                    item.href = service.url;
+                    item.className = 'app-item';
+                    item.innerHTML = `
+                        <div class="app-icon-circle"><span class="material-symbols-outlined">${service.icon}</span></div>
+                        <span class="app-name">${service.name}</span>
+                    `;
+                    appsGrid.appendChild(item);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
