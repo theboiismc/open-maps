@@ -38,7 +38,7 @@
     </script>
 
     <link href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://static.theboiismc.com/css/maps_v8.5.4.css">
+    <link rel="stylesheet" href="https://static.theboiismc.com/css/maps_v8.5.0.css">
 </head>
 <body>
 
@@ -278,23 +278,33 @@
     </template>
 
     <template id="tmpl-search-results">
-        <div class="info-content-padding">
-            <button id="results-back-btn" class="dynamic-back-btn" style="background:transparent; border:none; cursor:pointer; color:var(--brand-primary); display:flex; align-items:center; margin-bottom:10px;">
-                <span class="material-symbols-outlined">arrow_back</span> Back
-            </button>
-            <h3 id="results-header-text"></h3>
-            <div id="search-results-list" role="list"></div>
+        <div class="results-panel-container">
+            <div class="results-header-sticky">
+                <button id="results-back-btn" class="icon-btn-back" aria-label="Back">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <div class="header-text-wrapper">
+                    <span class="sub-label">Search Results</span>
+                    <h3 id="results-header-text"></h3>
+                </div>
+            </div>
+            <div id="search-results-list" class="results-list-scroll" role="list"></div>
         </div>
     </template>
 
     <template id="tmpl-result-item">
-        <button class="search-result-item" role="listitem" style="width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--border-color);">
-            <div class="result-item-icon"><span class="material-symbols-outlined">place</span></div>
+        <button class="search-result-item card-interaction" role="listitem">
+            <div class="result-item-icon">
+                <span class="material-symbols-outlined">place</span>
+            </div>
             <div class="result-item-details">
                 <h4 class="item-title"></h4>
                 <p class="item-subtitle"></p>
             </div>
-            <div class="result-item-distance"></div>
+            <div class="result-meta-column">
+                <div class="result-item-distance"></div>
+                <span class="material-symbols-outlined action-arrow">chevron_right</span>
+            </div>
         </button>
     </template>
     
@@ -304,7 +314,6 @@
     <script src="https://static.theboiismc.com/js/maps/maps_v8.5.0.js" defer></script>
 
     <script>
-        // DYNAMIC APPS CONFIGURATION (Restored functionality)
         document.addEventListener('DOMContentLoaded', () => {
             const SERVICES = [
                 { name: 'Home', icon: 'home', url: 'https://homeassistant.theboiismc.com' },
