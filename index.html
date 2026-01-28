@@ -202,33 +202,65 @@
     </template>
 
     <template id="tmpl-directions">
-        <div class="info-content-padding">
-            <button id="directions-close-btn" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; margin-bottom:10px; display:flex; align-items:center; gap:5px;">
-                <span class="material-symbols-outlined">close</span> Close Directions
-            </button>
-            <div class="travel-modes">
-                <button class="travel-mode-btn active"><span class="material-symbols-outlined">directions_car</span></button>
-                <button class="travel-mode-btn"><span class="material-symbols-outlined">directions_walk</span></button>
-                <button class="travel-mode-btn"><span class="material-symbols-outlined">directions_bike</span></button>
+        <div class="directions-panel-container">
+            <div class="panel-header-row">
+                <h2>Plan a Trip</h2>
+                <button id="directions-close-btn" class="icon-btn-close" aria-label="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
             </div>
-            <div class="dir-input-group">
-                <div class="dir-input-wrapper">
-                    <span class="material-symbols-outlined">trip_origin</span>
-                    <input type="text" id="panel-from-input" placeholder="My Location" autocomplete="off" />
-                </div>
-                <div id="panel-from-suggestions" class="suggestions-dropdown"></div>
-                <div class="dir-input-wrapper">
-                    <span class="material-symbols-outlined">location_on</span>
-                    <input type="text" id="panel-to-input" placeholder="Destination" autocomplete="off" />
-                </div>
-                <div id="panel-to-suggestions" class="suggestions-dropdown"></div>
-                <button id="swap-btn"><span class="material-symbols-outlined">swap_vert</span></button>
+
+            <div class="travel-mode-segmented">
+                <button class="travel-mode-btn active" data-mode="driving" aria-label="Drive">
+                    <span class="material-symbols-outlined">directions_car</span>
+                    <span class="t-label">Drive</span>
+                </button>
+                <button class="travel-mode-btn" data-mode="walking" aria-label="Walk">
+                    <span class="material-symbols-outlined">directions_walk</span>
+                    <span class="t-label">Walk</span>
+                </button>
+                <button class="travel-mode-btn" data-mode="cycling" aria-label="Bike">
+                    <span class="material-symbols-outlined">directions_bike</span>
+                    <span class="t-label">Bike</span>
+                </button>
             </div>
-            <button class="dir-quick-select" id="dir-use-my-location">
-                <div class="icon-wrapper"><span class="material-symbols-outlined">my_location</span></div>Your location
-            </button>
-            <button id="get-route-btn" class="modern-primary-btn" style="width:100%; margin-top:10px;">Get Route</button>
-            <button id="cancel-route-btn" style="width:100%; margin-top:10px; background:transparent; border:none; color:var(--text-secondary);">Cancel</button>
+
+            <div class="seamless-input-stack">
+                <div class="connector-visual">
+                    <div class="node-start"></div>
+                    <div class="line-dotted"></div>
+                    <div class="node-end"></div>
+                </div>
+
+                <div class="input-row top">
+                    <input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off" />
+                    <div id="panel-from-suggestions" class="suggestions-dropdown nested"></div>
+                </div>
+
+                <div class="stack-divider"></div>
+                <button id="swap-btn" class="floating-swap-btn" aria-label="Swap locations">
+                    <span class="material-symbols-outlined">swap_vert</span>
+                </button>
+
+                <div class="input-row bottom">
+                    <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off" />
+                    <div id="panel-to-suggestions" class="suggestions-dropdown nested"></div>
+                </div>
+            </div>
+
+            <div class="quick-chips-row">
+                <button class="chip-btn" id="dir-use-my-location">
+                    <span class="material-symbols-outlined">my_location</span> Current Location
+                </button>
+            </div>
+
+            <div class="panel-footer-sticky">
+                <button id="get-route-btn" class="hero-gradient-btn">
+                    <span class="btn-text">Get Directions</span>
+                    <span class="material-symbols-outlined icon-right">arrow_forward</span>
+                </button>
+                <button id="cancel-route-btn" class="ghost-btn">Cancel</button>
+            </div>
         </div>
     </template>
 
