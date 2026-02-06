@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404: Lost in the Unknown - TheBoiisMC Maps</title>
+    
+    <meta name="robots" content="noindex, nofollow">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+    <style>
+        /* --- BRAND THEME (Matches maps_v8.7.0.css) --- */
+        :root {
+            --bg-dark: #0F172A;
+            --surface-glass: rgba(30, 41, 59, 0.60);
+            --surface-card: #1E293B;
+            --border-color: #334155;
+            
+            --brand-primary: #6366F1;
+            --brand-hover: #818CF8;
+            
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            
+            --glow: 0 0 80px rgba(99, 102, 241, 0.15);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, var(--bg-dark) 60%);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* Ambient Glow Behind Card */
+        .glow-effect {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .error-container {
+            position: relative;
+            z-index: 10;
+            background: var(--surface-glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 48px;
+            border-radius: 32px;
+            text-align: center;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: floatUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes floatUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Huge 404 Text */
+        .error-code {
+            font-size: 120px;
+            font-weight: 800;
+            line-height: 1;
+            margin: 0;
+            background: linear-gradient(135deg, var(--text-primary) 30%, var(--brand-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -4px;
+        }
+
+        .icon-box {
+            display: inline-flex;
+            align-items: center; justify-content: center;
+            width: 64px; height: 64px;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--brand-primary);
+            border-radius: 20px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 16px 0 8px 0;
+            color: var(--text-primary);
+        }
+
+        p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        /* Interactive Action Buttons */
+        .action-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-primary {
+            background: var(--brand-primary);
+            color: white;
+            text-decoration: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 600;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--brand-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .quick-links {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border-color: var(--brand-primary);
+        }
+
+        /* Search Bar for Quick Recovery */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 24px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 14px 16px 14px 44px;
+            border-radius: 14px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 15px;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .search-input:focus {
+            border-color: var(--brand-primary);
+        }
+        .search-icon {
+            position: absolute;
+            left: 14px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="glow-effect"></div>
+
+    <div class="error-container">
+        <div class="icon-box">
+            <span class="material-symbols-outlined" style="font-size: 32px;">wrong_location</span>
+        </div>
+        
+        <div class="error-code">404</div>
+        <h1>Off the Grid</h1>
+        <p>The coordinates you entered don't lead anywhere valid. It might be a ghost town or a broken link.</p>
+
+        <form action="https://search.theboiismc.com" method="get" class="search-wrapper">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input type="text" name="q" class="search-input" placeholder="Search TheBoiisMC..." autocomplete="off">
+        </form>
+
+        <div class="action-grid">
+            <a href="/" class="btn-primary">
+                <span class="material-symbols-outlined">map</span>
+                Return to Maps
+            </a>
+            
+            <div class="quick-links">
+                <a href="https://homeassistant.theboiismc.com" class="btn-secondary">
+                    <span class="material-symbols-outlined">home</span> Home
+                </a>
+                <a href="https://drive.theboiismc.com" class="btn-secondary">
+                    <span class="material-symbols-outlined">cloud</span> Drive
+                </a>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
