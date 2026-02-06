@@ -3,21 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404: Lost in the Unknown - TheBoiisMC Maps</title>
+    <title>Page Not Found - TheBoiisMC Maps</title>
     
     <meta name="robots" content="noindex, follow">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 
     <style>
-        /* --- BRAND THEME (Matches maps_v8.7.0.css) --- */
+        /* --- BRAND THEME (Self-contained) --- */
         :root {
             --bg-dark: #0F172A;
-            --surface-glass: rgba(30, 41, 59, 0.60);
-            --surface-card: #1E293B;
+            --surface-glass: rgba(30, 41, 59, 0.70);
             --border-color: #334155;
             
             --brand-primary: #6366F1;
@@ -25,8 +24,6 @@
             
             --text-primary: #F8FAFC;
             --text-secondary: #94A3B8;
-            
-            --glow: 0 0 80px rgba(99, 102, 241, 0.15);
         }
 
         body {
@@ -34,7 +31,7 @@
             padding: 20px;
             height: 100vh;
             background-color: var(--bg-dark);
-            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, var(--bg-dark) 60%);
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, var(--bg-dark) 70%);
             font-family: 'Inter', sans-serif;
             color: var(--text-primary);
             display: flex;
@@ -44,19 +41,18 @@
             box-sizing: border-box;
         }
 
-        /* Ambient Glow Behind Card */
         .glow-effect {
             position: absolute;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%);
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             z-index: 0;
             pointer-events: none;
         }
 
-        .error-container {
+        .error-card {
             position: relative;
             z-index: 10;
             background: var(--surface-glass);
@@ -64,32 +60,20 @@
             -webkit-backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 48px;
-            border-radius: 32px;
+            border-radius: 24px;
             text-align: center;
-            max-width: 480px;
+            max-width: 460px;
             width: 100%;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            animation: floatUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            animation: fadeIn 0.4s ease-out;
         }
 
-        @keyframes floatUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Huge 404 Text */
-        .error-code {
-            font-size: 120px;
-            font-weight: 800;
-            line-height: 1;
-            margin: 0;
-            background: linear-gradient(135deg, var(--text-primary) 30%, var(--brand-primary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -4px;
-        }
-
-        .icon-box {
+        .icon-wrapper {
             display: inline-flex;
             align-items: center; justify-content: center;
             width: 64px; height: 64px;
@@ -98,99 +82,44 @@
             border-radius: 20px;
             margin-bottom: 24px;
             border: 1px solid rgba(99, 102, 241, 0.2);
-            transition: transform 0.3s ease;
-        }
-        
-        .error-container:hover .icon-box {
-            transform: scale(1.1) rotate(5deg);
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 700;
-            margin: 16px 0 8px 0;
+            margin: 0 0 12px 0;
             color: var(--text-primary);
         }
 
         p {
             color: var(--text-secondary);
             font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 32px;
+            line-height: 1.5;
+            margin: 0 0 32px 0;
         }
 
-        /* Interactive Action Buttons */
-        .action-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .btn-primary {
-            background: var(--brand-primary);
-            color: white;
-            text-decoration: none;
-            padding: 16px;
-            border-radius: 16px;
-            font-weight: 600;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-        }
-
-        .btn-primary:hover {
-            background: var(--brand-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
-        }
-
-        .quick-links {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 12px;
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            text-decoration: none;
-            padding: 12px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: all 0.2s;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text-primary);
-            border-color: var(--brand-primary);
-        }
-
-        /* Search Bar for Quick Recovery */
-        .search-wrapper {
+        /* Search Bar */
+        .search-form {
             position: relative;
             margin-bottom: 24px;
+            width: 100%;
         }
         .search-input {
             width: 100%;
             padding: 14px 16px 14px 44px;
-            border-radius: 14px;
-            background: var(--bg-dark);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.6);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
             font-family: inherit;
             font-size: 15px;
             outline: none;
             box-sizing: border-box;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background 0.2s;
         }
         .search-input:focus {
             border-color: var(--brand-primary);
+            background: rgba(15, 23, 42, 0.8);
         }
         .search-icon {
             position: absolute;
@@ -198,19 +127,63 @@
             transform: translateY(-50%);
             color: var(--text-secondary);
             pointer-events: none;
+            font-size: 20px;
         }
-        
-        /* Smart Back Link */
-        #smart-back-link {
-            margin-top: 16px;
-            font-size: 13px;
+
+        /* Buttons */
+        .action-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            text-decoration: none;
+            padding: 14px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--brand-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+        .btn-primary:hover {
+            background: var(--brand-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        .btn-secondary:hover {
+            border-color: var(--brand-primary);
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.03);
+        }
+
+        /* Dynamic Back Link */
+        #dynamic-back-link {
+            margin-top: 20px;
+            font-size: 14px;
             color: var(--text-secondary);
             text-decoration: none;
             display: inline-block;
             transition: color 0.2s;
             cursor: pointer;
+            border: none;
+            background: none;
+            padding: 0;
         }
-        #smart-back-link:hover { color: var(--text-primary); text-decoration: underline; }
+        #dynamic-back-link:hover { color: var(--text-primary); text-decoration: underline; }
 
     </style>
 </head>
@@ -218,61 +191,64 @@
 
     <div class="glow-effect"></div>
 
-    <div class="error-container">
-        <div class="icon-box">
-            <span class="material-symbols-outlined" style="font-size: 32px;">wrong_location</span>
+    <div class="error-card">
+        <div class="icon-wrapper">
+            <span class="material-symbols-outlined" style="font-size: 32px;">map_search</span>
         </div>
         
-        <div class="error-code">404</div>
-        <h1>Off the Grid</h1>
-        <p>The coordinates you entered don't lead anywhere valid. It might be a ghost town or a broken link.</p>
+        <h1>Destination Not Found</h1>
+        <p>The location you are looking for does not exist or has been moved. Use the search bar below or return to the map.</p>
 
-        <form action="https://search.theboiismc.com" method="get" class="search-wrapper">
+        <form action="https://search.theboiismc.com" method="get" class="search-form">
             <span class="material-symbols-outlined search-icon">search</span>
-            <input type="text" name="q" class="search-input" placeholder="Search maps, drive, and more..." autocomplete="off" autofocus>
+            <input type="text" name="q" class="search-input" placeholder="Search TheBoiisMC..." autocomplete="off" autofocus>
         </form>
 
-        <div class="action-grid" id="action-grid">
-            <a href="/" class="btn-primary">
+        <div class="action-container" id="action-container">
+            <a href="/" class="btn btn-primary">
                 <span class="material-symbols-outlined">map</span>
-                Return to Maps
+                Open Maps
             </a>
             
-            <div class="quick-links">
-                <a href="https://homeassistant.theboiismc.com" class="btn-secondary">
-                    <span class="material-symbols-outlined">home</span> Home
-                </a>
-                <a href="https://drive.theboiismc.com" class="btn-secondary">
-                    <span class="material-symbols-outlined">cloud</span> Drive
-                </a>
-            </div>
+            <a href="https://drive.theboiismc.com" class="btn btn-secondary">
+                <span class="material-symbols-outlined">cloud</span>
+                Go to Drive
+            </a>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Only show "Go Back" if there is a referrer history to go back to
+            // RETENTION: Check if the user has history to go back to.
+            // If they came from an external site, we keep them here.
+            // If they came from within our site, we offer a "Go Back" option.
+            
             if (document.referrer && window.history.length > 1) {
-                const container = document.getElementById('action-grid');
-                const backLink = document.createElement('a');
-                backLink.id = 'smart-back-link';
-                backLink.innerHTML = "← Go back to previous page";
+                const container = document.getElementById('action-container');
                 
-                // If the referrer is external, mention it (e.g., "Back to Google")
+                // Create the button securely using DOM methods (NO innerHTML)
+                const backBtn = document.createElement('button');
+                backBtn.id = 'dynamic-back-link';
+                backBtn.textContent = '← Go back to previous page';
+                
+                // Check if referrer is from a different domain (e.g. they came from Google)
                 try {
                     const refUrl = new URL(document.referrer);
                     if (refUrl.hostname !== window.location.hostname) {
-                        backLink.innerHTML = `← Go back to ${refUrl.hostname}`;
+                         // More specific text improves trust
+                        backBtn.textContent = '← Go back to ' + refUrl.hostname;
                     }
-                } catch(e) {}
+                } catch(e) {
+                    // Fallback text is already set
+                }
 
-                backLink.onclick = (e) => { 
+                backBtn.onclick = (e) => { 
                     e.preventDefault(); 
                     window.history.back(); 
                 };
                 
-                // Append after the buttons
-                container.parentNode.appendChild(backLink);
+                // Append it safely after the main buttons
+                container.parentNode.appendChild(backBtn);
             }
         });
     </script>
