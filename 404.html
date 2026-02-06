@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signal Lost - TheBoiisMC</title>
+    <title>Page Not Found - TheBoiisMC</title>
     
     <meta name="robots" content="noindex, follow">
     <meta name="theme-color" content="#0F172A">
@@ -12,7 +12,6 @@
         :root {
             /* Brand Palette */
             --bg-dark: #020617;
-            --bg-gradient-start: #0F172A;
             --primary: #6366F1;
             --primary-hover: #818CF8;
             --surface-glass: rgba(30, 41, 59, 0.65);
@@ -20,7 +19,6 @@
             --border-dim: rgba(255, 255, 255, 0.08);
             --text-main: #F8FAFC;
             --text-muted: #94A3B8;
-            --error-red: #EF4444;
             
             /* Spacing & sizing */
             --header-height: 64px;
@@ -33,7 +31,7 @@
             margin: 0;
             padding: 0;
             background-color: var(--bg-dark);
-            /* System UI Font Stack for privacy/speed */
+            /* System UI Font Stack for privacy/speed/legibility */
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: var(--text-main);
             overflow-x: hidden;
@@ -69,7 +67,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px; /* Reduced padding for mobile space */
+            padding: 0 16px; 
             background: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -87,17 +85,17 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-shrink: 0; /* Prevent logo squish */
+            flex-shrink: 0;
         }
         .brand-highlight { color: var(--primary); }
 
-        /* Search Bar (Updated: Visible on Mobile) */
+        /* Search Bar */
         .header-search {
             flex: 1;
             max-width: 480px;
-            margin: 0 12px; /* Tighter margins for mobile */
+            margin: 0 12px;
             position: relative;
-            display: block; /* Ensure visibility */
+            display: block;
         }
 
         .search-input {
@@ -129,18 +127,10 @@
             height: 18px;
         }
 
-        /* Mobile Optimization for Search Placeholder */
         @media (max-width: 600px) {
-            .search-input::placeholder {
-                color: transparent; /* Hide text on tiny screens to look cleaner */
-            }
-            .brand-logo span {
-                display: none; /* Optional: Hide "TheBoiis" text on tiny screens if you want more search room */
-            }
-            .brand-logo::after {
-                content: "MC"; /* Just show MC icon/text */
-                color: var(--primary);
-            }
+            .search-input::placeholder { color: transparent; }
+            .brand-logo span { display: none; }
+            .brand-logo::after { content: "MC"; color: var(--primary); font-weight: 700; }
         }
         @media (min-width: 601px) {
              .brand-logo span { display: block; }
@@ -152,7 +142,7 @@
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 8px; /* Tighter gap for mobile */
+            gap: 8px;
             position: relative;
             flex-shrink: 0;
         }
@@ -173,13 +163,12 @@
             background: rgba(255,255,255,0.05);
         }
 
-        /* --- APP WAFFLE MENU --- */
+        /* --- APP MENU --- */
         .app-menu-dropdown {
             position: absolute;
             top: 50px;
             right: 0;
-            width: 300px; /* Slightly narrower for small screens */
-            max-width: 90vw;
+            width: 280px;
             background: #1E293B;
             border: 1px solid var(--border-dim);
             border-radius: var(--radius-lg);
@@ -248,6 +237,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             opacity: 0.9;
+            /* Simple float animation */
             animation: float 6s ease-in-out infinite;
         }
 
@@ -257,11 +247,8 @@
             100% { transform: translateY(0px); }
         }
 
-        /* MOTION ACCESSIBILITY: Disable animation if user prefers reduced motion */
         @media (prefers-reduced-motion: reduce) {
-            .error-code {
-                animation: none;
-            }
+            .error-code { animation: none; }
         }
 
         h1 {
@@ -414,12 +401,6 @@
             </button>
             
             <nav id="app-dropdown" class="app-menu-dropdown" aria-label="App Selection Menu">
-                <a href="https://homeassistant.theboiismc.com" class="app-item" aria-label="Go to Home Assistant">
-                    <div class="app-icon-circle">
-                        <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                    </div>
-                    <span class="app-name">Home</span>
-                </a>
                 <a href="https://search.theboiismc.com" class="app-item" aria-label="Go to Search">
                     <div class="app-icon-circle">
                         <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
@@ -432,37 +413,21 @@
                     </div>
                     <span class="app-name">Maps</span>
                 </a>
-                <a href="https://drive.theboiismc.com" class="app-item" aria-label="Go to Drive">
-                    <div class="app-icon-circle">
-                         <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
-                    </div>
-                    <span class="app-name">Drive</span>
-                </a>
                 <a href="https://photos.theboiismc.com" class="app-item" aria-label="Go to Photos">
                     <div class="app-icon-circle">
                          <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
                     </div>
                     <span class="app-name">Photos</span>
                 </a>
-                <a href="https://accounts.theboiismc.com" class="app-item" aria-label="Go to Account Settings">
-                    <div class="app-icon-circle">
-                         <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
-                    </div>
-                    <span class="app-name">Account</span>
-                </a>
             </nav>
-
-            <a href="https://accounts.theboiismc.com" class="icon-btn" aria-label="Your Account Profile">
-                 <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
-            </a>
         </div>
     </header>
 
     <main>
         <div class="content-container">
             <div class="error-code">404</div>
-            <h1>Signal Lost</h1>
-            <p>We couldn't locate that frequency. The page you're looking for may have drifted out of range, been deleted, or the URL might be misspelled.</p>
+            <h1>Page Not Found</h1>
+            <p>The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
 
             <div id="smart-suggestion" class="smart-suggestion">
                 <span class="smart-suggestion-text">Did you mean to go to:</span>
@@ -481,7 +446,7 @@
             </div>
 
             <div style="text-align: left; margin-top: 48px;">
-                <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px;">Active Frequencies</h3>
+                <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px;">Available Services</h3>
                 <div class="suggestion-grid">
                     <a href="https://maps.theboiismc.com" class="suggestion-card" aria-label="Open Maps Application">
                         <svg class="icon-svg card-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
@@ -497,11 +462,11 @@
                             <span class="card-desc">Index & Query</span>
                         </div>
                     </a>
-                    <a href="https://drive.theboiismc.com" class="suggestion-card" aria-label="Open Drive Application">
-                         <svg class="icon-svg card-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+                    <a href="https://photos.theboiismc.com" class="suggestion-card" aria-label="Open Photos Application">
+                         <svg class="icon-svg card-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
                         <div>
-                            <span class="card-title">Drive</span>
-                            <span class="card-desc">Storage Array</span>
+                            <span class="card-title">Photos</span>
+                            <span class="card-desc">Gallery</span>
                         </div>
                     </a>
                 </div>
@@ -576,14 +541,11 @@
             }
 
             // --- 3. LEVENSHTEIN DISTANCE (Smart Suggestion) ---
+            // Only suggests PUBLIC apps. Private apps are excluded from this list.
             const validPaths = [
                 { keyword: 'maps', url: 'https://maps.theboiismc.com', label: 'Maps' },
                 { keyword: 'search', url: 'https://search.theboiismc.com', label: 'Search' },
-                { keyword: 'drive', url: 'https://drive.theboiismc.com', label: 'Drive' },
-                { keyword: 'photos', url: 'https://photos.theboiismc.com', label: 'Photos' },
-                { keyword: 'account', url: 'https://accounts.theboiismc.com', label: 'Account' },
-                { keyword: 'home', url: 'https://homeassistant.theboiismc.com', label: 'Home Assistant' },
-                { keyword: 'login', url: 'https://accounts.theboiismc.com', label: 'Login' }
+                { keyword: 'photos', url: 'https://photos.theboiismc.com', label: 'Photos' }
             ];
 
             function getEditDistance(a, b) {
