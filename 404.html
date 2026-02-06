@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404: Lost in the Unknown - TheBoiisMC Maps</title>
     
-    <meta name="robots" content="noindex, nofollow">
+    <meta name="robots" content="noindex, follow">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,6 +98,11 @@
             border-radius: 20px;
             margin-bottom: 24px;
             border: 1px solid rgba(99, 102, 241, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .error-container:hover .icon-box {
+            transform: scale(1.1) rotate(5deg);
         }
 
         h1 {
@@ -194,6 +199,18 @@
             color: var(--text-secondary);
             pointer-events: none;
         }
+        
+        /* Smart Back Link */
+        #smart-back-link {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: inline-block;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+        #smart-back-link:hover { color: var(--text-primary); text-decoration: underline; }
 
     </style>
 </head>
@@ -212,10 +229,10 @@
 
         <form action="https://search.theboiismc.com" method="get" class="search-wrapper">
             <span class="material-symbols-outlined search-icon">search</span>
-            <input type="text" name="q" class="search-input" placeholder="Search TheBoiisMC..." autocomplete="off">
+            <input type="text" name="q" class="search-input" placeholder="Search maps, drive, and more..." autocomplete="off" autofocus>
         </form>
 
-        <div class="action-grid">
+        <div class="action-grid" id="action-grid">
             <a href="/" class="btn-primary">
                 <span class="material-symbols-outlined">map</span>
                 Return to Maps
@@ -231,6 +248,34 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Only show "Go Back" if there is a referrer history to go back to
+            if (document.referrer && window.history.length > 1) {
+                const container = document.getElementById('action-grid');
+                const backLink = document.createElement('a');
+                backLink.id = 'smart-back-link';
+                backLink.innerHTML = "← Go back to previous page";
+                
+                // If the referrer is external, mention it (e.g., "Back to Google")
+                try {
+                    const refUrl = new URL(document.referrer);
+                    if (refUrl.hostname !== window.location.hostname) {
+                        backLink.innerHTML = `← Go back to ${refUrl.hostname}`;
+                    }
+                } catch(e) {}
+
+                backLink.onclick = (e) => { 
+                    e.preventDefault(); 
+                    window.history.back(); 
+                };
+                
+                // Append after the buttons
+                container.parentNode.appendChild(backLink);
+            }
+        });
+    </script>
 
 </body>
 </html>
