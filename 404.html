@@ -31,6 +31,7 @@
             margin: 0;
             padding: 0;
             background-color: var(--bg-dark);
+            /* System UI Font Stack for maximum privacy & speed */
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: var(--text-main);
             overflow-x: hidden;
@@ -136,14 +137,14 @@
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            margin-right: 8px; /* Spacing from other icons */
+            margin-right: 8px;
             transition: background 0.2s;
         }
         .header-back-btn:hover {
             background: rgba(255,255,255,0.1);
         }
         @media (max-width: 600px) {
-            /* On mobile, hide the text "Go Back", show only arrow */
+            /* Mobile: Hide text "Go Back", show only arrow icon */
             .header-back-btn span { display: none; }
             .header-back-btn { padding: 0; width: 40px; height: 40px; justify-content: center; border-radius: 50%; border: none; background: transparent; }
             .header-back-btn svg { margin: 0; }
@@ -496,13 +497,12 @@
             // --- 2. HEADER BACK BUTTON LOGIC ---
             const backBtn = document.getElementById('header-back');
             if (backBtn) {
-                // Check if history actually exists to go back to
+                // Only show button if there is history to go back to
                 if (window.history.length > 1) {
                     backBtn.addEventListener('click', () => {
                         window.history.back();
                     });
                 } else {
-                    // Hide the button if there is nowhere to go back to (e.g. opened in new tab)
                     backBtn.style.display = 'none';
                 }
             }
