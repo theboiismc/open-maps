@@ -33,7 +33,7 @@
             margin: 0;
             padding: 0;
             background-color: var(--bg-dark);
-            /* PRIVACY UPDATE: Using System Fonts instead of Google Fonts */
+            /* System UI Font Stack for privacy/speed */
             font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             color: var(--text-main);
             overflow-x: hidden;
@@ -69,7 +69,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 24px;
+            padding: 0 16px; /* Reduced padding for mobile space */
             background: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -87,25 +87,25 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-shrink: 0; /* Prevent logo squish */
         }
         .brand-highlight { color: var(--primary); }
 
-        /* Search Bar (Header) */
+        /* Search Bar (Updated: Visible on Mobile) */
         .header-search {
             flex: 1;
             max-width: 480px;
-            margin: 0 24px;
+            margin: 0 12px; /* Tighter margins for mobile */
             position: relative;
-            display: none; 
+            display: block; /* Ensure visibility */
         }
-        @media (min-width: 640px) { .header-search { display: block; } }
 
         .search-input {
             width: 100%;
             background: rgba(255,255,255,0.05);
             border: 1px solid transparent;
             border-radius: var(--radius-full);
-            padding: 10px 16px 10px 44px;
+            padding: 10px 16px 10px 40px;
             color: white;
             font-family: inherit;
             font-size: 14px;
@@ -120,21 +120,41 @@
         }
         .search-icon-deco {
             position: absolute;
-            left: 14px;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-muted);
             pointer-events: none;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
         }
+
+        /* Mobile Optimization for Search Placeholder */
+        @media (max-width: 600px) {
+            .search-input::placeholder {
+                color: transparent; /* Hide text on tiny screens to look cleaner */
+            }
+            .brand-logo span {
+                display: none; /* Optional: Hide "TheBoiis" text on tiny screens if you want more search room */
+            }
+            .brand-logo::after {
+                content: "MC"; /* Just show MC icon/text */
+                color: var(--primary);
+            }
+        }
+        @media (min-width: 601px) {
+             .brand-logo span { display: block; }
+             .brand-logo::after { content: none; }
+        }
+
 
         /* Header Actions */
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px; /* Tighter gap for mobile */
             position: relative;
+            flex-shrink: 0;
         }
 
         .icon-btn {
@@ -158,7 +178,8 @@
             position: absolute;
             top: 50px;
             right: 0;
-            width: 320px;
+            width: 300px; /* Slightly narrower for small screens */
+            max-width: 90vw;
             background: #1E293B;
             border: 1px solid var(--border-dim);
             border-radius: var(--radius-lg);
@@ -234,6 +255,13 @@
             0% { transform: translateY(0px); }
             50% { transform: translateY(-10px); }
             100% { transform: translateY(0px); }
+        }
+
+        /* MOTION ACCESSIBILITY: Disable animation if user prefers reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .error-code {
+                animation: none;
+            }
         }
 
         h1 {
@@ -376,56 +404,56 @@
         </a>
 
         <form action="https://search.theboiismc.com" method="get" class="header-search" role="search">
-            <svg class="icon-svg search-icon-deco" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-            <input type="text" name="q" class="search-input" placeholder="Search across TheBoiisMC..." autocomplete="off" aria-label="Search">
+            <svg class="icon-svg search-icon-deco" aria-hidden="true" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" name="q" class="search-input" placeholder="Search..." autocomplete="off" aria-label="Search the site">
         </form>
 
         <div class="header-actions">
-            <button id="waffle-btn" class="icon-btn" aria-label="Switch App" aria-expanded="false" aria-controls="app-dropdown">
-                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
+            <button id="waffle-btn" class="icon-btn" aria-label="Open App Menu" aria-expanded="false" aria-controls="app-dropdown">
+                <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg>
             </button>
             
-            <nav id="app-dropdown" class="app-menu-dropdown" aria-label="App Menu">
-                <a href="https://homeassistant.theboiismc.com" class="app-item">
+            <nav id="app-dropdown" class="app-menu-dropdown" aria-label="App Selection Menu">
+                <a href="https://homeassistant.theboiismc.com" class="app-item" aria-label="Go to Home Assistant">
                     <div class="app-icon-circle">
-                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                        <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
                     </div>
                     <span class="app-name">Home</span>
                 </a>
-                <a href="https://search.theboiismc.com" class="app-item">
+                <a href="https://search.theboiismc.com" class="app-item" aria-label="Go to Search">
                     <div class="app-icon-circle">
-                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                     </div>
                     <span class="app-name">Search</span>
                 </a>
-                <a href="https://maps.theboiismc.com" class="app-item">
+                <a href="https://maps.theboiismc.com" class="app-item" aria-label="Go to Maps">
                     <div class="app-icon-circle">
-                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+                         <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
                     </div>
                     <span class="app-name">Maps</span>
                 </a>
-                <a href="https://drive.theboiismc.com" class="app-item">
+                <a href="https://drive.theboiismc.com" class="app-item" aria-label="Go to Drive">
                     <div class="app-icon-circle">
-                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+                         <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
                     </div>
                     <span class="app-name">Drive</span>
                 </a>
-                <a href="https://photos.theboiismc.com" class="app-item">
+                <a href="https://photos.theboiismc.com" class="app-item" aria-label="Go to Photos">
                     <div class="app-icon-circle">
-                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                         <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
                     </div>
                     <span class="app-name">Photos</span>
                 </a>
-                <a href="https://accounts.theboiismc.com" class="app-item">
+                <a href="https://accounts.theboiismc.com" class="app-item" aria-label="Go to Account Settings">
                     <div class="app-icon-circle">
-                         <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                         <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
                     </div>
                     <span class="app-name">Account</span>
                 </a>
             </nav>
 
-            <a href="https://accounts.theboiismc.com" class="icon-btn" aria-label="Your Account">
-                 <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+            <a href="https://accounts.theboiismc.com" class="icon-btn" aria-label="Your Account Profile">
+                 <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
             </a>
         </div>
     </header>
@@ -442,12 +470,12 @@
             </div>
 
             <div class="action-row" id="dynamic-actions">
-                <a href="/" class="btn btn-primary">
-                    <svg class="icon-svg" viewBox="0 0 24 24" style="margin-right:8px;"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                <a href="/" class="btn btn-primary" aria-label="Return to Homepage">
+                    <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24" style="margin-right:8px;"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
                     Return Home
                 </a>
-                <a href="mailto:admin@theboiismc.com?subject=Broken%20Link%20Report" class="btn btn-secondary">
-                    <svg class="icon-svg" viewBox="0 0 24 24" style="margin-right:8px;"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
+                <a href="mailto:admin@theboiismc.com?subject=Broken%20Link%20Report" class="btn btn-secondary" aria-label="Report Broken Link via Email">
+                    <svg class="icon-svg" aria-hidden="true" viewBox="0 0 24 24" style="margin-right:8px;"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
                     Report Link
                 </a>
             </div>
@@ -455,22 +483,22 @@
             <div style="text-align: left; margin-top: 48px;">
                 <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px;">Active Frequencies</h3>
                 <div class="suggestion-grid">
-                    <a href="https://maps.theboiismc.com" class="suggestion-card">
-                        <svg class="icon-svg card-icon" viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+                    <a href="https://maps.theboiismc.com" class="suggestion-card" aria-label="Open Maps Application">
+                        <svg class="icon-svg card-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
                         <div>
                             <span class="card-title">Maps</span>
                             <span class="card-desc">Navigation data</span>
                         </div>
                     </a>
-                    <a href="https://search.theboiismc.com" class="suggestion-card">
-                         <svg class="icon-svg card-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    <a href="https://search.theboiismc.com" class="suggestion-card" aria-label="Open Search Application">
+                        <svg class="icon-svg card-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                         <div>
                             <span class="card-title">Search</span>
                             <span class="card-desc">Index & Query</span>
                         </div>
                     </a>
-                    <a href="https://drive.theboiismc.com" class="suggestion-card">
-                         <svg class="icon-svg card-icon" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+                    <a href="https://drive.theboiismc.com" class="suggestion-card" aria-label="Open Drive Application">
+                         <svg class="icon-svg card-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
                         <div>
                             <span class="card-title">Drive</span>
                             <span class="card-desc">Storage Array</span>
@@ -483,8 +511,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // [PRIVACY] REMOVED ALL ANALYTICS TRACKING.
-            // This script now only handles UI interaction and local logical recovery.
+            // [PRIVACY] NO ANALYTICS. NO TRACKING.
 
             // --- 1. WAFFLE MENU TOGGLE ---
             const waffleBtn = document.getElementById('waffle-btn');
@@ -515,23 +542,25 @@
                 });
             }
 
-            // --- 2. SMART BACK BUTTON (Strict Security: No InnerHTML) ---
+            // --- 2. SMART BACK BUTTON (Secure DOM creation) ---
             if (window.history.length > 1) {
                 const actionContainer = document.getElementById('dynamic-actions');
-                // Insert as first child
+                
                 const backBtn = document.createElement('button');
                 backBtn.className = 'btn btn-secondary';
+                backBtn.setAttribute('aria-label', 'Go back to previous page');
                 backBtn.style.fontFamily = 'inherit'; 
                 
-                // SVG Icon Construction
+                // SVG Icon
                 const svgNS = "http://www.w3.org/2000/svg";
                 const svg = document.createElementNS(svgNS, "svg");
                 svg.setAttribute("class", "icon-svg");
                 svg.setAttribute("viewBox", "0 0 24 24");
                 svg.setAttribute("style", "margin-right:8px;");
+                svg.setAttribute("aria-hidden", "true");
                 
                 const path = document.createElementNS(svgNS, "path");
-                path.setAttribute("d", "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"); // Arrow Back path
+                path.setAttribute("d", "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z");
                 svg.appendChild(path);
 
                 backBtn.appendChild(svg);
@@ -547,8 +576,6 @@
             }
 
             // --- 3. LEVENSHTEIN DISTANCE (Smart Suggestion) ---
-            // "Gold Standard" feature: Guesses what the user meant (LOCALLY)
-            
             const validPaths = [
                 { keyword: 'maps', url: 'https://maps.theboiismc.com', label: 'Maps' },
                 { keyword: 'search', url: 'https://search.theboiismc.com', label: 'Search' },
