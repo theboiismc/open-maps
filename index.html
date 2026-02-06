@@ -25,6 +25,33 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="/assets/icon512_rounded.png">
 
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "TheBoiisMC",
+          "url": "https://theboiismc.com",
+          "logo": "https://static.theboiismc.com/assets/logo.png",
+          "sameAs": [
+            "https://maps.theboiismc.com",
+            "https://search.theboiismc.com",
+            "https://drive.theboiismc.com"
+          ]
+        },
+        {
+          "@type": "WebApplication",
+          "name": "TheBoiisMC Maps",
+          "url": "https://maps.theboiismc.com",
+          "description": "Private navigation, driving directions, and place search.",
+          "applicationCategory": "Maps & Navigation",
+          "operatingSystem": "All"
+        }
+      ]
+    }
+    </script>
+
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"></noscript>
 
@@ -77,7 +104,32 @@
             </button>
             
             <div id="services-dropdown" class="apps-dropdown-container" role="menu" aria-label="App Services">
-                <div id="apps-grid" class="apps-grid"></div>
+                <nav id="apps-grid" class="apps-grid" aria-label="TheBoiisMC Apps">
+                    <a href="https://homeassistant.theboiismc.com" class="app-item" title="Home Assistant">
+                        <div class="app-icon-circle"><span class="material-symbols-outlined">home</span></div>
+                        <span class="app-name">Home</span>
+                    </a>
+                    <a href="https://search.theboiismc.com" class="app-item" title="TheBoiisMC Search">
+                        <div class="app-icon-circle"><span class="material-symbols-outlined">search</span></div>
+                        <span class="app-name">Search</span>
+                    </a>
+                    <a href="https://maps.theboiismc.com" class="app-item" title="TheBoiisMC Maps">
+                        <div class="app-icon-circle"><span class="material-symbols-outlined">map</span></div>
+                        <span class="app-name">Maps</span>
+                    </a>
+                    <a href="https://accounts.theboiismc.com" class="app-item" title="Account Settings">
+                        <div class="app-icon-circle"><span class="material-symbols-outlined">account_circle</span></div>
+                        <span class="app-name">Account</span>
+                    </a>
+                    <a href="https://drive.theboiismc.com" class="app-item" title="TheBoiisMC Drive">
+                        <div class="app-icon-circle"><span class="material-symbols-outlined">cloud</span></div>
+                        <span class="app-name">Drive</span>
+                    </a>
+                    <a href="https://photos.theboiismc.com" class="app-item" title="TheBoiisMC Photos">
+                        <div class="app-icon-circle"><span class="material-symbols-outlined">photo_library</span></div>
+                        <span class="app-name">Photos</span>
+                    </a>
+                </nav>
             </div>
 
             <div id="profile-dropdown" role="menu" aria-label="User Options">
@@ -360,29 +412,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const SERVICES = [
-                { name: 'Home', icon: 'home', url: 'https://homeassistant.theboiismc.com' },
-                { name: 'Search', icon: 'search', url: 'https://search.theboiismc.com' },
-                { name: 'Maps', icon: 'map', url: 'https://maps.theboiismc.com' },
-                { name: 'Account', icon: 'account_circle', url: 'https://accounts.theboiismc.com' },
-                { name: 'Drive', icon: 'cloud', url: 'https://drive.theboiismc.com' },
-                { name: 'Photos', icon: 'photo_library', url: 'https://photos.theboiismc.com' }
-            ];
-
-            const appsGrid = document.getElementById('apps-grid');
-            if(appsGrid) {
-                appsGrid.innerHTML = '';
-                SERVICES.forEach(service => {
-                    const item = document.createElement('a');
-                    item.href = service.url;
-                    item.className = 'app-item';
-                    item.innerHTML = `
-                        <div class="app-icon-circle"><span class="material-symbols-outlined">${service.icon}</span></div>
-                        <span class="app-name">${service.name}</span>
-                    `;
-                    appsGrid.appendChild(item);
-                });
-            }
+            // SEO update: App Links are now hardcoded in HTML for better crawling.
         });
     </script>
 </body>
