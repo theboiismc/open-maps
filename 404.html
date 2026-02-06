@@ -3,255 +3,478 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page Not Found - TheBoiisMC Maps</title>
+    <title>Page Not Found - TheBoiisMC</title>
     
     <meta name="robots" content="noindex, follow">
+    <meta name="theme-color" content="#0F172A">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 
     <style>
-        /* --- BRAND THEME (Self-contained) --- */
         :root {
-            --bg-dark: #0F172A;
-            --surface-glass: rgba(30, 41, 59, 0.70);
-            --border-color: #334155;
+            /* Brand Palette */
+            --bg-dark: #020617; /* Deep slate/black */
+            --bg-gradient-start: #0F172A;
+            --primary: #6366F1;
+            --primary-hover: #818CF8;
+            --surface-glass: rgba(30, 41, 59, 0.65);
+            --surface-glass-hover: rgba(51, 65, 85, 0.75);
+            --border-dim: rgba(255, 255, 255, 0.08);
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
             
-            --brand-primary: #6366F1;
-            --brand-hover: #818CF8;
-            
-            --text-primary: #F8FAFC;
-            --text-secondary: #94A3B8;
+            /* Spacing & sizing */
+            --header-height: 64px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
         }
 
         body {
             margin: 0;
-            padding: 20px;
-            height: 100vh;
+            padding: 0;
             background-color: var(--bg-dark);
-            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, var(--bg-dark) 70%);
             font-family: 'Inter', sans-serif;
-            color: var(--text-primary);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            box-sizing: border-box;
+            flex-direction: column;
         }
 
-        .glow-effect {
-            position: absolute;
-            width: 800px;
-            height: 800px;
-            background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%);
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 0;
+        /* --- BACKGROUND FX --- */
+        .ambient-glow {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08), transparent 25%);
             pointer-events: none;
         }
 
-        .error-card {
-            position: relative;
-            z-index: 10;
-            background: var(--surface-glass);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 48px;
-            border-radius: 24px;
-            text-align: center;
-            max-width: 460px;
-            width: 100%;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.4s ease-out;
+        /* --- HEADER --- */
+        .global-header {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-dim);
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .icon-wrapper {
-            display: inline-flex;
-            align-items: center; justify-content: center;
-            width: 64px; height: 64px;
-            background: rgba(99, 102, 241, 0.1);
-            color: var(--brand-primary);
-            border-radius: 20px;
-            margin-bottom: 24px;
-            border: 1px solid rgba(99, 102, 241, 0.2);
-        }
-
-        h1 {
-            font-size: 28px;
+        .brand-logo {
             font-weight: 700;
-            margin: 0 0 12px 0;
-            color: var(--text-primary);
+            font-size: 20px;
+            color: var(--text-main);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        .brand-highlight { color: var(--primary); }
 
-        p {
-            color: var(--text-secondary);
-            font-size: 16px;
-            line-height: 1.5;
-            margin: 0 0 32px 0;
-        }
-
-        /* Search Bar */
-        .search-form {
+        /* Search Bar (Header) */
+        .header-search {
+            flex: 1;
+            max-width: 480px;
+            margin: 0 24px;
             position: relative;
-            margin-bottom: 24px;
-            width: 100%;
+            display: none; /* Hidden on very small screens, shown on md+ */
         }
+        @media (min-width: 640px) { .header-search { display: block; } }
+
         .search-input {
             width: 100%;
-            padding: 14px 16px 14px 44px;
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
+            background: rgba(255,255,255,0.05);
+            border: 1px solid transparent;
+            border-radius: var(--radius-full);
+            padding: 10px 16px 10px 44px;
+            color: white;
             font-family: inherit;
-            font-size: 15px;
+            font-size: 14px;
+            transition: all 0.2s ease;
             outline: none;
             box-sizing: border-box;
-            transition: border-color 0.2s, background 0.2s;
         }
         .search-input:focus {
-            border-color: var(--brand-primary);
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(255,255,255,0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
         }
-        .search-icon {
+        .search-icon-deco {
             position: absolute;
-            left: 14px; top: 50%;
+            left: 14px;
+            top: 50%;
             transform: translateY(-50%);
-            color: var(--text-secondary);
+            color: var(--text-muted);
             pointer-events: none;
             font-size: 20px;
         }
 
-        /* Buttons */
-        .action-container {
+        /* Header Actions */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: color 0.2s, background 0.2s;
+        }
+        .icon-btn:hover, .icon-btn.active {
+            color: var(--text-main);
+            background: rgba(255,255,255,0.05);
+        }
+
+        /* --- APP WAFFLE MENU --- */
+        .app-menu-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            width: 320px;
+            background: #1E293B;
+            border: 1px solid var(--border-dim);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: 0 20px 40px -5px rgba(0,0,0,0.4);
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            z-index: 200;
+        }
+        .app-menu-dropdown.open {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        
+        .app-item {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            align-items: center;
+            text-decoration: none;
+            gap: 8px;
+            color: var(--text-main);
+            padding: 8px 0;
+            border-radius: var(--radius-md);
+            transition: background 0.2s;
+        }
+        .app-item:hover { background: rgba(255,255,255,0.05); }
+        .app-icon-circle {
+            width: 48px; height: 48px;
+            border-radius: 50%; /* Circle */
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            display: flex;
+            align-items: center; justify-content: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .app-name { font-size: 13px; font-weight: 500; }
+
+
+        /* --- MAIN CONTENT --- */
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 20px 40px 20px; /* Top padding for fixed header */
+        }
+
+        .content-container {
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        /* 404 Visual */
+        .error-code {
+            font-size: 120px;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -4px;
+            margin: 0;
+            background: linear-gradient(135deg, #fff 30%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0.9;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 16px 0 16px 0;
+        }
+
+        p {
+            color: var(--text-muted);
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 0 0 40px 0;
+        }
+
+        /* Action Buttons */
+        .action-row {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 48px;
         }
 
         .btn {
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            text-decoration: none;
-            padding: 14px;
-            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
             font-weight: 600;
             font-size: 15px;
+            text-decoration: none;
             transition: all 0.2s;
             cursor: pointer;
-            border: 1px solid transparent;
         }
 
         .btn-primary {
-            background: var(--brand-primary);
+            background: var(--primary);
             color: white;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+            border: 1px solid transparent;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
         }
         .btn-primary:hover {
-            background: var(--brand-hover);
+            background: var(--primary-hover);
             transform: translateY(-1px);
         }
 
         .btn-secondary {
-            background: transparent;
-            border-color: var(--border-color);
-            color: var(--text-secondary);
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-dim);
+            color: var(--text-main);
         }
         .btn-secondary:hover {
-            border-color: var(--brand-primary);
-            color: var(--text-primary);
-            background: rgba(255,255,255,0.03);
+            background: rgba(255,255,255,0.08);
+            border-color: var(--text-muted);
         }
 
-        /* Dynamic Back Link */
-        #dynamic-back-link {
-            margin-top: 20px;
-            font-size: 14px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            display: inline-block;
-            transition: color 0.2s;
-            cursor: pointer;
-            border: none;
-            background: none;
-            padding: 0;
+        /* --- SUGGESTED APPS SECTION (Retention) --- */
+        .suggestion-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            text-align: left;
         }
-        #dynamic-back-link:hover { color: var(--text-primary); text-decoration: underline; }
+
+        .suggestion-card {
+            background: var(--surface-glass);
+            border: 1px solid var(--border-dim);
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            text-decoration: none;
+            transition: transform 0.2s, border-color 0.2s;
+            display: block;
+        }
+        .suggestion-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(99, 102, 241, 0.4);
+            background: var(--surface-glass-hover);
+        }
+        
+        .card-icon {
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: block;
+        }
+        .card-title {
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 14px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .card-desc {
+            color: var(--text-muted);
+            font-size: 12px;
+            display: block;
+        }
+
+        @media (max-width: 640px) {
+            .error-code { font-size: 80px; }
+            .h1 { font-size: 24px; }
+            .suggestion-grid { grid-template-columns: 1fr; }
+            .suggestion-card { display: flex; align-items: center; gap: 16px; }
+            .card-icon { margin-bottom: 0; }
+        }
 
     </style>
 </head>
 <body>
 
-    <div class="glow-effect"></div>
+    <div class="ambient-glow"></div>
 
-    <div class="error-card">
-        <div class="icon-wrapper">
-            <span class="material-symbols-outlined" style="font-size: 32px;">map_search</span>
-        </div>
-        
-        <h1>Destination Not Found</h1>
-        <p>The location you are looking for does not exist or has been moved. Use the search bar below or return to the map.</p>
+    <header class="global-header">
+        <a href="/" class="brand-logo">
+            <span>TheBoiis<span class="brand-highlight">MC</span></span>
+        </a>
 
-        <form action="https://search.theboiismc.com" method="get" class="search-form">
-            <span class="material-symbols-outlined search-icon">search</span>
-            <input type="text" name="q" class="search-input" placeholder="Search TheBoiisMC..." autocomplete="off" autofocus>
+        <form action="https://search.theboiismc.com" method="get" class="header-search">
+            <span class="material-symbols-outlined search-icon-deco">search</span>
+            <input type="text" name="q" class="search-input" placeholder="Search across TheBoiisMC..." autocomplete="off">
         </form>
 
-        <div class="action-container" id="action-container">
-            <a href="/" class="btn btn-primary">
-                <span class="material-symbols-outlined">map</span>
-                Open Maps
-            </a>
+        <div class="header-actions">
+            <button id="waffle-btn" class="icon-btn" aria-label="Google Apps">
+                <span class="material-symbols-outlined">apps</span>
+            </button>
             
-            <a href="https://drive.theboiismc.com" class="btn btn-secondary">
-                <span class="material-symbols-outlined">cloud</span>
-                Go to Drive
-            </a>
+            <div id="app-dropdown" class="app-menu-dropdown">
+                <a href="https://homeassistant.theboiismc.com" class="app-item">
+                    <div class="app-icon-circle"><span class="material-symbols-outlined">home</span></div>
+                    <span class="app-name">Home</span>
+                </a>
+                <a href="https://search.theboiismc.com" class="app-item">
+                    <div class="app-icon-circle"><span class="material-symbols-outlined">search</span></div>
+                    <span class="app-name">Search</span>
+                </a>
+                <a href="https://maps.theboiismc.com" class="app-item">
+                    <div class="app-icon-circle"><span class="material-symbols-outlined">map</span></div>
+                    <span class="app-name">Maps</span>
+                </a>
+                <a href="https://drive.theboiismc.com" class="app-item">
+                    <div class="app-icon-circle"><span class="material-symbols-outlined">cloud</span></div>
+                    <span class="app-name">Drive</span>
+                </a>
+                <a href="https://photos.theboiismc.com" class="app-item">
+                    <div class="app-icon-circle"><span class="material-symbols-outlined">photo_library</span></div>
+                    <span class="app-name">Photos</span>
+                </a>
+                <a href="https://accounts.theboiismc.com" class="app-item">
+                    <div class="app-icon-circle"><span class="material-symbols-outlined">account_circle</span></div>
+                    <span class="app-name">Account</span>
+                </a>
+            </div>
+
+            <button class="icon-btn" aria-label="Account">
+                <span class="material-symbols-outlined">account_circle</span>
+            </button>
         </div>
-    </div>
+    </header>
+
+    <main>
+        <div class="content-container">
+            <div class="error-code">404</div>
+            <h1>Page not found</h1>
+            <p>We searched everywhere, but the page you requested couldn't be found. It may have been moved, deleted, or the link might be misspelled.</p>
+
+            <div class="action-row" id="dynamic-actions">
+                <a href="/" class="btn btn-primary">
+                    <span class="material-symbols-outlined">home</span>
+                    Go Home
+                </a>
+                </div>
+
+            <div style="text-align: left; margin-top: 32px;">
+                <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px;">Try one of our apps</h3>
+                <div class="suggestion-grid">
+                    <a href="https://maps.theboiismc.com" class="suggestion-card">
+                        <span class="material-symbols-outlined card-icon">map</span>
+                        <div>
+                            <span class="card-title">Maps</span>
+                            <span class="card-desc">Find your way</span>
+                        </div>
+                    </a>
+                    <a href="https://search.theboiismc.com" class="suggestion-card">
+                        <span class="material-symbols-outlined card-icon">search</span>
+                        <div>
+                            <span class="card-title">Search</span>
+                            <span class="card-desc">Web & Data</span>
+                        </div>
+                    </a>
+                    <a href="https://drive.theboiismc.com" class="suggestion-card">
+                        <span class="material-symbols-outlined card-icon">cloud</span>
+                        <div>
+                            <span class="card-title">Drive</span>
+                            <span class="card-desc">Your files</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // RETENTION: Check if the user has history to go back to.
-            // If they came from an external site, we keep them here.
-            // If they came from within our site, we offer a "Go Back" option.
+            // 1. WAFFLE MENU TOGGLE
+            const waffleBtn = document.getElementById('waffle-btn');
+            const appDropdown = document.getElementById('app-dropdown');
             
-            if (document.referrer && window.history.length > 1) {
-                const container = document.getElementById('action-container');
-                
-                // Create the button securely using DOM methods (NO innerHTML)
-                const backBtn = document.createElement('button');
-                backBtn.id = 'dynamic-back-link';
-                backBtn.textContent = '← Go back to previous page';
-                
-                // Check if referrer is from a different domain (e.g. they came from Google)
-                try {
-                    const refUrl = new URL(document.referrer);
-                    if (refUrl.hostname !== window.location.hostname) {
-                         // More specific text improves trust
-                        backBtn.textContent = '← Go back to ' + refUrl.hostname;
-                    }
-                } catch(e) {
-                    // Fallback text is already set
-                }
+            if (waffleBtn && appDropdown) {
+                waffleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    appDropdown.classList.toggle('open');
+                    waffleBtn.classList.toggle('active');
+                });
 
-                backBtn.onclick = (e) => { 
-                    e.preventDefault(); 
-                    window.history.back(); 
-                };
+                // Close when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!appDropdown.contains(e.target) && !waffleBtn.contains(e.target)) {
+                        appDropdown.classList.remove('open');
+                        waffleBtn.classList.remove('active');
+                    }
+                });
+            }
+
+            // 2. SMART BACK BUTTON (Strict Security: No InnerHTML)
+            // Only show if there is history to go back to
+            if (window.history.length > 1) {
+                const actionContainer = document.getElementById('dynamic-actions');
                 
-                // Append it safely after the main buttons
-                container.parentNode.appendChild(backBtn);
+                const backBtn = document.createElement('button');
+                backBtn.className = 'btn btn-secondary';
+                backBtn.style.fontFamily = 'inherit'; // Ensure font matches
+                
+                // Icon span
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'material-symbols-outlined';
+                iconSpan.textContent = 'arrow_back';
+                
+                // Text node
+                const textNode = document.createTextNode(' Go Back');
+                
+                backBtn.appendChild(iconSpan);
+                backBtn.appendChild(textNode);
+                
+                backBtn.addEventListener('click', () => {
+                    window.history.back();
+                });
+                
+                // Append securely
+                actionContainer.appendChild(backBtn);
             }
         });
     </script>
-
 </body>
 </html>
