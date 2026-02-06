@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page Not Found - TheBoiisMC</title>
+    <title>Signal Lost - TheBoiisMC</title>
     
     <meta name="robots" content="noindex, follow">
     <meta name="theme-color" content="#0F172A">
@@ -16,7 +16,7 @@
     <style>
         :root {
             /* Brand Palette */
-            --bg-dark: #020617; /* Deep slate/black */
+            --bg-dark: #020617;
             --bg-gradient-start: #0F172A;
             --primary: #6366F1;
             --primary-hover: #818CF8;
@@ -25,6 +25,7 @@
             --border-dim: rgba(255, 255, 255, 0.08);
             --text-main: #F8FAFC;
             --text-muted: #94A3B8;
+            --error-red: #EF4444;
             
             /* Spacing & sizing */
             --header-height: 64px;
@@ -90,7 +91,7 @@
             max-width: 480px;
             margin: 0 24px;
             position: relative;
-            display: none; /* Hidden on very small screens, shown on md+ */
+            display: none; 
         }
         @media (min-width: 640px) { .header-search { display: block; } }
 
@@ -186,7 +187,7 @@
         .app-item:hover { background: rgba(255,255,255,0.05); }
         .app-icon-circle {
             width: 48px; height: 48px;
-            border-radius: 50%; /* Circle */
+            border-radius: 50%;
             background: rgba(99, 102, 241, 0.1);
             color: var(--primary);
             display: flex;
@@ -195,14 +196,13 @@
         }
         .app-name { font-size: 13px; font-weight: 500; }
 
-
         /* --- MAIN CONTENT --- */
         main {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 100px 20px 40px 20px; /* Top padding for fixed header */
+            padding: 100px 20px 40px 20px;
         }
 
         .content-container {
@@ -211,7 +211,7 @@
             width: 100%;
         }
 
-        /* 404 Visual */
+        /* 404 Visual - Subtle Animation Added */
         .error-code {
             font-size: 120px;
             line-height: 1;
@@ -222,6 +222,13 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             opacity: 0.9;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
         }
 
         h1 {
@@ -235,6 +242,29 @@
             font-size: 18px;
             line-height: 1.6;
             margin: 0 0 40px 0;
+        }
+
+        /* Smart Suggestion Box (Gold Standard) */
+        .smart-suggestion {
+            display: none; /* Hidden by default */
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .smart-suggestion-text {
+            color: var(--primary-hover);
+            font-weight: 500;
+            font-size: 15px;
+        }
+        .smart-suggestion-link {
+            color: var(--text-main);
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            font-weight: 700;
+            margin-left: 6px;
         }
 
         /* Action Buttons */
@@ -279,8 +309,19 @@
             background: rgba(255,255,255,0.08);
             border-color: var(--text-muted);
         }
+        
+        .btn-text {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 8px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .btn-text:hover { color: var(--text-main); }
 
-        /* --- SUGGESTED APPS SECTION (Retention) --- */
+        /* --- SUGGESTED APPS SECTION --- */
         .suggestion-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -335,22 +376,22 @@
 
     <div class="ambient-glow"></div>
 
-    <header class="global-header">
-        <a href="/" class="brand-logo">
+    <header class="global-header" role="navigation" aria-label="Main Navigation">
+        <a href="/" class="brand-logo" aria-label="TheBoiisMC Home">
             <span>TheBoiis<span class="brand-highlight">MC</span></span>
         </a>
 
-        <form action="https://search.theboiismc.com" method="get" class="header-search">
-            <span class="material-symbols-outlined search-icon-deco">search</span>
-            <input type="text" name="q" class="search-input" placeholder="Search across TheBoiisMC..." autocomplete="off">
+        <form action="https://search.theboiismc.com" method="get" class="header-search" role="search">
+            <span class="material-symbols-outlined search-icon-deco" aria-hidden="true">search</span>
+            <input type="text" name="q" class="search-input" placeholder="Search across TheBoiisMC..." autocomplete="off" aria-label="Search">
         </form>
 
         <div class="header-actions">
-            <button id="waffle-btn" class="icon-btn" aria-label="Google Apps">
+            <button id="waffle-btn" class="icon-btn" aria-label="Switch App" aria-expanded="false" aria-controls="app-dropdown">
                 <span class="material-symbols-outlined">apps</span>
             </button>
             
-            <div id="app-dropdown" class="app-menu-dropdown">
+            <nav id="app-dropdown" class="app-menu-dropdown" aria-label="App Menu">
                 <a href="https://homeassistant.theboiismc.com" class="app-item">
                     <div class="app-icon-circle"><span class="material-symbols-outlined">home</span></div>
                     <span class="app-name">Home</span>
@@ -375,49 +416,58 @@
                     <div class="app-icon-circle"><span class="material-symbols-outlined">account_circle</span></div>
                     <span class="app-name">Account</span>
                 </a>
-            </div>
+            </nav>
 
-            <button class="icon-btn" aria-label="Account">
+            <a href="https://accounts.theboiismc.com" class="icon-btn" aria-label="Your Account">
                 <span class="material-symbols-outlined">account_circle</span>
-            </button>
+            </a>
         </div>
     </header>
 
     <main>
         <div class="content-container">
             <div class="error-code">404</div>
-            <h1>Page not found</h1>
-            <p>We searched everywhere, but the page you requested couldn't be found. It may have been moved, deleted, or the link might be misspelled.</p>
+            <h1>Signal Lost</h1>
+            <p>We couldn't locate that frequency. The page you're looking for may have drifted out of range, been deleted, or the URL might be misspelled.</p>
+
+            <div id="smart-suggestion" class="smart-suggestion">
+                <span class="smart-suggestion-text">Did you mean to go to:</span>
+                <a id="suggestion-link" href="#" class="smart-suggestion-link"></a>
+            </div>
 
             <div class="action-row" id="dynamic-actions">
                 <a href="/" class="btn btn-primary">
                     <span class="material-symbols-outlined">home</span>
-                    Go Home
+                    Return Home
                 </a>
-                </div>
+                <a href="mailto:admin@theboiismc.com?subject=Broken%20Link%20Report" class="btn btn-secondary">
+                    <span class="material-symbols-outlined">flag</span>
+                    Report Link
+                </a>
+            </div>
 
-            <div style="text-align: left; margin-top: 32px;">
-                <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px;">Try one of our apps</h3>
+            <div style="text-align: left; margin-top: 48px;">
+                <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px;">Active Frequencies</h3>
                 <div class="suggestion-grid">
                     <a href="https://maps.theboiismc.com" class="suggestion-card">
                         <span class="material-symbols-outlined card-icon">map</span>
                         <div>
                             <span class="card-title">Maps</span>
-                            <span class="card-desc">Find your way</span>
+                            <span class="card-desc">Navigation data</span>
                         </div>
                     </a>
                     <a href="https://search.theboiismc.com" class="suggestion-card">
                         <span class="material-symbols-outlined card-icon">search</span>
                         <div>
                             <span class="card-title">Search</span>
-                            <span class="card-desc">Web & Data</span>
+                            <span class="card-desc">Index & Query</span>
                         </div>
                     </a>
                     <a href="https://drive.theboiismc.com" class="suggestion-card">
                         <span class="material-symbols-outlined card-icon">cloud</span>
                         <div>
                             <span class="card-title">Drive</span>
-                            <span class="card-desc">Your files</span>
+                            <span class="card-desc">Storage Array</span>
                         </div>
                     </a>
                 </div>
@@ -427,41 +477,56 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. WAFFLE MENU TOGGLE
+            
+            // --- 1. GOOGLE ANALYTICS ERROR TRACKING (GA4) ---
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({
+                'event': 'page_not_found',
+                'page_location': window.location.href,
+                'page_referrer': document.referrer
+            });
+
+            // --- 2. WAFFLE MENU TOGGLE ---
             const waffleBtn = document.getElementById('waffle-btn');
             const appDropdown = document.getElementById('app-dropdown');
             
             if (waffleBtn && appDropdown) {
                 waffleBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    appDropdown.classList.toggle('open');
-                    waffleBtn.classList.toggle('active');
+                    const isOpen = appDropdown.classList.contains('open');
+                    
+                    if (isOpen) {
+                        appDropdown.classList.remove('open');
+                        waffleBtn.classList.remove('active');
+                        waffleBtn.setAttribute('aria-expanded', 'false');
+                    } else {
+                        appDropdown.classList.add('open');
+                        waffleBtn.classList.add('active');
+                        waffleBtn.setAttribute('aria-expanded', 'true');
+                    }
                 });
 
-                // Close when clicking outside
                 document.addEventListener('click', (e) => {
                     if (!appDropdown.contains(e.target) && !waffleBtn.contains(e.target)) {
                         appDropdown.classList.remove('open');
                         waffleBtn.classList.remove('active');
+                        waffleBtn.setAttribute('aria-expanded', 'false');
                     }
                 });
             }
 
-            // 2. SMART BACK BUTTON (Strict Security: No InnerHTML)
-            // Only show if there is history to go back to
+            // --- 3. SMART BACK BUTTON (Strict Security: No InnerHTML) ---
             if (window.history.length > 1) {
                 const actionContainer = document.getElementById('dynamic-actions');
-                
+                // Insert as first child
                 const backBtn = document.createElement('button');
                 backBtn.className = 'btn btn-secondary';
-                backBtn.style.fontFamily = 'inherit'; // Ensure font matches
+                backBtn.style.fontFamily = 'inherit'; 
                 
-                // Icon span
                 const iconSpan = document.createElement('span');
                 iconSpan.className = 'material-symbols-outlined';
                 iconSpan.textContent = 'arrow_back';
                 
-                // Text node
                 const textNode = document.createTextNode(' Go Back');
                 
                 backBtn.appendChild(iconSpan);
@@ -471,8 +536,80 @@
                     window.history.back();
                 });
                 
-                // Append securely
-                actionContainer.appendChild(backBtn);
+                if (actionContainer) {
+                    // Insert before the Report button (last element usually)
+                    actionContainer.insertBefore(backBtn, actionContainer.lastElementChild);
+                }
+            }
+
+            // --- 4. LEVENSHTEIN DISTANCE (Smart Suggestion) ---
+            // "Gold Standard" feature: Guesses what the user meant
+            
+            // Map of keywords to your actual apps
+            const validPaths = [
+                { keyword: 'maps', url: 'https://maps.theboiismc.com', label: 'Maps' },
+                { keyword: 'search', url: 'https://search.theboiismc.com', label: 'Search' },
+                { keyword: 'drive', url: 'https://drive.theboiismc.com', label: 'Drive' },
+                { keyword: 'photos', url: 'https://photos.theboiismc.com', label: 'Photos' },
+                { keyword: 'account', url: 'https://accounts.theboiismc.com', label: 'Account' },
+                { keyword: 'home', url: 'https://homeassistant.theboiismc.com', label: 'Home Assistant' },
+                { keyword: 'login', url: 'https://accounts.theboiismc.com', label: 'Login' }
+            ];
+
+            function getEditDistance(a, b) {
+                if (a.length === 0) return b.length;
+                if (b.length === 0) return a.length;
+                
+                const matrix = [];
+                for (let i = 0; i <= b.length; i++) {
+                    matrix[i] = [i];
+                }
+                for (let j = 0; j <= a.length; j++) {
+                    matrix[0][j] = j;
+                }
+
+                for (let i = 1; i <= b.length; i++) {
+                    for (let j = 1; j <= a.length; j++) {
+                        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                            matrix[i][j] = matrix[i - 1][j - 1];
+                        } else {
+                            matrix[i][j] = Math.min(
+                                matrix[i - 1][j - 1] + 1,
+                                matrix[i][j - 1] + 1,
+                                matrix[i - 1][j] + 1
+                            );
+                        }
+                    }
+                }
+                return matrix[b.length][a.length];
+            }
+
+            // Get current path, remove slash (e.g. "/mops" -> "mops")
+            const currentPath = window.location.pathname.replace(/^\/|\/$/g, '').toLowerCase();
+
+            if (currentPath.length > 2) { // Only run if enough chars
+                let bestMatch = null;
+                let lowestDistance = 99;
+
+                validPaths.forEach(item => {
+                    const dist = getEditDistance(currentPath, item.keyword);
+                    // Threshold: allows up to 3 typos
+                    if (dist < 4 && dist < lowestDistance) {
+                        lowestDistance = dist;
+                        bestMatch = item;
+                    }
+                });
+
+                if (bestMatch) {
+                    const suggestionBox = document.getElementById('smart-suggestion');
+                    const suggestionLink = document.getElementById('suggestion-link');
+                    
+                    if (suggestionBox && suggestionLink) {
+                        suggestionLink.href = bestMatch.url;
+                        suggestionLink.textContent = bestMatch.label;
+                        suggestionBox.style.display = 'block';
+                    }
+                }
             }
         });
     </script>
