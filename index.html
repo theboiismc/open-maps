@@ -4,12 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-    <title>TheBoiisMC Maps - Private Navigation & Directions</title>
-    <meta name="description" content="Find driving directions, explore places, and get live traffic updates." />
+    <title>TheBoiisMC Maps | Private Navigation & Directions</title>
+    <meta name="description" content="Secure, private mapping and navigation by TheBoiisMC. Find driving directions, explore places, and get live traffic updates without tracking." />
+    <meta name="keywords" content="TheBoiisMC Maps, Private Maps, OpenStreetMap, Self-Hosted Maps, Privacy Navigation">
+    <meta name="author" content="TheBoiisMC">
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://maps.theboiismc.com/" />
+    <meta property="og:title" content="TheBoiisMC Maps | Private Navigation" />
+    <meta property="og:description" content="Explore the world without being tracked. Driving directions, places, and private search." />
+    <meta property="og:image" content="https://static.theboiismc.com/assets/maps-preview.jpg" />
+    <meta property="og:site_name" content="TheBoiisMC Maps" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TheBoiisMC Maps | Private Navigation" />
+    <meta name="twitter:description" content="Explore the world without being tracked. Driving directions, places, and private search." />
+    <meta name="twitter:image" content="https://static.theboiismc.com/assets/maps-preview.jpg" />
 
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self'; 
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com https://static.theboiismc.com; 
+        base-uri 'self';
+        form-action 'self';
+        script-src 'self' 'unsafe-eval' blob: https://unpkg.com https://static.theboiismc.com 'sha256-Kc7+h8K/qgD3Jq8V+o/5q5o7+sW5T4w0+a9X3o/5+5w='; 
         worker-src 'self' blob:;
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://static.theboiismc.com; 
         img-src 'self' data: blob: https://*.theboiismc.com https://*.openstreetmap.org https://api.maptiler.com https://unpkg.com https://www.gravatar.com https://upload.wikimedia.org https://images.unsplash.com; 
@@ -17,6 +33,8 @@
         font-src 'self' https://fonts.gstatic.com;
     ">
     
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://maps.theboiismc.com/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
@@ -31,23 +49,54 @@
       "@graph": [
         {
           "@type": "Organization",
+          "@id": "https://www.theboiismc.com/#organization",
           "name": "TheBoiisMC",
-          "url": "https://theboiismc.com",
+          "url": "https://www.theboiismc.com",
           "logo": "https://static.theboiismc.com/assets/logo.png",
           "sameAs": [
             "https://maps.theboiismc.com",
             "https://search.theboiismc.com",
-            "https://drive.theboiismc.com"
+            "https://drive.theboiismc.com",
+            "https://github.com/theboiismc"
           ]
         },
         {
+          "@type": "WebSite",
+          "@id": "https://maps.theboiismc.com/#website",
+          "url": "https://maps.theboiismc.com",
+          "name": "TheBoiisMC Maps",
+          "publisher": { "@id": "https://www.theboiismc.com/#organization" }
+        },
+        {
           "@type": "WebApplication",
+          "@id": "https://maps.theboiismc.com/#webapp",
           "name": "TheBoiisMC Maps",
           "url": "https://maps.theboiismc.com",
-          "description": "Private navigation, driving directions, and place search.",
+          "description": "Private navigation, driving directions, and place search powered by OpenStreetMap and TheBoiisMC.",
           "applicationCategory": "Maps & Navigation",
-          "operatingSystem": "All"
-        }
+          "operatingSystem": "All",
+          "browserRequirements": "Requires JavaScript",
+          "publisher": { "@id": "https://www.theboiismc.com/#organization" },
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        },
+        {
+            "@type": "BreadcrumbList",
+            "itemListElement": [{
+              "@type": "ListItem",
+              "position": 1,
+              "name": "TheBoiisMC",
+              "item": "https://www.theboiismc.com"
+            },{
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Maps",
+              "item": "https://maps.theboiismc.com"
+            }]
+          }
       ]
     }
     </script>
@@ -56,23 +105,35 @@
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"></noscript>
 
     <script>
-        (function() {
-            try {
-                var saved = localStorage.getItem('mapTheme');
-                if (saved === 'dark' || saved === 'light') { document.documentElement.setAttribute('data-theme', saved); }
-            } catch (e) {}
-        })();
+    (function(){try{var s=localStorage.getItem('mapTheme');if(s==='dark'||s==='light'){document.documentElement.setAttribute('data-theme',s)}}catch(e){}})()
     </script>
 
     <link href="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.css" rel="stylesheet">
     <link rel="stylesheet" href="https://static.theboiismc.com/css/maps_v8.7.0.css">
+    
+    <style>
+        /* A11y: Screen reader only class for skip links */
+        .sr-only-focusable {
+            position: absolute;
+            width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0,0,0,0); border: 0;
+            z-index: 10000; background: #000; color: #fff;
+        }
+        .sr-only-focusable:focus {
+            width: auto; height: auto; margin: 0; clip: auto;
+            top: 10px; left: 10px; padding: 10px; border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
+    
+    <a href="#main-search" class="sr-only-focusable">Skip to Search</a>
+    <a href="#map" class="sr-only-focusable">Skip to Map</a>
 
-    <div id="sidebar-drawer" class="sidebar-drawer" role="navigation" aria-label="Main Menu">
+    <nav id="sidebar-drawer" class="sidebar-drawer" aria-label="Main Menu" aria-hidden="true">
         <div class="drawer-header">
             <span class="brand-text" style="color:var(--text-primary); font-size:22px;">TheBoiis<span class="text-brand">MC</span></span>
-            <button id="close-drawer-btn" aria-label="Close Menu"><span class="material-symbols-outlined">chevron_left</span></button>
+            <button id="close-drawer-btn" aria-label="Close Menu" aria-expanded="true"><span class="material-symbols-outlined">chevron_left</span></button>
         </div>
         <div id="drawer-links-container" class="drawer-content"></div>
         <div class="drawer-footer">
@@ -80,20 +141,20 @@
             <p>&copy; 2026 TheBoiisMC</p>
             <p style="font-size:10px; opacity:0.6;">Version 8.2.3</p>
         </div>
-    </div>
+    </nav>
     <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
 
     <div id="app-modal-overlay" class="modal-overlay" hidden aria-hidden="true">
-        <div class="modal-box" role="dialog" aria-modal="true">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div class="modal-header">
                 <h3 id="modal-title">Title</h3>
-                <button id="modal-close-btn" class="icon-btn"><span class="material-symbols-outlined">close</span></button>
+                <button id="modal-close-btn" class="icon-btn" aria-label="Close Modal"><span class="material-symbols-outlined">close</span></button>
             </div>
             <div id="modal-body" class="modal-body"></div>
         </div>
     </div>
 
-    <div id="floating-profile-controls">
+    <header id="floating-profile-controls">
         <button id="app-menu-button" class="float-btn" aria-label="Open App Menu" aria-haspopup="true" aria-expanded="false">
             <span class="material-symbols-outlined">apps</span>
         </button>
@@ -158,9 +219,9 @@
                 </div>
             </div>
         </div>
-    </div>
+    </header>
     
-    <div id="navigation-status" role="region" hidden>
+    <div id="navigation-status" role="region" aria-live="polite" hidden>
         <div id="instruction-container">
             <div id="maneuver-icon-wrapper"><span id="maneuver-icon" class="material-symbols-outlined">straight</span></div>
             <div id="instruction-text-wrapper">
@@ -173,18 +234,18 @@
             <div class="stat-item"><span id="stat-time-remaining">--</span><span class="stat-label">min</span></div>
             <div class="stat-item"><span id="stat-eta">--:--</span><span class="stat-label">ETA</span></div>
         </div>
-        <button id="end-navigation-btn">End Trip</button>
+        <button id="end-navigation-btn" aria-label="End Trip">End Trip</button>
     </div>
     
     <div id="top-search-wrapper" role="search">
         <div id="main-search-container">
-            <button id="hamburger-btn" aria-label="Menu"><span class="material-symbols-outlined">menu</span></button>
-            <label for="main-search" class="sr-only">Search</label>
+            <button id="hamburger-btn" aria-label="Main Menu" aria-expanded="false" aria-controls="sidebar-drawer"><span class="material-symbols-outlined">menu</span></button>
+            <label for="main-search" class="sr-only">Search locations</label>
             <input type="text" id="main-search" placeholder="Search TheBoiisMC Maps" autocomplete="off" />
             
-            <div class="search-divider"></div>
+            <div class="search-divider" aria-hidden="true"></div>
             
-            <button id="search-trigger-btn" aria-label="Search"><span class="material-symbols-outlined">search</span></button>
+            <button id="search-trigger-btn" aria-label="Submit Search"><span class="material-symbols-outlined">search</span></button>
             <button id="main-directions-icon" aria-label="Get Directions"><span class="material-symbols-outlined">directions</span></button>
            
             <div id="main-suggestions" class="suggestions-dropdown">
@@ -196,40 +257,41 @@
         </div>
     </div>
     
-    <div id="side-panel" role="complementary">
-        <div id="panel-grabber"></div>
-        <button id="close-panel-btn" class="panel-close-btn"></button>
+    <aside id="side-panel" role="complementary" aria-label="Location Details">
+        <div id="panel-grabber" aria-hidden="true"></div>
+        <button id="close-panel-btn" class="panel-close-btn" aria-label="Close Panel"></button>
         <div id="panel-search-placeholder" hidden></div>
         <div class="panel-content">
             <div id="dynamic-content"></div>
         </div>
-    </div>
+    </aside>
     
-    <div id="context-menu" role="menu">
+    <div id="context-menu" role="menu" aria-label="Map Context Menu">
         <div id="context-menu-coords"></div>
         <button class="context-menu-item" id="ctx-directions-from"><span class="material-symbols-outlined">near_me</span>Directions from here</button>
         <button class="context-menu-item" id="ctx-directions-to"><span class="material-symbols-outlined">place</span>Directions to here</button>
         <button class="context-menu-item" id="ctx-whats-here"><span class="material-symbols-outlined">help_outline</span>What's here?</button>
     </div>
     
-    <div id="map"></div>
-    <div id="toast-container"></div>
-    <button id="recenter-btn"><span class="material-symbols-outlined">my_location</span></button>
+    <main id="map" aria-label="Interactive Map"></main>
+
+    <div id="toast-container" role="status" aria-live="polite"></div>
+    <button id="recenter-btn" aria-label="Recenter Map to User Location"><span class="material-symbols-outlined">my_location</span></button>
 
     <template id="tmpl-place-details">
         <div class="place-panel-container">
             <div class="place-hero">
-                <img id="info-image" class="hero-image" src="" alt="Place" style="opacity:0;" />
+                <img id="info-image" class="hero-image" src="" alt="Photo of the location" style="opacity:0;" />
                 <div class="hero-overlay-gradient"></div>
                 
-                <button id="details-back-btn" class="hero-back-btn" aria-label="Back">
+                <button id="details-back-btn" class="hero-back-btn" aria-label="Back to results">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </button>
 
                 <div class="hero-header-content">
                     <h1 id="info-name" class="hero-title"></h1>
                     <div class="hero-subtitle">
-                        <span class="material-symbols-outlined" style="font-size:16px;">location_on</span>
+                        <span class="material-symbols-outlined" style="font-size:16px;" aria-hidden="true">location_on</span>
                         <span id="info-subtitle"></span>
                     </div>
                 </div>
@@ -252,7 +314,7 @@
             <div class="place-body-scroll">
                 <div class="info-card">
                     <div class="card-label">
-                        <span class="material-symbols-outlined">info</span> About
+                        <span class="material-symbols-outlined" aria-hidden="true">info</span> About
                     </div>
                     <p id="quick-facts-content" class="info-text">Loading information...</p>
                     <button id="info-website-btn" style="margin-top:12px; display:none;" class="action-btn secondary">
@@ -263,7 +325,7 @@
                 <div class="info-card">
                     <div class="card-label">Details</div>
                     <div class="meta-row">
-                        <span class="material-symbols-outlined">public</span>
+                        <span class="material-symbols-outlined" aria-hidden="true">public</span>
                         <span id="info-coords-text">--</span>
                     </div>
                 </div>
@@ -275,44 +337,46 @@
         <div class="directions-panel-container">
             <div class="panel-header-row">
                 <h2>Plan a Trip</h2>
-                <button id="directions-close-btn" class="icon-btn-close" aria-label="Close">
+                <button id="directions-close-btn" class="icon-btn-close" aria-label="Close directions">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
 
-            <div class="travel-mode-segmented">
-                <button class="travel-mode-btn active" data-mode="driving" aria-label="Drive">
+            <div class="travel-mode-segmented" role="radiogroup" aria-label="Travel Mode">
+                <button class="travel-mode-btn active" data-mode="driving" role="radio" aria-checked="true" aria-label="Drive">
                     <span class="material-symbols-outlined">directions_car</span>
                     <span class="t-label">Drive</span>
                 </button>
-                <button class="travel-mode-btn" data-mode="walking" aria-label="Walk">
+                <button class="travel-mode-btn" data-mode="walking" role="radio" aria-checked="false" aria-label="Walk">
                     <span class="material-symbols-outlined">directions_walk</span>
                     <span class="t-label">Walk</span>
                 </button>
-                <button class="travel-mode-btn" data-mode="cycling" aria-label="Bike">
+                <button class="travel-mode-btn" data-mode="cycling" role="radio" aria-checked="false" aria-label="Bike">
                     <span class="material-symbols-outlined">directions_bike</span>
                     <span class="t-label">Bike</span>
                 </button>
             </div>
 
             <div class="seamless-input-stack">
-                <div class="connector-visual">
+                <div class="connector-visual" aria-hidden="true">
                     <div class="node-start"></div>
                     <div class="line-dotted"></div>
                     <div class="node-end"></div>
                 </div>
 
                 <div class="input-row top">
+                    <label for="panel-from-input" class="sr-only">Start Location</label>
                     <input type="text" id="panel-from-input" placeholder="Choose starting point" autocomplete="off" />
                     <div id="panel-from-suggestions" class="suggestions-dropdown nested"></div>
                 </div>
 
                 <div class="stack-divider"></div>
-                <button id="swap-btn" class="floating-swap-btn" aria-label="Swap locations">
+                <button id="swap-btn" class="floating-swap-btn" aria-label="Swap start and destination">
                     <span class="material-symbols-outlined">swap_vert</span>
                 </button>
 
                 <div class="input-row bottom">
+                    <label for="panel-to-input" class="sr-only">Destination</label>
                     <input type="text" id="panel-to-input" placeholder="Choose destination" autocomplete="off" />
                     <div id="panel-to-suggestions" class="suggestions-dropdown nested"></div>
                 </div>
@@ -372,7 +436,7 @@
     <template id="tmpl-search-results">
         <div class="results-panel-container">
             <div class="results-header-sticky">
-                <button id="results-back-btn" class="icon-btn-back" aria-label="Back">
+                <button id="results-back-btn" class="icon-btn-back" aria-label="Back to search">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </button>
                 <div class="header-text-wrapper">
@@ -387,10 +451,10 @@
     <template id="tmpl-result-item">
         <button class="search-result-item card-interaction" role="listitem">
             <div class="result-item-image-box" hidden>
-                <img class="result-thumb" src="" alt="" loading="lazy" />
+                <img class="result-thumb" src="" alt="Location Thumbnail" loading="lazy" />
             </div>
             <div class="result-item-icon">
-                <span class="material-symbols-outlined">place</span>
+                <span class="material-symbols-outlined" aria-hidden="true">place</span>
             </div>
             <div class="result-item-details">
                 <h4 class="item-title"></h4>
@@ -400,19 +464,22 @@
             </div>
             <div class="result-meta-column">
                 <div class="result-item-distance"></div>
-                <span class="material-symbols-outlined action-arrow">chevron_right</span>
+                <span class="material-symbols-outlined action-arrow" aria-hidden="true">chevron_right</span>
             </div>
         </button>
     </template>
     
     <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js"></script>
+    
     <script src="https://unpkg.com/maplibre-gl@5.1.0/dist/maplibre-gl.js" defer></script>
+    
     <script src="https://static.theboiismc.com/js/maps/turf.js" defer></script>
+    
     <script src="https://static.theboiismc.com/js/maps/maps_v9.1.1.js" defer></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // SEO update: App Links are now hardcoded in HTML for better crawling.
+            // Additional accessible focus handling can be initialized here
         });
     </script>
 </body>
