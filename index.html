@@ -5,7 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <link rel="preconnect" href="https://static.theboiismc.com" crossorigin>
-    <script src="capacitor.js"></script>
+   <!-- Only load Capacitor if we are on a mobile device -->
+<script>
+  if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    const cap = document.createElement('script');
+    cap.src = 'capacitor.js';
+    document.head.appendChild(cap);
+  }
+</script>
     <script src="https://static.theboiismc.com/js/maps/backbutton.js" defer></script>
     <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js" defer></script>
     <script src="https://static.theboiismc.com/js/maps/maplibre-gl.js" defer></script>
