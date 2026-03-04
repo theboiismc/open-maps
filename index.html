@@ -478,16 +478,31 @@
             </div>
         </button>
     </template>
-    
-   <script src="capacitor.js"></script>
+  <script src="capacitor.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
-        // Make sure the Capacitor bridge is ready and the App plugin exists
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
           const App = window.Capacitor.Plugins.App;
           
-          App.addListener('backButton', () => {
-            if (window.history.length > 1) {
+          App.addListener('backButton', (event) => {
+            // 1. Check if the sidebar menu is open
+            const drawer = document.getElementById('sidebar-drawer');
+            if (drawer && drawer.getAttribute('aria-hidden') === 'false') {
+              const closeDrawerBtn = document.getElementById('close-drawer-btn');
+              if (closeDrawerBtn) closeDrawerBtn.click();
+              return; // Stop the back button from doing anything else
+            }
+
+            // 2. Check if the modal overlay is open
+            const modal = document.getElementById('app-modal-overlay');
+            if (modal && !modal.hidden) {
+              const modalCloseBtn = document.getElementById('modal-close-btn');
+              if (modalCloseBtn) modalCloseBtn.click();
+              return; 
+            }
+
+            // 3. Navigate back or exit the app
+            if (event.canGoBack) {
               window.history.back();
             } else {
               App.exitApp();
