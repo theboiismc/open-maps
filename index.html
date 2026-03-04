@@ -481,83 +481,91 @@
 <script src="capacitor.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    if (!window.Capacitor?.Plugins?.App) return;
-    const { App } = window.Capacitor.Plugins;
+    // 1. Check if we are running as a Native App (Android/iOS)
+    const isNative = window.Capacitor?.isNative;
+    
+    if (isNative && window.Capacitor.Plugins?.App) {
+      const { App } = window.Capacitor.Plugins;
 
-    // 1. Define how to detect and "undo" each UI state
-    // The order here is the priority (Topmost UI first)
-    const UI_STATES = [
-      {
-        name: 'Modal',
-        isActive: () => {
-          const el = document.getElementById('app-modal-overlay');
-          return el && !el.hidden;
-        },
-        close: () => document.getElementById('modal-close-btn')?.click()
-      },
-      {
-        name: 'Sidebar',
-        isActive: () => document.getElementById('sidebar-drawer')?.getAttribute('aria-hidden') === 'false',
-        close: () => document.getElementById('close-drawer-btn')?.click()
-      },
-      {
-        name: 'Dropdowns',
-        isActive: () => {
-          const p = document.getElementById('profile-button');
-          const a = document.getElementById('app-menu-button');
-          return p?.getAttribute('aria-expanded') === 'true' || a?.getAttribute('aria-expanded') === 'true';
-        },
-        close: () => {
-          document.getElementById('profile-button')?.setAttribute('aria-expanded', 'false');
-          document.getElementById('app-menu-button')?.setAttribute('aria-expanded', 'false');
-          // Also hide the actual containers
-          document.getElementById('profile-dropdown')?.setAttribute('hidden', 'true');
-          document.getElementById('services-dropdown')?.style.setProperty('display', 'none');
-        }
-      },
-      {
-        name: 'NavMode', // HANDLE NAVIGATION EXIT
-        isActive: () => {
-          const nav = document.getElementById('navigation-status');
-          return nav && !nav.hidden;
-        },
-        close: () => {
-          // This simulates clicking "End Trip", which restores Normal Mode
-          document.getElementById('end-navigation-btn')?.click();
-          
-          // Force UI refresh to ensure search bar returns
-          const search = document.getElementById('top-search-wrapper');
-          if (search) search.hidden = false;
-        }
-      },
-      {
-        name: 'SidePanel',
-        isActive: () => {
-          const sp = document.getElementById('side-panel');
-          return sp && getComputedStyle(sp).display !== 'none';
-        },
-        close: () => document.getElementById('close-panel-btn')?.click()
-      }
-    ];
+      App.addListener('backButton', (event) => {
+        // MOBILE ONLY: Custom logic to close menus/modals first
+        const UI_STATES = [
+          {
+            name: 'Modal',
+            isActive: () => {
+              const el = document.getElementById('app-modal-overlay');
+              return el && !el.hidden && getComputedStyle(el).display !== 'none';
+            },
+            close: () => document.getElementById('modal-close-btn')?.click()
+          },
+          {
+            name: 'LayerMenu',
+            isActive: () => {
+              const list = document.querySelector('.maplibregl-ctrl-layers-list, .map-style-menu');
+              return list && getComputedStyle(list).display !== 'none';
+            },
+            close: () => document.querySelector('.maplibregl-ctrl-layers > button, .layer-control-btn')?.click()
+          },
+          {
+            name: 'Sidebar',
+            isActive: () => document.getElementById('sidebar-drawer')?.getAttribute('aria-hidden') === 'false',
+            close: () => document.getElementById('close-drawer-btn')?.click()
+          },
+          {
+            name: 'Dropdowns',
+            isActive: () => {
+              const p = document.getElementById('profile-button');
+              const a = document.getElementById('app-menu-button');
+              return p?.getAttribute('aria-expanded') === 'true' || a?.getAttribute('aria-expanded') === 'true';
+            },
+            close: () => {
+              document.getElementById('profile-button')?.click();
+              document.getElementById('app-menu-button')?.click();
+            }
+          },
+          {
+            name: 'NavMode',
+            isActive: () => {
+              const nav = document.getElementById('navigation-status');
+              return nav && getComputedStyle(nav).display !== 'none' && !nav.hidden;
+            },
+            close: () => {
+              document.getElementById('end-navigation-btn')?.click();
+              const nav = document.getElementById('navigation-status');
+              if (nav) { nav.hidden = true; nav.style.display = 'none'; }
+              const search = document.getElementById('top-search-wrapper');
+              if (search) { search.hidden = false; search.style.display = 'block'; }
+            }
+          },
+          {
+            name: 'SidePanel',
+            isActive: () => {
+              const sp = document.getElementById('side-panel');
+              return sp && getComputedStyle(sp).display !== 'none';
+            },
+            close: () => document.getElementById('close-panel-btn')?.click()
+          }
+        ];
 
-    // 2. The Master Back-Button Listener
-    App.addListener('backButton', (event) => {
-      // Find the first active UI state and close it
-      for (const state of UI_STATES) {
-        if (state.isActive()) {
-          console.log(`[Back] Closing: ${state.name}`);
-          state.close();
-          return; // Success! We handled the back press.
+        for (const state of UI_STATES) {
+          if (state.isActive()) {
+            state.close();
+            return; 
+          }
         }
-      }
 
-      // 3. Fallback: Standard Navigation
-      if (event.canGoBack) {
-        window.history.back();
-      } else {
-        App.exitApp();
-      }
-    });
+        if (event.canGoBack) {
+          window.history.back();
+        } else {
+          App.exitApp();
+        }
+      });
+    } else {
+      // DESKTOP/WEB ONLY: 
+      // You can add logic here if you want browser back button 
+      // to close menus, or just leave it empty for standard behavior.
+      console.log("Running in standard Web mode - Native back button logic disabled.");
+    }
   });
 </script>
 
