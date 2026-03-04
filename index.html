@@ -479,6 +479,22 @@
         </button>
     </template>
     
+    <script>
+  // Wait for Capacitor to initialize
+  document.addEventListener('capacitorinit', () => {
+    const { App } = Capacitor.Plugins;
+
+    App.addListener('backButton', () => {
+      // Check if there is a previous page in the browser history
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        // If the user is on the very first screen, allow the app to close
+        App.exitApp();
+      }
+    });
+  });
+</script>
 
 </body>
 </html>
