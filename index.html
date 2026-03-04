@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <link rel="preconnect" href="https://static.theboiismc.com" crossorigin>
-    
+    <script src="capacitor.js"></script>
+    <script src="https://static.theboiismc.com/js/maps/backbutton.js" defer></script>
     <script src="https://static.theboiismc.com/js/identity/oidc-client-ts@2.2.0.js" defer></script>
     <script src="https://static.theboiismc.com/js/maps/maplibre-gl.js" defer></script>
     <script src="https://static.theboiismc.com/js/maps/turf.js" defer></script>
@@ -478,96 +479,6 @@
             </div>
         </button>
     </template>
-<script src="capacitor.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // 1. Check if we are running as a Native App (Android/iOS)
-    const isNative = window.Capacitor?.isNative;
-    
-    if (isNative && window.Capacitor.Plugins?.App) {
-      const { App } = window.Capacitor.Plugins;
-
-      App.addListener('backButton', (event) => {
-        // MOBILE ONLY: Custom logic to close menus/modals first
-        const UI_STATES = [
-          {
-            name: 'Modal',
-            isActive: () => {
-              const el = document.getElementById('app-modal-overlay');
-              return el && !el.hidden && getComputedStyle(el).display !== 'none';
-            },
-            close: () => document.getElementById('modal-close-btn')?.click()
-          },
-          {
-            name: 'LayerMenu',
-            isActive: () => {
-              const list = document.querySelector('.maplibregl-ctrl-layers-list, .map-style-menu');
-              return list && getComputedStyle(list).display !== 'none';
-            },
-            close: () => document.querySelector('.maplibregl-ctrl-layers > button, .layer-control-btn')?.click()
-          },
-          {
-            name: 'Sidebar',
-            isActive: () => document.getElementById('sidebar-drawer')?.getAttribute('aria-hidden') === 'false',
-            close: () => document.getElementById('close-drawer-btn')?.click()
-          },
-          {
-            name: 'Dropdowns',
-            isActive: () => {
-              const p = document.getElementById('profile-button');
-              const a = document.getElementById('app-menu-button');
-              return p?.getAttribute('aria-expanded') === 'true' || a?.getAttribute('aria-expanded') === 'true';
-            },
-            close: () => {
-              document.getElementById('profile-button')?.click();
-              document.getElementById('app-menu-button')?.click();
-            }
-          },
-          {
-            name: 'NavMode',
-            isActive: () => {
-              const nav = document.getElementById('navigation-status');
-              return nav && getComputedStyle(nav).display !== 'none' && !nav.hidden;
-            },
-            close: () => {
-              document.getElementById('end-navigation-btn')?.click();
-              const nav = document.getElementById('navigation-status');
-              if (nav) { nav.hidden = true; nav.style.display = 'none'; }
-              const search = document.getElementById('top-search-wrapper');
-              if (search) { search.hidden = false; search.style.display = 'block'; }
-            }
-          },
-          {
-            name: 'SidePanel',
-            isActive: () => {
-              const sp = document.getElementById('side-panel');
-              return sp && getComputedStyle(sp).display !== 'none';
-            },
-            close: () => document.getElementById('close-panel-btn')?.click()
-          }
-        ];
-
-        for (const state of UI_STATES) {
-          if (state.isActive()) {
-            state.close();
-            return; 
-          }
-        }
-
-        if (event.canGoBack) {
-          window.history.back();
-        } else {
-          App.exitApp();
-        }
-      });
-    } else {
-      // DESKTOP/WEB ONLY: 
-      // You can add logic here if you want browser back button 
-      // to close menus, or just leave it empty for standard behavior.
-      console.log("Running in standard Web mode - Native back button logic disabled.");
-    }
-  });
-</script>
 
 </body>
 </html>
