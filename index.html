@@ -481,71 +481,83 @@
 <script src="capacitor.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-      const App = window.Capacitor.Plugins.App;
-      
-      App.addListener('backButton', (event) => {
-        
-        // 1. Close Profile Dropdown
-        const profileBtn = document.getElementById('profile-button');
-        if (profileBtn && profileBtn.getAttribute('aria-expanded') === 'true') {
-          profileBtn.click();
-          return;
-        }
-        
-        // 2. Close App Services Menu
-        const appMenuBtn = document.getElementById('app-menu-button');
-        if (appMenuBtn && appMenuBtn.getAttribute('aria-expanded') === 'true') {
-          appMenuBtn.click();
-          return;
-        }
+    if (!window.Capacitor?.Plugins?.App) return;
+    const { App } = window.Capacitor.Plugins;
 
-        // 3. Close Layer Menu (Common MapLibre/MapTiler control class)
-        // Since it's dynamic, we look for common classes if the ID is unknown
-        const layerMenu = document.querySelector('.maplibregl-ctrl-layers, .map-style-menu');
-        if (layerMenu && !layerMenu.classList.contains('hidden')) {
-          // If you have a specific close button or just need to toggle the UI
-          const closeBtn = layerMenu.querySelector('button.close');
-          if (closeBtn) closeBtn.click(); else layerMenu.style.display = 'none';
-          return;
+    // 1. Define how to detect and "undo" each UI state
+    // The order here is the priority (Topmost UI first)
+    const UI_STATES = [
+      {
+        name: 'Modal',
+        isActive: () => {
+          const el = document.getElementById('app-modal-overlay');
+          return el && !el.hidden;
+        },
+        close: () => document.getElementById('modal-close-btn')?.click()
+      },
+      {
+        name: 'Sidebar',
+        isActive: () => document.getElementById('sidebar-drawer')?.getAttribute('aria-hidden') === 'false',
+        close: () => document.getElementById('close-drawer-btn')?.click()
+      },
+      {
+        name: 'Dropdowns',
+        isActive: () => {
+          const p = document.getElementById('profile-button');
+          const a = document.getElementById('app-menu-button');
+          return p?.getAttribute('aria-expanded') === 'true' || a?.getAttribute('aria-expanded') === 'true';
+        },
+        close: () => {
+          document.getElementById('profile-button')?.setAttribute('aria-expanded', 'false');
+          document.getElementById('app-menu-button')?.setAttribute('aria-expanded', 'false');
+          // Also hide the actual containers
+          document.getElementById('profile-dropdown')?.setAttribute('hidden', 'true');
+          document.getElementById('services-dropdown')?.style.setProperty('display', 'none');
         }
-
-        // 4. End Navigation Mode
-        const navStatus = document.getElementById('navigation-status');
-        if (navStatus && !navStatus.hidden) {
+      },
+      {
+        name: 'NavMode', // HANDLE NAVIGATION EXIT
+        isActive: () => {
+          const nav = document.getElementById('navigation-status');
+          return nav && !nav.hidden;
+        },
+        close: () => {
+          // This simulates clicking "End Trip", which restores Normal Mode
           document.getElementById('end-navigation-btn')?.click();
-          return;
+          
+          // Force UI refresh to ensure search bar returns
+          const search = document.getElementById('top-search-wrapper');
+          if (search) search.hidden = false;
         }
+      },
+      {
+        name: 'SidePanel',
+        isActive: () => {
+          const sp = document.getElementById('side-panel');
+          return sp && getComputedStyle(sp).display !== 'none';
+        },
+        close: () => document.getElementById('close-panel-btn')?.click()
+      }
+    ];
 
-        // 5. Close Sidebar Drawer
-        const drawer = document.getElementById('sidebar-drawer');
-        if (drawer && drawer.getAttribute('aria-hidden') === 'false') {
-          document.getElementById('close-drawer-btn')?.click();
-          return;
+    // 2. The Master Back-Button Listener
+    App.addListener('backButton', (event) => {
+      // Find the first active UI state and close it
+      for (const state of UI_STATES) {
+        if (state.isActive()) {
+          console.log(`[Back] Closing: ${state.name}`);
+          state.close();
+          return; // Success! We handled the back press.
         }
+      }
 
-        // 6. Close Modal Overlay
-        const modal = document.getElementById('app-modal-overlay');
-        if (modal && !modal.hidden) {
-          document.getElementById('modal-close-btn')?.click();
-          return; 
-        }
-
-        // 7. Close Side Panel (Location Details)
-        const sidePanel = document.getElementById('side-panel');
-        if (sidePanel && getComputedStyle(sidePanel).display !== 'none') {
-          document.getElementById('close-panel-btn')?.click();
-          return;
-        }
-
-        // 8. Final Step: Go back in history or Exit
-        if (event.canGoBack) {
-          window.history.back();
-        } else {
-          App.exitApp();
-        }
-      });
-    }
+      // 3. Fallback: Standard Navigation
+      if (event.canGoBack) {
+        window.history.back();
+      } else {
+        App.exitApp();
+      }
+    });
   });
 </script>
 
