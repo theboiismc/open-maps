@@ -478,39 +478,76 @@
             </div>
         </button>
     </template>
-  <script src="capacitor.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-          const App = window.Capacitor.Plugins.App;
-          
-          App.addListener('backButton', (event) => {
-            // 1. Check if the sidebar menu is open
-            const drawer = document.getElementById('sidebar-drawer');
-            if (drawer && drawer.getAttribute('aria-hidden') === 'false') {
-              const closeDrawerBtn = document.getElementById('close-drawer-btn');
-              if (closeDrawerBtn) closeDrawerBtn.click();
-              return; // Stop the back button from doing anything else
-            }
+<script src="capacitor.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+      const App = window.Capacitor.Plugins.App;
+      
+      App.addListener('backButton', (event) => {
+        
+        // 1. Close Profile Dropdown
+        const profileBtn = document.getElementById('profile-button');
+        if (profileBtn && profileBtn.getAttribute('aria-expanded') === 'true') {
+          profileBtn.click();
+          return;
+        }
+        
+        // 2. Close App Services Menu
+        const appMenuBtn = document.getElementById('app-menu-button');
+        if (appMenuBtn && appMenuBtn.getAttribute('aria-expanded') === 'true') {
+          appMenuBtn.click();
+          return;
+        }
 
-            // 2. Check if the modal overlay is open
-            const modal = document.getElementById('app-modal-overlay');
-            if (modal && !modal.hidden) {
-              const modalCloseBtn = document.getElementById('modal-close-btn');
-              if (modalCloseBtn) modalCloseBtn.click();
-              return; 
-            }
+        // 3. Close Layer Menu (Common MapLibre/MapTiler control class)
+        // Since it's dynamic, we look for common classes if the ID is unknown
+        const layerMenu = document.querySelector('.maplibregl-ctrl-layers, .map-style-menu');
+        if (layerMenu && !layerMenu.classList.contains('hidden')) {
+          // If you have a specific close button or just need to toggle the UI
+          const closeBtn = layerMenu.querySelector('button.close');
+          if (closeBtn) closeBtn.click(); else layerMenu.style.display = 'none';
+          return;
+        }
 
-            // 3. Navigate back or exit the app
-            if (event.canGoBack) {
-              window.history.back();
-            } else {
-              App.exitApp();
-            }
-          });
+        // 4. End Navigation Mode
+        const navStatus = document.getElementById('navigation-status');
+        if (navStatus && !navStatus.hidden) {
+          document.getElementById('end-navigation-btn')?.click();
+          return;
+        }
+
+        // 5. Close Sidebar Drawer
+        const drawer = document.getElementById('sidebar-drawer');
+        if (drawer && drawer.getAttribute('aria-hidden') === 'false') {
+          document.getElementById('close-drawer-btn')?.click();
+          return;
+        }
+
+        // 6. Close Modal Overlay
+        const modal = document.getElementById('app-modal-overlay');
+        if (modal && !modal.hidden) {
+          document.getElementById('modal-close-btn')?.click();
+          return; 
+        }
+
+        // 7. Close Side Panel (Location Details)
+        const sidePanel = document.getElementById('side-panel');
+        if (sidePanel && getComputedStyle(sidePanel).display !== 'none') {
+          document.getElementById('close-panel-btn')?.click();
+          return;
+        }
+
+        // 8. Final Step: Go back in history or Exit
+        if (event.canGoBack) {
+          window.history.back();
+        } else {
+          App.exitApp();
         }
       });
-    </script>
+    }
+  });
+</script>
 
 </body>
 </html>
