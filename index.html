@@ -2,11 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <link rel="preconnect" href="https://static.theboiismc.com" crossorigin>
-   <!-- Only load Capacitor if we are on a mobile device -->
-<script>
+   <script>
   if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
     const cap = document.createElement('script');
     cap.src = 'capacitor.js';
@@ -61,13 +60,21 @@
           "@type": "Organization",
           "@id": "https://www.theboiismc.com/#organization",
           "name": "TheBoiisMC",
+          "alternateName": "The Boiis MC",
           "url": "https://www.theboiismc.com",
-          "logo": "https://static.theboiismc.com/assets/logo.png",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://static.theboiismc.com/assets/logo.png"
+          },
+          "image": "https://static.theboiismc.com/assets/logo.png",
+          "description": "A privacy-first organization providing secure, self-hosted alternatives to big tech services.",
           "sameAs": [
+            "https://github.com/theboiismc",
             "https://maps.theboiismc.com",
             "https://search.theboiismc.com",
             "https://drive.theboiismc.com",
-            "https://github.com/theboiismc"
+            "https://photos.theboiismc.com",
+            "https://accounts.theboiismc.com"
           ]
         },
         {
@@ -83,8 +90,8 @@
           "name": "TheBoiisMC Maps",
           "url": "https://maps.theboiismc.com",
           "description": "Private navigation, driving directions, and place search powered by OpenStreetMap and TheBoiisMC.",
-          "applicationCategory": "Maps & Navigation",
-          "operatingSystem": "All",
+          "applicationCategory": "NavigationApplication",
+          "operatingSystem": "Any",
           "browserRequirements": "Requires JavaScript",
           "publisher": { "@id": "https://www.theboiismc.com/#organization" },
           "offers": {
@@ -140,6 +147,31 @@
         :focus-visible {
             outline: 3px solid var(--brand-primary, #4285F4);
             outline-offset: 2px;
+        }
+
+        /* ANDROID 15 SAFE AREA INSETS */
+        #top-search-wrapper,
+        #floating-profile-controls {
+            padding-top: env(safe-area-inset-top, 10px);
+            padding-left: env(safe-area-inset-left, 10px);
+            padding-right: env(safe-area-inset-right, 10px);
+        }
+
+        #side-panel,
+        #navigation-status {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+            padding-left: env(safe-area-inset-left, 0px);
+            padding-right: env(safe-area-inset-right, 0px);
+        }
+
+        #recenter-btn,
+        #toast-container {
+            margin-bottom: env(safe-area-inset-bottom, 15px);
+        }
+
+        #sidebar-drawer {
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
     </style>
 </head>
